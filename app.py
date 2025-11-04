@@ -111,6 +111,33 @@ def init_db():
             )
         ''')
         
+        # Таблица настроек
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT UNIQUE NOT NULL,
+                value TEXT,
+                description TEXT,
+                category TEXT DEFAULT 'general',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_by INTEGER
+            )
+        ''')
+        
+        # Инициализация настроек по умолчанию
+        default_settings = [
+            ('gwars_host', GWARS_HOST, 'Домен для GWars авторизации', 'gwars'),
+            ('gwars_site_id', str(GWARS_SITE_ID), 'ID сайта в GWars', 'gwars'),
+            ('admin_user_ids', ','.join(map(str, ADMIN_USER_IDS)), 'ID администраторов по умолчанию (через запятую)', 'system'),
+            ('project_name', 'Анонимные Деды Морозы', 'Название проекта', 'general'),
+        ]
+        
+        for key, value, description, category in default_settings:
+            c.execute('''
+                INSERT OR IGNORE INTO settings (key, value, description, category)
+                VALUES (?, ?, ?, ?)
+            ''', (key, value, description, category))
+        
         # Создаем системные роли, если их еще нет
         system_roles = [
             ('admin', 'Администратор', 'Полный доступ ко всем функциям системы', 1),
@@ -1167,6 +1194,77 @@ def admin_role_delete(role_id):
     
     conn.close()
     return redirect(url_for('admin_roles'))
+
+@app.route('/admin/settings', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_settings():
+    """Страница настроек"""
+    conn = get_db_connection()
+    
+    if request.method == 'POST':
+        # Обновляем настройки
+        settings_dict = {}
+        for key in request.form:
+            if key.startswith('setting_'):
+                setting_key = key.replace('setting_', '')
+                setting_value = request.form.get(key)
+                settings_dict[setting_key] = setting_value
+        
+        # Сохраняем настройки
+        for key, value in settings_dict.items():
+            try:
+                conn.execute('''
+                    UPDATE settings 
+                    SET value = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
+                    WHERE key = ?
+                ''', (value, session.get('user_id'), key))
+            except Exception as e:
+                log_error(f"Error updating setting {key}: {e}")
+        
+        conn.commit()
+        flash('Настройки успешно сохранены', 'success')
+        conn.close()
+        return redirect(url_for('admin_settings'))
+    
+    # Получаем все настройки, сгруппированные по категориям
+    settings = conn.execute('''
+        SELECT * FROM settings ORDER BY category, key
+    ''').fetchall()
+    
+    # Группируем по категориям
+    settings_by_category = {}
+    for setting in settings:
+        category = setting['category'] or 'general'
+        if category not in settings_by_category:
+            settings_by_category[category] = []
+        settings_by_category[category].append(dict(setting))
+    
+    conn.close()
+    
+    return render_template('admin/settings.html', settings_by_category=settings_by_category)
+
+def get_setting(key, default=None):
+    """Получает значение настройки из БД"""
+    conn = get_db_connection()
+    setting = conn.execute('SELECT value FROM settings WHERE key = ?', (key,)).fetchone()
+    conn.close()
+    return setting['value'] if setting and setting['value'] else default
+
+def set_setting(key, value, description=None, category='general'):
+    """Устанавливает значение настройки"""
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            INSERT OR REPLACE INTO settings (key, value, description, category, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (key, value, description or '', category))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error setting {key}: {e}")
+        conn.close()
+        return False
 
 # Инициализируем БД при импорте модуля (для WSGI)
 try:
