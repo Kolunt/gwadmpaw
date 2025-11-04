@@ -92,12 +92,10 @@
                     <span class="sidebar-icon">🎉</span>
                     <span>Мероприятия</span>
                 </a>
-                {% if session.user_id %}
-                    <a href="{{ url_for('participants') }}" class="sidebar-link">
-                        <span class="sidebar-icon">👥</span>
-                        <span>Участники</span>
-                    </a>
-                {% endif %}
+                <a href="{{ url_for('participants') }}" class="sidebar-link">
+                    <span class="sidebar-icon">👥</span>
+                    <span>Участники</span>
+                </a>
             </div>
             
             <!-- Админ-панель (только для администраторов) -->

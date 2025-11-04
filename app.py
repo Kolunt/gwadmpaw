@@ -1390,7 +1390,6 @@ def view_profile(user_id):
     return render_template('view_profile.html', user=user, user_roles=user_roles, is_own_profile=is_own_profile)
 
 @app.route('/participants')
-@require_login
 def participants():
     """Страница со списком участников"""
     conn = get_db_connection()
