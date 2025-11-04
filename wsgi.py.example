@@ -6,7 +6,8 @@ import sys
 import os
 
 # Укажите путь к вашему проекту
-path = '/home/yourusername/gwadmpaw'
+# Важно: папка называется "gwadm", а не "gwadmpaw" (репозиторий называется gwadmpaw)
+path = '/home/gwadm/gwadm'
 if path not in sys.path:
     sys.path.insert(0, path)
 

@@ -21,17 +21,22 @@ python app.py
 
 📖 **Подробная инструкция по развертыванию на gwadm.pythonanywhere.com** находится в файле [DEPLOYMENT.md](DEPLOYMENT.md)
 
+### ⚠️ Важно: названия репозитория и папки
+
+- **Репозиторий GitHub**: `gwadmpaw`
+- **Папка на PythonAnywhere**: `gwadm`
+
 ### Краткая инструкция:
 
-1. **Клонируйте репозиторий** на PythonAnywhere:
+1. **Клонируйте репозиторий** на PythonAnywhere с указанием имени папки:
 ```bash
 cd ~
-git clone https://github.com/Kolunt/gwadmpaw.git
+git clone https://github.com/Kolunt/gwadmpaw.git gwadm
 ```
 
 2. **Установите зависимости**:
 ```bash
-cd ~/gwadmpaw
+cd ~/gwadm
 pip3.10 install --user -r requirements.txt
 ```
 

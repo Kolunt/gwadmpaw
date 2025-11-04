@@ -2,23 +2,42 @@
 
 ## Развертывание на gwadm.pythonanywhere.com
 
+### ⚠️ Важное замечание о названиях
+
+- **Репозиторий GitHub**: `gwadmpaw`
+- **Папка на PythonAnywhere**: `gwadm`
+
+При клонировании репозитория нужно указать имя папки `gwadm`, чтобы все пути в инструкции совпадали.
+
 ### Шаг 1: Подготовка файлов
 
-1. **Клонируйте репозиторий** на PythonAnywhere через консоль:
+**Важно**: Репозиторий называется `gwadmpaw`, но на PythonAnywhere папка должна называться `gwadm`.
+
+1. **Клонируйте репозиторий** на PythonAnywhere через консоль с указанием имени папки:
 ```bash
 cd ~
-git clone https://github.com/Kolunt/gwadmpaw.git
+git clone https://github.com/Kolunt/gwadmpaw.git gwadm
 ```
 
-Или загрузите файлы через **Files** → **Upload a file** в панели управления PythonAnywhere.
+Это создаст папку `gwadm` вместо `gwadmpaw`.
+
+**Альтернативный способ** - если уже клонировали в папку `gwadmpaw`, переименуйте её:
+```bash
+cd ~
+mv gwadmpaw gwadm
+```
+
+Или загрузите файлы через **Files** → **Upload a file** в панели управления PythonAnywhere в папку `gwadm`.
 
 ### Шаг 2: Установка зависимостей
 
 1. Откройте консоль **Bash** в панели управления PythonAnywhere
 2. Перейдите в директорию проекта:
 ```bash
-cd ~/gwadmpaw
+cd ~/gwadm
 ```
+
+**Важно**: Используйте папку `gwadm`, а не `gwadmpaw`.
 
 3. Установите зависимости (для Python 3.10):
 ```bash
@@ -38,7 +57,8 @@ import sys
 import os
 
 # Добавляем путь к проекту
-path = '/home/gwadm/gwadmpaw'
+# Важно: папка называется "gwadm", а не "gwadmpaw"
+path = '/home/gwadm/gwadm'
 if path not in sys.path:
     sys.path.insert(0, path)
 
@@ -50,7 +70,9 @@ if __name__ == "__main__":
     application.run()
 ```
 
-**Важно**: Если ваше имя пользователя на PythonAnywhere не `gwadm`, замените `/home/gwadm/` на правильный путь (например, `/home/ваш_username/`).
+**Важно**: 
+- Путь указывает на `/home/gwadm/gwadm` (папка `gwadm`, а не `gwadmpaw`)
+- Если ваше имя пользователя на PythonAnywhere не `gwadm`, замените `/home/gwadm/` на правильный путь (например, `/home/ваш_username/gwadm`)
 
 ### Шаг 4: Настройка статических файлов
 
@@ -59,9 +81,11 @@ if __name__ == "__main__":
 
 | URL | Directory |
 |-----|-----------|
-| `/static/` | `/home/gwadm/gwadmpaw/static/` |
+| `/static/` | `/home/gwadm/gwadm/static/` |
 
-**Важно**: Замените `gwadm` на ваше имя пользователя, если оно отличается.
+**Важно**: 
+- Путь указывает на `/home/gwadm/gwadm/static/` (папка `gwadm`, а не `gwadmpaw`)
+- Замените `gwadm` на ваше имя пользователя, если оно отличается
 
 ### Шаг 5: Проверка конфигурации
 
@@ -77,8 +101,10 @@ GWARS_HOST = "gwadm.pythonanywhere.com"
 База данных `database.db` создастся автоматически при первом запуске приложения. Убедитесь, что у вашей директории есть права на запись:
 
 ```bash
-chmod 755 ~/gwadmpaw
+chmod 755 ~/gwadm
 ```
+
+**Важно**: Используйте папку `gwadm`, а не `gwadmpaw`.
 
 ### Шаг 7: Запуск приложения
 
@@ -125,9 +151,11 @@ python3.10 -c "import flask; print(flask.__version__)"
 Если нужно обновить код из репозитория:
 
 ```bash
-cd ~/gwadmpaw
+cd ~/gwadm
 git pull origin main
 ```
+
+**Важно**: Используйте папку `gwadm`, а не `gwadmpaw`.
 
 Затем перезагрузите веб-приложение через панель управления.
 
@@ -136,13 +164,13 @@ git pull origin main
 После развертывания структура должна выглядеть так:
 
 ```
-/home/gwadm/gwadmpaw/
+/home/gwadm/gwadm/          # Папка называется "gwadm", не "gwadmpaw"
 ├── app.py
 ├── requirements.txt
 ├── README.md
 ├── DEPLOYMENT.md
 ├── .gitignore
-├── database.db          # Создается автоматически
+├── database.db              # Создается автоматически
 ├── templates/
 │   ├── base.html
 │   ├── index.html
@@ -153,6 +181,11 @@ git pull origin main
     └── js/
         └── theme.js
 ```
+
+**Важно**: 
+- Репозиторий называется `gwadmpaw`
+- Но папка на сервере должна называться `gwadm`
+- Все пути в инструкции используют `/home/gwadm/gwadm/`
 
 ## Частые проблемы и решения
 
@@ -167,9 +200,11 @@ pip3.10 install --user -r requirements.txt
 
 **Решение**: Проверьте права доступа:
 ```bash
-chmod 755 ~/gwadmpaw
-chmod 644 ~/gwadmpaw/*.py
+chmod 755 ~/gwadm
+chmod 644 ~/gwadm/*.py
 ```
+
+**Важно**: Используйте папку `gwadm`, а не `gwadmpaw`.
 
 ### Проблема: "Internal Server Error"
 
@@ -182,7 +217,7 @@ chmod 644 ~/gwadmpaw/*.py
 
 **Решение**: 
 1. Проверьте настройки Static files в разделе Web
-2. Убедитесь, что путь указан правильно: `/home/gwadm/gwadmpaw/static/`
+2. Убедитесь, что путь указан правильно: `/home/gwadm/gwadm/static/` (папка `gwadm`, а не `gwadmpaw`)
 
 ## Дополнительная информация
 
