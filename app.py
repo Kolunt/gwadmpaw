@@ -1756,6 +1756,142 @@ def admin_users():
     
     return render_template('admin/users.html', users=users)
 
+@app.route('/admin/users/create', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_user_create():
+    """Создание нового пользователя"""
+    if request.method == 'POST':
+        user_id = request.form.get('user_id', '').strip()
+        username = request.form.get('username', '').strip()
+        level = request.form.get('level', '0')
+        synd = request.form.get('synd', '0')
+        has_passport = request.form.get('has_passport', '0')
+        has_mobile = request.form.get('has_mobile', '0')
+        old_passport = request.form.get('old_passport', '0')
+        usersex = request.form.get('usersex', '0')
+        bio = request.form.get('bio', '').strip()
+        contact_info = request.form.get('contact_info', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+        telegram = request.form.get('telegram', '').strip()
+        whatsapp = request.form.get('whatsapp', '').strip()
+        viber = request.form.get('viber', '').strip()
+        
+        if not user_id or not username:
+            flash('ID и имя пользователя обязательны', 'error')
+            return render_template('admin/user_form.html')
+        
+        try:
+            user_id_int = int(user_id)
+            level_int = int(level) if level else 0
+            synd_int = int(synd) if synd else 0
+            has_passport_int = int(has_passport)
+            has_mobile_int = int(has_mobile)
+            old_passport_int = int(old_passport)
+        except ValueError:
+            flash('Неверный формат числовых полей', 'error')
+            return render_template('admin/user_form.html')
+        
+        conn = get_db_connection()
+        
+        # Проверяем, существует ли пользователь
+        existing = conn.execute('SELECT user_id FROM users WHERE user_id = ?', (user_id_int,)).fetchone()
+        if existing:
+            flash('Пользователь с таким ID уже существует', 'error')
+            conn.close()
+            return render_template('admin/user_form.html')
+        
+        try:
+            # Генерируем уникальный avatar_seed для нового пользователя
+            avatar_seed = generate_unique_avatar_seed(user_id_int)
+            avatar_style = 'avataaars'
+            
+            conn.execute('''
+                INSERT INTO users 
+                (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, 
+                 avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id_int, username, level_int, synd_int, has_passport_int, has_mobile_int, 
+                  old_passport_int, usersex, avatar_seed, avatar_style, bio, contact_info, 
+                  email, phone, telegram, whatsapp, viber))
+            conn.commit()
+            flash('Пользователь успешно создан', 'success')
+            conn.close()
+            return redirect(url_for('admin_users'))
+        except Exception as e:
+            log_error(f"Error creating user: {e}")
+            flash(f'Ошибка создания пользователя: {str(e)}', 'error')
+            conn.close()
+            return render_template('admin/user_form.html')
+    
+    return render_template('admin/user_form.html')
+
+@app.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_user_edit(user_id):
+    """Редактирование пользователя"""
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    
+    if not user:
+        flash('Пользователь не найден', 'error')
+        conn.close()
+        return redirect(url_for('admin_users'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        level = request.form.get('level', '0')
+        synd = request.form.get('synd', '0')
+        has_passport = request.form.get('has_passport', '0')
+        has_mobile = request.form.get('has_mobile', '0')
+        old_passport = request.form.get('old_passport', '0')
+        usersex = request.form.get('usersex', '0')
+        bio = request.form.get('bio', '').strip()
+        contact_info = request.form.get('contact_info', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+        telegram = request.form.get('telegram', '').strip()
+        whatsapp = request.form.get('whatsapp', '').strip()
+        viber = request.form.get('viber', '').strip()
+        
+        if not username:
+            flash('Имя пользователя обязательно', 'error')
+            conn.close()
+            return render_template('admin/user_form.html', user=dict(user))
+        
+        try:
+            level_int = int(level) if level else 0
+            synd_int = int(synd) if synd else 0
+            has_passport_int = int(has_passport)
+            has_mobile_int = int(has_mobile)
+            old_passport_int = int(old_passport)
+        except ValueError:
+            flash('Неверный формат числовых полей', 'error')
+            conn.close()
+            return render_template('admin/user_form.html', user=dict(user))
+        
+        try:
+            conn.execute('''
+                UPDATE users SET
+                    username = ?, level = ?, synd = ?, has_passport = ?, has_mobile = ?,
+                    old_passport = ?, usersex = ?, bio = ?, contact_info = ?,
+                    email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?
+                WHERE user_id = ?
+            ''', (username, level_int, synd_int, has_passport_int, has_mobile_int,
+                  old_passport_int, usersex, bio, contact_info, email, phone, 
+                  telegram, whatsapp, viber, user_id))
+            conn.commit()
+            flash('Пользователь успешно обновлен', 'success')
+            conn.close()
+            return redirect(url_for('admin_users'))
+        except Exception as e:
+            log_error(f"Error updating user: {e}")
+            flash(f'Ошибка обновления пользователя: {str(e)}', 'error')
+            conn.close()
+    
+    conn.close()
+    return render_template('admin/user_form.html', user=dict(user))
+
 @app.route('/admin/users/<int:user_id>/roles', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_user_roles(user_id):
