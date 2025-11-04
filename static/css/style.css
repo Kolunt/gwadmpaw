@@ -184,11 +184,16 @@ body {
     box-shadow: var(--shadow-lg);
     z-index: 999;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     /* На десктопе всегда видим */
     transform: translateX(0);
     transition: transform 0.3s ease;
+    /* Плавная прокрутка на touch-устройствах */
+    -webkit-overflow-scrolling: touch;
+    /* Улучшенная прокрутка для мобильных */
+    overscroll-behavior: contain;
 }
 
 /* На мобильных скрываем по умолчанию */
@@ -250,6 +255,10 @@ body {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    overflow-x: hidden;
+    /* Плавная прокрутка на touch-устройствах */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 .sidebar-section {

@@ -95,5 +95,84 @@ document.addEventListener('DOMContentLoaded', function() {
     if (isMobile()) {
         closeSidebar();
     }
+    
+    // Поддержка свайпа для открытия/закрытия сайдбара (слева-направо)
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    const minSwipeDistance = 50;
+    const maxVerticalSwipe = 30; // Максимальное вертикальное движение для горизонтального свайпа
+    
+    document.addEventListener('touchstart', function(e) {
+        if (!isMobile()) return;
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    
+    document.addEventListener('touchend', function(e) {
+        if (!isMobile()) return;
+        touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenX;
+        
+        const swipeDistanceX = touchEndX - touchStartX;
+        const swipeDistanceY = Math.abs(e.changedTouches[0].screenY - touchStartY);
+        
+        // Проверяем, что это горизонтальный свайп (не вертикальный)
+        if (swipeDistanceY > maxVerticalSwipe) return;
+        
+        // Свайп вправо для открытия (только если сайдбар закрыт и свайп начался слева)
+        if (swipeDistanceX > minSwipeDistance && touchStartX < 50 && !sidebar.classList.contains('active')) {
+            openSidebar();
+        }
+        // Свайп влево для закрытия (только если сайдбар открыт)
+        else if (swipeDistanceX < -minSwipeDistance && sidebar.classList.contains('active')) {
+            closeSidebar();
+        }
+    }, { passive: true });
+    
+    // Улучшенная прокрутка сайдбара на touch-устройствах
+    if (sidebar) {
+        let lastTouchY = 0;
+        let isScrolling = false;
+        
+        sidebar.addEventListener('touchstart', function(e) {
+            lastTouchY = e.touches[0].clientY;
+            isScrolling = false;
+        }, { passive: true });
+        
+        sidebar.addEventListener('touchmove', function(e) {
+            if (!isScrolling) {
+                const currentY = e.touches[0].clientY;
+                const deltaY = Math.abs(currentY - lastTouchY);
+                
+                // Если движение больше 5px, считаем это прокруткой
+                if (deltaY > 5) {
+                    isScrolling = true;
+                }
+            }
+        }, { passive: true });
+        
+        // Предотвращаем прокрутку страницы при прокрутке сайдбара
+        sidebar.addEventListener('touchmove', function(e) {
+            const sidebarNav = sidebar.querySelector('.sidebar-nav');
+            if (sidebarNav) {
+                const scrollTop = sidebarNav.scrollTop;
+                const scrollHeight = sidebarNav.scrollHeight;
+                const clientHeight = sidebarNav.clientHeight;
+                const isAtTop = scrollTop === 0;
+                const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+                
+                if ((isAtTop && e.touches[0].clientY > lastTouchY) || 
+                    (isAtBottom && e.touches[0].clientY < lastTouchY)) {
+                    // Прокрутка достигла границы, позволяем прокрутку страницы
+                    return;
+                }
+                
+                // Иначе предотвращаем прокрутку страницы
+                e.stopPropagation();
+            }
+        }, { passive: false });
+    }
 });
 
