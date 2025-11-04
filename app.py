@@ -30,29 +30,69 @@ GWARS_HOST = "gwadm.pythonanywhere.com"
 GWARS_SITE_ID = 4
 
 # Инициализация базы данных
+_db_initialized = False
+_db_path = None
+
+def get_db_path():
+    """Определяет путь к базе данных"""
+    global _db_path
+    if _db_path is None:
+        # На PythonAnywhere используем абсолютный путь в домашней директории
+        if os.path.exists('/home/gwadm'):
+            # Мы на PythonAnywhere
+            _db_path = '/home/gwadm/gwadm/database.db'
+        else:
+            # Локально используем относительный путь
+            _db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database.db')
+    return _db_path
+
 def init_db():
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER UNIQUE NOT NULL,
-            username TEXT NOT NULL,
-            level INTEGER,
-            synd INTEGER,
-            has_passport INTEGER,
-            has_mobile INTEGER,
-            old_passport INTEGER,
-            usersex TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_login TIMESTAMP
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    """Инициализирует базу данных, создавая таблицы если их нет"""
+    global _db_initialized
+    try:
+        db_path = get_db_path()
+        log_debug(f"Initializing database at: {db_path}")
+        
+        # Создаем директорию если её нет
+        db_dir = os.path.dirname(db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+        
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER UNIQUE NOT NULL,
+                username TEXT NOT NULL,
+                level INTEGER,
+                synd INTEGER,
+                has_passport INTEGER,
+                has_mobile INTEGER,
+                old_passport INTEGER,
+                usersex TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        _db_initialized = True
+        log_debug(f"Database initialized successfully at: {db_path}")
+    except Exception as e:
+        log_error(f"Error initializing database: {e}")
+        raise
+
+def ensure_db():
+    """Убеждается, что база данных инициализирована"""
+    if not _db_initialized:
+        init_db()
 
 def get_db_connection():
-    conn = sqlite3.connect('database.db')
+    """Получает соединение с базой данных"""
+    ensure_db()  # Убеждаемся, что БД инициализирована
+    db_path = get_db_path()
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -451,9 +491,29 @@ def login():
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, datetime.now()))
         conn.commit()
+        log_debug(f"User saved successfully: user_id={user_id}, username={name}")
     except Exception as e:
-        flash(f'Ошибка сохранения пользователя: {str(e)}', 'error')
-        return redirect(url_for('index'))
+        log_error(f"Error saving user: {e}")
+        # Если ошибка из-за отсутствия таблицы, пробуем инициализировать БД заново
+        if "no such table" in str(e).lower():
+            log_error("Table not found, reinitializing database...")
+            init_db()
+            # Пробуем еще раз
+            try:
+                conn.execute('''
+                    INSERT OR REPLACE INTO users 
+                    (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, last_login)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, datetime.now()))
+                conn.commit()
+                log_debug(f"User saved successfully after reinitialization: user_id={user_id}")
+            except Exception as e2:
+                log_error(f"Error saving user after reinitialization: {e2}")
+                flash(f'Ошибка сохранения пользователя: {str(e2)}', 'error')
+                return redirect(url_for('index'))
+        else:
+            flash(f'Ошибка сохранения пользователя: {str(e)}', 'error')
+            return redirect(url_for('index'))
     finally:
         conn.close()
     
@@ -568,7 +628,12 @@ def debug():
         return render_template('debug.html', debug_info=debug_info)
     return render_template('debug.html', debug_info=None)
 
-if __name__ == '__main__':
+# Инициализируем БД при импорте модуля (для WSGI)
+try:
     init_db()
+except Exception as e:
+    log_error(f"Failed to initialize database on startup: {e}")
+
+if __name__ == '__main__':
     app.run(debug=True)
 
