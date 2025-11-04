@@ -42,8 +42,12 @@
                     <span class="navbar-icon theme-icon">🌙</span>
                 </button>
                 {% if session.user_id %}
-                <a href="{{ url_for('dashboard') }}" class="navbar-icon-btn" title="Профиль">
-                    <span class="navbar-icon">👤</span>
+                <a href="{{ url_for('dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="Профиль">
+                    {% if current_user_avatar_seed %}
+                        <img src="{{ get_avatar_url(current_user_avatar_seed, size=32) }}" alt="Аватар" class="navbar-avatar">
+                    {% else %}
+                        <span class="navbar-icon">👤</span>
+                    {% endif %}
                 </a>
                 <a href="{{ url_for('logout') }}" class="navbar-icon-btn" title="Выход">
                     <span class="navbar-icon">🚪</span>

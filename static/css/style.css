@@ -126,6 +126,26 @@ body {
     font-size: 1.2rem;
 }
 
+.navbar-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    object-fit: cover;
+    display: block;
+}
+
+.navbar-avatar-btn {
+    padding: 0;
+    overflow: hidden;
+}
+
+.navbar-avatar-btn:hover .navbar-avatar {
+    border-color: var(--accent-color);
+    transform: scale(1.1);
+    transition: all 0.3s ease;
+}
+
 /* Сайдбар */
 .content-wrapper {
     margin-left: 250px;

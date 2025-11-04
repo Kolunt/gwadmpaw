@@ -445,7 +445,19 @@ def verify_sign4(sign3, sign4):
 def inject_default_theme():
     """Добавляет настройку темы по умолчанию во все шаблоны"""
     default_theme = get_setting('default_theme', 'light')
-    return dict(default_theme=default_theme, get_avatar_url=get_avatar_url)
+    # Получаем аватар текущего пользователя для хэдера
+    current_user_avatar_seed = None
+    if 'user_id' in session:
+        conn = get_db_connection()
+        user = conn.execute('SELECT avatar_seed FROM users WHERE user_id = ?', (session['user_id'],)).fetchone()
+        if user:
+            current_user_avatar_seed = user['avatar_seed']
+        conn.close()
+    return dict(
+        default_theme=default_theme, 
+        get_avatar_url=get_avatar_url,
+        current_user_avatar_seed=current_user_avatar_seed
+    )
 
 @app.route('/')
 def index():
