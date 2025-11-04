@@ -1787,7 +1787,6 @@ def admin_user_create():
             synd_int = int(synd) if synd else 0
             has_passport_int = int(has_passport)
             has_mobile_int = int(has_mobile)
-            old_passport_int = int(old_passport)
         except ValueError:
             flash('Неверный формат числовых полей', 'error')
             return render_template('admin/user_form.html')
@@ -1808,11 +1807,11 @@ def admin_user_create():
             
             conn.execute('''
                 INSERT INTO users 
-                (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, 
+                (user_id, username, level, synd, has_passport, has_mobile, usersex, 
                  avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (user_id_int, username, level_int, synd_int, has_passport_int, has_mobile_int, 
-                  old_passport_int, usersex, avatar_seed, avatar_style, bio, contact_info, 
+                  usersex, avatar_seed, avatar_style, bio, contact_info, 
                   email, phone, telegram, whatsapp, viber))
             conn.commit()
             flash('Пользователь успешно создан', 'success')
@@ -1864,7 +1863,6 @@ def admin_user_edit(user_id):
             synd_int = int(synd) if synd else 0
             has_passport_int = int(has_passport)
             has_mobile_int = int(has_mobile)
-            old_passport_int = int(old_passport)
         except ValueError:
             flash('Неверный формат числовых полей', 'error')
             conn.close()
@@ -1874,11 +1872,11 @@ def admin_user_edit(user_id):
             conn.execute('''
                 UPDATE users SET
                     username = ?, level = ?, synd = ?, has_passport = ?, has_mobile = ?,
-                    old_passport = ?, usersex = ?, bio = ?, contact_info = ?,
+                    usersex = ?, bio = ?, contact_info = ?,
                     email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?
                 WHERE user_id = ?
             ''', (username, level_int, synd_int, has_passport_int, has_mobile_int,
-                  old_passport_int, usersex, bio, contact_info, email, phone, 
+                  usersex, bio, contact_info, email, phone, 
                   telegram, whatsapp, viber, user_id))
             conn.commit()
             flash('Пользователь успешно обновлен', 'success')
