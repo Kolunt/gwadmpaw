@@ -403,6 +403,16 @@ def remove_role(user_id, role_name):
     
     try:
         conn.execute('''
+            DELETE FROM user_roles
+            WHERE user_id = ? AND role_id = ?
+        ''', (user_id, role['id']))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error removing role: {e}")
+        conn.close()
+        return False
 
 # ========== Система прав (permissions) ==========
 
