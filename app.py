@@ -676,8 +676,7 @@ def verify_sign4(sign3, sign4):
 
 @app.context_processor
 def inject_default_theme():
-    """Добавляет функции и переменные во все шаблоны"""
-    """Добавляет настройку темы по умолчанию во все шаблоны"""
+    """Добавляет настройку темы по умолчанию и функции во все шаблоны"""
     default_theme = get_setting('default_theme', 'light')
     # Получаем аватар текущего пользователя для хэдера
     current_user_avatar_seed = None
@@ -694,7 +693,8 @@ def inject_default_theme():
         get_avatar_url=get_avatar_url,
         current_user_avatar_seed=current_user_avatar_seed,
         current_user_avatar_style=current_user_avatar_style,
-        get_role_permissions=get_role_permissions
+        get_role_permissions=get_role_permissions,
+        get_setting=get_setting
     )
 
 @app.route('/')

@@ -41,7 +41,15 @@
                     <span></span>
                     <span></span>
                 </button>
+                {% set site_logo = get_setting('site_logo', '') %}
+                {% if site_logo %}
+                <a href="{{ url_for('index') }}" class="navbar-brand-link">
+                    <img src="{{ site_logo }}" alt="Логотип" class="navbar-logo">
+                    <span class="logo">Анонимные Деды Морозы</span>
+                </a>
+                {% else %}
                 <h1 class="logo">Анонимные Деды Морозы</h1>
+                {% endif %}
             </div>
             <div class="navbar-actions">
                 <button id="theme-toggle" class="navbar-icon-btn" title="Переключить тему" aria-label="Переключить тему">
