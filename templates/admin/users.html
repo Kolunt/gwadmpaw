@@ -101,7 +101,8 @@
                     <td data-label="Дата регистрации">{{ user.created_at or 'N/A' }}</td>
                     <td data-label="Последний вход">{{ user.last_login or 'N/A' }}</td>
                     <td data-label="Действия">
-                        <a href="{{ url_for('admin_user_roles', user_id=user.user_id) }}" class="btn btn-sm btn-primary">Управление ролями</a>
+                        <a href="{{ url_for('admin_user_roles', user_id=user.user_id) }}" class="btn btn-sm btn-primary">Роли</a>
+                        <a href="{{ url_for('admin_user_titles', user_id=user.user_id) }}" class="btn btn-sm btn-secondary">Звания</a>
                     </td>
                 </tr>
                 {% endfor %}

@@ -42,6 +42,19 @@
                     {% endif %}
                 </span>
             </div>
+            {% set user_titles = get_user_titles(user.user_id) %}
+            {% if user_titles %}
+            <div class="info-row">
+                <span class="info-label">Звания:</span>
+                <span class="info-value">
+                    {% for title in user_titles %}
+                        <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
+                            {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+                        </span>
+                    {% endfor %}
+                </span>
+            </div>
+            {% endif %}
             <div class="info-row">
                 <span class="info-label">Пол:</span>
                 <span class="info-value">{{ user.usersex or 'Не указан' }}</span>

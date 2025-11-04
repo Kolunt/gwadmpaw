@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{% if title %}Редактирование звания{% else %}Создание звания{% endif %} - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>{% if title %}Редактирование звания{% else %}Создание нового звания{% endif %}</h1>
+        <a href="{{ url_for('admin_titles') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+    
+    <div class="form-container">
+        <form method="POST" class="role-form">
+            {% if not title %}
+            <div class="form-group">
+                <label for="name">Имя звания (латиница, без пробелов):</label>
+                <input type="text" id="name" name="name" required 
+                       pattern="[a-z0-9_]+" 
+                       placeholder="например: contributor"
+                       value="{{ title.name if title else '' }}">
+                <small>Только строчные латинские буквы, цифры и подчеркивание</small>
+            </div>
+            {% else %}
+            <div class="form-group">
+                <label>Имя звания:</label>
+                <input type="text" value="{{ title.name }}" disabled>
+                <small>Имя системного звания нельзя изменить</small>
+            </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="display_name">Отображаемое имя:</label>
+                <input type="text" id="display_name" name="display_name" required 
+                       value="{{ title.display_name if title else '' }}"
+                       placeholder="например: Автор идеи">
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Описание:</label>
+                <textarea id="description" name="description" rows="3" 
+                          placeholder="Описание звания и его назначения">{{ title.description if title else '' }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="icon">Иконка (эмодзи или символ):</label>
+                <input type="text" id="icon" name="icon" 
+                       value="{{ title.icon if title else '' }}"
+                       placeholder="например: 💡"
+                       maxlength="2">
+                <small>Можно использовать эмодзи или символы (максимум 2 символа)</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="color">Цвет:</label>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <input type="color" id="color" name="color" 
+                           value="{{ title.color if title else '#007bff' }}"
+                           style="width: 80px; height: 40px;">
+                    <input type="text" 
+                           value="{{ title.color if title else '#007bff' }}"
+                           placeholder="#007bff"
+                           pattern="#[0-9A-Fa-f]{6}"
+                           onchange="document.getElementById('color').value = this.value"
+                           style="flex: 1;">
+                </div>
+                <small>Выберите цвет для отображения звания</small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    {% if title %}Сохранить изменения{% else %}Создать звание{% endif %}
+                </button>
+                <a href="{{ url_for('admin_titles') }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colorInput = document.getElementById('color');
+    const textInput = colorInput.nextElementSibling;
+    
+    colorInput.addEventListener('input', function() {
+        textInput.value = this.value;
+    });
+    
+    textInput.addEventListener('input', function() {
+        if (this.value.match(/^#[0-9A-Fa-f]{6}$/)) {
+            colorInput.value = this.value;
+        }
+    });
+});
+</script>
+{% endblock %}
+

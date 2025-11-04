@@ -154,6 +154,49 @@ def init_db():
             )
         ''')
         
+        # Таблица званий (titles)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS titles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                display_name TEXT NOT NULL,
+                description TEXT,
+                color TEXT DEFAULT '#007bff',
+                icon TEXT,
+                is_system INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Связь пользователей и званий (многие ко многим)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS user_titles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                title_id INTEGER NOT NULL,
+                assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                assigned_by INTEGER,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (title_id) REFERENCES titles(id) ON DELETE CASCADE,
+                FOREIGN KEY (assigned_by) REFERENCES users(user_id),
+                UNIQUE(user_id, title_id)
+            )
+        ''')
+        
+        # Инициализация стандартных званий
+        default_titles = [
+            ('author', 'Автор идеи', 'Автор идеи проекта', '#28a745', '💡', 1),
+            ('developer', 'Разработчик', 'Разработчик проекта', '#007bff', '💻', 1),
+            ('ambassador', 'Амбассадор', 'Амбассадор проекта', '#ffc107', '⭐', 1),
+            ('designer', 'Дизайнер', 'Дизайнер проекта', '#e83e8c', '🎨', 1),
+        ]
+        
+        for title_name, title_display, title_desc, title_color, title_icon, is_system in default_titles:
+            c.execute('''
+                INSERT OR IGNORE INTO titles (name, display_name, description, color, icon, is_system)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (title_name, title_display, title_desc, title_color, title_icon, is_system))
+        
         # Инициализация стандартных прав
         default_permissions = [
             # Управление пользователями
@@ -508,6 +551,67 @@ def has_permission(user_id, permission_name):
     
     conn.close()
     return permission is not None
+
+# ========== Система званий (titles) ==========
+
+def get_all_titles():
+    """Получает список всех званий"""
+    conn = get_db_connection()
+    titles = conn.execute('''
+        SELECT * FROM titles ORDER BY is_system DESC, display_name
+    ''').fetchall()
+    conn.close()
+    return [dict(t) for t in titles]
+
+def get_user_titles(user_id):
+    """Получает список званий пользователя"""
+    if not user_id:
+        return []
+    conn = get_db_connection()
+    titles = conn.execute('''
+        SELECT t.* FROM titles t
+        INNER JOIN user_titles ut ON t.id = ut.title_id
+        WHERE ut.user_id = ?
+        ORDER BY t.display_name
+    ''', (user_id,)).fetchall()
+    conn.close()
+    return [dict(t) for t in titles]
+
+def assign_title(user_id, title_id, assigned_by=None):
+    """Назначает звание пользователю"""
+    if not user_id or not title_id:
+        return False
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            INSERT OR REPLACE INTO user_titles (user_id, title_id, assigned_by)
+            VALUES (?, ?, ?)
+        ''', (user_id, title_id, assigned_by))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error assigning title: {e}")
+        conn.close()
+        return False
+
+def remove_title(user_id, title_id):
+    """Удаляет звание у пользователя"""
+    if not user_id or not title_id:
+        return False
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            DELETE FROM user_titles
+            WHERE user_id = ? AND title_id = ?
+        ''', (user_id, title_id))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error removing title: {e}")
+        conn.close()
+        return False
 
 # Декораторы для проверки прав доступа
 def require_role(role_name):
@@ -1814,6 +1918,194 @@ def admin_role_delete(role_id):
     
     conn.close()
     return redirect(url_for('admin_roles'))
+
+# ========== Управление званиями ==========
+
+@app.route('/admin/titles')
+@require_role('admin')
+def admin_titles():
+    """Управление званиями"""
+    conn = get_db_connection()
+    titles = conn.execute('SELECT * FROM titles ORDER BY is_system DESC, display_name').fetchall()
+    
+    # Для каждого звания получаем количество пользователей
+    titles_with_counts = []
+    for title in titles:
+        count = conn.execute('''
+            SELECT COUNT(*) as count FROM user_titles WHERE title_id = ?
+        ''', (title['id'],)).fetchone()
+        titles_with_counts.append({
+            **dict(title),
+            'user_count': count['count']
+        })
+    
+    conn.close()
+    
+    return render_template('admin/titles.html', titles=titles_with_counts)
+
+@app.route('/admin/titles/create', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_title_create():
+    """Создание нового звания"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip().lower()
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        color = request.form.get('color', '#007bff').strip()
+        icon = request.form.get('icon', '').strip()
+        
+        if not name or not display_name:
+            flash('Имя и отображаемое имя звания обязательны', 'error')
+            return render_template('admin/title_form.html')
+        
+        # Проверяем, что имя звания уникально
+        conn = get_db_connection()
+        existing = conn.execute('SELECT id FROM titles WHERE name = ?', (name,)).fetchone()
+        if existing:
+            flash('Звание с таким именем уже существует', 'error')
+            conn.close()
+            return render_template('admin/title_form.html')
+        
+        try:
+            conn.execute('''
+                INSERT INTO titles (name, display_name, description, color, icon, is_system)
+                VALUES (?, ?, ?, ?, ?, 0)
+            ''', (name, display_name, description, color, icon))
+            conn.commit()
+            flash('Звание успешно создано', 'success')
+            conn.close()
+            return redirect(url_for('admin_titles'))
+        except Exception as e:
+            log_error(f"Error creating title: {e}")
+            flash(f'Ошибка создания звания: {str(e)}', 'error')
+            conn.close()
+    
+    return render_template('admin/title_form.html')
+
+@app.route('/admin/titles/<int:title_id>/edit', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_title_edit(title_id):
+    """Редактирование звания"""
+    conn = get_db_connection()
+    title = conn.execute('SELECT * FROM titles WHERE id = ?', (title_id,)).fetchone()
+    
+    if not title:
+        flash('Звание не найдено', 'error')
+        conn.close()
+        return redirect(url_for('admin_titles'))
+    
+    # Системные звания нельзя редактировать
+    if title['is_system']:
+        flash('Системные звания нельзя редактировать', 'error')
+        conn.close()
+        return redirect(url_for('admin_titles'))
+    
+    if request.method == 'POST':
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        color = request.form.get('color', '#007bff').strip()
+        icon = request.form.get('icon', '').strip()
+        
+        if not display_name:
+            flash('Отображаемое имя звания обязательно', 'error')
+            conn.close()
+            return render_template('admin/title_form.html', title=title)
+        
+        try:
+            conn.execute('''
+                UPDATE titles SET display_name = ?, description = ?, color = ?, icon = ?
+                WHERE id = ?
+            ''', (display_name, description, color, icon, title_id))
+            conn.commit()
+            flash('Звание успешно обновлено', 'success')
+            conn.close()
+            return redirect(url_for('admin_titles'))
+        except Exception as e:
+            log_error(f"Error updating title: {e}")
+            flash(f'Ошибка обновления звания: {str(e)}', 'error')
+            conn.close()
+    
+    conn.close()
+    return render_template('admin/title_form.html', title=title)
+
+@app.route('/admin/titles/<int:title_id>/delete', methods=['POST'])
+@require_role('admin')
+def admin_title_delete(title_id):
+    """Удаление звания"""
+    conn = get_db_connection()
+    title = conn.execute('SELECT * FROM titles WHERE id = ?', (title_id,)).fetchone()
+    
+    if not title:
+        flash('Звание не найдено', 'error')
+        conn.close()
+        return redirect(url_for('admin_titles'))
+    
+    # Системные звания нельзя удалять
+    if title['is_system']:
+        flash('Системные звания нельзя удалять', 'error')
+        conn.close()
+        return redirect(url_for('admin_titles'))
+    
+    try:
+        conn.execute('DELETE FROM titles WHERE id = ?', (title_id,))
+        conn.commit()
+        flash('Звание успешно удалено', 'success')
+    except Exception as e:
+        log_error(f"Error deleting title: {e}")
+        flash(f'Ошибка удаления звания: {str(e)}', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_titles'))
+
+@app.route('/admin/users/<int:user_id>/titles', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_user_titles(user_id):
+    """Управление званиями пользователя"""
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    
+    if not user:
+        flash('Пользователь не найден', 'error')
+        conn.close()
+        return redirect(url_for('admin_users'))
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        title_id = request.form.get('title_id')
+        
+        if action == 'assign' and title_id:
+            try:
+                title_id_int = int(title_id)
+                if assign_title(user_id, title_id_int, assigned_by=session['user_id']):
+                    flash('Звание успешно назначено', 'success')
+                else:
+                    flash('Ошибка назначения звания', 'error')
+            except ValueError:
+                flash('Неверный ID звания', 'error')
+        elif action == 'remove' and title_id:
+            try:
+                title_id_int = int(title_id)
+                if remove_title(user_id, title_id_int):
+                    flash('Звание успешно удалено', 'success')
+                else:
+                    flash('Ошибка удаления звания', 'error')
+            except ValueError:
+                flash('Неверный ID звания', 'error')
+    
+    # Получаем все звания
+    all_titles = get_all_titles()
+    
+    # Получаем звания пользователя
+    user_titles = get_user_titles(user_id)
+    user_title_ids = [t['id'] for t in user_titles]
+    
+    conn.close()
+    
+    return render_template('admin/user_titles.html', 
+                         user=user, 
+                         all_titles=all_titles, 
+                         user_titles=user_titles,
+                         user_title_ids=user_title_ids)
 
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @require_role('admin')
