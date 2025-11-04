@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}{% if user %}Редактирование пользователя{% else %}Создание пользователя{% endif %} - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>{% if user %}Редактирование пользователя{% else %}Создание нового пользователя{% endif %}</h1>
+        <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+    
+    <div class="form-container">
+        <form method="POST" class="user-form">
+            <div class="form-group">
+                <label for="user_id">ID пользователя (GWars):</label>
+                {% if user %}
+                    <input type="text" id="user_id" name="user_id" value="{{ user.user_id }}" disabled>
+                    <small>ID пользователя нельзя изменить</small>
+                {% else %}
+                    <input type="number" id="user_id" name="user_id" required min="1" 
+                           placeholder="Например: 283494"
+                           value="{{ request.form.get('user_id', '') }}">
+                    <small>Уникальный числовой ID пользователя из GWars</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Имя пользователя:</label>
+                <input type="text" id="username" name="username" required 
+                       value="{{ user.username if user else request.form.get('username', '') }}"
+                       placeholder="Например: _Колунт_">
+                <small>Никнейм пользователя из GWars</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="level">Уровень:</label>
+                <input type="number" id="level" name="level" min="0" 
+                       value="{{ user.level if user else request.form.get('level', '') }}"
+                       placeholder="Например: 50">
+                <small>Уровень пользователя в GWars</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="synd">Синдикат:</label>
+                <input type="number" id="synd" name="synd" min="0" 
+                       value="{{ user.synd if user else request.form.get('synd', '') }}"
+                       placeholder="Например: 5594">
+                <small>ID синдиката пользователя в GWars</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="has_passport">Есть паспорт:</label>
+                <select id="has_passport" name="has_passport">
+                    <option value="0" {% if not user or user.has_passport == 0 %}selected{% endif %}>Нет</option>
+                    <option value="1" {% if user and user.has_passport == 1 %}selected{% endif %}>Да</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="has_mobile">Есть мобильный:</label>
+                <select id="has_mobile" name="has_mobile">
+                    <option value="0" {% if not user or user.has_mobile == 0 %}selected{% endif %}>Нет</option>
+                    <option value="1" {% if user and user.has_mobile == 1 %}selected{% endif %}>Да</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="old_passport">Старый паспорт:</label>
+                <select id="old_passport" name="old_passport">
+                    <option value="0" {% if not user or user.old_passport == 0 %}selected{% endif %}>Нет</option>
+                    <option value="1" {% if user and user.old_passport == 1 %}selected{% endif %}>Да</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="usersex">Пол:</label>
+                <select id="usersex" name="usersex">
+                    <option value="0" {% if not user or user.usersex == '0' %}selected{% endif %}>Мужской</option>
+                    <option value="1" {% if user and user.usersex == '1' %}selected{% endif %}>Женский</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="bio">О себе:</label>
+                <textarea id="bio" name="bio" rows="4" 
+                          placeholder="Краткая информация о пользователе">{{ user.bio if user else request.form.get('bio', '') }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="contact_info">Контактная информация:</label>
+                <textarea id="contact_info" name="contact_info" rows="3" 
+                          placeholder="Дополнительная контактная информация">{{ user.contact_info if user else request.form.get('contact_info', '') }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" 
+                       value="{{ user.email if user else request.form.get('email', '') }}"
+                       placeholder="email@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Телефон:</label>
+                <input type="text" id="phone" name="phone" 
+                       value="{{ user.phone if user else request.form.get('phone', '') }}"
+                       placeholder="+7 (999) 123-45-67">
+            </div>
+            
+            <div class="form-group">
+                <label for="telegram">Telegram:</label>
+                <input type="text" id="telegram" name="telegram" 
+                       value="{{ user.telegram if user else request.form.get('telegram', '') }}"
+                       placeholder="@username">
+            </div>
+            
+            <div class="form-group">
+                <label for="whatsapp">WhatsApp:</label>
+                <input type="text" id="whatsapp" name="whatsapp" 
+                       value="{{ user.whatsapp if user else request.form.get('whatsapp', '') }}"
+                       placeholder="+7 (999) 123-45-67">
+            </div>
+            
+            <div class="form-group">
+                <label for="viber">Viber:</label>
+                <input type="text" id="viber" name="viber" 
+                       value="{{ user.viber if user else request.form.get('viber', '') }}"
+                       placeholder="+7 (999) 123-45-67">
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    {% if user %}Сохранить изменения{% else %}Создать пользователя{% endif %}
+                </button>
+                <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

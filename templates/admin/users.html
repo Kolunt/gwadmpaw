@@ -6,7 +6,10 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>Управление пользователями</h1>
-        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{{ url_for('admin_user_create') }}" class="btn btn-primary">➕ Создать пользователя</a>
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        </div>
     </div>
     
     <!-- Панель поиска и фильтров -->
@@ -101,7 +104,8 @@
                     <td data-label="Дата регистрации">{{ user.created_at or 'N/A' }}</td>
                     <td data-label="Последний вход">{{ user.last_login or 'N/A' }}</td>
                     <td data-label="Действия">
-                        <a href="{{ url_for('admin_user_roles', user_id=user.user_id) }}" class="btn btn-sm btn-primary">Роли</a>
+                        <a href="{{ url_for('admin_user_edit', user_id=user.user_id) }}" class="btn btn-sm btn-primary">✏️ Редактировать</a>
+                        <a href="{{ url_for('admin_user_roles', user_id=user.user_id) }}" class="btn btn-sm btn-secondary">Роли</a>
                         <a href="{{ url_for('admin_user_titles', user_id=user.user_id) }}" class="btn btn-sm btn-secondary">Звания</a>
                     </td>
                 </tr>
