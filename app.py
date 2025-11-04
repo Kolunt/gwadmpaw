@@ -1,11 +1,17 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+from urllib.parse import unquote
 import hashlib
 import sqlite3
 from datetime import datetime
 import os
+import logging
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+# Настройка логирования
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Константы для GWars авторизации
 GWARS_PASSWORD = "deadmoroz"
@@ -41,9 +47,18 @@ def get_db_connection():
 
 # Проверка подписи sign
 def verify_sign(username, user_id, sign):
+    # Формируем подпись: md5(password + username + user_id)
+    # В PHP: $sign=md5($pass.$user_name.$user_user_id);
+    # Но в URL приходит user_id, так что используем его
     expected_sign = hashlib.md5(
         (GWARS_PASSWORD + username + str(user_id)).encode('utf-8')
     ).hexdigest()
+    
+    # Логирование для отладки
+    logger.debug(f"verify_sign: username={username}, user_id={user_id}")
+    logger.debug(f"verify_sign: expected={expected_sign}, received={sign}")
+    logger.debug(f"verify_sign: match={expected_sign == sign}")
+    
     return expected_sign == sign
 
 # Проверка подписи sign2
@@ -78,7 +93,7 @@ def index():
 def login():
     # Получаем параметры от GWars
     sign = request.args.get('sign', '')
-    name = request.args.get('name', '')
+    name = unquote(request.args.get('name', ''))  # Декодируем имя из URL
     user_id = request.args.get('user_id', '')
     level = request.args.get('level', '0')
     synd = request.args.get('synd', '0')
@@ -92,11 +107,25 @@ def login():
     
     # Если нет параметров, редиректим на GWars для авторизации
     if not sign or not user_id:
-        gwars_url = f"https://www.gwars.io/cross-server-login.php?site_id={GWARS_SITE_ID}&url={request.url_root}login"
+        # Формируем полный URL для редиректа обратно
+        # На PythonAnywhere используем https://, локально - http://
+        if 'pythonanywhere.com' in request.host:
+            callback_url = f"https://{request.host}/login"
+        else:
+            callback_url = f"{request.scheme}://{request.host}/login"
+        
+        gwars_url = f"https://www.gwars.io/cross-server-login.php?site_id={GWARS_SITE_ID}&url={callback_url}"
+        logger.debug(f"Redirecting to GWars: {gwars_url}")
+        logger.debug(f"Callback URL: {callback_url}")
         return redirect(gwars_url)
+    
+    # Логируем все полученные параметры для отладки
+    logger.debug(f"Received parameters: sign={sign}, name={name}, user_id={user_id}, level={level}, synd={synd}")
+    logger.debug(f"Full URL: {request.url}")
     
     # Проверяем подписи
     if not verify_sign(name, user_id, sign):
+        logger.error(f"Sign verification failed: name={name}, user_id={user_id}, sign={sign}")
         flash('Ошибка проверки подписи sign', 'error')
         return redirect(url_for('index'))
     
@@ -154,6 +183,46 @@ def logout():
     session.clear()
     flash('Вы успешно вышли из системы', 'success')
     return redirect(url_for('index'))
+
+@app.route('/debug')
+def debug():
+    """Страница для отладки - показывает все параметры от GWars"""
+    if request.args:
+        # Вычисляем ожидаемые подписи
+        sign = request.args.get('sign', '')
+        name = unquote(request.args.get('name', ''))
+        user_id = request.args.get('user_id', '')
+        level = request.args.get('level', '0')
+        synd = request.args.get('synd', '0')
+        sign2 = request.args.get('sign2', '')
+        has_passport = request.args.get('has_passport', '0')
+        has_mobile = request.args.get('has_mobile', '0')
+        old_passport = request.args.get('old_passport', '0')
+        sign3 = request.args.get('sign3', '')
+        sign4 = request.args.get('sign4', '')
+        
+        # Вычисляем ожидаемые подписи
+        expected_sign = hashlib.md5(
+            (GWARS_PASSWORD + name + str(user_id)).encode('utf-8')
+        ).hexdigest()
+        
+        expected_sign2 = hashlib.md5(
+            (GWARS_PASSWORD + str(level) + str(round(float(synd))) + str(user_id)).encode('utf-8')
+        ).hexdigest()
+        
+        debug_info = {
+            'received_params': dict(request.args),
+            'decoded_name': name,
+            'expected_sign': expected_sign,
+            'received_sign': sign,
+            'sign_match': expected_sign == sign,
+            'expected_sign2': expected_sign2,
+            'received_sign2': sign2,
+            'sign2_match': expected_sign2 == sign2,
+        }
+        
+        return render_template('debug.html', debug_info=debug_info)
+    return render_template('debug.html', debug_info=None)
 
 if __name__ == '__main__':
     init_db()

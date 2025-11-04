@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Отладка - GWars Auth{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="profile-card">
+        <h2>Отладочная информация</h2>
+        
+        {% if debug_info %}
+        <div class="debug-info">
+            <h3>Полученные параметры:</h3>
+            <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: 4px; overflow-x: auto;">{{ debug_info.received_params | tojson(indent=2) }}</pre>
+            
+            <h3>Декодированное имя:</h3>
+            <p><code>{{ debug_info.decoded_name }}</code></p>
+            
+            <h3>Проверка подписи sign:</h3>
+            <div class="info-row">
+                <span class="info-label">Ожидаемая подпись:</span>
+                <span class="info-value"><code>{{ debug_info.expected_sign }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Полученная подпись:</span>
+                <span class="info-value"><code>{{ debug_info.received_sign }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Совпадение:</span>
+                <span class="info-value" style="color: {% if debug_info.sign_match %}var(--success-color){% else %}var(--error-color){% endif %};">
+                    {% if debug_info.sign_match %}✅ Да{% else %}❌ Нет{% endif %}
+                </span>
+            </div>
+            
+            <h3>Проверка подписи sign2:</h3>
+            <div class="info-row">
+                <span class="info-label">Ожидаемая подпись:</span>
+                <span class="info-value"><code>{{ debug_info.expected_sign2 }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Полученная подпись:</span>
+                <span class="info-value"><code>{{ debug_info.received_sign2 }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Совпадение:</span>
+                <span class="info-value" style="color: {% if debug_info.sign2_match %}var(--success-color){% else %}var(--error-color){% endif %};">
+                    {% if debug_info.sign2_match %}✅ Да{% else %}❌ Нет{% endif %}
+                </span>
+            </div>
+        </div>
+        {% else %}
+        <p>Нет параметров для отладки. Перейдите по ссылке с параметрами от GWars.</p>
+        <p>Или используйте: <a href="{{ url_for('login') }}">/login</a> для авторизации через GWars</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
