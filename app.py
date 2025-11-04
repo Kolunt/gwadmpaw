@@ -506,16 +506,6 @@ def has_permission(user_id, permission_name):
     
     conn.close()
     return permission is not None
-            DELETE FROM user_roles
-            WHERE user_id = ? AND role_id = ?
-        ''', (user_id, role['id']))
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        log_error(f"Error removing role: {e}")
-        conn.close()
-        return False
 
 # Декораторы для проверки прав доступа
 def require_role(role_name):
