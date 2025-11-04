@@ -701,7 +701,45 @@ def inject_default_theme():
 def index():
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
-    return render_template('index.html')
+    
+    # Собираем данные для лендинга
+    conn = get_db_connection()
+    
+    # Статистика участников
+    total_users = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
+    online_users = conn.execute('''
+        SELECT COUNT(*) as count FROM users 
+        WHERE datetime(last_login) > datetime('now', '-1 hour')
+    ''').fetchone()['count']
+    
+    # Последние события (активные или последние 3)
+    events_list = conn.execute('''
+        SELECT e.*, u.username as creator_name
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
+        ORDER BY e.created_at DESC
+        LIMIT 6
+    ''').fetchall()
+    
+    # Определяем текущий этап для каждого мероприятия
+    events_with_stages = []
+    for event in events_list:
+        current_stage = get_current_event_stage(event['id'])
+        events_with_stages.append({
+            'event': event,
+            'current_stage': current_stage
+        })
+    
+    # Название проекта
+    project_name = get_setting('project_name', 'Анонимные Деды Морозы')
+    
+    conn.close()
+    
+    return render_template('index.html', 
+                         total_users=total_users,
+                         online_users=online_users,
+                         events_with_stages=events_with_stages,
+                         project_name=project_name)
 
 @app.route('/login/dev')
 def login_dev():
