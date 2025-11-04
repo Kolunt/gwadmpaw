@@ -7,6 +7,7 @@ import os
 import logging
 from functools import wraps
 from version import __version__
+import secrets
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -79,10 +80,18 @@ def init_db():
                 has_mobile INTEGER,
                 old_passport INTEGER,
                 usersex TEXT,
+                avatar_seed TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_login TIMESTAMP
             )
         ''')
+        
+        # Добавляем колонку avatar_seed если её нет (миграция для существующих БД)
+        try:
+            c.execute('ALTER TABLE users ADD COLUMN avatar_seed TEXT')
+        except sqlite3.OperationalError:
+            # Колонка уже существует, это нормально
+            pass
         
         # Таблица ролей
         c.execute('''
@@ -160,6 +169,19 @@ def init_db():
     except Exception as e:
         log_error(f"Error initializing database: {e}")
         raise
+
+def generate_unique_avatar_seed(user_id):
+    """Генерирует уникальный seed для аватара пользователя"""
+    # Используем комбинацию user_id + случайную строку для уникальности
+    random_part = secrets.token_hex(8)
+    seed = f"{user_id}_{random_part}"
+    return seed
+
+def get_avatar_url(avatar_seed, style='avataaars', size=128):
+    """Генерирует URL аватара DiceBear"""
+    if not avatar_seed:
+        return None
+    return f"https://api.dicebear.com/7.x/{style}/svg?seed={avatar_seed}&size={size}"
 
 def ensure_db():
     """Убеждается, что база данных инициализирована"""
@@ -423,7 +445,7 @@ def verify_sign4(sign3, sign4):
 def inject_default_theme():
     """Добавляет настройку темы по умолчанию во все шаблоны"""
     default_theme = get_setting('default_theme', 'light')
-    return dict(default_theme=default_theme)
+    return dict(default_theme=default_theme, get_avatar_url=get_avatar_url)
 
 @app.route('/')
 def index():
@@ -467,11 +489,25 @@ def login_dev():
     # Сохраняем пользователя в БД
     conn = get_db_connection()
     try:
+        # Проверяем, существует ли пользователь
+        existing_user = conn.execute('SELECT avatar_seed FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        
+        # Если пользователь новый, генерируем уникальный avatar_seed
+        avatar_seed = None
+        if not existing_user:
+            avatar_seed = generate_unique_avatar_seed(user_id)
+        elif existing_user and not existing_user['avatar_seed']:
+            # Если у существующего пользователя нет seed, генерируем
+            avatar_seed = generate_unique_avatar_seed(user_id)
+        else:
+            # Используем существующий seed
+            avatar_seed = existing_user['avatar_seed']
+        
         conn.execute('''
             INSERT OR REPLACE INTO users 
-            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, last_login)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, datetime.now()))
+            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, last_login)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, datetime.now()))
         conn.commit()
         log_debug(f"Dev user saved successfully: user_id={user_id}, username={name}")
     except Exception as e:
@@ -780,11 +816,25 @@ def login():
     # Сохраняем пользователя в БД
     conn = get_db_connection()
     try:
+        # Проверяем, существует ли пользователь
+        existing_user = conn.execute('SELECT avatar_seed FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        
+        # Если пользователь новый, генерируем уникальный avatar_seed
+        avatar_seed = None
+        if not existing_user:
+            avatar_seed = generate_unique_avatar_seed(user_id)
+        elif existing_user and not existing_user['avatar_seed']:
+            # Если у существующего пользователя нет seed, генерируем
+            avatar_seed = generate_unique_avatar_seed(user_id)
+        else:
+            # Используем существующий seed
+            avatar_seed = existing_user['avatar_seed']
+        
         conn.execute('''
             INSERT OR REPLACE INTO users 
-            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, last_login)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, datetime.now()))
+            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, last_login)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, datetime.now()))
         conn.commit()
         log_debug(f"User saved successfully: user_id={user_id}, username={name}")
     except Exception as e:
@@ -795,11 +845,13 @@ def login():
             init_db()
             # Пробуем еще раз
             try:
+                # Генерируем seed для нового пользователя
+                avatar_seed = generate_unique_avatar_seed(user_id)
                 conn.execute('''
                     INSERT OR REPLACE INTO users 
-                    (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, last_login)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, datetime.now()))
+                    (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, last_login)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, datetime.now()))
                 conn.commit()
                 log_debug(f"User saved successfully after reinitialization: user_id={user_id}")
             except Exception as e2:
