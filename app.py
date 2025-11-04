@@ -13,6 +13,17 @@ app.secret_key = os.urandom(24)
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Для PythonAnywhere также используем print (видно в error log)
+def log_error(msg):
+    """Логирует ошибку через logger и print для PythonAnywhere"""
+    logger.error(msg)
+    print(msg, flush=True)  # flush=True для немедленного вывода
+
+def log_debug(msg):
+    """Логирует отладочную информацию через logger и print"""
+    logger.debug(msg)
+    print(msg, flush=True)
+
 # Константы для GWars авторизации
 GWARS_PASSWORD = "deadmoroz"
 GWARS_HOST = "gwadm.pythonanywhere.com"
@@ -79,17 +90,19 @@ def verify_sign(username, user_id, sign, encoded_name=None):
             pass
     
     # Логирование для отладки
-    logger.error(f"verify_sign: username={username}, user_id={user_id}")
-    logger.error(f"verify_sign: encoded_name={encoded_name}")
+    log_error(f"verify_sign: username={username}, user_id={user_id}")
+    log_error(f"verify_sign: encoded_name={encoded_name}")
     for variant_name, variant_sign in variants:
-        logger.error(f"verify_sign: variant {variant_name}={variant_sign}, match={variant_sign == sign}")
+        match_status = "MATCH" if variant_sign == sign else "NO MATCH"
+        log_error(f"verify_sign: variant {variant_name}={variant_sign}, {match_status}")
     
     # Проверяем все варианты
     for variant_name, variant_sign in variants:
         if variant_sign == sign:
-            logger.error(f"verify_sign: SUCCESS with variant {variant_name}!")
+            log_error(f"verify_sign: SUCCESS with variant {variant_name}!")
             return True
     
+    log_error(f"verify_sign: ALL VARIANTS FAILED! Received sign={sign}")
     return False
 
 # Проверка подписи sign2
@@ -175,28 +188,28 @@ def login():
         return redirect(gwars_url)
     
     # Логируем все полученные параметры для отладки
-    logger.error(f"=== LOGIN DEBUG ===")
-    logger.error(f"Received parameters:")
-    logger.error(f"  sign={sign}")
-    logger.error(f"  name (encoded/raw from query_string)={name_encoded}")
-    logger.error(f"  name (decoded)={name}")
-    logger.error(f"  name (repr)={repr(name)}")
-    logger.error(f"  name_encoded (repr)={repr(name_encoded)}")
-    logger.error(f"  user_id={user_id}")
-    logger.error(f"  level={level}")
-    logger.error(f"  synd={synd}")
-    logger.error(f"  sign2={sign2}")
-    logger.error(f"Full URL: {request.url}")
-    logger.error(f"Query string (raw): {request.query_string}")
+    log_error("=== LOGIN DEBUG ===")
+    log_error(f"Received parameters:")
+    log_error(f"  sign={sign}")
+    log_error(f"  name (encoded/raw from query_string)={name_encoded}")
+    log_error(f"  name (decoded)={name}")
+    log_error(f"  name (repr)={repr(name)}")
+    log_error(f"  name_encoded (repr)={repr(name_encoded)}")
+    log_error(f"  user_id={user_id}")
+    log_error(f"  level={level}")
+    log_error(f"  synd={synd}")
+    log_error(f"  sign2={sign2}")
+    log_error(f"Full URL: {request.url}")
+    log_error(f"Query string (raw): {request.query_string}")
     
     # Проверяем подписи (пробуем оба варианта - с декодированным и закодированным именем)
     if not verify_sign(name, user_id, sign, name_encoded):
-        logger.error(f"Sign verification failed!")
-        logger.error(f"Trying to compute manually:")
-        logger.error(f"  Password: {GWARS_PASSWORD}")
-        logger.error(f"  Username (decoded): {name}")
-        logger.error(f"  Username (encoded): {name_encoded}")
-        logger.error(f"  User ID: {user_id}")
+        log_error(f"Sign verification failed!")
+        log_error(f"Trying to compute manually:")
+        log_error(f"  Password: {GWARS_PASSWORD}")
+        log_error(f"  Username (decoded): {name}")
+        log_error(f"  Username (encoded): {name_encoded}")
+        log_error(f"  User ID: {user_id}")
         
         # Вычисляем все возможные варианты
         # Важно: для подписи используется ОРИГИНАЛЬНОЕ значение имени (до urlencode)
@@ -213,16 +226,17 @@ def login():
         except:
             variant5 = None
         
-        logger.error(f"  Variant 1 (pass+decoded_name+id): {variant1}")
-        logger.error(f"  Variant 2 (pass+encoded_name+id): {variant2}")
-        logger.error(f"  Variant 3 (pass+id+decoded_name): {variant3}")
-        logger.error(f"  Variant 4 (pass+id+encoded_name): {variant4}")
+        log_error(f"  Variant 1 (pass+decoded_name+id): {variant1}")
+        log_error(f"  Variant 2 (pass+encoded_name+id): {variant2}")
+        log_error(f"  Variant 3 (pass+id+decoded_name): {variant3}")
+        log_error(f"  Variant 4 (pass+id+encoded_name): {variant4}")
         if variant5:
-            logger.error(f"  Variant 5 (pass+latin1_decoded_name+id): {variant5}")
-        logger.error(f"  Received sign: {sign}")
+            log_error(f"  Variant 5 (pass+latin1_decoded_name+id): {variant5}")
+        log_error(f"  Received sign: {sign}")
         
-        flash('Ошибка проверки подписи sign. Проверьте логи.', 'error')
-        return redirect(url_for('debug') + '?' + request.query_string.decode())
+        # Перенаправляем на страницу отладки с полным URL
+        flash('Ошибка проверки подписи sign. Смотрите страницу отладки ниже.', 'error')
+        return redirect(url_for('debug') + '?' + request.query_string.decode('utf-8'))
     
     if not verify_sign2(level, synd, user_id, sign2):
         flash('Ошибка проверки подписи sign2', 'error')
