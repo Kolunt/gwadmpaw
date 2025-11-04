@@ -10,113 +10,129 @@
     </div>
     
     <div class="form-container">
-        <form method="POST" class="user-form">
-            <div class="form-group">
-                <label for="user_id">ID пользователя (GWars):</label>
-                {% if user %}
-                    <input type="text" id="user_id" name="user_id" value="{{ user.user_id }}" disabled>
-                    <small>ID пользователя нельзя изменить</small>
-                {% else %}
-                    <input type="number" id="user_id" name="user_id" required min="1" 
-                           placeholder="Например: 283494"
-                           value="{{ request.form.get('user_id', '') }}">
-                    <small>Уникальный числовой ID пользователя из GWars</small>
-                {% endif %}
+        <form method="POST" class="user-form-compact">
+            <!-- Основная информация -->
+            <div class="form-section-compact">
+                <h3 class="form-section-title">📋 Основная информация</h3>
+                <div class="form-grid-compact">
+                    <div class="form-group-compact">
+                        <label for="user_id">ID пользователя:</label>
+                        {% if user %}
+                            <input type="text" id="user_id" name="user_id" value="{{ user.user_id }}" disabled>
+                        {% else %}
+                            <input type="number" id="user_id" name="user_id" required min="1" 
+                                   placeholder="283494" value="{{ request.form.get('user_id', '') }}">
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-compact">
+                        <label for="username">Имя пользователя:</label>
+                        <input type="text" id="username" name="username" required 
+                               value="{{ user.username if user else request.form.get('username', '') }}"
+                               placeholder="_Колунт_">
+                    </div>
+                    
+                    <div class="form-group-compact">
+                        <label for="level">Уровень:</label>
+                        <input type="number" id="level" name="level" min="0" 
+                               value="{{ user.level if user else request.form.get('level', '') }}"
+                               placeholder="50">
+                    </div>
+                    
+                    <div class="form-group-compact">
+                        <label for="synd">Синдикат:</label>
+                        <input type="number" id="synd" name="synd" min="0" 
+                               value="{{ user.synd if user else request.form.get('synd', '') }}"
+                               placeholder="5594">
+                    </div>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label for="username">Имя пользователя:</label>
-                <input type="text" id="username" name="username" required 
-                       value="{{ user.username if user else request.form.get('username', '') }}"
-                       placeholder="Например: _Колунт_">
-                <small>Никнейм пользователя из GWars</small>
+            <!-- Данные GWars -->
+            <div class="form-section-compact">
+                <h3 class="form-section-title">⚔️ Данные GWars</h3>
+                <div class="form-grid-compact">
+                    <div class="form-group-compact">
+                        <label for="has_passport">Есть паспорт:</label>
+                        <select id="has_passport" name="has_passport">
+                            <option value="0" {% if not user or user.has_passport == 0 %}selected{% endif %}>Нет</option>
+                            <option value="1" {% if user and user.has_passport == 1 %}selected{% endif %}>Да</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group-compact">
+                        <label for="has_mobile">Есть мобильный:</label>
+                        <select id="has_mobile" name="has_mobile">
+                            <option value="0" {% if not user or user.has_mobile == 0 %}selected{% endif %}>Нет</option>
+                            <option value="1" {% if user and user.has_mobile == 1 %}selected{% endif %}>Да</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group-compact">
+                        <label for="usersex">Пол:</label>
+                        <select id="usersex" name="usersex">
+                            <option value="0" {% if not user or user.usersex == '0' %}selected{% endif %}>Мужской</option>
+                            <option value="1" {% if user and user.usersex == '1' %}selected{% endif %}>Женский</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label for="level">Уровень:</label>
-                <input type="number" id="level" name="level" min="0" 
-                       value="{{ user.level if user else request.form.get('level', '') }}"
-                       placeholder="Например: 50">
-                <small>Уровень пользователя в GWars</small>
+            <!-- Дополнительная информация -->
+            <div class="form-section-compact">
+                <h3 class="form-section-title">ℹ️ Дополнительная информация</h3>
+                <div class="form-group-compact">
+                    <label for="bio">О себе:</label>
+                    <textarea id="bio" name="bio" rows="3" 
+                              placeholder="Краткая информация о пользователе">{{ user.bio if user else request.form.get('bio', '') }}</textarea>
+                </div>
+                
+                <div class="form-group-compact">
+                    <label for="contact_info">Контактная информация:</label>
+                    <textarea id="contact_info" name="contact_info" rows="2" 
+                              placeholder="Дополнительная контактная информация">{{ user.contact_info if user else request.form.get('contact_info', '') }}</textarea>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label for="synd">Синдикат:</label>
-                <input type="number" id="synd" name="synd" min="0" 
-                       value="{{ user.synd if user else request.form.get('synd', '') }}"
-                       placeholder="Например: 5594">
-                <small>ID синдиката пользователя в GWars</small>
-            </div>
-            
-            <div class="form-group">
-                <label for="has_passport">Есть паспорт:</label>
-                <select id="has_passport" name="has_passport">
-                    <option value="0" {% if not user or user.has_passport == 0 %}selected{% endif %}>Нет</option>
-                    <option value="1" {% if user and user.has_passport == 1 %}selected{% endif %}>Да</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="has_mobile">Есть мобильный:</label>
-                <select id="has_mobile" name="has_mobile">
-                    <option value="0" {% if not user or user.has_mobile == 0 %}selected{% endif %}>Нет</option>
-                    <option value="1" {% if user and user.has_mobile == 1 %}selected{% endif %}>Да</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="usersex">Пол:</label>
-                <select id="usersex" name="usersex">
-                    <option value="0" {% if not user or user.usersex == '0' %}selected{% endif %}>Мужской</option>
-                    <option value="1" {% if user and user.usersex == '1' %}selected{% endif %}>Женский</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="bio">О себе:</label>
-                <textarea id="bio" name="bio" rows="4" 
-                          placeholder="Краткая информация о пользователе">{{ user.bio if user else request.form.get('bio', '') }}</textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="contact_info">Контактная информация:</label>
-                <textarea id="contact_info" name="contact_info" rows="3" 
-                          placeholder="Дополнительная контактная информация">{{ user.contact_info if user else request.form.get('contact_info', '') }}</textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" 
-                       value="{{ user.email if user else request.form.get('email', '') }}"
-                       placeholder="email@example.com">
-            </div>
-            
-            <div class="form-group">
-                <label for="phone">Телефон:</label>
-                <input type="text" id="phone" name="phone" 
-                       value="{{ user.phone if user else request.form.get('phone', '') }}"
-                       placeholder="+7 (999) 123-45-67">
-            </div>
-            
-            <div class="form-group">
-                <label for="telegram">Telegram:</label>
-                <input type="text" id="telegram" name="telegram" 
-                       value="{{ user.telegram if user else request.form.get('telegram', '') }}"
-                       placeholder="@username">
-            </div>
-            
-            <div class="form-group">
-                <label for="whatsapp">WhatsApp:</label>
-                <input type="text" id="whatsapp" name="whatsapp" 
-                       value="{{ user.whatsapp if user else request.form.get('whatsapp', '') }}"
-                       placeholder="+7 (999) 123-45-67">
-            </div>
-            
-            <div class="form-group">
-                <label for="viber">Viber:</label>
-                <input type="text" id="viber" name="viber" 
-                       value="{{ user.viber if user else request.form.get('viber', '') }}"
-                       placeholder="+7 (999) 123-45-67">
+            <!-- Контакты -->
+            <div class="form-section-compact">
+                <h3 class="form-section-title">📞 Контакты</h3>
+                <div class="form-grid-compact">
+                    <div class="form-group-compact">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" 
+                               value="{{ user.email if user else request.form.get('email', '') }}"
+                               placeholder="email@example.com">
+                    </div>
+                    
+                    <div class="form-group-compact">
+                        <label for="phone">Телефон:</label>
+                        <input type="text" id="phone" name="phone" 
+                               value="{{ user.phone if user else request.form.get('phone', '') }}"
+                               placeholder="+7 (999) 123-45-67">
+                    </div>
+                    
+                    <div class="form-group-compact">
+                        <label for="telegram">Telegram:</label>
+                        <input type="text" id="telegram" name="telegram" 
+                               value="{{ user.telegram if user else request.form.get('telegram', '') }}"
+                               placeholder="@username">
+                    </div>
+                    
+                    <div class="form-group-compact">
+                        <label for="whatsapp">WhatsApp:</label>
+                        <input type="text" id="whatsapp" name="whatsapp" 
+                               value="{{ user.whatsapp if user else request.form.get('whatsapp', '') }}"
+                               placeholder="+7 (999) 123-45-67">
+                    </div>
+                    
+                    <div class="form-group-compact">
+                        <label for="viber">Viber:</label>
+                        <input type="text" id="viber" name="viber" 
+                               value="{{ user.viber if user else request.form.get('viber', '') }}"
+                               placeholder="+7 (999) 123-45-67">
+                    </div>
+                </div>
             </div>
             
             <div class="form-actions">
@@ -126,6 +142,103 @@
                 <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Отмена</a>
             </div>
         </form>
+        
+        {% if user %}
+        <!-- Управление ролями и званиями -->
+        <div class="form-section-compact">
+            <h3 class="form-section-title">👤 Роли и звания</h3>
+            
+            <div class="roles-titles-grid">
+                <div class="roles-titles-column">
+                    <h4>Роли</h4>
+                    <div class="current-badges">
+                        {% if user_roles %}
+                            {% for role in user_roles %}
+                                <span class="role-badge">{{ role.display_name }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">Нет ролей</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="roles-titles-actions">
+                        <form method="POST" class="role-form-compact">
+                            <input type="hidden" name="role_action" value="assign">
+                            <select name="role_name" required>
+                                <option value="">Выберите роль</option>
+                                {% for role in all_roles %}
+                                    {% if role.name not in user_role_names %}
+                                    <option value="{{ role.name }}">{{ role.display_name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Назначить</button>
+                        </form>
+                        
+                        {% if user_roles %}
+                        <form method="POST" class="role-form-compact">
+                            <input type="hidden" name="role_action" value="remove">
+                            <select name="role_name" required>
+                                <option value="">Выберите роль</option>
+                                {% for role in user_roles %}
+                                <option value="{{ role.name }}">{{ role.display_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="roles-titles-column">
+                    <h4>Звания</h4>
+                    <div class="current-badges">
+                        {% if user_titles %}
+                            {% for title in user_titles %}
+                                <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
+                                    {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+                                </span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">Нет званий</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="roles-titles-actions">
+                        <form method="POST" class="role-form-compact">
+                            <input type="hidden" name="title_action" value="assign">
+                            <select name="title_id" required>
+                                <option value="">Выберите звание</option>
+                                {% for title in all_titles %}
+                                    {% if title.id not in user_title_ids %}
+                                    <option value="{{ title.id }}">
+                                        {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+                                    </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Назначить</button>
+                        </form>
+                        
+                        {% if user_titles %}
+                        <form method="POST" class="role-form-compact">
+                            <input type="hidden" name="title_action" value="remove">
+                            <select name="title_id" required>
+                                <option value="">Выберите звание</option>
+                                {% for title in user_titles %}
+                                <option value="{{ title.id }}">
+                                    {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

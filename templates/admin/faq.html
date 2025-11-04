@@ -6,70 +6,221 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>Управление FAQ</h1>
-        <div>
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+    
+    <!-- Табы -->
+    <div class="faq-admin-tabs">
+        <a href="{{ url_for('admin_faq') }}#items" 
+           class="faq-admin-tab {% if not request.args.get('tab') or request.args.get('tab') == 'items' %}active{% endif %}" 
+           data-tab="items">
+            📋 Вопросы
+        </a>
+        <a href="{{ url_for('admin_faq') }}#categories" 
+           class="faq-admin-tab {% if request.args.get('tab') == 'categories' %}active{% endif %}" 
+           data-tab="categories">
+            🏷️ Категории
+        </a>
+    </div>
+    
+    <!-- Содержимое таба "Вопросы" -->
+    <div class="faq-admin-tab-content {% if not request.args.get('tab') or request.args.get('tab') == 'items' %}active{% endif %}" data-tab="items">
+        <div class="admin-header">
+            <div></div>
             <a href="{{ url_for('admin_faq_create') }}" class="btn btn-primary">Создать вопрос</a>
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        </div>
+        
+        <div class="table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Вопрос</th>
+                        <th>Категория</th>
+                        <th>Порядок</th>
+                        <th>Статус</th>
+                        <th>Создан</th>
+                        <th>Обновлен</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in faq_items %}
+                    <tr>
+                        <td data-label="ID">{{ item.id }}</td>
+                        <td data-label="Вопрос">
+                            <strong>{{ item.question[:50] }}{% if item.question|length > 50 %}...{% endif %}</strong>
+                        </td>
+                        <td data-label="Категория">
+                            <span class="badge">{{ item.category or 'general' }}</span>
+                        </td>
+                        <td data-label="Порядок">{{ item.sort_order }}</td>
+                        <td data-label="Статус">
+                            {% if item.is_active %}
+                                <span class="badge badge-success">Активен</span>
+                            {% else %}
+                                <span class="badge badge-danger">Неактивен</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Создан">
+                            {{ item.created_at or 'N/A' }}<br>
+                            <small class="text-muted">{% if item.creator_name %}{{ item.creator_name }}{% endif %}</small>
+                        </td>
+                        <td data-label="Обновлен">
+                            {{ item.updated_at or 'N/A' }}<br>
+                            <small class="text-muted">{% if item.updater_name %}{{ item.updater_name }}{% endif %}</small>
+                        </td>
+                        <td data-label="Действия">
+                            <a href="{{ url_for('admin_faq_edit', faq_id=item.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
+                            <form method="POST" action="{{ url_for('admin_faq_delete', faq_id=item.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот вопрос?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not faq_items %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">
+                            Нет вопросов. <a href="{{ url_for('admin_faq_create') }}">Создать первый вопрос</a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
     
-    <div class="table-container">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Вопрос</th>
-                    <th>Категория</th>
-                    <th>Порядок</th>
-                    <th>Статус</th>
-                    <th>Создан</th>
-                    <th>Обновлен</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in faq_items %}
-                <tr>
-                    <td data-label="ID">{{ item.id }}</td>
-                    <td data-label="Вопрос">
-                        <strong>{{ item.question[:50] }}{% if item.question|length > 50 %}...{% endif %}</strong>
-                    </td>
-                    <td data-label="Категория">
-                        <span class="badge">{{ item.category or 'general' }}</span>
-                    </td>
-                    <td data-label="Порядок">{{ item.sort_order }}</td>
-                    <td data-label="Статус">
-                        {% if item.is_active %}
-                            <span class="badge badge-success">Активен</span>
-                        {% else %}
-                            <span class="badge badge-danger">Неактивен</span>
-                        {% endif %}
-                    </td>
-                    <td data-label="Создан">
-                        {{ item.created_at or 'N/A' }}<br>
-                        <small class="text-muted">{% if item.creator_name %}{{ item.creator_name }}{% endif %}</small>
-                    </td>
-                    <td data-label="Обновлен">
-                        {{ item.updated_at or 'N/A' }}<br>
-                        <small class="text-muted">{% if item.updater_name %}{{ item.updater_name }}{% endif %}</small>
-                    </td>
-                    <td data-label="Действия">
-                        <a href="{{ url_for('admin_faq_edit', faq_id=item.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
-                        <form method="POST" action="{{ url_for('admin_faq_delete', faq_id=item.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот вопрос?');">
-                            <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not faq_items %}
-                <tr>
-                    <td colspan="8" class="text-center text-muted">
-                        Нет вопросов. <a href="{{ url_for('admin_faq_create') }}">Создать первый вопрос</a>
-                    </td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
+    <!-- Содержимое таба "Категории" -->
+    <div class="faq-admin-tab-content {% if request.args.get('tab') == 'categories' %}active{% endif %}" data-tab="categories">
+        <div class="admin-header">
+            <div></div>
+            <a href="{{ url_for('admin_faq_category_create') }}" class="btn btn-primary">Создать категорию</a>
+        </div>
+        
+        <div class="table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Имя</th>
+                        <th>Отображаемое имя</th>
+                        <th>Описание</th>
+                        <th>Порядок</th>
+                        <th>Статус</th>
+                        <th>Вопросов</th>
+                        <th>Создана</th>
+                        <th>Обновлена</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in faq_categories %}
+                    <tr>
+                        <td data-label="ID">{{ category.id }}</td>
+                        <td data-label="Имя">
+                            <code>{{ category.name }}</code>
+                        </td>
+                        <td data-label="Отображаемое имя">
+                            <strong>{{ category.display_name }}</strong>
+                        </td>
+                        <td data-label="Описание">
+                            {{ category.description or '-' }}
+                        </td>
+                        <td data-label="Порядок">{{ category.sort_order }}</td>
+                        <td data-label="Статус">
+                            {% if category.is_active %}
+                                <span class="badge badge-success">Активна</span>
+                            {% else %}
+                                <span class="badge badge-danger">Неактивна</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Вопросов">
+                            <span class="badge">{{ category.items_count or 0 }}</span>
+                        </td>
+                        <td data-label="Создана">
+                            {{ category.created_at or 'N/A' }}<br>
+                            <small class="text-muted">{% if category.creator_name %}{{ category.creator_name }}{% endif %}</small>
+                        </td>
+                        <td data-label="Обновлена">
+                            {{ category.updated_at or 'N/A' }}<br>
+                            <small class="text-muted">{% if category.updater_name %}{{ category.updater_name }}{% endif %}</small>
+                        </td>
+                        <td data-label="Действия">
+                            <a href="{{ url_for('admin_faq_category_edit', category_id=category.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
+                            <form method="POST" action="{{ url_for('admin_faq_category_delete', category_id=category.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not faq_categories %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted">
+                            Нет категорий. <a href="{{ url_for('admin_faq_category_create') }}">Создать первую категорию</a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-{% endblock %}
 
+<script>
+// Переключение табов с поддержкой URL hash
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.faq-admin-tab');
+    const tabContents = document.querySelectorAll('.faq-admin-tab-content');
+    
+    // Функция для переключения таба
+    function switchTab(tabName) {
+        // Убираем активный класс у всех табов и содержимого
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Добавляем активный класс к выбранному табу и содержимому
+        const selectedTab = document.querySelector(`.faq-admin-tab[data-tab="${tabName}"]`);
+        const selectedContent = document.querySelector(`.faq-admin-tab-content[data-tab="${tabName}"]`);
+        
+        if (selectedTab && selectedContent) {
+            selectedTab.classList.add('active');
+            selectedContent.classList.add('active');
+            // Обновляем URL hash без перезагрузки страницы
+            if (window.location.hash !== '#' + tabName) {
+                window.history.replaceState(null, '', '#' + tabName);
+            }
+        }
+    }
+    
+    // Обработка кликов по табам
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetTab = this.getAttribute('data-tab');
+            switchTab(targetTab);
+        });
+    });
+    
+    // Проверяем hash при загрузке страницы
+    const hash = window.location.hash.substring(1); // Убираем #
+    if (hash) {
+        // Проверяем, существует ли таб с таким именем
+        const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === hash);
+        if (tabExists) {
+            switchTab(hash);
+        }
+    }
+    
+    // Обработка изменения hash (когда пользователь использует кнопки браузера)
+    window.addEventListener('hashchange', function() {
+        const newHash = window.location.hash.substring(1);
+        if (newHash) {
+            const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === newHash);
+            if (tabExists) {
+                switchTab(newHash);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -8,6 +8,10 @@ import logging
 from functools import wraps
 from version import __version__
 import secrets
+try:
+    import requests
+except ImportError:
+    requests = None
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -34,7 +38,7 @@ GWARS_HOST = "gwadm.pythonanywhere.com"
 GWARS_SITE_ID = 4
 
 # ID администраторов по умолчанию
-ADMIN_USER_IDS = [283494, 240139]
+ADMIN_USER_IDS = [283494, 240139, 90180]
 
 # Инициализация базы данных
 _db_initialized = False
@@ -275,6 +279,24 @@ def init_db():
             )
         ''')
         
+        # Таблица категорий FAQ
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS faq_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                display_name TEXT NOT NULL,
+                description TEXT,
+                sort_order INTEGER DEFAULT 100,
+                is_active INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP,
+                created_by INTEGER,
+                updated_by INTEGER,
+                FOREIGN KEY (created_by) REFERENCES users(user_id),
+                FOREIGN KEY (updated_by) REFERENCES users(user_id)
+            )
+        ''')
+        
         # Таблица FAQ
         c.execute('''
             CREATE TABLE IF NOT EXISTS faq_items (
@@ -293,15 +315,38 @@ def init_db():
             )
         ''')
         
+        # Инициализация дефолтных категорий, если их нет
+        default_categories = [
+            ('general', 'Общие вопросы', 'Общие вопросы о проекте', 10),
+            ('events', 'Мероприятия', 'Вопросы о мероприятиях', 20),
+            ('profile', 'Профиль и настройки', 'Вопросы о профиле и настройках', 30),
+            ('technical', 'Технические вопросы', 'Технические вопросы и помощь', 40),
+            ('security', 'Безопасность', 'Безопасность и конфиденциальность', 50),
+        ]
+        
+        for name, display_name, description, sort_order in default_categories:
+            c.execute('''
+                INSERT OR IGNORE INTO faq_categories (name, display_name, description, sort_order, is_active)
+                VALUES (?, ?, ?, ?, 1)
+            ''', (name, display_name, description, sort_order))
+        
         # Инициализация настроек по умолчанию
         default_settings = [
             ('gwars_host', GWARS_HOST, 'Домен для GWars авторизации', 'gwars'),
             ('gwars_site_id', str(GWARS_SITE_ID), 'ID сайта в GWars', 'gwars'),
             ('admin_user_ids', ','.join(map(str, ADMIN_USER_IDS)), 'ID администраторов по умолчанию (через запятую)', 'system'),
             ('project_name', 'Анонимные Деды Морозы', 'Название проекта', 'general'),
+            ('site_title', 'Анонимные Деды Морозы', 'Заголовок сайта (title)', 'general'),
+            ('site_description', 'Проект для организации анонимных подарков', 'Описание сайта (meta description)', 'general'),
+            ('logo_text', 'Анонимные Деды Морозы', 'Надпись рядом с логотипом', 'general'),
             ('default_theme', 'light', 'Тема по умолчанию (light или dark)', 'general'),
-            ('site_icon', '', 'Иконка сайта (favicon)', 'general'),
-            ('site_logo', '', 'Логотип сайта', 'general'),
+            ('site_icon', '🎅', 'Иконка сайта (favicon)', 'general'),
+            ('site_logo', '🎅', 'Логотип сайта', 'general'),
+            # Настройки интеграций
+            ('dadata_api_key', '', 'Dadata API ключ', 'integrations'),
+            ('dadata_secret_key', '', 'Dadata Secret ключ', 'integrations'),
+            ('dadata_enabled', '0', 'Dadata интеграция включена', 'integrations'),
+            ('dadata_verified', '0', 'Dadata ключи проверены', 'integrations'),
         ]
         
         for key, value, description, category in default_settings:
@@ -309,6 +354,11 @@ def init_db():
                 INSERT OR IGNORE INTO settings (key, value, description, category)
                 VALUES (?, ?, ?, ?)
             ''', (key, value, description, category))
+            # Обновляем дефолтные значения для site_icon и site_logo, если они пустые
+            if key in ('site_icon', 'site_logo'):
+                c.execute('''
+                    UPDATE settings SET value = ? WHERE key = ? AND (value = '' OR value IS NULL)
+                ''', (value, key))
         
         # Создаем системные роли, если их еще нет
         system_roles = [
@@ -587,6 +637,13 @@ def get_user_titles(user_id):
     ''', (user_id,)).fetchall()
     conn.close()
     return [dict(t) for t in titles]
+
+def get_title_by_name(title_name):
+    """Получает звание по имени"""
+    conn = get_db_connection()
+    title = conn.execute('SELECT * FROM titles WHERE name = ?', (title_name,)).fetchone()
+    conn.close()
+    return dict(title) if title else None
 
 def assign_title(user_id, title_id, assigned_by=None):
     """Назначает звание пользователю"""
@@ -976,6 +1033,16 @@ def login_dev():
         if not has_role(user_id, 'admin'):
             assign_role(user_id, 'admin', assigned_by=user_id)
             log_debug(f"Admin role automatically assigned to user_id {user_id}")
+    
+    # Для пользователя 90180 автоматически назначаем звание "Автор идеи"
+    if user_id == 90180:
+        author_title = get_title_by_name('author')
+        if author_title:
+            user_titles = get_user_titles(user_id)
+            user_title_ids = [t['id'] for t in user_titles]
+            if author_title['id'] not in user_title_ids:
+                assign_title(user_id, author_title['id'], assigned_by=user_id)
+                log_debug(f"Title 'Автор идеи' automatically assigned to user_id {user_id}")
     
     # Если у пользователя нет ролей, назначаем роль 'user' по умолчанию
     if not get_user_roles(user_id):
@@ -1369,6 +1436,16 @@ def login():
         if not has_role(user_id, 'admin'):
             assign_role(user_id, 'admin', assigned_by=user_id)
             log_debug(f"Admin role automatically assigned to user_id {user_id}")
+    
+    # Для пользователя 90180 автоматически назначаем звание "Автор идеи"
+    if int(user_id) == 90180:
+        author_title = get_title_by_name('author')
+        if author_title:
+            user_titles = get_user_titles(user_id)
+            user_title_ids = [t['id'] for t in user_titles]
+            if author_title['id'] not in user_title_ids:
+                assign_title(user_id, author_title['id'], assigned_by=user_id)
+                log_debug(f"Title 'Автор идеи' automatically assigned to user_id {user_id}")
     
     # Если у пользователя нет ролей, назначаем роль 'user' по умолчанию
     if not get_user_roles(user_id):
@@ -1838,6 +1915,45 @@ def admin_user_edit(user_id):
         return redirect(url_for('admin_users'))
     
     if request.method == 'POST':
+        # Обработка назначения/удаления ролей
+        role_action = request.form.get('role_action')
+        if role_action:
+            role_name = request.form.get('role_name')
+            if role_action == 'assign' and role_name:
+                if assign_role(user_id, role_name, assigned_by=session['user_id']):
+                    flash(f'Роль "{role_name}" успешно назначена', 'success')
+                else:
+                    flash(f'Ошибка назначения роли', 'error')
+            elif role_action == 'remove' and role_name:
+                if remove_role(user_id, role_name):
+                    flash(f'Роль "{role_name}" успешно удалена', 'success')
+                else:
+                    flash(f'Ошибка удаления роли', 'error')
+        
+        # Обработка назначения/удаления званий
+        title_action = request.form.get('title_action')
+        if title_action:
+            title_id = request.form.get('title_id')
+            if title_action == 'assign' and title_id:
+                try:
+                    title_id_int = int(title_id)
+                    if assign_title(user_id, title_id_int, assigned_by=session['user_id']):
+                        flash('Звание успешно назначено', 'success')
+                    else:
+                        flash('Ошибка назначения звания', 'error')
+                except ValueError:
+                    flash('Неверный формат ID звания', 'error')
+            elif title_action == 'remove' and title_id:
+                try:
+                    title_id_int = int(title_id)
+                    if remove_title(user_id, title_id_int):
+                        flash('Звание успешно удалено', 'success')
+                    else:
+                        flash('Ошибка удаления звания', 'error')
+                except ValueError:
+                    flash('Неверный формат ID звания', 'error')
+        
+        # Обновление основных данных пользователя
         username = request.form.get('username', '').strip()
         level = request.form.get('level', '0')
         synd = request.form.get('synd', '0')
@@ -1854,8 +1970,22 @@ def admin_user_edit(user_id):
         
         if not username:
             flash('Имя пользователя обязательно', 'error')
+            # Получаем данные для отображения ДО закрытия соединения
+            all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
             conn.close()
-            return render_template('admin/user_form.html', user=dict(user))
+            user_roles = get_user_roles(user_id)
+            user_role_names = [r['name'] for r in user_roles]
+            all_titles = get_all_titles()
+            user_titles = get_user_titles(user_id)
+            user_title_ids = [t['id'] for t in user_titles]
+            return render_template('admin/user_form.html', 
+                                 user=dict(user),
+                                 all_roles=all_roles,
+                                 user_roles=user_roles,
+                                 user_role_names=user_role_names,
+                                 all_titles=all_titles,
+                                 user_titles=user_titles,
+                                 user_title_ids=user_title_ids)
         
         try:
             level_int = int(level) if level else 0
@@ -1864,8 +1994,22 @@ def admin_user_edit(user_id):
             has_mobile_int = int(has_mobile)
         except ValueError:
             flash('Неверный формат числовых полей', 'error')
+            # Получаем данные для отображения ДО закрытия соединения
+            all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
             conn.close()
-            return render_template('admin/user_form.html', user=dict(user))
+            user_roles = get_user_roles(user_id)
+            user_role_names = [r['name'] for r in user_roles]
+            all_titles = get_all_titles()
+            user_titles = get_user_titles(user_id)
+            user_title_ids = [t['id'] for t in user_titles]
+            return render_template('admin/user_form.html', 
+                                 user=dict(user),
+                                 all_roles=all_roles,
+                                 user_roles=user_roles,
+                                 user_role_names=user_role_names,
+                                 all_titles=all_titles,
+                                 user_titles=user_titles,
+                                 user_title_ids=user_title_ids)
         
         try:
             conn.execute('''
@@ -1878,16 +2022,47 @@ def admin_user_edit(user_id):
                   usersex, bio, contact_info, email, phone, 
                   telegram, whatsapp, viber, user_id))
             conn.commit()
-            flash('Пользователь успешно обновлен', 'success')
+            if not role_action and not title_action:
+                flash('Пользователь успешно обновлен', 'success')
             conn.close()
-            return redirect(url_for('admin_users'))
+            return redirect(url_for('admin_user_edit', user_id=user_id))
         except Exception as e:
             log_error(f"Error updating user: {e}")
             flash(f'Ошибка обновления пользователя: {str(e)}', 'error')
+            # Получаем данные для отображения ДО закрытия соединения
+            all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
             conn.close()
+            user_roles = get_user_roles(user_id)
+            user_role_names = [r['name'] for r in user_roles]
+            all_titles = get_all_titles()
+            user_titles = get_user_titles(user_id)
+            user_title_ids = [t['id'] for t in user_titles]
+            return render_template('admin/user_form.html', 
+                                 user=dict(user),
+                                 all_roles=all_roles,
+                                 user_roles=user_roles,
+                                 user_role_names=user_role_names,
+                                 all_titles=all_titles,
+                                 user_titles=user_titles,
+                                 user_title_ids=user_title_ids)
+    
+    # GET запрос - получаем данные для отображения
+    all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
+    user_roles = get_user_roles(user_id)
+    user_role_names = [r['name'] for r in user_roles]
+    all_titles = get_all_titles()
+    user_titles = get_user_titles(user_id)
+    user_title_ids = [t['id'] for t in user_titles]
     
     conn.close()
-    return render_template('admin/user_form.html', user=dict(user))
+    return render_template('admin/user_form.html', 
+                         user=dict(user),
+                         all_roles=all_roles,
+                         user_roles=user_roles,
+                         user_role_names=user_role_names,
+                         all_titles=all_titles,
+                         user_titles=user_titles,
+                         user_title_ids=user_title_ids)
 
 @app.route('/admin/users/<int:user_id>/roles', methods=['GET', 'POST'])
 @require_role('admin')
@@ -2332,12 +2507,23 @@ def admin_settings():
         for key in request.form:
             if key.startswith('setting_'):
                 setting_key = key.replace('setting_', '')
-                setting_value = request.form.get(key)
+                # Для checkbox используем последнее значение (если есть несколько с одинаковым именем)
+                setting_values = request.form.getlist(key)
+                setting_value = setting_values[-1] if setting_values else request.form.get(key, '0')
                 settings_dict[setting_key] = setting_value
         
         # Сохраняем настройки
         for key, value in settings_dict.items():
             try:
+                # Если изменяются API ключи, сбрасываем флаг проверки
+                if key in ('dadata_api_key', 'dadata_secret_key'):
+                    # Получаем текущее значение
+                    current_setting = conn.execute('SELECT value FROM settings WHERE key = ?', (key,)).fetchone()
+                    if current_setting and current_setting['value'] != value:
+                        # Ключ изменился, сбрасываем флаг проверки и отключаем интеграцию
+                        conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'dadata_verified'))
+                        conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'dadata_enabled'))
+                
                 conn.execute('''
                     UPDATE settings 
                     SET value = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
@@ -2358,15 +2544,83 @@ def admin_settings():
     
     # Группируем по категориям
     settings_by_category = {}
+    # Создаем словарь для быстрого доступа к настройкам
+    settings_dict = {}
     for setting in settings:
+        setting_dict = dict(setting)
         category = setting['category'] or 'general'
         if category not in settings_by_category:
             settings_by_category[category] = []
-        settings_by_category[category].append(dict(setting))
+        settings_by_category[category].append(setting_dict)
+        settings_dict[setting['key']] = setting_dict
     
     conn.close()
     
-    return render_template('admin/settings.html', settings_by_category=settings_by_category)
+    return render_template('admin/settings.html', 
+                         settings_by_category=settings_by_category,
+                         settings_dict=settings_dict)
+
+def verify_dadata_api(api_key, secret_key):
+    """Проверяет валидность Dadata API ключей"""
+    if not requests:
+        return False, "Библиотека requests не установлена. Установите: pip install requests"
+    
+    if not api_key or not secret_key:
+        return False, "API ключ и Secret ключ обязательны"
+    
+    try:
+        # Используем простой endpoint для проверки (например, версия API)
+        headers = {
+            'Authorization': f'Token {api_key}',
+            'X-Secret': secret_key,
+            'Content-Type': 'application/json'
+        }
+        
+        # Проверяем через endpoint /v1/version (более легкий запрос)
+        response = requests.get('https://dadata.ru/api/v1/version', headers=headers, timeout=5)
+        
+        if response.status_code == 200:
+            return True, "Ключи успешно проверены"
+        elif response.status_code == 401:
+            return False, "Неверный API ключ или Secret ключ"
+        elif response.status_code == 403:
+            return False, "Доступ запрещен. Проверьте права доступа для ключей"
+        else:
+            return False, f"Ошибка проверки: {response.status_code} - {response.text[:100]}"
+    except requests.exceptions.Timeout:
+        return False, "Таймаут при подключении к Dadata API"
+    except requests.exceptions.ConnectionError:
+        return False, "Ошибка подключения к Dadata API. Проверьте интернет-соединение"
+    except Exception as e:
+        return False, f"Ошибка при проверке: {str(e)}"
+
+@app.route('/admin/settings/verify-dadata', methods=['POST'])
+@require_role('admin')
+def verify_dadata():
+    """Проверка Dadata API ключей"""
+    api_key = request.form.get('api_key', '').strip()
+    secret_key = request.form.get('secret_key', '').strip()
+    
+    if not api_key or not secret_key:
+        return jsonify({'success': False, 'message': 'API ключ и Secret ключ обязательны'}), 400
+    
+    success, message = verify_dadata_api(api_key, secret_key)
+    
+    if success:
+        # Сохраняем ключи и помечаем как проверенные
+        conn = get_db_connection()
+        try:
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', (api_key, 'dadata_api_key'))
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', (secret_key, 'dadata_secret_key'))
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('1', 'dadata_verified'))
+            conn.commit()
+        except Exception as e:
+            log_error(f"Error saving Dadata keys: {e}")
+            conn.close()
+            return jsonify({'success': False, 'message': f'Ошибка сохранения ключей: {str(e)}'}), 500
+        conn.close()
+    
+    return jsonify({'success': success, 'message': message})
 
 @app.route('/admin/faq')
 @require_role('admin')
@@ -2382,9 +2636,25 @@ def admin_faq():
         LEFT JOIN users u2 ON f.updated_by = u2.user_id
         ORDER BY f.category, f.sort_order, f.id
     ''').fetchall()
+    
+    faq_categories = conn.execute('''
+        SELECT c.*, 
+               COUNT(f.id) as items_count,
+               u1.username as creator_name,
+               u2.username as updater_name
+        FROM faq_categories c
+        LEFT JOIN faq_items f ON c.name = f.category
+        LEFT JOIN users u1 ON c.created_by = u1.user_id
+        LEFT JOIN users u2 ON c.updated_by = u2.user_id
+        GROUP BY c.id
+        ORDER BY c.sort_order, c.display_name
+    ''').fetchall()
+    
     conn.close()
     
-    return render_template('admin/faq.html', faq_items=faq_items)
+    return render_template('admin/faq.html', 
+                         faq_items=faq_items, 
+                         faq_categories=faq_categories)
 
 @app.route('/admin/faq/create', methods=['GET', 'POST'])
 @require_role('admin')
@@ -2471,8 +2741,9 @@ def admin_faq_edit(faq_id):
             flash(f'Ошибка обновления FAQ: {str(e)}', 'error')
             conn.close()
     
+    categories = get_faq_categories()
     conn.close()
-    return render_template('admin/faq_form.html', faq_item=faq_item)
+    return render_template('admin/faq_form.html', faq_item=faq_item, categories=categories)
 
 @app.route('/admin/faq/<int:faq_id>/delete', methods=['POST'])
 @require_role('admin')
@@ -2496,6 +2767,158 @@ def admin_faq_delete(faq_id):
     
     conn.close()
     return redirect(url_for('admin_faq'))
+
+@app.route('/admin/faq/categories/create', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_faq_category_create():
+    """Создание новой категории FAQ"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip().lower()
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        sort_order = request.form.get('sort_order', '100').strip()
+        is_active = request.form.get('is_active', '0')
+        
+        if not name or not display_name:
+            flash('Имя категории и отображаемое имя обязательны для заполнения', 'error')
+            return render_template('admin/faq_category_form.html')
+        
+        # Проверяем уникальность имени
+        conn = get_db_connection()
+        existing = conn.execute('SELECT id FROM faq_categories WHERE name = ?', (name,)).fetchone()
+        if existing:
+            flash('Категория с таким именем уже существует', 'error')
+            conn.close()
+            return render_template('admin/faq_category_form.html')
+        
+        try:
+            sort_order = int(sort_order) if sort_order else 100
+            is_active = 1 if is_active == '1' else 0
+        except ValueError:
+            sort_order = 100
+            is_active = 1
+        
+        try:
+            conn.execute('''
+                INSERT INTO faq_categories (name, display_name, description, sort_order, is_active, created_by)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (name, display_name, description, sort_order, is_active, session['user_id']))
+            conn.commit()
+            flash('Категория FAQ успешно создана', 'success')
+            conn.close()
+            return redirect(url_for('admin_faq') + '#categories')
+        except Exception as e:
+            log_error(f"Error creating FAQ category: {e}")
+            flash(f'Ошибка создания категории: {str(e)}', 'error')
+            conn.close()
+    
+    return render_template('admin/faq_category_form.html')
+
+@app.route('/admin/faq/categories/<int:category_id>/edit', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_faq_category_edit(category_id):
+    """Редактирование категории FAQ"""
+    conn = get_db_connection()
+    category = conn.execute('SELECT * FROM faq_categories WHERE id = ?', (category_id,)).fetchone()
+    
+    if not category:
+        flash('Категория не найдена', 'error')
+        conn.close()
+        return redirect(url_for('admin_faq') + '#categories')
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip().lower()
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        sort_order = request.form.get('sort_order', '100').strip()
+        is_active = request.form.get('is_active', '0')
+        
+        if not name or not display_name:
+            flash('Имя категории и отображаемое имя обязательны для заполнения', 'error')
+            conn.close()
+            return render_template('admin/faq_category_form.html', category=category)
+        
+        # Проверяем уникальность имени (исключая текущую категорию)
+        existing = conn.execute('SELECT id FROM faq_categories WHERE name = ? AND id != ?', (name, category_id)).fetchone()
+        if existing:
+            flash('Категория с таким именем уже существует', 'error')
+            conn.close()
+            return render_template('admin/faq_category_form.html', category=category)
+        
+        try:
+            sort_order = int(sort_order) if sort_order else 100
+            is_active = 1 if is_active == '1' else 0
+        except ValueError:
+            sort_order = category['sort_order'] if category['sort_order'] is not None else 100
+            is_active = category['is_active']
+        
+        try:
+            # Если имя категории изменилось, обновляем все FAQ элементы с этой категорией
+            if name != category['name']:
+                conn.execute('''
+                    UPDATE faq_items 
+                    SET category = ? 
+                    WHERE category = ?
+                ''', (name, category['name']))
+            
+            conn.execute('''
+                UPDATE faq_categories 
+                SET name = ?, display_name = ?, description = ?, sort_order = ?, is_active = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (name, display_name, description, sort_order, is_active, session['user_id'], category_id))
+            conn.commit()
+            flash('Категория FAQ успешно обновлена', 'success')
+            conn.close()
+            return redirect(url_for('admin_faq') + '#categories')
+        except Exception as e:
+            log_error(f"Error updating FAQ category: {e}")
+            flash(f'Ошибка обновления категории: {str(e)}', 'error')
+            conn.close()
+    
+    conn.close()
+    return render_template('admin/faq_category_form.html', category=category)
+
+@app.route('/admin/faq/categories/<int:category_id>/delete', methods=['POST'])
+@require_role('admin')
+def admin_faq_category_delete(category_id):
+    """Удаление категории FAQ"""
+    conn = get_db_connection()
+    category = conn.execute('SELECT * FROM faq_categories WHERE id = ?', (category_id,)).fetchone()
+    
+    if not category:
+        flash('Категория не найдена', 'error')
+        conn.close()
+        return redirect(url_for('admin_faq') + '#categories')
+    
+    # Проверяем, есть ли FAQ элементы с этой категорией
+    items_count = conn.execute('SELECT COUNT(*) as count FROM faq_items WHERE category = ?', (category['name'],)).fetchone()
+    
+    if items_count['count'] > 0:
+        flash(f'Нельзя удалить категорию, в которой есть вопросы ({items_count["count"]} шт.). Сначала переместите или удалите вопросы.', 'error')
+        conn.close()
+        return redirect(url_for('admin_faq') + '#categories')
+    
+    try:
+        conn.execute('DELETE FROM faq_categories WHERE id = ?', (category_id,))
+        conn.commit()
+        flash('Категория FAQ успешно удалена', 'success')
+    except Exception as e:
+        log_error(f"Error deleting FAQ category: {e}")
+        flash(f'Ошибка удаления категории: {str(e)}', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_faq') + '#categories')
+
+def get_faq_categories():
+    """Получает список активных категорий FAQ"""
+    conn = get_db_connection()
+    categories = conn.execute('''
+        SELECT * FROM faq_categories 
+        WHERE is_active = 1 
+        ORDER BY sort_order, display_name
+    ''').fetchall()
+    conn.close()
+    return [dict(c) for c in categories]
 
 def get_setting(key, default=None):
     """Получает значение настройки из БД"""

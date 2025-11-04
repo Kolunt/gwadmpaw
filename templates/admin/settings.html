@@ -22,6 +22,8 @@
                     ⚔️ GWars
                 {% elif category == 'system' %}
                     🔧 Системные
+                {% elif category == 'integrations' %}
+                    🔌 Интеграции
                 {% else %}
                     📋 Общие
                 {% endif %}
@@ -32,6 +34,92 @@
         <!-- Содержимое табов -->
         {% for category, settings in settings_by_category.items() %}
         <div class="settings-tab-content {% if loop.first %}active{% endif %}" data-tab="{{ category }}">
+            {% if category == 'integrations' %}
+            <!-- Специальная обработка для интеграций -->
+            <div class="integrations-container">
+                <!-- Подтабы для интеграций -->
+                <div class="integrations-subtabs">
+                    <button type="button" class="integration-subtab active" data-integration="dadata">
+                        🔍 Dadata
+                    </button>
+                </div>
+                
+                <!-- Содержимое подтабов -->
+                <div class="integration-content active" data-integration="dadata">
+                    <div class="settings-section">
+                        <h2 class="settings-section-title">🔍 Интеграция Dadata</h2>
+                        
+                        {% set dadata_api_key = settings_dict.get('dadata_api_key', {}) %}
+                        {% set dadata_secret_key = settings_dict.get('dadata_secret_key', {}) %}
+                        {% set dadata_enabled = settings_dict.get('dadata_enabled', {}) %}
+                        {% set dadata_verified = settings_dict.get('dadata_verified', {}) %}
+                        
+                        <div class="dadata-integration-form">
+                            <div class="setting-item">
+                                <label for="dadata_api_key" class="setting-label">
+                                    API ключ
+                                    <small class="setting-hint">API ключ от Dadata</small>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="dadata_api_key" 
+                                    name="setting_dadata_api_key" 
+                                    value="{{ dadata_api_key.get('value', '') if dadata_api_key else '' }}"
+                                    class="setting-input"
+                                    placeholder="Введите API ключ"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="dadata_secret_key" class="setting-label">
+                                    Secret ключ
+                                    <small class="setting-hint">Secret ключ от Dadata</small>
+                                </label>
+                                <input 
+                                    type="password" 
+                                    id="dadata_secret_key" 
+                                    name="setting_dadata_secret_key" 
+                                    value="{{ dadata_secret_key.get('value', '') if dadata_secret_key else '' }}"
+                                    class="setting-input"
+                                    placeholder="Введите Secret ключ"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <button type="button" id="verify-dadata-btn" class="btn btn-secondary">
+                                    🔍 Проверить ключи
+                                </button>
+                                <span id="dadata-verify-status" class="verify-status"></span>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="dadata_enabled" class="setting-label">
+                                    <input 
+                                        type="checkbox" 
+                                        id="dadata_enabled" 
+                                        name="setting_dadata_enabled" 
+                                        value="1"
+                                        {% if dadata_enabled and dadata_enabled.get('value', '0') == '1' %}checked{% endif %}
+                                        {% if not dadata_verified or dadata_verified.get('value', '0') != '1' %}disabled{% endif %}
+                                        class="setting-checkbox"
+                                        onchange="document.getElementById('dadata_enabled_hidden').value = this.checked ? '1' : '0';"
+                                    >
+                                    <input type="hidden" id="dadata_enabled_hidden" name="setting_dadata_enabled" value="{% if dadata_enabled and dadata_enabled.get('value', '0') == '1' %}1{% else %}0{% endif %}">
+                                    <span>Включить интеграцию Dadata</span>
+                                    <small class="setting-hint">
+                                        {% if not dadata_verified or dadata_verified.get('value', '0') != '1' %}
+                                            Сначала проверьте ключи
+                                        {% else %}
+                                            Интеграция активна
+                                        {% endif %}
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
             <div class="settings-section">
                 <h2 class="settings-section-title">
                     {% if category == 'gwars' %}
@@ -45,9 +133,20 @@
                 
                 <div class="settings-grid">
                     {% for setting in settings %}
-                    <div class="setting-item">
-                        <label for="setting_{{ setting.key }}" class="setting-label">
-                            {{ setting.description or setting.key }}
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <label for="setting_{{ setting.key }}" class="setting-label">
+                                {{ setting.description or setting.key }}
+                            </label>
+                            {% if setting.key == 'admin_user_ids' %}
+                                <span class="setting-badge">Система</span>
+                            {% elif setting.key in ['gwars_site_id', 'gwars_host'] %}
+                                <span class="setting-badge">GWars</span>
+                            {% elif setting.key in ['default_theme', 'site_icon', 'site_logo', 'site_title', 'site_description', 'logo_text'] %}
+                                <span class="setting-badge">Внешний вид</span>
+                            {% endif %}
+                        </div>
+                        <div class="setting-card-body">
                             {% if setting.key == 'admin_user_ids' %}
                                 <small class="setting-hint">ID через запятую (например: 283494, 240139)</small>
                             {% elif setting.key == 'gwars_site_id' %}
@@ -60,8 +159,13 @@
                                 <small class="setting-hint">Иконка сайта (favicon). Форматы: .ico, .png, .jpg, .svg</small>
                             {% elif setting.key == 'site_logo' %}
                                 <small class="setting-hint">Логотип сайта. Форматы: .png, .jpg, .svg, .gif, .webp</small>
+                            {% elif setting.key == 'site_title' %}
+                                <small class="setting-hint">Заголовок сайта, отображается во вкладке браузера</small>
+                            {% elif setting.key == 'site_description' %}
+                                <small class="setting-hint">Краткое описание сайта для поисковых систем</small>
+                            {% elif setting.key == 'logo_text' %}
+                                <small class="setting-hint">Текст, отображаемый рядом с логотипом в шапке сайта</small>
                             {% endif %}
-                        </label>
                         {% if setting.key == 'default_theme' %}
                         <select 
                             id="setting_{{ setting.key }}" 
@@ -111,6 +215,14 @@
                                 <span class="file-upload-btn">📁</span>
                             </label>
                         </div>
+                        {% elif setting.key == 'site_description' %}
+                        <textarea 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            rows="3"
+                            class="setting-input"
+                            placeholder="Введите описание сайта"
+                        >{{ setting.value or '' }}</textarea>
                         {% else %}
                         <input 
                             type="text" 
@@ -121,10 +233,12 @@
                             {% if setting.key == 'gwars_site_id' %}pattern="[0-9]+"{% endif %}
                         >
                         {% endif %}
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
         </div>
         {% endfor %}
         
@@ -190,6 +304,77 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Обработка проверки Dadata API
+    const verifyDadataBtn = document.getElementById('verify-dadata-btn');
+    const verifyStatus = document.getElementById('dadata-verify-status');
+    const dadataEnabledCheckbox = document.getElementById('dadata_enabled');
+    
+    if (verifyDadataBtn) {
+        verifyDadataBtn.addEventListener('click', function() {
+            const apiKey = document.getElementById('dadata_api_key').value.trim();
+            const secretKey = document.getElementById('dadata_secret_key').value.trim();
+            
+            if (!apiKey || !secretKey) {
+                verifyStatus.textContent = '❌ Заполните оба поля';
+                verifyStatus.className = 'verify-status error';
+                return;
+            }
+            
+            verifyDadataBtn.disabled = true;
+            verifyDadataBtn.textContent = '⏳ Проверка...';
+            verifyStatus.textContent = '';
+            verifyStatus.className = 'verify-status';
+            
+            const formData = new FormData();
+            formData.append('api_key', apiKey);
+            formData.append('secret_key', secretKey);
+            
+            fetch('{{ url_for("verify_dadata") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    verifyStatus.textContent = '✅ ' + data.message;
+                    verifyStatus.className = 'verify-status success';
+                    if (dadataEnabledCheckbox) {
+                        dadataEnabledCheckbox.disabled = false;
+                        // Обновляем подсказку
+                        const hint = dadataEnabledCheckbox.closest('.setting-item').querySelector('.setting-hint');
+                        if (hint) {
+                            hint.textContent = 'Интеграция активна';
+                        }
+                    }
+                } else {
+                    verifyStatus.textContent = '❌ ' + data.message;
+                    verifyStatus.className = 'verify-status error';
+                    if (dadataEnabledCheckbox) {
+                        dadataEnabledCheckbox.disabled = true;
+                        dadataEnabledCheckbox.checked = false;
+                        const hiddenInput = document.getElementById('dadata_enabled_hidden');
+                        if (hiddenInput) {
+                            hiddenInput.value = '0';
+                        }
+                        // Обновляем подсказку
+                        const hint = dadataEnabledCheckbox.closest('.setting-item').querySelector('.setting-hint');
+                        if (hint) {
+                            hint.textContent = 'Сначала проверьте ключи';
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                verifyStatus.textContent = '❌ Ошибка при проверке: ' + error.message;
+                verifyStatus.className = 'verify-status error';
+            })
+            .finally(() => {
+                verifyDadataBtn.disabled = false;
+                verifyDadataBtn.textContent = '🔍 Проверить ключи';
+            });
+        });
+    }
 });
 </script>
 {% endblock %}

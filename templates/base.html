@@ -3,12 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Анонимные Деды Морозы{% endblock %}</title>
+    {% set site_title = get_setting('site_title', 'Анонимные Деды Морозы') %}
+    <title>{% block title %}{{ site_title }}{% endblock %}</title>
+    {% set site_description = get_setting('site_description', '') %}
+    {% if site_description %}
+    <meta name="description" content="{{ site_description }}">
+    {% endif %}
     {% set site_icon = get_setting('site_icon', '') %}
     {% if site_icon %}
-    <link rel="icon" type="image/x-icon" href="{{ site_icon }}">
+        {% if site_icon.startswith('/') or site_icon.startswith('http') %}
+        <link rel="icon" type="image/x-icon" href="{{ site_icon }}">
+        {% else %}
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>{{ site_icon }}</text></svg>">
+        {% endif %}
     {% else %}
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎅</text></svg>">
     {% endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script>
@@ -42,14 +51,19 @@
                     <span></span>
                 </button>
                 {% set site_logo = get_setting('site_logo', '') %}
-                {% if site_logo %}
                 <a href="{{ url_for('index') }}" class="navbar-brand-link">
-                    <img src="{{ site_logo }}" alt="Логотип" class="navbar-logo">
-                    <span class="logo">Анонимные Деды Морозы</span>
+                    {% if site_logo %}
+                        {% if site_logo.startswith('/') or site_logo.startswith('http') %}
+                        <img src="{{ site_logo }}" alt="Логотип" class="navbar-logo">
+                        {% else %}
+                        <span class="navbar-logo-emoji">{{ site_logo }}</span>
+                        {% endif %}
+                    {% else %}
+                    <span class="navbar-logo-emoji">🎅</span>
+                    {% endif %}
+                    {% set logo_text = get_setting('logo_text', 'Анонимные Деды Морозы') %}
+                    <span class="logo">{{ logo_text }}</span>
                 </a>
-                {% else %}
-                <h1 class="logo">Анонимные Деды Морозы</h1>
-                {% endif %}
             </div>
             <div class="navbar-actions">
                 {% if not session.user_id %}

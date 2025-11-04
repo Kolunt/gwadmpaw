@@ -209,8 +209,8 @@
                                 alt="{{ style.name }}"
                                 class="avatar-preview-img"
                             >
-                            <span class="avatar-style-name">{{ style.name }}</span>
                         </div>
+                        <span class="avatar-style-name">{{ style.name }}</span>
                     </button>
                     {% endfor %}
                 </div>
@@ -316,16 +316,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadAvatarCandidates(style) {
         avatarCandidatesGrid.innerHTML = '<div class="loading-spinner">Загрузка уникальных аватаров...</div>';
         
-        fetch(`/api/avatar/candidates?style=${style}&count=24`)
+        fetch(`/api/avatar/candidates?style=${style}&count=32`)
             .then(response => response.json())
             .then(data => {
                 if (data.candidates && data.candidates.length > 0) {
                     avatarCandidatesGrid.innerHTML = '';
-                    data.candidates.forEach(candidate => {
+                    data.candidates.forEach((candidate, index) => {
                         const avatarItem = document.createElement('div');
                         avatarItem.className = 'avatar-candidate-item';
                         avatarItem.innerHTML = `
-                            <img src="${candidate.url}" alt="Avatar" class="avatar-candidate-img">
+                            <img src="${candidate.url}" alt="Avatar ${index + 1}" class="avatar-candidate-img">
+                            <span class="avatar-candidate-label">${index + 1}</span>
                         `;
                         avatarItem.addEventListener('click', function() {
                             // Убираем выделение с других

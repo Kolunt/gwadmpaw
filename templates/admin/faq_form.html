@@ -29,13 +29,18 @@
             
             <div class="form-group">
                 <label for="category">Категория:</label>
-                <select id="category" name="category" class="form-input">
-                    <option value="general" {% if faq_item and faq_item.category == 'general' %}selected{% endif %}>Общие вопросы</option>
-                    <option value="events" {% if faq_item and faq_item.category == 'events' %}selected{% endif %}>Мероприятия</option>
-                    <option value="profile" {% if faq_item and faq_item.category == 'profile' %}selected{% endif %}>Профиль и настройки</option>
-                    <option value="technical" {% if faq_item and faq_item.category == 'technical' %}selected{% endif %}>Технические вопросы</option>
-                    <option value="security" {% if faq_item and faq_item.category == 'security' %}selected{% endif %}>Безопасность и конфиденциальность</option>
+                <select id="category" name="category" class="form-input" required>
+                    {% if categories %}
+                        {% for cat in categories %}
+                        <option value="{{ cat.name }}" {% if faq_item and faq_item.category == cat.name %}selected{% endif %}>
+                            {{ cat.display_name }}
+                        </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="general" {% if faq_item and faq_item.category == 'general' %}selected{% endif %}>Общие вопросы</option>
+                    {% endif %}
                 </select>
+                <small>Если нужной категории нет, <a href="{{ url_for('admin_faq') }}#categories">создайте её</a></small>
             </div>
             
             <div class="form-group">
