@@ -41,7 +41,7 @@
             <div class="form-group">
                 <label for="sort_order">Порядок сортировки:</label>
                 <input type="number" id="sort_order" name="sort_order" 
-                       value="{{ faq_item.sort_order if faq_item else '0' }}"
+                       value="{{ faq_item.sort_order if faq_item else '100' }}"
                        min="0" step="1"
                        class="form-input">
                 <small>Чем меньше число, тем выше вопрос в списке</small>

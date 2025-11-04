@@ -282,7 +282,7 @@ def init_db():
                 question TEXT NOT NULL,
                 answer TEXT NOT NULL,
                 category TEXT DEFAULT 'general',
-                sort_order INTEGER DEFAULT 0,
+                sort_order INTEGER DEFAULT 100,
                 is_active INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP,
@@ -2265,7 +2265,7 @@ def admin_faq_create():
         question = request.form.get('question', '').strip()
         answer = request.form.get('answer', '').strip()
         category = request.form.get('category', 'general').strip()
-        sort_order = request.form.get('sort_order', '0').strip()
+        sort_order = request.form.get('sort_order', '100').strip()
         is_active = request.form.get('is_active', '0')
         
         if not question or not answer:
@@ -2273,10 +2273,10 @@ def admin_faq_create():
             return render_template('admin/faq_form.html')
         
         try:
-            sort_order = int(sort_order) if sort_order else 0
+            sort_order = int(sort_order) if sort_order else 100
             is_active = 1 if is_active == '1' else 0
         except ValueError:
-            sort_order = 0
+            sort_order = 100
             is_active = 1
         
         conn = get_db_connection()
