@@ -52,6 +52,12 @@
                 {% endif %}
             </div>
             <div class="navbar-actions">
+                {% if not session.user_id %}
+                <a href="{{ url_for('login') }}" class="navbar-icon-btn navbar-gwars-btn" title="Войти через GWars" aria-label="Войти через GWars">
+                    <img src="https://www.gwars.io/favicon.ico" alt="GWars" class="navbar-gwars-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                    <span class="navbar-icon" style="display: none;">⚔️</span>
+                </a>
+                {% endif %}
                 <button id="theme-toggle" class="navbar-icon-btn" title="Переключить тему" aria-label="Переключить тему">
                     <span class="navbar-icon theme-icon">🌙</span>
                 </button>
