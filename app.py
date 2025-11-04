@@ -990,18 +990,6 @@ def dashboard():
     
     return render_template('dashboard.html', user=user, user_roles=user_roles)
 
-@app.route('/api/avatar/check-unique', methods=['POST'])
-@require_login
-def api_check_avatar_unique():
-    """API endpoint для проверки уникальности avatar_seed"""
-    data = request.get_json()
-    seed = data.get('seed', '')
-    
-    if not seed:
-        return jsonify({'unique': False, 'error': 'Seed is required'}), 400
-    
-    is_unique = is_avatar_seed_unique(seed)
-    return jsonify({'unique': is_unique, 'seed': seed})
 
 @app.route('/api/avatar/generate-options', methods=['POST'])
 @require_login
