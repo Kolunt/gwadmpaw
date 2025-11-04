@@ -27,8 +27,20 @@
                 <span class="info-value"><code>{{ debug_info.decoded_name_latin1 }}</code></span>
             </div>
             <div class="info-row">
+                <span class="info-label">Имя (из request.args):</span>
+                <span class="info-value"><code>{{ debug_info.name_from_args }}</code></span>
+            </div>
+            <div class="info-row">
                 <span class="info-label">User ID:</span>
                 <span class="info-value"><code>{{ debug_info.user_id }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Query String:</span>
+                <span class="info-value"><code style="font-size: 0.8rem; word-break: break-all;">{{ debug_info.query_string }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Full URL:</span>
+                <span class="info-value"><code style="font-size: 0.8rem; word-break: break-all;">{{ debug_info.full_url }}</code></span>
             </div>
             
             <h3>Варианты вычисления подписи sign:</h3>
@@ -71,6 +83,26 @@
                 <span class="info-value"><code>{{ debug_info.variant5 }}</code></span>
                 <span style="color: {% if debug_info.sign_match_v5 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
                     {% if debug_info.sign_match_v5 %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            
+            {% if debug_info.variant6 != 'N/A' %}
+            <div class="info-row">
+                <span class="info-label">Вариант 6 (pass + re-encoded_name + id):</span>
+                <span class="info-value"><code>{{ debug_info.variant6 }}</code></span>
+                <span style="color: {% if debug_info.sign_match_v6 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_v6 %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            
+            {% if debug_info.variant7 != 'N/A' %}
+            <div class="info-row">
+                <span class="info-label">Вариант 7 (pass + name_from_args + id):</span>
+                <span class="info-value"><code>{{ debug_info.variant7 }}</code></span>
+                <span style="color: {% if debug_info.sign_match_v7 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_v7 %}✅{% else %}❌{% endif %}
                 </span>
             </div>
             {% endif %}

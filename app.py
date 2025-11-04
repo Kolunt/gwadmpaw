@@ -137,20 +137,38 @@ def index():
 def login():
     # Получаем параметры от GWars
     sign = request.args.get('sign', '')
+    user_id = request.args.get('user_id', '')
+    
     # ВАЖНО: Flask автоматически декодирует URL параметры, но нам нужен оригинальный закодированный вариант
     # Получаем оригинальное значение из query string напрямую
-    query_string = request.query_string.decode('utf-8')
+    try:
+        query_string_raw = request.query_string
+        query_string = query_string_raw.decode('utf-8', errors='replace')
+    except:
+        query_string = request.query_string.decode('utf-8')
+    
     name_encoded = None
+    # Пробуем извлечь name из query string
     for param in query_string.split('&'):
         if param.startswith('name='):
             name_encoded = param.split('=', 1)[1]  # Берем все после первого =
             break
     
-    # Если не получилось получить из query_string, пробуем через request.args
-    if not name_encoded:
+    # Если не получилось получить из query_string, пробуем через request.args (но это уже декодированное)
+    if not name_encoded or name_encoded == '':
         name_encoded = request.args.get('name', '')
+        # Если получили через args, значит оно уже декодировано, нужно закодировать обратно для проверки
+        if name_encoded:
+            from urllib.parse import quote
+            name_encoded_for_comparison = quote(name_encoded, safe='')
+        else:
+            name_encoded_for_comparison = ''
+    else:
+        name_encoded_for_comparison = name_encoded
     
     # Пробуем декодировать разными способами
+    name = name_encoded
+    name_latin1 = None
     try:
         name = unquote(name_encoded, encoding='utf-8')
     except:
@@ -159,10 +177,11 @@ def login():
         except:
             try:
                 name = unquote(name_encoded, encoding='latin1')
+                name_latin1 = name
             except:
                 name = name_encoded
+                name_latin1 = name_encoded
     
-    user_id = request.args.get('user_id', '')
     level = request.args.get('level', '0')
     synd = request.args.get('synd', '0')
     sign2 = request.args.get('sign2', '')
@@ -172,6 +191,12 @@ def login():
     sign3 = request.args.get('sign3', '')
     usersex = request.args.get('usersex', '')
     sign4 = request.args.get('sign4', '')
+    
+    # Если name пустое, пробуем получить из request.args напрямую
+    if not name or name == '':
+        name = request.args.get('name', '')
+        if name:
+            name_encoded = name  # Если получили через args, значит оно уже декодировано
     
     # Если нет параметров, редиректим на GWars для авторизации
     if not sign or not user_id:
@@ -191,6 +216,7 @@ def login():
     log_error("=== LOGIN DEBUG ===")
     log_error(f"Received parameters:")
     log_error(f"  sign={sign}")
+    log_error(f"  name (from args)={request.args.get('name', '')}")
     log_error(f"  name (encoded/raw from query_string)={name_encoded}")
     log_error(f"  name (decoded)={name}")
     log_error(f"  name (repr)={repr(name)}")
@@ -200,7 +226,9 @@ def login():
     log_error(f"  synd={synd}")
     log_error(f"  sign2={sign2}")
     log_error(f"Full URL: {request.url}")
-    log_error(f"Query string (raw): {request.query_string}")
+    log_error(f"Query string (raw bytes): {request.query_string}")
+    log_error(f"Query string (decoded): {query_string}")
+    log_error(f"All args: {dict(request.args)}")
     
     # Проверяем подписи (пробуем оба варианта - с декодированным и закодированным именем)
     if not verify_sign(name, user_id, sign, name_encoded):
@@ -209,17 +237,34 @@ def login():
         flash('Ошибка проверки подписи sign. Смотрите информацию ниже.', 'error')
         
         # Вычисляем все варианты для отображения
+        # Важно: пробуем разные комбинации, так как имя может быть в разных форматах
         variant1 = hashlib.md5((GWARS_PASSWORD + name + str(user_id)).encode('utf-8')).hexdigest()
         variant2 = hashlib.md5((GWARS_PASSWORD + name_encoded + str(user_id)).encode('utf-8')).hexdigest()
         variant3 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name).encode('utf-8')).hexdigest()
         variant4 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name_encoded).encode('utf-8')).hexdigest()
         
+        # Пробуем с name_encoded_for_comparison (если мы его создали)
+        variant6 = None
+        if name_encoded_for_comparison and name_encoded_for_comparison != name_encoded:
+            variant6 = hashlib.md5((GWARS_PASSWORD + name_encoded_for_comparison + str(user_id)).encode('utf-8')).hexdigest()
+        
+        # Пробуем latin1
         try:
-            name_latin1 = unquote(name_encoded, encoding='latin1')
-            variant5 = hashlib.md5((GWARS_PASSWORD + name_latin1 + str(user_id)).encode('utf-8')).hexdigest()
+            if not name_latin1:
+                name_latin1 = unquote(name_encoded, encoding='latin1') if name_encoded else None
+            if name_latin1:
+                variant5 = hashlib.md5((GWARS_PASSWORD + name_latin1 + str(user_id)).encode('utf-8')).hexdigest()
+            else:
+                variant5 = None
         except:
             name_latin1 = None
             variant5 = None
+        
+        # Пробуем с именем как оно пришло через request.args (уже декодированное)
+        name_from_args = request.args.get('name', '')
+        variant7 = None
+        if name_from_args and name_from_args != name:
+            variant7 = hashlib.md5((GWARS_PASSWORD + name_from_args + str(user_id)).encode('utf-8')).hexdigest()
         
         expected_sign2 = hashlib.md5(
             (GWARS_PASSWORD + str(level) + str(round(float(synd))) + str(user_id)).encode('utf-8')
