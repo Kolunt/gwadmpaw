@@ -219,6 +219,18 @@ body {
     z-index: 10;
 }
 
+/* Скрываем sidebar-header, если внутри нет видимого контента */
+.sidebar-header:has(.sidebar-close:not([style*="display: block"]):not([style*="display:flex"])):not(:has(.sidebar-close[style*="display: block"])):not(:has(.sidebar-close[style*="display:flex"])) {
+    display: none;
+}
+
+/* Для мобильных: показываем header, если кнопка закрытия видна */
+@media (max-width: 768px) {
+    .sidebar-header:has(.sidebar-close[style*="display: block"]) {
+        display: flex;
+    }
+}
+
 .sidebar-header .logo,
 .sidebar-header .sidebar-title {
     font-size: 1.25rem;
