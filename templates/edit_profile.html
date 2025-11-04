@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование профиля - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="profile-card">
+        <h2>Редактирование профиля</h2>
+        
+        {% if user.avatar_seed %}
+        <div class="profile-avatar">
+            <img src="{{ get_avatar_url(user.avatar_seed) }}" alt="Аватар {{ user.username }}" class="avatar-large">
+        </div>
+        {% endif %}
+        
+        <form method="POST" class="profile-edit-form">
+            <div class="form-section">
+                <h3>Информация из GWars (не редактируется)</h3>
+                <div class="readonly-info">
+                    <div class="info-row">
+                        <span class="info-label">ID пользователя:</span>
+                        <span class="info-value">{{ user.user_id }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Имя в GWars:</span>
+                        <span class="info-value">{{ user.username }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Уровень:</span>
+                        <span class="info-value">{{ user.level }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Синдикат:</span>
+                        <span class="info-value">{{ user.synd }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Ваша информация (редактируемая)</h3>
+                
+                <div class="form-group">
+                    <label for="display_name" class="form-label">
+                        Отображаемое имя
+                        <small class="form-hint">Имя, которое будут видеть другие пользователи (если не указано, используется имя из GWars)</small>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="display_name" 
+                        name="display_name" 
+                        value="{{ user.display_name or '' }}"
+                        class="form-input"
+                        placeholder="Ваше отображаемое имя"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="bio" class="form-label">
+                        О себе
+                        <small class="form-hint">Расскажите о себе (необязательно)</small>
+                    </label>
+                    <textarea 
+                        id="bio" 
+                        name="bio" 
+                        class="form-textarea"
+                        rows="5"
+                        placeholder="Расскажите о себе..."
+                    >{{ user.bio or '' }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact_info" class="form-label">
+                        Контактная информация
+                        <small class="form-hint">Контактная информация для связи (необязательно)</small>
+                    </label>
+                    <textarea 
+                        id="contact_info" 
+                        name="contact_info" 
+                        class="form-textarea"
+                        rows="3"
+                        placeholder="Ваша контактная информация..."
+                    >{{ user.contact_info or '' }}</textarea>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

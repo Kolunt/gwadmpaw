@@ -93,6 +93,15 @@ def init_db():
             # Колонка уже существует, это нормально
             pass
         
+        # Добавляем пользовательские поля для редактирования профиля (миграция)
+        user_editable_fields = ['bio', 'display_name', 'contact_info']
+        for field in user_editable_fields:
+            try:
+                c.execute(f'ALTER TABLE users ADD COLUMN {field} TEXT')
+            except sqlite3.OperationalError:
+                # Колонка уже существует, это нормально
+                pass
+        
         # Таблица ролей
         c.execute('''
             CREATE TABLE IF NOT EXISTS roles (
@@ -911,6 +920,45 @@ def dashboard():
     conn.close()
     
     return render_template('dashboard.html', user=user, user_roles=user_roles)
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@require_login
+def edit_profile():
+    """Редактирование профиля пользователя"""
+    conn = get_db_connection()
+    user = conn.execute(
+        'SELECT * FROM users WHERE user_id = ?', (session['user_id'],)
+    ).fetchone()
+    
+    if not user:
+        flash('Пользователь не найден', 'error')
+        conn.close()
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        # Получаем редактируемые поля (не из GWars)
+        bio = request.form.get('bio', '').strip()
+        display_name = request.form.get('display_name', '').strip()
+        contact_info = request.form.get('contact_info', '').strip()
+        
+        try:
+            # Обновляем только пользовательские поля
+            conn.execute('''
+                UPDATE users 
+                SET bio = ?, display_name = ?, contact_info = ?
+                WHERE user_id = ?
+            ''', (bio, display_name, contact_info, session['user_id']))
+            conn.commit()
+            flash('Профиль успешно обновлен', 'success')
+            conn.close()
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            log_error(f"Error updating profile: {e}")
+            flash(f'Ошибка обновления профиля: {str(e)}', 'error')
+            conn.close()
+    
+    conn.close()
+    return render_template('edit_profile.html', user=user)
 
 @app.route('/participants')
 @require_login

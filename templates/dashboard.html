@@ -63,11 +63,36 @@
         </div>
 
         <div class="profile-actions">
+            <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Редактировать профиль</a>
             {% if 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-primary">Админ-панель</a>
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Админ-панель</a>
             {% endif %}
             <a href="{{ url_for('logout') }}" class="btn btn-secondary">Выйти</a>
         </div>
+        
+        {% if user.display_name or user.bio or user.contact_info %}
+        <div class="profile-user-info">
+            <h3>Дополнительная информация</h3>
+            {% if user.display_name %}
+            <div class="info-row">
+                <span class="info-label">Отображаемое имя:</span>
+                <span class="info-value">{{ user.display_name }}</span>
+            </div>
+            {% endif %}
+            {% if user.bio %}
+            <div class="info-row">
+                <span class="info-label">О себе:</span>
+                <span class="info-value">{{ user.bio }}</span>
+            </div>
+            {% endif %}
+            {% if user.contact_info %}
+            <div class="info-row">
+                <span class="info-label">Контакты:</span>
+                <span class="info-value">{{ user.contact_info }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
