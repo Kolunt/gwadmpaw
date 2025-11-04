@@ -9,7 +9,7 @@
         
         {% if user.avatar_seed %}
         <div class="profile-avatar">
-            <img src="{{ get_avatar_url(user.avatar_seed) }}" alt="Аватар {{ user.username }}" class="avatar-large">
+            <img id="avatar-preview" src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars') }}" alt="Аватар {{ user.username }}" class="avatar-large">
         </div>
         {% endif %}
         
@@ -33,6 +33,35 @@
                         <span class="info-label">Синдикат:</span>
                         <span class="info-value">{{ user.synd }}</span>
                     </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Аватар</h3>
+                
+                <div class="form-group">
+                    <label for="avatar_style" class="form-label">
+                        Стиль аватара
+                        <small class="form-hint">Выберите стиль аватара. При изменении стиля будет сгенерирован новый уникальный аватар</small>
+                    </label>
+                    <select 
+                        id="avatar_style" 
+                        name="avatar_style" 
+                        class="form-input"
+                    >
+                        <option value="avataaars" {% if (user.avatar_style or 'avataaars') == 'avataaars' %}selected{% endif %}>Avataaars</option>
+                        <option value="bottts" {% if user.avatar_style == 'bottts' %}selected{% endif %}>Bottts</option>
+                        <option value="identicon" {% if user.avatar_style == 'identicon' %}selected{% endif %}>Identicon</option>
+                        <option value="initials" {% if user.avatar_style == 'initials' %}selected{% endif %}>Initials</option>
+                        <option value="lorelei" {% if user.avatar_style == 'lorelei' %}selected{% endif %}>Lorelei</option>
+                        <option value="micah" {% if user.avatar_style == 'micah' %}selected{% endif %}>Micah</option>
+                        <option value="miniavs" {% if user.avatar_style == 'miniavs' %}selected{% endif %}>Mini Avatars</option>
+                        <option value="open-peeps" {% if user.avatar_style == 'open-peeps' %}selected{% endif %}>Open Peeps</option>
+                        <option value="personas" {% if user.avatar_style == 'personas' %}selected{% endif %}>Personas</option>
+                        <option value="pixel-art" {% if user.avatar_style == 'pixel-art' %}selected{% endif %}>Pixel Art</option>
+                        <option value="shapes" {% if user.avatar_style == 'shapes' %}selected{% endif %}>Shapes</option>
+                        <option value="thumbs" {% if user.avatar_style == 'thumbs' %}selected{% endif %}>Thumbs</option>
+                    </select>
                 </div>
             </div>
             
@@ -75,5 +104,25 @@
         </form>
     </div>
 </div>
-{% endblock %}
 
+<script>
+// Превью аватара при изменении стиля
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarStyleSelect = document.getElementById('avatar_style');
+    const avatarPreview = document.getElementById('avatar-preview');
+    
+    if (avatarStyleSelect && avatarPreview) {
+        avatarStyleSelect.addEventListener('change', function() {
+            const selectedStyle = this.value;
+            const currentSeed = '{{ user.avatar_seed }}';
+            
+            if (currentSeed) {
+                // Генерируем временный seed для превью (будет заменен при сохранении)
+                const previewSeed = currentSeed + '_preview_' + Date.now();
+                avatarPreview.src = `https://api.dicebear.com/7.x/${selectedStyle}/svg?seed=${previewSeed}&size=128`;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

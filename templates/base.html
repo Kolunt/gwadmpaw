@@ -44,7 +44,7 @@
                 {% if session.user_id %}
                 <a href="{{ url_for('dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="Профиль">
                     {% if current_user_avatar_seed %}
-                        <img src="{{ get_avatar_url(current_user_avatar_seed, size=32) }}" alt="Аватар" class="navbar-avatar">
+                        <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="Аватар" class="navbar-avatar">
                     {% else %}
                         <span class="navbar-icon">👤</span>
                     {% endif %}
