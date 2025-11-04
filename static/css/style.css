@@ -787,6 +787,21 @@ body {
     margin: 0 auto;
 }
 
+/* Для страницы events: полная ширина на десктопе */
+.dashboard-container .admin-container {
+    max-width: none;
+    width: 100%;
+    padding: 0 1rem;
+}
+
+@media (min-width: 769px) {
+    .dashboard-container:has(.admin-container) {
+        max-width: none;
+        width: 100%;
+        padding: 0;
+    }
+}
+
 .profile-card {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
