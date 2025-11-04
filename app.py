@@ -216,6 +216,36 @@ def generate_unique_avatar_seed(user_id):
     seed = f"{user_id}_{random_part}"
     return seed
 
+def get_used_avatar_seeds(exclude_user_id=None):
+    """Получает список всех используемых avatar_seed в системе"""
+    conn = get_db_connection()
+    if exclude_user_id:
+        used_seeds = conn.execute(
+            'SELECT avatar_seed FROM users WHERE avatar_seed IS NOT NULL AND user_id != ?',
+            (exclude_user_id,)
+        ).fetchall()
+    else:
+        used_seeds = conn.execute(
+            'SELECT avatar_seed FROM users WHERE avatar_seed IS NOT NULL'
+        ).fetchall()
+    conn.close()
+    return set(seed['avatar_seed'] for seed in used_seeds if seed['avatar_seed'])
+
+def generate_unique_avatar_candidates(style, count=20, exclude_user_id=None):
+    """Генерирует список уникальных кандидатов аватаров для выбранного стиля"""
+    used_seeds = get_used_avatar_seeds(exclude_user_id)
+    candidates = []
+    attempts = 0
+    max_attempts = count * 10  # Лимит попыток
+    
+    while len(candidates) < count and attempts < max_attempts:
+        seed = secrets.token_hex(12)  # Генерируем случайный seed
+        if seed not in used_seeds and seed not in candidates:
+            candidates.append(seed)
+        attempts += 1
+    
+    return candidates
+
 def get_avatar_url(avatar_seed, style=None, size=128):
     """Генерирует URL аватара DiceBear"""
     if not avatar_seed:
@@ -960,6 +990,69 @@ def dashboard():
     
     return render_template('dashboard.html', user=user, user_roles=user_roles)
 
+@app.route('/api/avatar/check-unique', methods=['POST'])
+@require_login
+def api_check_avatar_unique():
+    """API endpoint для проверки уникальности avatar_seed"""
+    data = request.get_json()
+    seed = data.get('seed', '')
+    
+    if not seed:
+        return jsonify({'unique': False, 'error': 'Seed is required'}), 400
+    
+    is_unique = is_avatar_seed_unique(seed)
+    return jsonify({'unique': is_unique, 'seed': seed})
+
+@app.route('/api/avatar/generate-options', methods=['POST'])
+@require_login
+def api_generate_avatar_options():
+    """API endpoint для генерации вариантов аватаров по стилю"""
+    data = request.get_json()
+    style = data.get('style', 'avataaars')
+    count = data.get('count', 20)  # Количество вариантов для генерации
+    
+    if not style:
+        return jsonify({'error': 'Style is required'}), 400
+    
+    conn = get_db_connection()
+    try:
+        # Получаем все использованные seeds
+        used_seeds = set(row[0] for row in conn.execute(
+            'SELECT avatar_seed FROM users WHERE avatar_seed IS NOT NULL'
+        ).fetchall())
+        conn.close()
+    except Exception as e:
+        log_error(f"Error fetching used seeds: {e}")
+        conn.close()
+        used_seeds = set()
+    
+    # Генерируем варианты аватаров
+    options = []
+    attempts = 0
+    max_attempts = count * 10  # Максимальное количество попыток
+    
+    while len(options) < count and attempts < max_attempts:
+        # Генерируем случайный seed
+        random_part = secrets.token_hex(8)
+        seed = f"option_{random_part}"
+        
+        # Проверяем уникальность
+        if seed not in used_seeds:
+            options.append({
+                'seed': seed,
+                'url': get_avatar_url(seed, style, 128),
+                'unique': True
+            })
+            used_seeds.add(seed)  # Добавляем в список использованных для этой сессии
+        
+        attempts += 1
+    
+    return jsonify({
+        'style': style,
+        'options': options,
+        'count': len(options)
+    })
+
 @app.route('/profile/edit', methods=['GET', 'POST'])
 @require_login
 def edit_profile():
@@ -978,31 +1071,34 @@ def edit_profile():
         # Получаем редактируемые поля (не из GWars)
         bio = request.form.get('bio', '').strip()
         contact_info = request.form.get('contact_info', '').strip()
+        avatar_seed = request.form.get('avatar_seed', '').strip()
         avatar_style = request.form.get('avatar_style', 'avataaars').strip()
         
         try:
-            # Проверяем, изменился ли стиль аватара
-            current_user = conn.execute(
-                'SELECT avatar_style FROM users WHERE user_id = ?', (session['user_id'],)
-            ).fetchone()
+            # Если передан новый avatar_seed и avatar_style, проверяем уникальность
+            if avatar_seed and avatar_style:
+                # Проверяем, что выбранный seed уникален (не используется другими пользователями)
+                used_seeds = get_used_avatar_seeds(exclude_user_id=session['user_id'])
+                if avatar_seed in used_seeds:
+                    flash('Выбранный аватар уже используется другим пользователем. Пожалуйста, выберите другой.', 'error')
+                    conn.close()
+                    return render_template('edit_profile.html', user=user)
             
-            # Если стиль изменился, генерируем новый уникальный seed
-            avatar_seed = None
-            if current_user and current_user['avatar_style'] != avatar_style:
-                avatar_seed = generate_unique_avatar_seed(session['user_id'])
-                # Обновляем и avatar_seed, и avatar_style
+            # Обновляем профиль
+            if avatar_seed and avatar_style:
+                # Обновляем с новым аватаром
                 conn.execute('''
                     UPDATE users 
                     SET bio = ?, contact_info = ?, avatar_style = ?, avatar_seed = ?
                     WHERE user_id = ?
                 ''', (bio, contact_info, avatar_style, avatar_seed, session['user_id']))
             else:
-                # Обновляем только без avatar_seed
+                # Обновляем только bio и contact_info
                 conn.execute('''
                     UPDATE users 
-                    SET bio = ?, contact_info = ?, avatar_style = ?
+                    SET bio = ?, contact_info = ?
                     WHERE user_id = ?
-                ''', (bio, contact_info, avatar_style, session['user_id']))
+                ''', (bio, contact_info, session['user_id']))
             
             conn.commit()
             flash('Профиль успешно обновлен', 'success')
@@ -1015,6 +1111,28 @@ def edit_profile():
     
     conn.close()
     return render_template('edit_profile.html', user=user)
+
+@app.route('/api/avatar/candidates', methods=['GET'])
+@require_login
+def get_avatar_candidates():
+    """API endpoint для получения уникальных кандидатов аватаров выбранного стиля"""
+    style = request.args.get('style', 'avataaars')
+    count = int(request.args.get('count', 20))
+    
+    if style not in ['avataaars', 'bottts', 'identicon', 'initials', 'lorelei', 'micah', 'miniavs', 'open-peeps', 'personas', 'pixel-art', 'shapes', 'thumbs']:
+        return jsonify({'error': 'Invalid style'}), 400
+    
+    candidates = generate_unique_avatar_candidates(style, count, exclude_user_id=session['user_id'])
+    
+    return jsonify({
+        'candidates': [
+            {
+                'seed': seed,
+                'url': get_avatar_url(seed, style, size=128)
+            }
+            for seed in candidates
+        ]
+    })
 
 @app.route('/profile/<int:user_id>')
 @require_login

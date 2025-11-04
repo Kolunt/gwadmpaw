@@ -10,6 +10,7 @@
         {% if user.avatar_seed %}
         <div class="profile-avatar">
             <img id="avatar-preview" src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars') }}" alt="Аватар {{ user.username }}" class="avatar-large">
+            <button type="button" id="change-avatar-btn" class="btn btn-primary" style="margin-top: 1rem;">Изменить аватар</button>
         </div>
         {% endif %}
         
@@ -36,53 +37,9 @@
                 </div>
             </div>
             
-            <div class="form-section">
-                <h3>Аватар</h3>
-                
-                <div class="form-group">
-                    <label class="form-label">
-                        Стиль аватара
-                        <small class="form-hint">Выберите стиль аватара. При изменении стиля будет сгенерирован новый уникальный аватар</small>
-                    </label>
-                    
-                    <div class="avatar-styles-grid">
-                        {% set avatar_styles = [
-                            {'value': 'avataaars', 'name': 'Avataaars', 'preview_seed': 'preview1'},
-                            {'value': 'bottts', 'name': 'Bottts', 'preview_seed': 'preview2'},
-                            {'value': 'identicon', 'name': 'Identicon', 'preview_seed': 'preview3'},
-                            {'value': 'initials', 'name': 'Initials', 'preview_seed': 'preview4'},
-                            {'value': 'lorelei', 'name': 'Lorelei', 'preview_seed': 'preview5'},
-                            {'value': 'micah', 'name': 'Micah', 'preview_seed': 'preview6'},
-                            {'value': 'miniavs', 'name': 'Mini Avatars', 'preview_seed': 'preview7'},
-                            {'value': 'open-peeps', 'name': 'Open Peeps', 'preview_seed': 'preview8'},
-                            {'value': 'personas', 'name': 'Personas', 'preview_seed': 'preview9'},
-                            {'value': 'pixel-art', 'name': 'Pixel Art', 'preview_seed': 'preview10'},
-                            {'value': 'shapes', 'name': 'Shapes', 'preview_seed': 'preview11'},
-                            {'value': 'thumbs', 'name': 'Thumbs', 'preview_seed': 'preview12'}
-                        ] %}
-                        
-                        {% for style in avatar_styles %}
-                        <label class="avatar-style-option {% if (user.avatar_style or 'avataaars') == style.value %}selected{% endif %}">
-                            <input 
-                                type="radio" 
-                                name="avatar_style" 
-                                value="{{ style.value }}"
-                                {% if (user.avatar_style or 'avataaars') == style.value %}checked{% endif %}
-                                class="avatar-style-radio"
-                            >
-                            <div class="avatar-style-preview">
-                                <img 
-                                    src="https://api.dicebear.com/7.x/{{ style.value }}/svg?seed={{ style.preview_seed }}&size=80" 
-                                    alt="{{ style.name }}"
-                                    class="avatar-preview-img"
-                                >
-                                <span class="avatar-style-name">{{ style.name }}</span>
-                            </div>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
+            <!-- Скрытые поля для нового аватара -->
+            <input type="hidden" id="avatar_seed" name="avatar_seed" value="">
+            <input type="hidden" id="avatar_style" name="avatar_style" value="{{ user.avatar_style or 'avataaars' }}">
             
             <div class="form-section">
                 <h3>Ваша информация (редактируемая)</h3>
@@ -124,32 +81,205 @@
     </div>
 </div>
 
+<!-- Модальное окно выбора аватара -->
+<div id="avatar-modal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2>Выбор аватара</h2>
+            <button type="button" class="modal-close" id="close-avatar-modal">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Шаг 1: Выбор категории -->
+            <div id="step-category" class="avatar-modal-step">
+                <h3>Выберите категорию аватара</h3>
+                <div class="avatar-styles-grid">
+                    {% set avatar_styles = [
+                        {'value': 'avataaars', 'name': 'Avataaars', 'preview_seed': 'preview1'},
+                        {'value': 'bottts', 'name': 'Bottts', 'preview_seed': 'preview2'},
+                        {'value': 'identicon', 'name': 'Identicon', 'preview_seed': 'preview3'},
+                        {'value': 'initials', 'name': 'Initials', 'preview_seed': 'preview4'},
+                        {'value': 'lorelei', 'name': 'Lorelei', 'preview_seed': 'preview5'},
+                        {'value': 'micah', 'name': 'Micah', 'preview_seed': 'preview6'},
+                        {'value': 'miniavs', 'name': 'Mini Avatars', 'preview_seed': 'preview7'},
+                        {'value': 'open-peeps', 'name': 'Open Peeps', 'preview_seed': 'preview8'},
+                        {'value': 'personas', 'name': 'Personas', 'preview_seed': 'preview9'},
+                        {'value': 'pixel-art', 'name': 'Pixel Art', 'preview_seed': 'preview10'},
+                        {'value': 'shapes', 'name': 'Shapes', 'preview_seed': 'preview11'},
+                        {'value': 'thumbs', 'name': 'Thumbs', 'preview_seed': 'preview12'}
+                    ] %}
+                    
+                    {% for style in avatar_styles %}
+                    <button type="button" class="avatar-style-option category-select" data-style="{{ style.value }}">
+                        <div class="avatar-style-preview">
+                            <img 
+                                src="https://api.dicebear.com/7.x/{{ style.value }}/svg?seed={{ style.preview_seed }}&size=80" 
+                                alt="{{ style.name }}"
+                                class="avatar-preview-img"
+                            >
+                            <span class="avatar-style-name">{{ style.name }}</span>
+                        </div>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Шаг 2: Выбор конкретного аватара -->
+            <div id="step-avatar" class="avatar-modal-step" style="display: none;">
+                <div class="step-header">
+                    <button type="button" class="btn btn-secondary btn-back" id="back-to-category">← Назад</button>
+                    <h3 id="selected-category-name">Выберите аватар</h3>
+                </div>
+                <div id="avatar-candidates-grid" class="avatar-candidates-grid">
+                    <div class="loading-spinner">Загрузка аватаров...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancel-avatar-modal">Отмена</button>
+            <button type="button" class="btn btn-primary" id="save-avatar-btn" style="display: none;">Сохранить</button>
+        </div>
+    </div>
+</div>
+
 <script>
-// Превью аватара при изменении стиля
 document.addEventListener('DOMContentLoaded', function() {
-    const avatarStyleRadios = document.querySelectorAll('.avatar-style-radio');
+    const changeAvatarBtn = document.getElementById('change-avatar-btn');
+    const avatarModal = document.getElementById('avatar-modal');
+    const closeModalBtn = document.getElementById('close-avatar-modal');
+    const cancelModalBtn = document.getElementById('cancel-avatar-modal');
+    const backToCategoryBtn = document.getElementById('back-to-category');
+    const categorySelectBtns = document.querySelectorAll('.category-select');
+    const stepCategory = document.getElementById('step-category');
+    const stepAvatar = document.getElementById('step-avatar');
+    const avatarCandidatesGrid = document.getElementById('avatar-candidates-grid');
+    const selectedCategoryName = document.getElementById('selected-category-name');
+    const saveAvatarBtn = document.getElementById('save-avatar-btn');
     const avatarPreview = document.getElementById('avatar-preview');
+    const avatarSeedInput = document.getElementById('avatar_seed');
+    const avatarStyleInput = document.getElementById('avatar_style');
     
-    if (avatarStyleRadios.length && avatarPreview) {
-        avatarStyleRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                if (this.checked) {
-                    const selectedStyle = this.value;
-                    const currentSeed = '{{ user.avatar_seed }}';
-                    
-                    if (currentSeed) {
-                        // Генерируем временный seed для превью (будет заменен при сохранении)
-                        const previewSeed = currentSeed + '_preview_' + Date.now();
-                        avatarPreview.src = `https://api.dicebear.com/7.x/${selectedStyle}/svg?seed=${previewSeed}&size=128`;
-                    }
-                    
-                    // Обновляем визуальное выделение
-                    document.querySelectorAll('.avatar-style-option').forEach(option => {
-                        option.classList.remove('selected');
+    let selectedAvatarSeed = null;
+    let selectedAvatarStyle = null;
+    
+    // Открытие модального окна
+    if (changeAvatarBtn) {
+        changeAvatarBtn.addEventListener('click', function() {
+            avatarModal.style.display = 'block';
+            resetModal();
+        });
+    }
+    
+    // Закрытие модального окна
+    function closeModal() {
+        avatarModal.style.display = 'none';
+        resetModal();
+    }
+    
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeModal);
+    }
+    
+    if (cancelModalBtn) {
+        cancelModalBtn.addEventListener('click', closeModal);
+    }
+    
+    // Закрытие при клике вне модального окна
+    avatarModal.addEventListener('click', function(e) {
+        if (e.target === avatarModal) {
+            closeModal();
+        }
+    });
+    
+    // Сброс модального окна
+    function resetModal() {
+        stepCategory.style.display = 'block';
+        stepAvatar.style.display = 'none';
+        saveAvatarBtn.style.display = 'none';
+        selectedAvatarSeed = null;
+        selectedAvatarStyle = null;
+        avatarCandidatesGrid.innerHTML = '<div class="loading-spinner">Загрузка аватаров...</div>';
+    }
+    
+    // Выбор категории
+    categorySelectBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const style = this.getAttribute('data-style');
+            selectedAvatarStyle = style;
+            loadAvatarCandidates(style);
+        });
+    });
+    
+    // Назад к выбору категории
+    if (backToCategoryBtn) {
+        backToCategoryBtn.addEventListener('click', function() {
+            stepCategory.style.display = 'block';
+            stepAvatar.style.display = 'none';
+            saveAvatarBtn.style.display = 'none';
+        });
+    }
+    
+    // Загрузка кандидатов аватаров
+    function loadAvatarCandidates(style) {
+        avatarCandidatesGrid.innerHTML = '<div class="loading-spinner">Загрузка уникальных аватаров...</div>';
+        
+        fetch(`/api/avatar/candidates?style=${style}&count=24`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.candidates && data.candidates.length > 0) {
+                    avatarCandidatesGrid.innerHTML = '';
+                    data.candidates.forEach(candidate => {
+                        const avatarItem = document.createElement('div');
+                        avatarItem.className = 'avatar-candidate-item';
+                        avatarItem.innerHTML = `
+                            <img src="${candidate.url}" alt="Avatar" class="avatar-candidate-img">
+                        `;
+                        avatarItem.addEventListener('click', function() {
+                            // Убираем выделение с других
+                            document.querySelectorAll('.avatar-candidate-item').forEach(item => {
+                                item.classList.remove('selected');
+                            });
+                            // Выделяем выбранный
+                            this.classList.add('selected');
+                            selectedAvatarSeed = candidate.seed;
+                            saveAvatarBtn.style.display = 'block';
+                        });
+                        avatarCandidatesGrid.appendChild(avatarItem);
                     });
-                    this.closest('.avatar-style-option').classList.add('selected');
+                } else {
+                    avatarCandidatesGrid.innerHTML = '<p class="text-muted">Не удалось загрузить аватары. Попробуйте еще раз.</p>';
                 }
+                
+                // Переходим к шагу выбора аватара
+                stepCategory.style.display = 'none';
+                stepAvatar.style.display = 'block';
+                
+                // Обновляем название категории
+                const categoryName = document.querySelector(`[data-style="${style}"] .avatar-style-name`).textContent;
+                selectedCategoryName.textContent = `Выберите аватар: ${categoryName}`;
+            })
+            .catch(error => {
+                console.error('Error loading avatar candidates:', error);
+                avatarCandidatesGrid.innerHTML = '<p class="text-error">Ошибка загрузки аватаров. Попробуйте еще раз.</p>';
             });
+    }
+    
+    // Сохранение выбранного аватара
+    if (saveAvatarBtn) {
+        saveAvatarBtn.addEventListener('click', function() {
+            if (selectedAvatarSeed && selectedAvatarStyle) {
+                // Обновляем скрытые поля формы
+                avatarSeedInput.value = selectedAvatarSeed;
+                avatarStyleInput.value = selectedAvatarStyle;
+                
+                // Обновляем превью
+                if (avatarPreview) {
+                    avatarPreview.src = `https://api.dicebear.com/7.x/${selectedAvatarStyle}/svg?seed=${selectedAvatarSeed}&size=128`;
+                }
+                
+                closeModal();
+            }
         });
     }
 });
