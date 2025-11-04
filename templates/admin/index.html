@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Админ-панель - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1>Админ-панель</h1>
+    
+    <div class="admin-grid">
+        <div class="admin-card">
+            <h2>Управление пользователями</h2>
+            <p>Просмотр и управление пользователями системы</p>
+            <a href="{{ url_for('admin_users') }}" class="btn btn-primary">Перейти</a>
+        </div>
+        
+        <div class="admin-card">
+            <h2>Управление ролями</h2>
+            <p>Создание и редактирование ролей пользователей</p>
+            <a href="{{ url_for('admin_roles') }}" class="btn btn-primary">Перейти</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

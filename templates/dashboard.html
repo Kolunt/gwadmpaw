@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Профиль - GWars Auth{% endblock %}
+{% block title %}Профиль - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
@@ -25,6 +25,18 @@
                 <span class="info-value">{{ user.synd }}</span>
             </div>
             <div class="info-row">
+                <span class="info-label">Роли:</span>
+                <span class="info-value">
+                    {% if user_roles %}
+                        {% for role in user_roles %}
+                            <span class="role-badge">{{ role.display_name }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="role-badge">Пользователь</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-row">
                 <span class="info-label">Пол:</span>
                 <span class="info-value">{{ user.usersex or 'Не указан' }}</span>
             </div>
@@ -45,6 +57,9 @@
         </div>
 
         <div class="profile-actions">
+            {% if 'admin' in session.get('roles', []) %}
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-primary">Админ-панель</a>
+            {% endif %}
             <a href="{{ url_for('logout') }}" class="btn btn-secondary">Выйти</a>
         </div>
     </div>

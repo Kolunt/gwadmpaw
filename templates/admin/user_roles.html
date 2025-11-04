@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Роли пользователя - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Управление ролями пользователя</h1>
+        <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+    
+    <div class="user-info-card">
+        <h2>{{ user.username }} (ID: {{ user.user_id }})</h2>
+        <p><strong>Текущие роли:</strong> 
+            {% if user_roles %}
+                {% for role in user_roles %}
+                    <span class="role-badge">{{ role.display_name }}</span>
+                {% endfor %}
+            {% else %}
+                <span class="text-muted">Нет ролей</span>
+            {% endif %}
+        </p>
+    </div>
+    
+    <div class="roles-management">
+        <h3>Назначить роль</h3>
+        <form method="POST" class="role-form">
+            <input type="hidden" name="action" value="assign">
+            <select name="role_name" required>
+                <option value="">Выберите роль</option>
+                {% for role in all_roles %}
+                    {% if role.name not in user_role_names %}
+                    <option value="{{ role.name }}">{{ role.display_name }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">Назначить</button>
+        </form>
+        
+        <h3>Удалить роль</h3>
+        <form method="POST" class="role-form">
+            <input type="hidden" name="action" value="remove">
+            <select name="role_name" required>
+                <option value="">Выберите роль</option>
+                {% for role in user_roles %}
+                <option value="{{ role.name }}">{{ role.display_name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-danger">Удалить</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

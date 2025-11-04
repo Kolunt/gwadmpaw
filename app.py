@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify
 from urllib.parse import unquote, unquote_to_bytes
 import hashlib
 import sqlite3
 from datetime import datetime
 import os
 import logging
+from functools import wraps
 from version import __version__
 
 app = Flask(__name__)
@@ -30,6 +31,9 @@ def log_debug(msg):
 GWARS_PASSWORD = "deadmoroz"
 GWARS_HOST = "gwadm.pythonanywhere.com"
 GWARS_SITE_ID = 4
+
+# ID администратора по умолчанию
+ADMIN_USER_ID = 283494
 
 # Инициализация базы данных
 _db_initialized = False
@@ -62,6 +66,8 @@ def init_db():
         
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
+        
+        # Таблица пользователей
         c.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,6 +83,48 @@ def init_db():
                 last_login TIMESTAMP
             )
         ''')
+        
+        # Таблица ролей
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS roles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                display_name TEXT NOT NULL,
+                description TEXT,
+                is_system INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Связь пользователей и ролей (многие ко многим)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS user_roles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                role_id INTEGER NOT NULL,
+                assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                assigned_by INTEGER,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+                FOREIGN KEY (assigned_by) REFERENCES users(user_id),
+                UNIQUE(user_id, role_id)
+            )
+        ''')
+        
+        # Создаем системные роли, если их еще нет
+        system_roles = [
+            ('admin', 'Администратор', 'Полный доступ ко всем функциям системы', 1),
+            ('moderator', 'Модератор', 'Права на модерацию контента', 1),
+            ('user', 'Пользователь', 'Обычный пользователь', 1),
+            ('guest', 'Гость', 'Неавторизованный пользователь', 1)
+        ]
+        
+        for role_name, display_name, description, is_system in system_roles:
+            c.execute('''
+                INSERT OR IGNORE INTO roles (name, display_name, description, is_system)
+                VALUES (?, ?, ?, ?)
+            ''', (role_name, display_name, description, is_system))
+        
         conn.commit()
         conn.close()
         _db_initialized = True
@@ -97,6 +145,131 @@ def get_db_connection():
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+# ========== Система ролей и прав доступа ==========
+
+def get_user_roles(user_id):
+    """Получает список ролей пользователя"""
+    if not user_id:
+        return []
+    conn = get_db_connection()
+    roles = conn.execute('''
+        SELECT r.id, r.name, r.display_name, r.description
+        FROM roles r
+        INNER JOIN user_roles ur ON r.id = ur.role_id
+        WHERE ur.user_id = ?
+    ''', (user_id,)).fetchall()
+    conn.close()
+    return [dict(role) for role in roles]
+
+def get_user_role_names(user_id):
+    """Получает список имен ролей пользователя"""
+    if not user_id:
+        return ['guest']
+    roles = get_user_roles(user_id)
+    return [role['name'] for role in roles] if roles else ['user']
+
+def has_role(user_id, role_name):
+    """Проверяет, есть ли у пользователя указанная роль"""
+    if not user_id:
+        return role_name == 'guest'
+    role_names = get_user_role_names(user_id)
+    return role_name in role_names
+
+def has_any_role(user_id, role_names):
+    """Проверяет, есть ли у пользователя хотя бы одна из указанных ролей"""
+    if not user_id:
+        return 'guest' in role_names
+    user_roles = get_user_role_names(user_id)
+    return any(role in user_roles for role in role_names)
+
+def assign_role(user_id, role_name, assigned_by=None):
+    """Назначает роль пользователю"""
+    conn = get_db_connection()
+    # Получаем ID роли
+    role = conn.execute('SELECT id FROM roles WHERE name = ?', (role_name,)).fetchone()
+    if not role:
+        conn.close()
+        return False
+    
+    try:
+        conn.execute('''
+            INSERT OR REPLACE INTO user_roles (user_id, role_id, assigned_by)
+            VALUES (?, ?, ?)
+        ''', (user_id, role['id'], assigned_by))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error assigning role: {e}")
+        conn.close()
+        return False
+
+def remove_role(user_id, role_name):
+    """Удаляет роль у пользователя"""
+    conn = get_db_connection()
+    role = conn.execute('SELECT id FROM roles WHERE name = ?', (role_name,)).fetchone()
+    if not role:
+        conn.close()
+        return False
+    
+    try:
+        conn.execute('''
+            DELETE FROM user_roles
+            WHERE user_id = ? AND role_id = ?
+        ''', (user_id, role['id']))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error removing role: {e}")
+        conn.close()
+        return False
+
+# Декораторы для проверки прав доступа
+def require_role(role_name):
+    """Декоратор для проверки наличия роли у пользователя"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_id = session.get('user_id')
+            if not has_role(user_id, role_name):
+                if not user_id:
+                    flash('Для доступа к этой странице необходимо авторизоваться', 'error')
+                    return redirect(url_for('index'))
+                else:
+                    flash('У вас нет прав для доступа к этой странице', 'error')
+                    return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def require_any_role(*role_names):
+    """Декоратор для проверки наличия хотя бы одной из ролей"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_id = session.get('user_id')
+            if not has_any_role(user_id, role_names):
+                if not user_id:
+                    flash('Для доступа к этой странице необходимо авторизоваться', 'error')
+                    return redirect(url_for('index'))
+                else:
+                    flash('У вас нет прав для доступа к этой странице', 'error')
+                    return redirect(url_for('dashboard'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def require_login(f):
+    """Декоратор для проверки авторизации"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Для доступа к этой странице необходимо авторизоваться', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Проверка подписи sign
 def verify_sign(username, user_id, sign, encoded_name=None):
@@ -302,12 +475,27 @@ def login():
     
     # Если нет параметров, редиректим на GWars для авторизации
     if not sign or not user_id:
-        # Формируем полный URL для редиректа обратно
-        # На PythonAnywhere используем https://, локально - http://
-        if 'pythonanywhere.com' in request.host:
-            callback_url = f"https://{request.host}/login"
+        # ВАЖНО: GWars проверяет домен callback URL
+        # Для локальной разработки используем production URL, чтобы GWars принял запрос
+        # После авторизации пользователь будет редиректиться на production, 
+        # где можно будет протестировать функционал
+        
+        # Определяем, работаем ли мы локально
+        is_local = request.host in ['127.0.0.1:5000', 'localhost:5000', '127.0.0.1', 'localhost']
+        
+        if is_local:
+            # При локальной разработке используем production URL для callback
+            # Это необходимо, так как GWars не принимает localhost
+            callback_url = f"https://{GWARS_HOST}/login"
+            log_debug(f"Local development detected. Using production callback URL: {callback_url}")
+            log_debug("After GWars authorization, you'll be redirected to production server.")
+            log_debug("You can then manually navigate to localhost:5000 for local testing.")
         else:
-            callback_url = f"{request.scheme}://{request.host}/login"
+            # На production используем текущий домен
+            if 'pythonanywhere.com' in request.host:
+                callback_url = f"https://{request.host}/login"
+            else:
+                callback_url = f"{request.scheme}://{request.host}/login"
         
         gwars_url = f"https://www.gwars.io/cross-server-login.php?site_id={GWARS_SITE_ID}&url={callback_url}"
         logger.debug(f"Redirecting to GWars: {gwars_url}")
@@ -519,27 +707,41 @@ def login():
     finally:
         conn.close()
     
+    # Автоматически назначаем роль админа для user_id 283494
+    if int(user_id) == ADMIN_USER_ID:
+        if not has_role(user_id, 'admin'):
+            assign_role(user_id, 'admin', assigned_by=user_id)
+            log_debug(f"Admin role automatically assigned to user_id {user_id}")
+    
+    # Если у пользователя нет ролей, назначаем роль 'user' по умолчанию
+    if not get_user_roles(user_id):
+        assign_role(user_id, 'user', assigned_by=user_id)
+        log_debug(f"Default 'user' role assigned to user_id {user_id}")
+    
     # Сохраняем в сессию
     session['user_id'] = user_id
     session['username'] = name
     session['level'] = level
     session['synd'] = synd
+    session['roles'] = get_user_role_names(user_id)  # Сохраняем роли в сессию
     
     return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
+@require_login
 def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('index'))
-    
     # Получаем данные пользователя из БД
     conn = get_db_connection()
     user = conn.execute(
         'SELECT * FROM users WHERE user_id = ?', (session['user_id'],)
     ).fetchone()
+    
+    # Получаем роли пользователя
+    user_roles = get_user_roles(session['user_id'])
+    
     conn.close()
     
-    return render_template('dashboard.html', user=user)
+    return render_template('dashboard.html', user=user, user_roles=user_roles)
 
 @app.route('/logout')
 def logout():
@@ -629,6 +831,221 @@ def debug():
         
         return render_template('debug.html', debug_info=debug_info)
     return render_template('debug.html', debug_info=None)
+
+# ========== Админ-панель ==========
+
+@app.route('/admin')
+@require_role('admin')
+def admin_panel():
+    """Главная страница админ-панели"""
+    return render_template('admin/index.html')
+
+@app.route('/admin/test')
+def admin_test():
+    """Тестовый маршрут для проверки загрузки админ-панели"""
+    user_id = session.get('user_id')
+    roles = session.get('roles', [])
+    has_admin = has_role(user_id, 'admin') if user_id else False
+    return f"""
+    <h1>Admin Test Route</h1>
+    <p>User ID: {user_id or 'Not logged in'}</p>
+    <p>Session roles: {roles}</p>
+    <p>Has admin role (check): {has_admin}</p>
+    <p>User roles from DB: {get_user_roles(user_id) if user_id else 'N/A'}</p>
+    <p><a href="/admin">Try /admin</a></p>
+    <p><a href="/dashboard">Dashboard</a></p>
+    """
+
+@app.route('/admin/users')
+@require_role('admin')
+def admin_users():
+    """Управление пользователями"""
+    conn = get_db_connection()
+    users = conn.execute('''
+        SELECT u.*, 
+               GROUP_CONCAT(r.display_name, ', ') as roles
+        FROM users u
+        LEFT JOIN user_roles ur ON u.user_id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
+        GROUP BY u.user_id
+        ORDER BY u.created_at DESC
+    ''').fetchall()
+    conn.close()
+    
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/users/<int:user_id>/roles', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_user_roles(user_id):
+    """Управление ролями пользователя"""
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    
+    if not user:
+        flash('Пользователь не найден', 'error')
+        return redirect(url_for('admin_users'))
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        role_name = request.form.get('role_name')
+        
+        if action == 'assign':
+            if assign_role(user_id, role_name, assigned_by=session['user_id']):
+                flash(f'Роль "{role_name}" успешно назначена', 'success')
+            else:
+                flash(f'Ошибка назначения роли', 'error')
+        elif action == 'remove':
+            if remove_role(user_id, role_name):
+                flash(f'Роль "{role_name}" успешно удалена', 'success')
+            else:
+                flash(f'Ошибка удаления роли', 'error')
+    
+    # Получаем все роли
+    all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
+    
+    # Получаем роли пользователя
+    user_roles = get_user_roles(user_id)
+    user_role_names = [r['name'] for r in user_roles]
+    
+    conn.close()
+    
+    return render_template('admin/user_roles.html', 
+                         user=user, 
+                         all_roles=all_roles, 
+                         user_roles=user_roles,
+                         user_role_names=user_role_names)
+
+@app.route('/admin/roles')
+@require_role('admin')
+def admin_roles():
+    """Управление ролями"""
+    conn = get_db_connection()
+    roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
+    
+    # Для каждой роли получаем количество пользователей
+    roles_with_counts = []
+    for role in roles:
+        count = conn.execute('''
+            SELECT COUNT(*) as count FROM user_roles WHERE role_id = ?
+        ''', (role['id'],)).fetchone()
+        roles_with_counts.append({
+            **dict(role),
+            'user_count': count['count']
+        })
+    
+    conn.close()
+    
+    return render_template('admin/roles.html', roles=roles_with_counts)
+
+@app.route('/admin/roles/create', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_role_create():
+    """Создание новой роли"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip().lower()
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not name or not display_name:
+            flash('Имя и отображаемое имя роли обязательны', 'error')
+            return render_template('admin/role_form.html')
+        
+        # Проверяем, что имя роли уникально
+        conn = get_db_connection()
+        existing = conn.execute('SELECT id FROM roles WHERE name = ?', (name,)).fetchone()
+        if existing:
+            flash('Роль с таким именем уже существует', 'error')
+            conn.close()
+            return render_template('admin/role_form.html')
+        
+        try:
+            conn.execute('''
+                INSERT INTO roles (name, display_name, description, is_system)
+                VALUES (?, ?, ?, 0)
+            ''', (name, display_name, description))
+            conn.commit()
+            flash('Роль успешно создана', 'success')
+            conn.close()
+            return redirect(url_for('admin_roles'))
+        except Exception as e:
+            log_error(f"Error creating role: {e}")
+            flash(f'Ошибка создания роли: {str(e)}', 'error')
+            conn.close()
+    
+    return render_template('admin/role_form.html')
+
+@app.route('/admin/roles/<int:role_id>/edit', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_role_edit(role_id):
+    """Редактирование роли"""
+    conn = get_db_connection()
+    role = conn.execute('SELECT * FROM roles WHERE id = ?', (role_id,)).fetchone()
+    
+    if not role:
+        flash('Роль не найдена', 'error')
+        conn.close()
+        return redirect(url_for('admin_roles'))
+    
+    # Системные роли нельзя редактировать
+    if role['is_system']:
+        flash('Системные роли нельзя редактировать', 'error')
+        conn.close()
+        return redirect(url_for('admin_roles'))
+    
+    if request.method == 'POST':
+        display_name = request.form.get('display_name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not display_name:
+            flash('Отображаемое имя роли обязательно', 'error')
+            conn.close()
+            return render_template('admin/role_form.html', role=role)
+        
+        try:
+            conn.execute('''
+                UPDATE roles SET display_name = ?, description = ?
+                WHERE id = ?
+            ''', (display_name, description, role_id))
+            conn.commit()
+            flash('Роль успешно обновлена', 'success')
+            conn.close()
+            return redirect(url_for('admin_roles'))
+        except Exception as e:
+            log_error(f"Error updating role: {e}")
+            flash(f'Ошибка обновления роли: {str(e)}', 'error')
+            conn.close()
+    
+    conn.close()
+    return render_template('admin/role_form.html', role=role)
+
+@app.route('/admin/roles/<int:role_id>/delete', methods=['POST'])
+@require_role('admin')
+def admin_role_delete(role_id):
+    """Удаление роли"""
+    conn = get_db_connection()
+    role = conn.execute('SELECT * FROM roles WHERE id = ?', (role_id,)).fetchone()
+    
+    if not role:
+        flash('Роль не найдена', 'error')
+        conn.close()
+        return redirect(url_for('admin_roles'))
+    
+    # Системные роли нельзя удалять
+    if role['is_system']:
+        flash('Системные роли нельзя удалять', 'error')
+        conn.close()
+        return redirect(url_for('admin_roles'))
+    
+    try:
+        conn.execute('DELETE FROM roles WHERE id = ?', (role_id,))
+        conn.commit()
+        flash('Роль успешно удалена', 'success')
+    except Exception as e:
+        log_error(f"Error deleting role: {e}")
+        flash(f'Ошибка удаления роли: {str(e)}', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_roles'))
 
 # Инициализируем БД при импорте модуля (для WSGI)
 try:

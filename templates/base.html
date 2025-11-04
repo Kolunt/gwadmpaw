@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}GWars Auth{% endblock %}</title>
+    <title>{% block title %}Анонимные Деды Морозы{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <nav class="navbar">
         <div class="container">
             <div class="nav-content">
-                <h1 class="logo">GWars Auth</h1>
+                <h1 class="logo">Анонимные Деды Морозы</h1>
                 <div class="nav-actions">
                     {% if session.user_id %}
                     <a href="{{ url_for('dashboard') }}" class="nav-link">Профиль</a>
+                    {% if 'admin' in session.get('roles', []) %}
+                    <a href="{{ url_for('admin_panel') }}" class="nav-link">Админ-панель</a>
+                    {% endif %}
                     <a href="{{ url_for('logout') }}" class="nav-link">Выход</a>
                     {% else %}
                     <a href="{{ url_for('index') }}" class="nav-link">Главная</a>
