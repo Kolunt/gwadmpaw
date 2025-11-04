@@ -124,16 +124,30 @@ def index():
 def login():
     # Получаем параметры от GWars
     sign = request.args.get('sign', '')
-    # Получаем имя - важно: сохраняем оригинальное значение из URL до декодирования
-    name_encoded = request.args.get('name', '')
+    # ВАЖНО: Flask автоматически декодирует URL параметры, но нам нужен оригинальный закодированный вариант
+    # Получаем оригинальное значение из query string напрямую
+    query_string = request.query_string.decode('utf-8')
+    name_encoded = None
+    for param in query_string.split('&'):
+        if param.startswith('name='):
+            name_encoded = param.split('=', 1)[1]  # Берем все после первого =
+            break
+    
+    # Если не получилось получить из query_string, пробуем через request.args
+    if not name_encoded:
+        name_encoded = request.args.get('name', '')
+    
     # Пробуем декодировать разными способами
     try:
         name = unquote(name_encoded, encoding='utf-8')
     except:
         try:
-            name = unquote(name_encoded, encoding='cp1251')  # Альтернативная кодировка
+            name = unquote(name_encoded, encoding='cp1251')
         except:
-            name = name_encoded  # Если не удалось декодировать, используем как есть
+            try:
+                name = unquote(name_encoded, encoding='latin1')
+            except:
+                name = name_encoded
     
     user_id = request.args.get('user_id', '')
     level = request.args.get('level', '0')
@@ -164,14 +178,16 @@ def login():
     logger.error(f"=== LOGIN DEBUG ===")
     logger.error(f"Received parameters:")
     logger.error(f"  sign={sign}")
-    logger.error(f"  name (encoded/raw)={name_encoded}")
+    logger.error(f"  name (encoded/raw from query_string)={name_encoded}")
     logger.error(f"  name (decoded)={name}")
-    logger.error(f"  name (bytes)={name_encoded.encode('utf-8') if name_encoded else ''}")
+    logger.error(f"  name (repr)={repr(name)}")
+    logger.error(f"  name_encoded (repr)={repr(name_encoded)}")
     logger.error(f"  user_id={user_id}")
     logger.error(f"  level={level}")
     logger.error(f"  synd={synd}")
     logger.error(f"  sign2={sign2}")
     logger.error(f"Full URL: {request.url}")
+    logger.error(f"Query string (raw): {request.query_string}")
     
     # Проверяем подписи (пробуем оба варианта - с декодированным и закодированным именем)
     if not verify_sign(name, user_id, sign, name_encoded):
