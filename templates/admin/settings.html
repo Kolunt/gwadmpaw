@@ -10,41 +10,63 @@
     </div>
     
     <form method="POST" class="settings-form">
-        {% for category, settings in settings_by_category.items() %}
-        <div class="settings-section">
-            <h2 class="settings-section-title">
+        <!-- Табы -->
+        <div class="settings-tabs">
+            {% for category, settings in settings_by_category.items() %}
+            <button 
+                type="button" 
+                class="settings-tab {% if loop.first %}active{% endif %}"
+                data-tab="{{ category }}"
+            >
                 {% if category == 'gwars' %}
-                    ⚔️ Настройки GWars
+                    ⚔️ GWars
                 {% elif category == 'system' %}
-                    🔧 Системные настройки
+                    🔧 Системные
                 {% else %}
-                    📋 Общие настройки
+                    📋 Общие
                 {% endif %}
-            </h2>
-            
-            <div class="settings-grid">
-                {% for setting in settings %}
-                <div class="setting-item">
-                    <label for="setting_{{ setting.key }}" class="setting-label">
-                        {{ setting.description or setting.key }}
-                        {% if setting.key == 'admin_user_ids' %}
-                            <small class="setting-hint">ID через запятую (например: 283494, 240139)</small>
-                        {% elif setting.key == 'gwars_site_id' %}
-                            <small class="setting-hint">Числовой ID сайта в GWars</small>
-                        {% elif setting.key == 'gwars_host' %}
-                            <small class="setting-hint">Домен без http:// (например: gwadm.pythonanywhere.com)</small>
-                        {% endif %}
-                    </label>
-                    <input 
-                        type="text" 
-                        id="setting_{{ setting.key }}" 
-                        name="setting_{{ setting.key }}" 
-                        value="{{ setting.value or '' }}"
-                        class="setting-input"
-                        {% if setting.key == 'gwars_site_id' %}pattern="[0-9]+"{% endif %}
-                    >
+            </button>
+            {% endfor %}
+        </div>
+        
+        <!-- Содержимое табов -->
+        {% for category, settings in settings_by_category.items() %}
+        <div class="settings-tab-content {% if loop.first %}active{% endif %}" data-tab="{{ category }}">
+            <div class="settings-section">
+                <h2 class="settings-section-title">
+                    {% if category == 'gwars' %}
+                        ⚔️ Настройки GWars
+                    {% elif category == 'system' %}
+                        🔧 Системные настройки
+                    {% else %}
+                        📋 Общие настройки
+                    {% endif %}
+                </h2>
+                
+                <div class="settings-grid">
+                    {% for setting in settings %}
+                    <div class="setting-item">
+                        <label for="setting_{{ setting.key }}" class="setting-label">
+                            {{ setting.description or setting.key }}
+                            {% if setting.key == 'admin_user_ids' %}
+                                <small class="setting-hint">ID через запятую (например: 283494, 240139)</small>
+                            {% elif setting.key == 'gwars_site_id' %}
+                                <small class="setting-hint">Числовой ID сайта в GWars</small>
+                            {% elif setting.key == 'gwars_host' %}
+                                <small class="setting-hint">Домен без http:// (например: gwadm.pythonanywhere.com)</small>
+                            {% endif %}
+                        </label>
+                        <input 
+                            type="text" 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            value="{{ setting.value or '' }}"
+                            class="setting-input"
+                            {% if setting.key == 'gwars_site_id' %}pattern="[0-9]+"{% endif %}
+                        >
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
         </div>
         {% endfor %}
@@ -55,5 +77,27 @@
         </div>
     </form>
 </div>
+
+<script>
+// Переключение табов
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.settings-tab');
+    const tabContents = document.querySelectorAll('.settings-tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.getAttribute('data-tab');
+            
+            // Убираем активный класс у всех табов и содержимого
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Добавляем активный класс к выбранному табу и содержимому
+            this.classList.add('active');
+            document.querySelector(`.settings-tab-content[data-tab="${targetTab}"]`).classList.add('active');
+        });
+    });
+});
+</script>
 {% endblock %}
 
