@@ -70,15 +70,9 @@
             <a href="{{ url_for('logout') }}" class="btn btn-secondary">Выйти</a>
         </div>
         
-        {% if user.display_name or user.bio or user.contact_info %}
+        {% if user.bio or user.contact_info %}
         <div class="profile-user-info">
             <h3>Дополнительная информация</h3>
-            {% if user.display_name %}
-            <div class="info-row">
-                <span class="info-label">Отображаемое имя:</span>
-                <span class="info-value">{{ user.display_name }}</span>
-            </div>
-            {% endif %}
             {% if user.bio %}
             <div class="info-row">
                 <span class="info-label">О себе:</span>

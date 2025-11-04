@@ -94,7 +94,7 @@ def init_db():
             pass
         
         # Добавляем пользовательские поля для редактирования профиля (миграция)
-        user_editable_fields = ['bio', 'display_name', 'contact_info']
+        user_editable_fields = ['bio', 'contact_info']
         for field in user_editable_fields:
             try:
                 c.execute(f'ALTER TABLE users ADD COLUMN {field} TEXT')
@@ -938,16 +938,15 @@ def edit_profile():
     if request.method == 'POST':
         # Получаем редактируемые поля (не из GWars)
         bio = request.form.get('bio', '').strip()
-        display_name = request.form.get('display_name', '').strip()
         contact_info = request.form.get('contact_info', '').strip()
         
         try:
             # Обновляем только пользовательские поля
             conn.execute('''
                 UPDATE users 
-                SET bio = ?, display_name = ?, contact_info = ?
+                SET bio = ?, contact_info = ?
                 WHERE user_id = ?
-            ''', (bio, display_name, contact_info, session['user_id']))
+            ''', (bio, contact_info, session['user_id']))
             conn.commit()
             flash('Профиль успешно обновлен', 'success')
             conn.close()
