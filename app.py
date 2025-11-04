@@ -1156,8 +1156,20 @@ def login():
             init_db()
             # Пробуем еще раз
             try:
-                # Генерируем seed для нового пользователя
-                avatar_seed = generate_unique_avatar_seed(user_id)
+                # Проверяем существующего пользователя еще раз
+                existing_user = conn.execute('SELECT avatar_seed, avatar_style, bio, contact_info FROM users WHERE user_id = ?', (user_id,)).fetchone()
+                
+                # Генерируем seed для нового пользователя или используем существующий
+                if not existing_user or not existing_user['avatar_seed']:
+                    avatar_seed = generate_unique_avatar_seed(user_id)
+                    avatar_style = 'avataaars'
+                    bio = None
+                    contact_info = None
+                else:
+                    avatar_seed = existing_user['avatar_seed']
+                    avatar_style = existing_user['avatar_style']
+                    bio = existing_user['bio']
+                    contact_info = existing_user['contact_info']
                 conn.execute('''
                     INSERT OR REPLACE INTO users 
                     (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, last_login)
