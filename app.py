@@ -774,27 +774,40 @@ def login_dev():
     # Сохраняем пользователя в БД
     conn = get_db_connection()
     try:
-        # Проверяем, существует ли пользователь
-        existing_user = conn.execute('SELECT avatar_seed FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        # Проверяем, существует ли пользователь и получаем все его данные
+        existing_user = conn.execute('SELECT avatar_seed, avatar_style, bio, contact_info FROM users WHERE user_id = ?', (user_id,)).fetchone()
         
         # Если пользователь новый, генерируем уникальный avatar_seed
         avatar_seed = None
+        avatar_style = None
+        bio = None
+        contact_info = None
+        
         if not existing_user:
+            # Новый пользователь - генерируем рандомный аватар
             avatar_seed = generate_unique_avatar_seed(user_id)
+            avatar_style = 'avataaars'  # Стиль по умолчанию
         elif existing_user and not existing_user['avatar_seed']:
             # Если у существующего пользователя нет seed, генерируем
             avatar_seed = generate_unique_avatar_seed(user_id)
+            avatar_style = existing_user['avatar_style'] or 'avataaars'
+            bio = existing_user['bio']
+            contact_info = existing_user['contact_info']
         else:
-            # Используем существующий seed
+            # Используем существующий seed и сохраняем все пользовательские данные
             avatar_seed = existing_user['avatar_seed']
+            avatar_style = existing_user['avatar_style']
+            bio = existing_user['bio']
+            contact_info = existing_user['contact_info']
         
+        # Обновляем данные пользователя, сохраняя пользовательские поля (avatar, bio, contact_info)
         conn.execute('''
             INSERT OR REPLACE INTO users 
-            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, last_login)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, datetime.now()))
+            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, last_login)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, datetime.now()))
         conn.commit()
-        log_debug(f"Dev user saved successfully: user_id={user_id}, username={name}")
+        log_debug(f"Dev user saved successfully: user_id={user_id}, username={name}, avatar_seed={avatar_seed}")
     except Exception as e:
         log_error(f"Error saving dev user: {e}")
         flash(f'Ошибка сохранения пользователя: {str(e)}', 'error')
