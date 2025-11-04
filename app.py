@@ -480,22 +480,15 @@ def remove_role(user_id, role_name):
 # ========== Система прав (permissions) ==========
 
 def get_all_permissions():
-    """Получает список всех прав, сгруппированных по категориям"""
+    """Получает список всех прав"""
     conn = get_db_connection()
     permissions = conn.execute('''
         SELECT * FROM permissions ORDER BY category, display_name
     ''').fetchall()
     conn.close()
     
-    # Группируем по категориям
-    grouped = {}
-    for perm in permissions:
-        category = perm['category'] or 'general'
-        if category not in grouped:
-            grouped[category] = []
-        grouped[category].append(dict(perm))
-    
-    return grouped
+    # Возвращаем список словарей
+    return [dict(perm) for perm in permissions]
 
 def get_role_permissions(role_id):
     """Получает список прав роли"""
@@ -1874,7 +1867,7 @@ def admin_role_create():
     
     # Получаем все права для отображения в форме
     permissions = get_all_permissions()
-    return render_template('admin/role_form.html', permissions=permissions)
+    return render_template('admin/role_form.html', permissions=permissions, role_permissions=[])
 
 @app.route('/admin/roles/<int:role_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
