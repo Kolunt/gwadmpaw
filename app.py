@@ -2239,6 +2239,135 @@ def admin_settings():
     
     return render_template('admin/settings.html', settings_by_category=settings_by_category)
 
+@app.route('/admin/faq')
+@require_role('admin')
+def admin_faq():
+    """Управление FAQ"""
+    conn = get_db_connection()
+    faq_items = conn.execute('''
+        SELECT f.*, 
+               u1.username as creator_name,
+               u2.username as updater_name
+        FROM faq_items f
+        LEFT JOIN users u1 ON f.created_by = u1.user_id
+        LEFT JOIN users u2 ON f.updated_by = u2.user_id
+        ORDER BY f.category, f.sort_order, f.id
+    ''').fetchall()
+    conn.close()
+    
+    return render_template('admin/faq.html', faq_items=faq_items)
+
+@app.route('/admin/faq/create', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_faq_create():
+    """Создание нового FAQ вопроса"""
+    if request.method == 'POST':
+        question = request.form.get('question', '').strip()
+        answer = request.form.get('answer', '').strip()
+        category = request.form.get('category', 'general').strip()
+        sort_order = request.form.get('sort_order', '0').strip()
+        is_active = request.form.get('is_active', '0')
+        
+        if not question or not answer:
+            flash('Вопрос и ответ обязательны для заполнения', 'error')
+            return render_template('admin/faq_form.html')
+        
+        try:
+            sort_order = int(sort_order) if sort_order else 0
+            is_active = 1 if is_active == '1' else 0
+        except ValueError:
+            sort_order = 0
+            is_active = 1
+        
+        conn = get_db_connection()
+        try:
+            conn.execute('''
+                INSERT INTO faq_items (question, answer, category, sort_order, is_active, created_by)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (question, answer, category, sort_order, is_active, session['user_id']))
+            conn.commit()
+            flash('FAQ вопрос успешно создан', 'success')
+            conn.close()
+            return redirect(url_for('admin_faq'))
+        except Exception as e:
+            log_error(f"Error creating FAQ: {e}")
+            flash(f'Ошибка создания FAQ: {str(e)}', 'error')
+            conn.close()
+    
+    return render_template('admin/faq_form.html')
+
+@app.route('/admin/faq/<int:faq_id>/edit', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_faq_edit(faq_id):
+    """Редактирование FAQ вопроса"""
+    conn = get_db_connection()
+    faq_item = conn.execute('SELECT * FROM faq_items WHERE id = ?', (faq_id,)).fetchone()
+    
+    if not faq_item:
+        flash('FAQ вопрос не найден', 'error')
+        conn.close()
+        return redirect(url_for('admin_faq'))
+    
+    if request.method == 'POST':
+        question = request.form.get('question', '').strip()
+        answer = request.form.get('answer', '').strip()
+        category = request.form.get('category', 'general').strip()
+        sort_order = request.form.get('sort_order', '0').strip()
+        is_active = request.form.get('is_active', '0')
+        
+        if not question or not answer:
+            flash('Вопрос и ответ обязательны для заполнения', 'error')
+            conn.close()
+            return render_template('admin/faq_form.html', faq_item=faq_item)
+        
+        try:
+            sort_order = int(sort_order) if sort_order else 0
+            is_active = 1 if is_active == '1' else 0
+        except ValueError:
+            sort_order = faq_item['sort_order']
+            is_active = faq_item['is_active']
+        
+        try:
+            conn.execute('''
+                UPDATE faq_items 
+                SET question = ?, answer = ?, category = ?, sort_order = ?, is_active = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (question, answer, category, sort_order, is_active, session['user_id'], faq_id))
+            conn.commit()
+            flash('FAQ вопрос успешно обновлен', 'success')
+            conn.close()
+            return redirect(url_for('admin_faq'))
+        except Exception as e:
+            log_error(f"Error updating FAQ: {e}")
+            flash(f'Ошибка обновления FAQ: {str(e)}', 'error')
+            conn.close()
+    
+    conn.close()
+    return render_template('admin/faq_form.html', faq_item=faq_item)
+
+@app.route('/admin/faq/<int:faq_id>/delete', methods=['POST'])
+@require_role('admin')
+def admin_faq_delete(faq_id):
+    """Удаление FAQ вопроса"""
+    conn = get_db_connection()
+    faq_item = conn.execute('SELECT * FROM faq_items WHERE id = ?', (faq_id,)).fetchone()
+    
+    if not faq_item:
+        flash('FAQ вопрос не найден', 'error')
+        conn.close()
+        return redirect(url_for('admin_faq'))
+    
+    try:
+        conn.execute('DELETE FROM faq_items WHERE id = ?', (faq_id,))
+        conn.commit()
+        flash('FAQ вопрос успешно удален', 'success')
+    except Exception as e:
+        log_error(f"Error deleting FAQ: {e}")
+        flash(f'Ошибка удаления FAQ: {str(e)}', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_faq'))
+
 def get_setting(key, default=None):
     """Получает значение настройки из БД"""
     conn = get_db_connection()
