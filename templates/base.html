@@ -88,12 +88,6 @@
                     <span class="sidebar-icon">🏠</span>
                     <span>Главная</span>
                 </a>
-                {% if session.user_id %}
-                    <a href="{{ url_for('dashboard') }}" class="sidebar-link">
-                        <span class="sidebar-icon">👤</span>
-                        <span>Профиль</span>
-                    </a>
-                {% endif %}
                 <a href="{{ url_for('events') }}" class="sidebar-link">
                     <span class="sidebar-icon">🎉</span>
                     <span>Мероприятия</span>
