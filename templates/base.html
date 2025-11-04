@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Анонимные Деды Морозы{% endblock %}</title>
+    {% set site_icon = get_setting('site_icon', '') %}
+    {% if site_icon %}
+    <link rel="icon" type="image/x-icon" href="{{ site_icon }}">
+    {% else %}
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    {% endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script>
         // Применяем тему ДО загрузки страницы, чтобы избежать всплесков белого

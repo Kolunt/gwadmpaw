@@ -9,7 +9,7 @@
         <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
     </div>
     
-    <form method="POST" class="settings-form">
+    <form method="POST" class="settings-form" enctype="multipart/form-data">
         <!-- Табы -->
         <div class="settings-tabs">
             {% for category, settings in settings_by_category.items() %}
@@ -56,6 +56,10 @@
                                 <small class="setting-hint">Домен без http:// (например: gwadm.pythonanywhere.com)</small>
                             {% elif setting.key == 'default_theme' %}
                                 <small class="setting-hint">Тема по умолчанию для новых пользователей</small>
+                            {% elif setting.key == 'site_icon' %}
+                                <small class="setting-hint">Иконка сайта (favicon). Форматы: .ico, .png, .jpg, .svg</small>
+                            {% elif setting.key == 'site_logo' %}
+                                <small class="setting-hint">Логотип сайта. Форматы: .png, .jpg, .svg, .gif, .webp</small>
                             {% endif %}
                         </label>
                         {% if setting.key == 'default_theme' %}
@@ -67,6 +71,46 @@
                             <option value="light" {% if setting.value == 'light' %}selected{% endif %}>Светлая</option>
                             <option value="dark" {% if setting.value == 'dark' %}selected{% endif %}>Темная</option>
                         </select>
+                        {% elif setting.key == 'site_icon' %}
+                        <div class="file-upload-group">
+                            {% if setting.value %}
+                            <div class="current-file-preview">
+                                <img src="{{ setting.value }}" alt="Текущая иконка" class="file-preview-icon">
+                                <span class="current-file-label">Текущая иконка</span>
+                            </div>
+                            {% endif %}
+                            <input 
+                                type="file" 
+                                id="site_icon" 
+                                name="site_icon" 
+                                accept=".ico,.png,.jpg,.jpeg,.svg"
+                                class="file-input"
+                            >
+                            <label for="site_icon" class="file-upload-label">
+                                <span class="file-upload-text">Выбрать файл</span>
+                                <span class="file-upload-btn">📁</span>
+                            </label>
+                        </div>
+                        {% elif setting.key == 'site_logo' %}
+                        <div class="file-upload-group">
+                            {% if setting.value %}
+                            <div class="current-file-preview">
+                                <img src="{{ setting.value }}" alt="Текущий логотип" class="file-preview-logo">
+                                <span class="current-file-label">Текущий логотип</span>
+                            </div>
+                            {% endif %}
+                            <input 
+                                type="file" 
+                                id="site_logo" 
+                                name="site_logo" 
+                                accept=".png,.jpg,.jpeg,.svg,.gif,.webp"
+                                class="file-input"
+                            >
+                            <label for="site_logo" class="file-upload-label">
+                                <span class="file-upload-text">Выбрать файл</span>
+                                <span class="file-upload-btn">📁</span>
+                            </label>
+                        </div>
                         {% else %}
                         <input 
                             type="text" 

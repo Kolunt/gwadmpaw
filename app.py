@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify, send_from_directory
 from urllib.parse import unquote, unquote_to_bytes
 import hashlib
 import sqlite3
@@ -239,6 +239,8 @@ def init_db():
             ('admin_user_ids', ','.join(map(str, ADMIN_USER_IDS)), 'ID администраторов по умолчанию (через запятую)', 'system'),
             ('project_name', 'Анонимные Деды Морозы', 'Название проекта', 'general'),
             ('default_theme', 'light', 'Тема по умолчанию (light или dark)', 'general'),
+            ('site_icon', '', 'Иконка сайта (favicon)', 'general'),
+            ('site_logo', '', 'Логотип сайта', 'general'),
         ]
         
         for key, value, description, category in default_settings:
@@ -1713,6 +1715,39 @@ def admin_settings():
     conn = get_db_connection()
     
     if request.method == 'POST':
+        # Создаем папку для загрузок если её нет
+        upload_dir = os.path.join(app.static_folder, 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Обработка загрузки файлов
+        if 'site_icon' in request.files:
+            icon_file = request.files['site_icon']
+            if icon_file and icon_file.filename:
+                # Проверяем расширение
+                allowed_extensions = {'.ico', '.png', '.jpg', '.jpeg', '.svg'}
+                file_ext = os.path.splitext(icon_file.filename)[1].lower()
+                if file_ext in allowed_extensions:
+                    # Сохраняем файл
+                    filename = f"icon_{int(datetime.now().timestamp())}{file_ext}"
+                    filepath = os.path.join(upload_dir, filename)
+                    icon_file.save(filepath)
+                    # Сохраняем путь в настройках
+                    set_setting('site_icon', f'/static/uploads/{filename}', 'Иконка сайта (favicon)', 'general')
+        
+        if 'site_logo' in request.files:
+            logo_file = request.files['site_logo']
+            if logo_file and logo_file.filename:
+                # Проверяем расширение
+                allowed_extensions = {'.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'}
+                file_ext = os.path.splitext(logo_file.filename)[1].lower()
+                if file_ext in allowed_extensions:
+                    # Сохраняем файл
+                    filename = f"logo_{int(datetime.now().timestamp())}{file_ext}"
+                    filepath = os.path.join(upload_dir, filename)
+                    logo_file.save(filepath)
+                    # Сохраняем путь в настройках
+                    set_setting('site_logo', f'/static/uploads/{filename}', 'Логотип сайта', 'general')
+        
         # Обновляем настройки
         settings_dict = {}
         for key in request.form:
