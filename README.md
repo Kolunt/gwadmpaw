@@ -1,5 +1,7 @@
 # GWars Auth Test Project
 
+**Версия: 1.0.0**
+
 Тестовый проект для авторизации через GWars на PythonAnywhere.
 
 ## Технологии

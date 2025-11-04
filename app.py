@@ -5,9 +5,11 @@ import sqlite3
 from datetime import datetime
 import os
 import logging
+from version import __version__
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+app.config['VERSION'] = __version__
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
