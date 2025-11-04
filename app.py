@@ -2312,7 +2312,7 @@ def admin_faq_edit(faq_id):
         question = request.form.get('question', '').strip()
         answer = request.form.get('answer', '').strip()
         category = request.form.get('category', 'general').strip()
-        sort_order = request.form.get('sort_order', '0').strip()
+        sort_order = request.form.get('sort_order', '100').strip()
         is_active = request.form.get('is_active', '0')
         
         if not question or not answer:
@@ -2321,10 +2321,10 @@ def admin_faq_edit(faq_id):
             return render_template('admin/faq_form.html', faq_item=faq_item)
         
         try:
-            sort_order = int(sort_order) if sort_order else 0
+            sort_order = int(sort_order) if sort_order else 100
             is_active = 1 if is_active == '1' else 0
         except ValueError:
-            sort_order = faq_item['sort_order']
+            sort_order = faq_item['sort_order'] if faq_item['sort_order'] is not None else 100
             is_active = faq_item['is_active']
         
         try:
