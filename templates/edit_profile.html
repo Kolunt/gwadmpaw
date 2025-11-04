@@ -40,28 +40,47 @@
                 <h3>Аватар</h3>
                 
                 <div class="form-group">
-                    <label for="avatar_style" class="form-label">
+                    <label class="form-label">
                         Стиль аватара
                         <small class="form-hint">Выберите стиль аватара. При изменении стиля будет сгенерирован новый уникальный аватар</small>
                     </label>
-                    <select 
-                        id="avatar_style" 
-                        name="avatar_style" 
-                        class="form-input"
-                    >
-                        <option value="avataaars" {% if (user.avatar_style or 'avataaars') == 'avataaars' %}selected{% endif %}>Avataaars</option>
-                        <option value="bottts" {% if user.avatar_style == 'bottts' %}selected{% endif %}>Bottts</option>
-                        <option value="identicon" {% if user.avatar_style == 'identicon' %}selected{% endif %}>Identicon</option>
-                        <option value="initials" {% if user.avatar_style == 'initials' %}selected{% endif %}>Initials</option>
-                        <option value="lorelei" {% if user.avatar_style == 'lorelei' %}selected{% endif %}>Lorelei</option>
-                        <option value="micah" {% if user.avatar_style == 'micah' %}selected{% endif %}>Micah</option>
-                        <option value="miniavs" {% if user.avatar_style == 'miniavs' %}selected{% endif %}>Mini Avatars</option>
-                        <option value="open-peeps" {% if user.avatar_style == 'open-peeps' %}selected{% endif %}>Open Peeps</option>
-                        <option value="personas" {% if user.avatar_style == 'personas' %}selected{% endif %}>Personas</option>
-                        <option value="pixel-art" {% if user.avatar_style == 'pixel-art' %}selected{% endif %}>Pixel Art</option>
-                        <option value="shapes" {% if user.avatar_style == 'shapes' %}selected{% endif %}>Shapes</option>
-                        <option value="thumbs" {% if user.avatar_style == 'thumbs' %}selected{% endif %}>Thumbs</option>
-                    </select>
+                    
+                    <div class="avatar-styles-grid">
+                        {% set avatar_styles = [
+                            {'value': 'avataaars', 'name': 'Avataaars', 'preview_seed': 'preview1'},
+                            {'value': 'bottts', 'name': 'Bottts', 'preview_seed': 'preview2'},
+                            {'value': 'identicon', 'name': 'Identicon', 'preview_seed': 'preview3'},
+                            {'value': 'initials', 'name': 'Initials', 'preview_seed': 'preview4'},
+                            {'value': 'lorelei', 'name': 'Lorelei', 'preview_seed': 'preview5'},
+                            {'value': 'micah', 'name': 'Micah', 'preview_seed': 'preview6'},
+                            {'value': 'miniavs', 'name': 'Mini Avatars', 'preview_seed': 'preview7'},
+                            {'value': 'open-peeps', 'name': 'Open Peeps', 'preview_seed': 'preview8'},
+                            {'value': 'personas', 'name': 'Personas', 'preview_seed': 'preview9'},
+                            {'value': 'pixel-art', 'name': 'Pixel Art', 'preview_seed': 'preview10'},
+                            {'value': 'shapes', 'name': 'Shapes', 'preview_seed': 'preview11'},
+                            {'value': 'thumbs', 'name': 'Thumbs', 'preview_seed': 'preview12'}
+                        ] %}
+                        
+                        {% for style in avatar_styles %}
+                        <label class="avatar-style-option {% if (user.avatar_style or 'avataaars') == style.value %}selected{% endif %}">
+                            <input 
+                                type="radio" 
+                                name="avatar_style" 
+                                value="{{ style.value }}"
+                                {% if (user.avatar_style or 'avataaars') == style.value %}checked{% endif %}
+                                class="avatar-style-radio"
+                            >
+                            <div class="avatar-style-preview">
+                                <img 
+                                    src="https://api.dicebear.com/7.x/{{ style.value }}/svg?seed={{ style.preview_seed }}&size=80" 
+                                    alt="{{ style.name }}"
+                                    class="avatar-preview-img"
+                                >
+                                <span class="avatar-style-name">{{ style.name }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
             
@@ -108,19 +127,29 @@
 <script>
 // Превью аватара при изменении стиля
 document.addEventListener('DOMContentLoaded', function() {
-    const avatarStyleSelect = document.getElementById('avatar_style');
+    const avatarStyleRadios = document.querySelectorAll('.avatar-style-radio');
     const avatarPreview = document.getElementById('avatar-preview');
     
-    if (avatarStyleSelect && avatarPreview) {
-        avatarStyleSelect.addEventListener('change', function() {
-            const selectedStyle = this.value;
-            const currentSeed = '{{ user.avatar_seed }}';
-            
-            if (currentSeed) {
-                // Генерируем временный seed для превью (будет заменен при сохранении)
-                const previewSeed = currentSeed + '_preview_' + Date.now();
-                avatarPreview.src = `https://api.dicebear.com/7.x/${selectedStyle}/svg?seed=${previewSeed}&size=128`;
-            }
+    if (avatarStyleRadios.length && avatarPreview) {
+        avatarStyleRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.checked) {
+                    const selectedStyle = this.value;
+                    const currentSeed = '{{ user.avatar_seed }}';
+                    
+                    if (currentSeed) {
+                        // Генерируем временный seed для превью (будет заменен при сохранении)
+                        const previewSeed = currentSeed + '_preview_' + Date.now();
+                        avatarPreview.src = `https://api.dicebear.com/7.x/${selectedStyle}/svg?seed=${previewSeed}&size=128`;
+                    }
+                    
+                    // Обновляем визуальное выделение
+                    document.querySelectorAll('.avatar-style-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    this.closest('.avatar-style-option').classList.add('selected');
+                }
+            });
         });
     }
 });
