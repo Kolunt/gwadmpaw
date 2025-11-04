@@ -798,7 +798,8 @@ def inject_default_theme():
         current_user_avatar_seed=current_user_avatar_seed,
         current_user_avatar_style=current_user_avatar_style,
         get_role_permissions=get_role_permissions,
-        get_setting=get_setting
+        get_setting=get_setting,
+        get_user_titles=get_user_titles
     )
 
 @app.route('/')
