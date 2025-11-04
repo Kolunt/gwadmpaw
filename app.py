@@ -1324,6 +1324,11 @@ def edit_profile():
         contact_info = request.form.get('contact_info', '').strip()
         avatar_seed = request.form.get('avatar_seed', '').strip()
         avatar_style = request.form.get('avatar_style', 'avataaars').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+        telegram = request.form.get('telegram', '').strip()
+        whatsapp = request.form.get('whatsapp', '').strip()
+        viber = request.form.get('viber', '').strip()
         
         try:
             # Если передан новый avatar_seed и avatar_style, проверяем уникальность
@@ -1337,19 +1342,19 @@ def edit_profile():
             
             # Обновляем профиль
             if avatar_seed and avatar_style:
-                # Обновляем с новым аватаром
+                # Обновляем с новым аватаром и контактами
                 conn.execute('''
                     UPDATE users 
-                    SET bio = ?, contact_info = ?, avatar_style = ?, avatar_seed = ?
+                    SET bio = ?, contact_info = ?, avatar_style = ?, avatar_seed = ?, email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?
                     WHERE user_id = ?
-                ''', (bio, contact_info, avatar_style, avatar_seed, session['user_id']))
+                ''', (bio, contact_info, avatar_style, avatar_seed, email, phone, telegram, whatsapp, viber, session['user_id']))
             else:
-                # Обновляем только bio и contact_info
+                # Обновляем без изменения аватара, но с контактами
                 conn.execute('''
                     UPDATE users 
-                    SET bio = ?, contact_info = ?
+                    SET bio = ?, contact_info = ?, email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?
                     WHERE user_id = ?
-                ''', (bio, contact_info, session['user_id']))
+                ''', (bio, contact_info, email, phone, telegram, whatsapp, viber, session['user_id']))
             
             conn.commit()
             flash('Профиль успешно обновлен', 'success')
