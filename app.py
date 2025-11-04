@@ -1172,9 +1172,9 @@ def login():
                     contact_info = existing_user['contact_info']
                 conn.execute('''
                     INSERT OR REPLACE INTO users 
-                    (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, last_login)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, datetime.now()))
+                    (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, last_login)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, datetime.now()))
                 conn.commit()
                 log_debug(f"User saved successfully after reinitialization: user_id={user_id}")
             except Exception as e2:
