@@ -699,10 +699,7 @@ def inject_default_theme():
 
 @app.route('/')
 def index():
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
-    
-    # Собираем данные для лендинга
+    # Собираем данные для лендинга (доступно всем)
     conn = get_db_connection()
     
     # Статистика участников
