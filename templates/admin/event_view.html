@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Мероприятие: {{ event.name }} - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>{{ event.name }}</h1>
+        <div class="action-buttons">
+            <a href="{{ url_for('admin_event_edit', event_id=event.id) }}" class="btn btn-primary">Редактировать</a>
+            <a href="{{ url_for('admin_events') }}" class="btn btn-secondary">← Назад</a>
+        </div>
+    </div>
+    
+    <div class="event-view-card">
+        <div class="event-info-section">
+            <h3>Описание</h3>
+            <p>{{ event.description or 'Описание не указано' }}</p>
+        </div>
+        
+        <div class="event-info-section">
+            <h3>Информация</h3>
+            <div class="info-row">
+                <span class="info-label">Создано:</span>
+                <span class="info-value">{{ event.created_at }}</span>
+            </div>
+            {% if event.updated_at and event.updated_at != event.created_at %}
+            <div class="info-row">
+                <span class="info-label">Обновлено:</span>
+                <span class="info-value">{{ event.updated_at }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="event-stages-section">
+            <h3>Этапы мероприятия</h3>
+            
+            {% for stage_item in stages_with_info %}
+            {% set stage = stage_item.data %}
+            {% set stage_info = stage_item.info %}
+            <div class="stage-card">
+                <div class="stage-header">
+                    <h4>
+                        {{ stage_info.name }}
+                        {% if stage_info.required %}<span class="required">*</span>{% endif %}
+                        {% if not stage_info.required %}<span class="optional">(опционально)</span>{% endif %}
+                    </h4>
+                </div>
+                
+                <div class="stage-details">
+                    {% if stage %}
+                        {% if stage.start_datetime %}
+                        <div class="info-row">
+                            <span class="info-label">Начало:</span>
+                            <span class="info-value">{{ stage.start_datetime }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if stage.end_datetime %}
+                        <div class="info-row">
+                            <span class="info-label">Окончание:</span>
+                            <span class="info-value">{{ stage.end_datetime }}</span>
+                        </div>
+                        {% elif not stage_info.has_end %}
+                        <div class="info-row">
+                            <span class="info-label">Окончание:</span>
+                            <span class="info-value">До начала следующего этапа</span>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="info-row">
+                            <span class="info-value text-muted">Этап не настроен</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

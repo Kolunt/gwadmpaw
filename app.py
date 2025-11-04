@@ -142,6 +142,36 @@ def init_db():
             )
         ''')
         
+        # Таблица мероприятий
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by INTEGER,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (created_by) REFERENCES users(user_id)
+            )
+        ''')
+        
+        # Таблица этапов мероприятий
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS event_stages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id INTEGER NOT NULL,
+                stage_type TEXT NOT NULL,
+                stage_order INTEGER NOT NULL,
+                start_datetime TIMESTAMP,
+                end_datetime TIMESTAMP,
+                is_required INTEGER DEFAULT 0,
+                is_optional INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                UNIQUE(event_id, stage_type)
+            )
+        ''')
+        
         # Инициализация настроек по умолчанию
         default_settings = [
             ('gwars_host', GWARS_HOST, 'Домен для GWars авторизации', 'gwars'),
@@ -1440,6 +1470,259 @@ def set_setting(key, value, description=None, category='general'):
         log_error(f"Error setting {key}: {e}")
         conn.close()
         return False
+
+# ============================================
+# МЕРОПРИЯТИЯ
+# ============================================
+
+EVENT_STAGES = [
+    {'type': 'pre_registration', 'name': 'Предварительная регистрация', 'required': False, 'has_start': True, 'has_end': False},
+    {'type': 'main_registration', 'name': 'Основная регистрация', 'required': True, 'has_start': True, 'has_end': False},
+    {'type': 'registration_closed', 'name': 'Закрытие регистрации', 'required': True, 'has_start': True, 'has_end': False},
+    {'type': 'lottery', 'name': 'Жеребьёвка', 'required': False, 'has_start': False, 'has_end': False},
+    {'type': 'gift_sending', 'name': 'Отправка подарков', 'required': True, 'has_start': True, 'has_end': False},
+    {'type': 'celebration_date', 'name': 'Дата праздника', 'required': True, 'has_start': True, 'has_end': False},
+    {'type': 'after_party', 'name': 'Послепраздничное настроение', 'required': True, 'has_start': False, 'has_end': True},
+]
+
+@app.route('/admin/events')
+@require_role('admin')
+def admin_events():
+    """Список мероприятий"""
+    conn = get_db_connection()
+    events = conn.execute('''
+        SELECT e.*, u.username as creator_name,
+               COUNT(es.id) as stages_count
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
+        LEFT JOIN event_stages es ON e.id = es.event_id
+        GROUP BY e.id
+        ORDER BY e.created_at DESC
+    ''').fetchall()
+    conn.close()
+    return render_template('admin/events.html', events=events)
+
+@app.route('/admin/events/create', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_event_create():
+    """Создание мероприятия"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not name:
+            flash('Название мероприятия обязательно', 'error')
+            return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES)
+        
+        conn = get_db_connection()
+        try:
+            # Создаем мероприятие
+            cursor = conn.execute('''
+                INSERT INTO events (name, description, created_by)
+                VALUES (?, ?, ?)
+            ''', (name, description, session.get('user_id')))
+            event_id = cursor.lastrowid
+            
+            # Создаем этапы
+            stage_order = 1
+            for stage in EVENT_STAGES:
+                start_datetime = None
+                end_datetime = None
+                
+                if stage['has_start']:
+                    start_str = request.form.get(f"stage_{stage['type']}_start", '').strip()
+                    if start_str:
+                        try:
+                            start_datetime = datetime.strptime(start_str, '%Y-%m-%dT%H:%M')
+                        except:
+                            pass
+                
+                if stage['has_end']:
+                    end_str = request.form.get(f"stage_{stage['type']}_end", '').strip()
+                    if end_str:
+                        try:
+                            end_datetime = datetime.strptime(end_str, '%Y-%m-%dT%H:%M')
+                        except:
+                            pass
+                
+                # Проверяем обязательность
+                is_required = 1 if stage['required'] else 0
+                is_optional = 1 if not stage['required'] else 0
+                
+                # Для обязательных этапов проверяем наличие даты начала
+                if stage['required'] and stage['has_start'] and not start_datetime:
+                    flash(f'Дата начала этапа "{stage["name"]}" обязательна', 'error')
+                    conn.rollback()
+                    conn.close()
+                    return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES)
+                
+                conn.execute('''
+                    INSERT INTO event_stages 
+                    (event_id, stage_type, stage_order, start_datetime, end_datetime, is_required, is_optional)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (event_id, stage['type'], stage_order, start_datetime, end_datetime, is_required, is_optional))
+                stage_order += 1
+            
+            conn.commit()
+            flash('Мероприятие успешно создано', 'success')
+            conn.close()
+            return redirect(url_for('admin_events'))
+        except Exception as e:
+            log_error(f"Error creating event: {e}")
+            flash(f'Ошибка создания мероприятия: {str(e)}', 'error')
+            conn.rollback()
+            conn.close()
+    
+    return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES)
+
+@app.route('/admin/events/<int:event_id>')
+@require_role('admin')
+def admin_event_view(event_id):
+    """Просмотр мероприятия"""
+    conn = get_db_connection()
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
+    
+    if not event:
+        flash('Мероприятие не найдено', 'error')
+        conn.close()
+        return redirect(url_for('admin_events'))
+    
+    stages = conn.execute('''
+        SELECT * FROM event_stages 
+        WHERE event_id = ? 
+        ORDER BY stage_order
+    ''', (event_id,)).fetchall()
+    
+    conn.close()
+    
+    # Сопоставляем этапы с их типами
+    stages_dict = {stage['stage_type']: stage for stage in stages}
+    stages_with_info = []
+    for stage_info in EVENT_STAGES:
+        stage_data = stages_dict.get(stage_info['type'], None)
+        stages_with_info.append({
+            'info': stage_info,
+            'data': stage_data
+        })
+    
+    return render_template('admin/event_view.html', event=event, stages_with_info=stages_with_info)
+
+@app.route('/admin/events/<int:event_id>/edit', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_event_edit(event_id):
+    """Редактирование мероприятия"""
+    conn = get_db_connection()
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
+    
+    if not event:
+        flash('Мероприятие не найдено', 'error')
+        conn.close()
+        return redirect(url_for('admin_events'))
+    
+    stages = conn.execute('''
+        SELECT * FROM event_stages 
+        WHERE event_id = ? 
+        ORDER BY stage_order
+    ''', (event_id,)).fetchall()
+    
+    stages_dict = {stage['stage_type']: stage for stage in stages}
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        
+        if not name:
+            flash('Название мероприятия обязательно', 'error')
+            conn.close()
+            return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict)
+        
+        try:
+            # Обновляем мероприятие
+            conn.execute('''
+                UPDATE events 
+                SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (name, description, event_id))
+            
+            # Обновляем этапы
+            for stage in EVENT_STAGES:
+                start_datetime = None
+                end_datetime = None
+                
+                if stage['has_start']:
+                    start_str = request.form.get(f"stage_{stage['type']}_start", '').strip()
+                    if start_str:
+                        try:
+                            start_datetime = datetime.strptime(start_str, '%Y-%m-%dT%H:%M')
+                        except:
+                            pass
+                
+                if stage['has_end']:
+                    end_str = request.form.get(f"stage_{stage['type']}_end", '').strip()
+                    if end_str:
+                        try:
+                            end_datetime = datetime.strptime(end_str, '%Y-%m-%dT%H:%M')
+                        except:
+                            pass
+                
+                # Проверяем обязательность
+                if stage['required'] and stage['has_start'] and not start_datetime:
+                    flash(f'Дата начала этапа "{stage["name"]}" обязательна', 'error')
+                    conn.rollback()
+                    conn.close()
+                    return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict)
+                
+                # Обновляем или создаем этап
+                if stage['type'] in stages_dict:
+                    conn.execute('''
+                        UPDATE event_stages 
+                        SET start_datetime = ?, end_datetime = ?
+                        WHERE event_id = ? AND stage_type = ?
+                    ''', (start_datetime, end_datetime, event_id, stage['type']))
+                else:
+                    stage_order = len(stages_dict) + 1
+                    conn.execute('''
+                        INSERT INTO event_stages 
+                        (event_id, stage_type, stage_order, start_datetime, end_datetime, is_required, is_optional)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (event_id, stage['type'], stage_order, start_datetime, end_datetime, 
+                          1 if stage['required'] else 0, 1 if not stage['required'] else 0))
+            
+            conn.commit()
+            flash('Мероприятие успешно обновлено', 'success')
+            conn.close()
+            return redirect(url_for('admin_event_view', event_id=event_id))
+        except Exception as e:
+            log_error(f"Error updating event: {e}")
+            flash(f'Ошибка обновления мероприятия: {str(e)}', 'error')
+            conn.rollback()
+            conn.close()
+    
+    conn.close()
+    return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict)
+
+@app.route('/admin/events/<int:event_id>/delete', methods=['POST'])
+@require_role('admin')
+def admin_event_delete(event_id):
+    """Удаление мероприятия"""
+    conn = get_db_connection()
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
+    
+    if not event:
+        flash('Мероприятие не найдено', 'error')
+        conn.close()
+        return redirect(url_for('admin_events'))
+    
+    try:
+        conn.execute('DELETE FROM events WHERE id = ?', (event_id,))
+        conn.commit()
+        flash('Мероприятие успешно удалено', 'success')
+    except Exception as e:
+        log_error(f"Error deleting event: {e}")
+        flash(f'Ошибка удаления мероприятия: {str(e)}', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_events'))
 
 # Инициализируем БД при импорте модуля (для WSGI)
 try:

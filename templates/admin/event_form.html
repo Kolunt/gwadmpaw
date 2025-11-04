@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}{% if event %}Редактирование{% else %}Создание{% endif %} мероприятия - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>{% if event %}Редактирование мероприятия{% else %}Создание мероприятия{% endif %}</h1>
+        <a href="{{ url_for('admin_events') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+    
+    <form method="POST" class="event-form">
+        <div class="form-section">
+            <h3>Основная информация</h3>
+            
+            <div class="form-group">
+                <label for="name" class="form-label">
+                    Название мероприятия <span class="required">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="name" 
+                    name="name" 
+                    value="{{ event.name if event else '' }}"
+                    class="form-input"
+                    required
+                    placeholder="Название мероприятия"
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="description" class="form-label">
+                    Описание
+                </label>
+                <textarea 
+                    id="description" 
+                    name="description" 
+                    class="form-textarea"
+                    rows="4"
+                    placeholder="Описание мероприятия..."
+                >{{ event.description if event else '' }}</textarea>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h3>Этапы мероприятия</h3>
+            <p class="form-hint">Настройте даты и время для каждого этапа. Этапы с пометкой <span class="required">*</span> обязательны.</p>
+            
+            {% for stage in stages %}
+            <div class="stage-form-group">
+                <div class="stage-header">
+                    <h4>
+                        {{ stage.name }}
+                        {% if stage.required %}<span class="required">*</span>{% endif %}
+                        {% if not stage.required %}<span class="optional">(опционально)</span>{% endif %}
+                    </h4>
+                </div>
+                
+                <div class="stage-fields">
+                    {% set existing_stage = existing_stages.get(stage.type) if existing_stages else None %}
+                    
+                    {% if stage.has_start %}
+                    <div class="form-group">
+                        <label for="stage_{{ stage.type }}_start" class="form-label">
+                            Дата и время начала
+                            {% if stage.required %}<span class="required">*</span>{% endif %}
+                        </label>
+                        <input 
+                            type="datetime-local" 
+                            id="stage_{{ stage.type }}_start" 
+                            name="stage_{{ stage.type }}_start" 
+                            value="{% if existing_stage and existing_stage.start_datetime %}{{ existing_stage.start_datetime[:16] }}{% endif %}"
+                            class="form-input"
+                            {% if stage.required %}required{% endif %}
+                        >
+                        <small class="form-hint">Этап закончится, когда начнется следующий этап</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if stage.has_end %}
+                    <div class="form-group">
+                        <label for="stage_{{ stage.type }}_end" class="form-label">
+                            Дата и время окончания
+                            {% if stage.required %}<span class="required">*</span>{% endif %}
+                        </label>
+                        <input 
+                            type="datetime-local" 
+                            id="stage_{{ stage.type }}_end" 
+                            name="stage_{{ stage.type }}_end" 
+                            value="{{ stage_end }}"
+                            class="form-input"
+                            {% if stage.required %}required{% endif %}
+                        >
+                    </div>
+                    {% endif %}
+                    
+                    {% if not stage.has_start and not stage.has_end %}
+                    <div class="form-group">
+                        <p class="stage-info">Этап будет активен до начала следующего этапа</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                {% if event %}Сохранить изменения{% else %}Создать мероприятие{% endif %}
+            </button>
+            <a href="{{ url_for('admin_events') }}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
