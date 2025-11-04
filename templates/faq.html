@@ -5,7 +5,12 @@
 {% block content %}
 <div class="dashboard-container">
     <div class="faq-container">
-        <h1>Часто задаваемые вопросы (FAQ)</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Часто задаваемые вопросы (FAQ)</h1>
+            {% if session.user_id and 'admin' in session.get('roles', []) %}
+            <a href="{{ url_for('admin_faq') }}" class="btn btn-primary">Управление FAQ</a>
+            {% endif %}
+        </div>
         
         {% if faq_by_category %}
         {# Динамический контент из БД #}
@@ -204,6 +209,11 @@
         
         <div class="faq-footer">
             <p>Не нашли ответ на свой вопрос? Обратитесь к администраторам через раздел "Участники" или используйте контакты в вашем профиле.</p>
+            {% if session.user_id and 'admin' in session.get('roles', []) %}
+            <p style="margin-top: 1rem;">
+                <a href="{{ url_for('admin_faq') }}" class="btn btn-secondary">Перейти в управление FAQ</a>
+            </p>
+            {% endif %}
         </div>
     </div>
 </div>
