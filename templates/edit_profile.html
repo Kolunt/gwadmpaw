@@ -11,6 +11,9 @@
         <div class="profile-avatar">
             <img id="avatar-preview" src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars') }}" alt="Аватар {{ user.username }}" class="avatar-large">
             <button type="button" id="change-avatar-btn" class="btn btn-primary" style="margin-top: 1rem;">Изменить аватар</button>
+            <div id="avatar-selected-indicator" style="display: none; margin-top: 0.5rem; color: var(--success-color); font-size: 0.9rem;">
+                ✓ Новый аватар выбран. Не забудьте нажать "Сохранить изменения" ниже.
+            </div>
         </div>
         {% endif %}
         
@@ -284,15 +287,29 @@ document.addEventListener('DOMContentLoaded', function() {
         saveAvatarBtn.addEventListener('click', function() {
             if (selectedAvatarSeed && selectedAvatarStyle) {
                 // Обновляем скрытые поля формы
-                avatarSeedInput.value = selectedAvatarSeed;
-                avatarStyleInput.value = selectedAvatarStyle;
+                if (avatarSeedInput) {
+                    avatarSeedInput.value = selectedAvatarSeed;
+                    console.log('Avatar seed set to:', selectedAvatarSeed);
+                }
+                if (avatarStyleInput) {
+                    avatarStyleInput.value = selectedAvatarStyle;
+                    console.log('Avatar style set to:', selectedAvatarStyle);
+                }
                 
                 // Обновляем превью
                 if (avatarPreview) {
                     avatarPreview.src = `https://api.dicebear.com/7.x/${selectedAvatarStyle}/svg?seed=${selectedAvatarSeed}&size=128`;
                 }
                 
+                // Показываем индикатор, что аватар выбран
+                if (changeAvatarBtn) {
+                    changeAvatarBtn.textContent = '✓ Аватар выбран (нажмите "Сохранить изменения")';
+                    changeAvatarBtn.style.backgroundColor = '#28a745';
+                }
+                
                 closeModal();
+            } else {
+                alert('Пожалуйста, выберите аватар');
             }
         });
     }
