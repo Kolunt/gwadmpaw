@@ -279,7 +279,7 @@ body {
 .sidebar-section-admin {
     border-top: 2px solid var(--border-color);
     padding-top: 1rem;
-    margin-top: auto;
+    margin-top: 1.5rem; /* Прижимаем к основному меню, а не к низу */
     margin-bottom: 0;
 }
 
