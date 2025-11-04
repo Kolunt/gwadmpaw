@@ -9,7 +9,7 @@
         
         {% if user.avatar_seed %}
         <div class="profile-avatar">
-            <img src="{{ get_avatar_url(user.avatar_seed) }}" alt="Аватар {{ user.username }}" class="avatar-large">
+            <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars') }}" alt="Аватар {{ user.username }}" class="avatar-large">
         </div>
         {% endif %}
         

@@ -22,7 +22,7 @@
                     <td data-label="Никнейм в GWars">
                         <div class="participant-name-cell">
                             {% if participant.avatar_seed %}
-                            <img src="{{ get_avatar_url(participant.avatar_seed, size=32) }}" alt="Аватар {{ participant.username }}" class="avatar-small">
+                            <img src="{{ get_avatar_url(participant.avatar_seed, participant.avatar_style or 'avataaars', 32) }}" alt="Аватар {{ participant.username }}" class="avatar-small">
                             {% endif %}
                             <a href="{{ url_for('view_profile', user_id=participant.user_id) }}" class="participant-link">
                                 <strong>{{ participant.username }}</strong>

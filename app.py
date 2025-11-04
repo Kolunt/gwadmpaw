@@ -94,7 +94,7 @@ def init_db():
             pass
         
         # Добавляем пользовательские поля для редактирования профиля (миграция)
-        user_editable_fields = ['bio', 'contact_info']
+        user_editable_fields = ['bio', 'contact_info', 'avatar_style']
         for field in user_editable_fields:
             try:
                 c.execute(f'ALTER TABLE users ADD COLUMN {field} TEXT')
@@ -186,11 +186,20 @@ def generate_unique_avatar_seed(user_id):
     seed = f"{user_id}_{random_part}"
     return seed
 
-def get_avatar_url(avatar_seed, style='avataaars', size=128):
+def get_avatar_url(avatar_seed, style=None, size=128):
     """Генерирует URL аватара DiceBear"""
     if not avatar_seed:
         return None
+    if style is None:
+        style = 'avataaars'  # Стиль по умолчанию
     return f"https://api.dicebear.com/7.x/{style}/svg?seed={avatar_seed}&size={size}"
+
+def get_user_avatar_url(user, size=128):
+    """Получает URL аватара пользователя с учетом его стиля"""
+    if not user or not user.get('avatar_seed'):
+        return None
+    style = user.get('avatar_style') or 'avataaars'
+    return get_avatar_url(user['avatar_seed'], style, size)
 
 def ensure_db():
     """Убеждается, что база данных инициализирована"""
@@ -939,14 +948,32 @@ def edit_profile():
         # Получаем редактируемые поля (не из GWars)
         bio = request.form.get('bio', '').strip()
         contact_info = request.form.get('contact_info', '').strip()
+        avatar_style = request.form.get('avatar_style', 'avataaars').strip()
         
         try:
-            # Обновляем только пользовательские поля
-            conn.execute('''
-                UPDATE users 
-                SET bio = ?, contact_info = ?
-                WHERE user_id = ?
-            ''', (bio, contact_info, session['user_id']))
+            # Проверяем, изменился ли стиль аватара
+            current_user = conn.execute(
+                'SELECT avatar_style FROM users WHERE user_id = ?', (session['user_id'],)
+            ).fetchone()
+            
+            # Если стиль изменился, генерируем новый уникальный seed
+            avatar_seed = None
+            if current_user and current_user['avatar_style'] != avatar_style:
+                avatar_seed = generate_unique_avatar_seed(session['user_id'])
+                # Обновляем и avatar_seed, и avatar_style
+                conn.execute('''
+                    UPDATE users 
+                    SET bio = ?, contact_info = ?, avatar_style = ?, avatar_seed = ?
+                    WHERE user_id = ?
+                ''', (bio, contact_info, avatar_style, avatar_seed, session['user_id']))
+            else:
+                # Обновляем только без avatar_seed
+                conn.execute('''
+                    UPDATE users 
+                    SET bio = ?, contact_info = ?, avatar_style = ?
+                    WHERE user_id = ?
+                ''', (bio, contact_info, avatar_style, session['user_id']))
+            
             conn.commit()
             flash('Профиль успешно обновлен', 'success')
             conn.close()
