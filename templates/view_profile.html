@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль {{ user.username }} - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="profile-card">
+        <h2>Профиль пользователя</h2>
+        
+        {% if user.avatar_seed %}
+        <div class="profile-avatar">
+            <img src="{{ get_avatar_url(user.avatar_seed) }}" alt="Аватар {{ user.username }}" class="avatar-large">
+        </div>
+        {% endif %}
+        
+        <div class="profile-info">
+            <div class="info-row">
+                <span class="info-label">ID пользователя:</span>
+                <span class="info-value">{{ user.user_id }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Имя:</span>
+                <span class="info-value">{{ user.username }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Уровень:</span>
+                <span class="info-value">{{ user.level }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Синдикат:</span>
+                <span class="info-value">{{ user.synd }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Роли:</span>
+                <span class="info-value">
+                    {% if user_roles %}
+                        {% for role in user_roles %}
+                            <span class="role-badge">{{ role.display_name }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="role-badge">Пользователь</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Пол:</span>
+                <span class="info-value">{{ user.usersex or 'Не указан' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Паспорт:</span>
+                <span class="info-value">{{ 'Есть' if user.has_passport else 'Нет' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Мобильный:</span>
+                <span class="info-value">{{ 'Есть' if user.has_mobile else 'Нет' }}</span>
+            </div>
+            {% if user.last_login %}
+            <div class="info-row">
+                <span class="info-label">Последний вход:</span>
+                <span class="info-value">{{ user.last_login }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if user.bio or user.contact_info %}
+        <div class="profile-user-info">
+            <h3>Дополнительная информация</h3>
+            {% if user.bio %}
+            <div class="info-row">
+                <span class="info-label">О себе:</span>
+                <span class="info-value">{{ user.bio }}</span>
+            </div>
+            {% endif %}
+            {% if user.contact_info %}
+            <div class="info-row">
+                <span class="info-label">Контакты:</span>
+                <span class="info-value">{{ user.contact_info }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="profile-actions">
+            {% if is_own_profile %}
+            <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Редактировать профиль</a>
+            {% if 'admin' in session.get('roles', []) %}
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Админ-панель</a>
+            {% endif %}
+            {% else %}
+            <a href="{{ url_for('participants') }}" class="btn btn-secondary">← Назад к участникам</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
