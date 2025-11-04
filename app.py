@@ -129,6 +129,66 @@ def init_db():
             )
         ''')
         
+        # Таблица прав (permissions)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                display_name TEXT NOT NULL,
+                description TEXT,
+                category TEXT DEFAULT 'general',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Связь ролей и прав (многие ко многим)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS role_permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                role_id INTEGER NOT NULL,
+                permission_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+                FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
+                UNIQUE(role_id, permission_id)
+            )
+        ''')
+        
+        # Инициализация стандартных прав
+        default_permissions = [
+            # Управление пользователями
+            ('users.view', 'Просмотр пользователей', 'Возможность просматривать список пользователей', 'users'),
+            ('users.edit', 'Редактирование пользователей', 'Возможность редактировать данные пользователей', 'users'),
+            ('users.delete', 'Удаление пользователей', 'Возможность удалять пользователей', 'users'),
+            ('users.roles', 'Управление ролями пользователей', 'Возможность назначать роли пользователям', 'users'),
+            
+            # Управление ролями
+            ('roles.view', 'Просмотр ролей', 'Возможность просматривать список ролей', 'roles'),
+            ('roles.create', 'Создание ролей', 'Возможность создавать новые роли', 'roles'),
+            ('roles.edit', 'Редактирование ролей', 'Возможность редактировать роли', 'roles'),
+            ('roles.delete', 'Удаление ролей', 'Возможность удалять роли', 'roles'),
+            
+            # Управление мероприятиями
+            ('events.view', 'Просмотр мероприятий', 'Возможность просматривать мероприятия', 'events'),
+            ('events.create', 'Создание мероприятий', 'Возможность создавать мероприятия', 'events'),
+            ('events.edit', 'Редактирование мероприятий', 'Возможность редактировать мероприятия', 'events'),
+            ('events.delete', 'Удаление мероприятий', 'Возможность удалять мероприятия', 'events'),
+            
+            # Настройки
+            ('settings.view', 'Просмотр настроек', 'Возможность просматривать настройки системы', 'settings'),
+            ('settings.edit', 'Редактирование настроек', 'Возможность редактировать настройки системы', 'settings'),
+            
+            # Модерация
+            ('moderate.content', 'Модерация контента', 'Возможность модерировать контент пользователей', 'moderation'),
+            ('moderate.users', 'Модерация пользователей', 'Возможность модерировать пользователей', 'moderation'),
+        ]
+        
+        for perm_name, perm_display, perm_desc, perm_category in default_permissions:
+            c.execute('''
+                INSERT OR IGNORE INTO permissions (name, display_name, description, category)
+                VALUES (?, ?, ?, ?)
+            ''', (perm_name, perm_display, perm_desc, perm_category))
+        
         # Таблица настроек
         c.execute('''
             CREATE TABLE IF NOT EXISTS settings (
@@ -343,6 +403,99 @@ def remove_role(user_id, role_name):
     
     try:
         conn.execute('''
+
+# ========== Система прав (permissions) ==========
+
+def get_all_permissions():
+    """Получает список всех прав, сгруппированных по категориям"""
+    conn = get_db_connection()
+    permissions = conn.execute('''
+        SELECT * FROM permissions ORDER BY category, display_name
+    ''').fetchall()
+    conn.close()
+    
+    # Группируем по категориям
+    grouped = {}
+    for perm in permissions:
+        category = perm['category'] or 'general'
+        if category not in grouped:
+            grouped[category] = []
+        grouped[category].append(dict(perm))
+    
+    return grouped
+
+def get_role_permissions(role_id):
+    """Получает список прав роли"""
+    conn = get_db_connection()
+    permissions = conn.execute('''
+        SELECT p.* FROM permissions p
+        INNER JOIN role_permissions rp ON p.id = rp.permission_id
+        WHERE rp.role_id = ?
+    ''', (role_id,)).fetchall()
+    conn.close()
+    return [dict(p) for p in permissions]
+
+def assign_permission_to_role(role_id, permission_id):
+    """Назначает право роли"""
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+            VALUES (?, ?)
+        ''', (role_id, permission_id))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error assigning permission: {e}")
+        conn.close()
+        return False
+
+def remove_permission_from_role(role_id, permission_id):
+    """Удаляет право у роли"""
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            DELETE FROM role_permissions 
+            WHERE role_id = ? AND permission_id = ?
+        ''', (role_id, permission_id))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error removing permission: {e}")
+        conn.close()
+        return False
+
+def has_permission(user_id, permission_name):
+    """Проверяет, есть ли у пользователя указанное право"""
+    if not user_id:
+        return False
+    
+    conn = get_db_connection()
+    # Получаем роли пользователя
+    roles = conn.execute('''
+        SELECT r.id FROM roles r
+        INNER JOIN user_roles ur ON r.id = ur.role_id
+        WHERE ur.user_id = ?
+    ''', (user_id,)).fetchall()
+    
+    if not roles:
+        conn.close()
+        return False
+    
+    # Проверяем, есть ли у любой роли пользователя это право
+    role_ids = [r['id'] for r in roles]
+    placeholders = ','.join(['?'] * len(role_ids))
+    
+    permission = conn.execute(f'''
+        SELECT p.id FROM permissions p
+        INNER JOIN role_permissions rp ON p.id = rp.permission_id
+        WHERE rp.role_id IN ({placeholders}) AND p.name = ?
+    ''', role_ids + [permission_name]).fetchone()
+    
+    conn.close()
+    return permission is not None
             DELETE FROM user_roles
             WHERE user_id = ? AND role_id = ?
         ''', (user_id, role['id']))
@@ -521,6 +674,7 @@ def verify_sign4(sign3, sign4):
 
 @app.context_processor
 def inject_default_theme():
+    """Добавляет функции и переменные во все шаблоны"""
     """Добавляет настройку темы по умолчанию во все шаблоны"""
     default_theme = get_setting('default_theme', 'light')
     # Получаем аватар текущего пользователя для хэдера
@@ -537,7 +691,8 @@ def inject_default_theme():
         default_theme=default_theme, 
         get_avatar_url=get_avatar_url,
         current_user_avatar_seed=current_user_avatar_seed,
-        current_user_avatar_style=current_user_avatar_style
+        current_user_avatar_style=current_user_avatar_style,
+        get_role_permissions=get_role_permissions
     )
 
 @app.route('/')
@@ -1429,10 +1584,21 @@ def admin_role_create():
             return render_template('admin/role_form.html')
         
         try:
-            conn.execute('''
+            cursor = conn.execute('''
                 INSERT INTO roles (name, display_name, description, is_system)
                 VALUES (?, ?, ?, 0)
             ''', (name, display_name, description))
+            role_id = cursor.lastrowid
+            
+            # Сохраняем выбранные права
+            selected_permissions = request.form.getlist('permissions')
+            for permission_id in selected_permissions:
+                try:
+                    permission_id_int = int(permission_id)
+                    assign_permission_to_role(role_id, permission_id_int)
+                except ValueError:
+                    pass
+            
             conn.commit()
             flash('Роль успешно создана', 'success')
             conn.close()
@@ -1442,7 +1608,9 @@ def admin_role_create():
             flash(f'Ошибка создания роли: {str(e)}', 'error')
             conn.close()
     
-    return render_template('admin/role_form.html')
+    # Получаем все права для отображения в форме
+    permissions = get_all_permissions()
+    return render_template('admin/role_form.html', permissions=permissions)
 
 @app.route('/admin/roles/<int:role_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
@@ -1468,14 +1636,34 @@ def admin_role_edit(role_id):
         
         if not display_name:
             flash('Отображаемое имя роли обязательно', 'error')
+            permissions = get_all_permissions()
             conn.close()
-            return render_template('admin/role_form.html', role=role)
+            return render_template('admin/role_form.html', role=role, permissions=permissions)
         
         try:
             conn.execute('''
                 UPDATE roles SET display_name = ?, description = ?
                 WHERE id = ?
             ''', (display_name, description, role_id))
+            
+            # Обновляем права роли
+            selected_permissions = request.form.getlist('permissions')
+            selected_permission_ids = [int(pid) for pid in selected_permissions if pid.isdigit()]
+            
+            # Получаем текущие права роли
+            current_permissions = get_role_permissions(role_id)
+            current_permission_ids = [p['id'] for p in current_permissions]
+            
+            # Удаляем права, которые были сняты
+            for perm_id in current_permission_ids:
+                if perm_id not in selected_permission_ids:
+                    remove_permission_from_role(role_id, perm_id)
+            
+            # Добавляем новые права
+            for perm_id in selected_permission_ids:
+                if perm_id not in current_permission_ids:
+                    assign_permission_to_role(role_id, perm_id)
+            
             conn.commit()
             flash('Роль успешно обновлена', 'success')
             conn.close()
@@ -1485,8 +1673,9 @@ def admin_role_edit(role_id):
             flash(f'Ошибка обновления роли: {str(e)}', 'error')
             conn.close()
     
+    permissions = get_all_permissions()
     conn.close()
-    return render_template('admin/role_form.html', role=role)
+    return render_template('admin/role_form.html', role=role, permissions=permissions)
 
 @app.route('/admin/roles/<int:role_id>/delete', methods=['POST'])
 @require_role('admin')

@@ -919,6 +919,80 @@ body {
     font-weight: 600;
 }
 
+/* Permissions */
+.permissions-container {
+    margin-top: 1rem;
+}
+
+.permission-category {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.permission-category-title {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.permissions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.permission-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.75rem;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.permission-item:hover {
+    border-color: var(--accent-color);
+    background-color: var(--bg-secondary);
+}
+
+.permission-item:has(.permission-checkbox:checked) {
+    border-color: var(--accent-color);
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.permission-checkbox {
+    margin-right: 0.75rem;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.permission-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.permission-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.permission-description {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
 .role-badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
@@ -1691,6 +1765,14 @@ body {
 
 /* Mobile Responsive for Admin */
 @media (max-width: 768px) {
+    .permissions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .permission-category {
+        padding: 1rem;
+    }
+    
     .table-controls {
         padding: 1rem;
     }
