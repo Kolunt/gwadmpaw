@@ -1,6 +1,8 @@
 # Пример WSGI файла для PythonAnywhere
 # Скопируйте этот код в ваш wsgi.py файл на PythonAnywhere
 # Путь обычно: /var/www/yourusername_pythonanywhere_com_wsgi.py
+#
+# ВАЖНО: Убедитесь, что в WSGI файле НЕТ упоминаний mangum, Lambda, ASGI или других AWS библиотек
 
 import sys
 import os
@@ -11,9 +13,9 @@ path = '/home/gwadm/gwadm'
 if path not in sys.path:
     sys.path.insert(0, path)
 
-# Импортируем приложение
-from app import app as application
+# Импортируем приложение Flask
+from app import app
 
-if __name__ == "__main__":
-    application.run()
+# WSGI требует переменную application
+application = app
 

@@ -39,7 +39,13 @@ cd ~/gwadm
 
 **Важно**: Используйте папку `gwadm`, а не `gwadmpaw`.
 
-3. Установите зависимости (для Python 3.10):
+3. **Проверьте и удалите ненужные зависимости** (если они были установлены ранее):
+```bash
+# Удалите mangum если он установлен (он не нужен для Flask)
+pip3.10 uninstall mangum -y 2>/dev/null || true
+```
+
+4. Установите зависимости (для Python 3.10):
 ```bash
 pip3.10 install --user -r requirements.txt
 ```
@@ -51,7 +57,8 @@ pip3.10 install --user -r requirements.txt
 1. В панели управления PythonAnywhere перейдите в раздел **Web**
 2. Нажмите на ссылку для редактирования WSGI файла (обычно находится по пути `/var/www/gwadm_pythonanywhere_com_wsgi.py`)
 
-3. Замените содержимое файла на:
+3. **ВАЖНО**: Полностью удалите весь старый код из WSGI файла и замените на:
+
 ```python
 import sys
 import os
@@ -63,14 +70,15 @@ if path not in sys.path:
     sys.path.insert(0, path)
 
 # Импортируем приложение Flask
-from app import app as application
+from app import app
 
-# Эта переменная нужна для WSGI
-if __name__ == "__main__":
-    application.run()
+# WSGI требует переменную application
+application = app
 ```
 
-**Важно**: 
+**Критически важно**: 
+- Убедитесь, что в WSGI файле **НЕТ** никаких упоминаний `mangum`, `Lambda`, `ASGI` или других библиотек для AWS
+- WSGI файл должен быть максимально простым - только импорт Flask приложения
 - Путь указывает на `/home/gwadm/gwadm` (папка `gwadm`, а не `gwadmpaw`)
 - Если ваше имя пользователя на PythonAnywhere не `gwadm`, замените `/home/gwadm/` на правильный путь (например, `/home/ваш_username/gwadm`)
 
@@ -252,12 +260,24 @@ chmod 644 ~/gwadm/*.py
 
 **Важно**: Используйте папку `gwadm`, а не `gwadmpaw`.
 
-### Проблема: "Internal Server Error"
+### Проблема: "Internal Server Error" или ошибка про "mangum" / "Lambda"
 
 **Решение**: 
-1. Проверьте логи ошибок (см. выше)
-2. Убедитесь, что путь в WSGI файле правильный
-3. Проверьте, что все файлы загружены
+1. **Проверьте WSGI файл** - он должен быть простым и содержать только:
+   ```python
+   from app import app
+   application = app
+   ```
+   Убедитесь, что в WSGI файле **НЕТ** упоминаний `mangum`, `Lambda`, `ASGI` или других AWS библиотек.
+
+2. **Удалите ненужные зависимости** (если mangum установлен):
+   ```bash
+   pip3.10 uninstall mangum
+   ```
+
+3. Проверьте логи ошибок (см. выше)
+4. Убедитесь, что путь в WSGI файле правильный
+5. Проверьте, что все файлы загружены
 
 ### Проблема: Статические файлы не загружаются
 
