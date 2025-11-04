@@ -245,7 +245,7 @@ def login():
         
         # Пробуем с name_encoded_for_comparison (если мы его создали)
         variant6 = None
-        if name_encoded_for_comparison and name_encoded_for_comparison != name_encoded:
+        if 'name_encoded_for_comparison' in locals() and name_encoded_for_comparison and name_encoded_for_comparison != name_encoded:
             variant6 = hashlib.md5((GWARS_PASSWORD + name_encoded_for_comparison + str(user_id)).encode('utf-8')).hexdigest()
         
         # Пробуем latin1
@@ -266,6 +266,13 @@ def login():
         if name_from_args and name_from_args != name:
             variant7 = hashlib.md5((GWARS_PASSWORD + name_from_args + str(user_id)).encode('utf-8')).hexdigest()
         
+        # Пробуем с пустым именем (если имя пустое)
+        variant8 = None
+        variant9 = None
+        if not name or name == '':
+            variant8 = hashlib.md5((GWARS_PASSWORD + '' + str(user_id)).encode('utf-8')).hexdigest()
+            variant9 = hashlib.md5((GWARS_PASSWORD + str(user_id) + '').encode('utf-8')).hexdigest()
+        
         expected_sign2 = hashlib.md5(
             (GWARS_PASSWORD + str(level) + str(round(float(synd))) + str(user_id)).encode('utf-8')
         ).hexdigest()
@@ -273,21 +280,32 @@ def login():
         debug_info = {
             'received_params': dict(request.args),
             'password': GWARS_PASSWORD,
-            'encoded_name': name_encoded,
-            'decoded_name': name,
+            'encoded_name': name_encoded if name_encoded else 'EMPTY',
+            'decoded_name': name if name else 'EMPTY',
             'decoded_name_latin1': name_latin1 if name_latin1 else 'N/A',
+            'name_from_args': name_from_args if name_from_args else 'EMPTY',
             'user_id': user_id,
+            'query_string': query_string,
+            'full_url': request.url,
             'variant1': variant1,
             'variant2': variant2,
             'variant3': variant3,
             'variant4': variant4,
             'variant5': variant5 if variant5 else 'N/A',
+            'variant6': variant6 if variant6 else 'N/A',
+            'variant7': variant7 if variant7 else 'N/A',
+            'variant8': variant8 if variant8 else 'N/A',
+            'variant9': variant9 if variant9 else 'N/A',
             'received_sign': sign,
             'sign_match_v1': variant1 == sign,
             'sign_match_v2': variant2 == sign,
             'sign_match_v3': variant3 == sign,
             'sign_match_v4': variant4 == sign,
             'sign_match_v5': variant5 == sign if variant5 else False,
+            'sign_match_v6': variant6 == sign if variant6 else False,
+            'sign_match_v7': variant7 == sign if variant7 else False,
+            'sign_match_v8': variant8 == sign if variant8 else False,
+            'sign_match_v9': variant9 == sign if variant9 else False,
             'expected_sign2': expected_sign2,
             'received_sign2': sign2,
             'sign2_match': expected_sign2 == sign2,
