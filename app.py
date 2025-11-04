@@ -2336,6 +2336,11 @@ def events():
     
     return render_template('events.html', events_with_stages=events_with_stages)
 
+@app.route('/faq')
+def faq():
+    """Страница с часто задаваемыми вопросами"""
+    return render_template('faq.html')
+
 @app.route('/admin/events')
 @require_role('admin')
 def admin_events():
