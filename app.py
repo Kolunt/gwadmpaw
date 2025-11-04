@@ -1518,15 +1518,16 @@ def view_profile(user_id):
         conn.close()
         return redirect(url_for('participants'))
     
-    # Получаем роли пользователя
+    # Получаем роли и звания пользователя
     user_roles = get_user_roles(user_id)
+    user_titles = get_user_titles(user_id)
     
     conn.close()
     
     # Проверяем, является ли это профилем текущего пользователя
     is_own_profile = session.get('user_id') == user_id
     
-    return render_template('view_profile.html', user=user, user_roles=user_roles, is_own_profile=is_own_profile)
+    return render_template('view_profile.html', user=user, user_roles=user_roles, user_titles=user_titles, is_own_profile=is_own_profile)
 
 @app.route('/participants')
 def participants():
