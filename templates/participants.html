@@ -24,7 +24,9 @@
                             {% if participant.avatar_seed %}
                             <img src="{{ get_avatar_url(participant.avatar_seed, size=32) }}" alt="Аватар {{ participant.username }}" class="avatar-small">
                             {% endif %}
-                            <strong>{{ participant.username }}</strong>
+                            <a href="{{ url_for('view_profile', user_id=participant.user_id) }}" class="participant-link">
+                                <strong>{{ participant.username }}</strong>
+                            </a>
                         </div>
                     </td>
                     <td data-label="Статус">
