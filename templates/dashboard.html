@@ -70,7 +70,7 @@
             <a href="{{ url_for('logout') }}" class="btn btn-secondary">Выйти</a>
         </div>
         
-        {% if user.bio or user.contact_info %}
+        {% if user.bio or user.email or user.phone or user.telegram or user.whatsapp or user.viber or user.contact_info %}
         <div class="profile-user-info">
             <h3>Дополнительная информация</h3>
             {% if user.bio %}
@@ -79,9 +79,46 @@
                 <span class="info-value">{{ user.bio }}</span>
             </div>
             {% endif %}
+            
+            {% if user.email or user.phone or user.telegram or user.whatsapp or user.viber %}
+            <div class="contacts-section">
+                <h4>Контакты</h4>
+                {% if user.email %}
+                <div class="info-row">
+                    <span class="info-label">📧 Email:</span>
+                    <span class="info-value"><a href="mailto:{{ user.email }}">{{ user.email }}</a></span>
+                </div>
+                {% endif %}
+                {% if user.phone %}
+                <div class="info-row">
+                    <span class="info-label">📱 Телефон:</span>
+                    <span class="info-value"><a href="tel:{{ user.phone }}">{{ user.phone }}</a></span>
+                </div>
+                {% endif %}
+                {% if user.telegram %}
+                <div class="info-row">
+                    <span class="info-label">💬 Telegram:</span>
+                    <span class="info-value"><a href="https://t.me/{{ user.telegram }}" target="_blank">@{{ user.telegram }}</a></span>
+                </div>
+                {% endif %}
+                {% if user.whatsapp %}
+                <div class="info-row">
+                    <span class="info-label">📲 WhatsApp:</span>
+                    <span class="info-value"><a href="https://wa.me/{{ user.whatsapp|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank">{{ user.whatsapp }}</a></span>
+                </div>
+                {% endif %}
+                {% if user.viber %}
+                <div class="info-row">
+                    <span class="info-label">💜 Viber:</span>
+                    <span class="info-value"><a href="viber://chat?number={{ user.viber|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ user.viber }}</a></span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
             {% if user.contact_info %}
             <div class="info-row">
-                <span class="info-label">Контакты:</span>
+                <span class="info-label">Дополнительная информация:</span>
                 <span class="info-value">{{ user.contact_info }}</span>
             </div>
             {% endif %}

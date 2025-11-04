@@ -64,7 +64,7 @@
                 <div class="form-group">
                     <label for="contact_info" class="form-label">
                         Контактная информация
-                        <small class="form-hint">Контактная информация для связи (необязательно)</small>
+                        <small class="form-hint">Дополнительная контактная информация (необязательно)</small>
                     </label>
                     <textarea 
                         id="contact_info" 
@@ -73,6 +73,81 @@
                         rows="3"
                         placeholder="Ваша контактная информация..."
                     >{{ user.contact_info or '' }}</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        Email
+                        <small class="form-hint">Адрес электронной почты (необязательно)</small>
+                    </label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="form-input"
+                        placeholder="example@mail.com"
+                        value="{{ user.email or '' }}"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone" class="form-label">
+                        Номер телефона
+                        <small class="form-hint">Номер телефона для связи (необязательно)</small>
+                    </label>
+                    <input 
+                        type="tel" 
+                        id="phone" 
+                        name="phone" 
+                        class="form-input"
+                        placeholder="+7 (999) 123-45-67"
+                        value="{{ user.phone or '' }}"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="telegram" class="form-label">
+                        Telegram
+                        <small class="form-hint">Имя пользователя Telegram (без @) (необязательно)</small>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="telegram" 
+                        name="telegram" 
+                        class="form-input"
+                        placeholder="username"
+                        value="{{ user.telegram or '' }}"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="whatsapp" class="form-label">
+                        WhatsApp
+                        <small class="form-hint">Номер WhatsApp (необязательно)</small>
+                    </label>
+                    <input 
+                        type="tel" 
+                        id="whatsapp" 
+                        name="whatsapp" 
+                        class="form-input"
+                        placeholder="+7 (999) 123-45-67"
+                        value="{{ user.whatsapp or '' }}"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="viber" class="form-label">
+                        Viber
+                        <small class="form-hint">Номер Viber (необязательно)</small>
+                    </label>
+                    <input 
+                        type="tel" 
+                        id="viber" 
+                        name="viber" 
+                        class="form-input"
+                        placeholder="+7 (999) 123-45-67"
+                        value="{{ user.viber or '' }}"
+                    >
                 </div>
             </div>
             

@@ -94,7 +94,7 @@ def init_db():
             pass
         
         # Добавляем пользовательские поля для редактирования профиля (миграция)
-        user_editable_fields = ['bio', 'contact_info', 'avatar_style']
+        user_editable_fields = ['bio', 'contact_info', 'avatar_style', 'email', 'phone', 'telegram', 'whatsapp', 'viber']
         for field in user_editable_fields:
             try:
                 c.execute(f'ALTER TABLE users ADD COLUMN {field} TEXT')
@@ -775,13 +775,18 @@ def login_dev():
     conn = get_db_connection()
     try:
         # Проверяем, существует ли пользователь и получаем все его данные
-        existing_user = conn.execute('SELECT avatar_seed, avatar_style, bio, contact_info FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        existing_user = conn.execute('SELECT avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber FROM users WHERE user_id = ?', (user_id,)).fetchone()
         
         # Если пользователь новый, генерируем уникальный avatar_seed
         avatar_seed = None
         avatar_style = None
         bio = None
         contact_info = None
+        email = None
+        phone = None
+        telegram = None
+        whatsapp = None
+        viber = None
         
         if not existing_user:
             # Новый пользователь - генерируем рандомный аватар
@@ -793,19 +798,29 @@ def login_dev():
             avatar_style = existing_user['avatar_style'] or 'avataaars'
             bio = existing_user['bio']
             contact_info = existing_user['contact_info']
+            email = existing_user['email']
+            phone = existing_user['phone']
+            telegram = existing_user['telegram']
+            whatsapp = existing_user['whatsapp']
+            viber = existing_user['viber']
         else:
             # Используем существующий seed и сохраняем все пользовательские данные
             avatar_seed = existing_user['avatar_seed']
             avatar_style = existing_user['avatar_style']
             bio = existing_user['bio']
             contact_info = existing_user['contact_info']
+            email = existing_user['email']
+            phone = existing_user['phone']
+            telegram = existing_user['telegram']
+            whatsapp = existing_user['whatsapp']
+            viber = existing_user['viber']
         
-        # Обновляем данные пользователя, сохраняя пользовательские поля (avatar, bio, contact_info)
+        # Обновляем данные пользователя, сохраняя пользовательские поля (avatar, bio, contact_info, contacts)
         conn.execute('''
             INSERT OR REPLACE INTO users 
-            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, last_login)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, datetime.now()))
+            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber, last_login)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber, datetime.now()))
         conn.commit()
         log_debug(f"Dev user saved successfully: user_id={user_id}, username={name}, avatar_seed={avatar_seed}")
     except Exception as e:
@@ -1115,13 +1130,18 @@ def login():
     conn = get_db_connection()
     try:
         # Проверяем, существует ли пользователь и получаем все его данные
-        existing_user = conn.execute('SELECT avatar_seed, avatar_style, bio, contact_info FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        existing_user = conn.execute('SELECT avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber FROM users WHERE user_id = ?', (user_id,)).fetchone()
         
         # Если пользователь новый, генерируем уникальный avatar_seed
         avatar_seed = None
         avatar_style = None
         bio = None
         contact_info = None
+        email = None
+        phone = None
+        telegram = None
+        whatsapp = None
+        viber = None
         
         if not existing_user:
             # Новый пользователь - генерируем рандомный аватар
@@ -1133,19 +1153,29 @@ def login():
             avatar_style = existing_user['avatar_style'] or 'avataaars'
             bio = existing_user['bio']
             contact_info = existing_user['contact_info']
+            email = existing_user['email']
+            phone = existing_user['phone']
+            telegram = existing_user['telegram']
+            whatsapp = existing_user['whatsapp']
+            viber = existing_user['viber']
         else:
             # Используем существующий seed и сохраняем все пользовательские данные
             avatar_seed = existing_user['avatar_seed']
             avatar_style = existing_user['avatar_style']
             bio = existing_user['bio']
             contact_info = existing_user['contact_info']
+            email = existing_user['email']
+            phone = existing_user['phone']
+            telegram = existing_user['telegram']
+            whatsapp = existing_user['whatsapp']
+            viber = existing_user['viber']
         
-        # Обновляем данные пользователя, сохраняя пользовательские поля (avatar, bio, contact_info)
+        # Обновляем данные пользователя, сохраняя пользовательские поля (avatar, bio, contact_info, contacts)
         conn.execute('''
             INSERT OR REPLACE INTO users 
-            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, last_login)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, datetime.now()))
+            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber, last_login)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber, datetime.now()))
         conn.commit()
         log_debug(f"User saved successfully: user_id={user_id}, username={name}, avatar_seed={avatar_seed}")
     except Exception as e:
