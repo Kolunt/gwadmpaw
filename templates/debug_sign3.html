@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Отладка sign3 - GWars Auth{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="profile-card">
+        <h2>Отладочная информация для sign3</h2>
+        
+        {% if debug_info %}
+        <div class="debug-info">
+            <h3>Исходные данные:</h3>
+            <div class="info-row">
+                <span class="info-label">Пароль (для подписи):</span>
+                <span class="info-value"><code>{{ debug_info.password }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Имя (декодированное):</span>
+                <span class="info-value"><code>{{ debug_info.decoded_name }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Имя (закодированное):</span>
+                <span class="info-value"><code>{{ debug_info.encoded_name }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">User ID:</span>
+                <span class="info-value"><code>{{ debug_info.user_id }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">has_passport:</span>
+                <span class="info-value"><code>{{ debug_info.has_passport }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">has_mobile:</span>
+                <span class="info-value"><code>{{ debug_info.has_mobile }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">old_passport:</span>
+                <span class="info-value"><code>{{ debug_info.old_passport }}</code></span>
+            </div>
+            
+            <h3>Варианты вычисления подписи sign3:</h3>
+            
+            <div class="info-row">
+                <span class="info-label" style="font-weight: bold; color: var(--accent-color);">Вариант BYTES (pass + raw_bytes + id + flags):</span>
+                <span class="info-value"><code>{{ debug_info.sign3_variant_bytes }}</code></span>
+                <span style="color: {% if debug_info.sign3_match_bytes %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px; font-size: 1.2em;">
+                    {% if debug_info.sign3_match_bytes %}✅ СОВПАДАЕТ!{% else %}❌{% endif %}
+                </span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Вариант DECODED (pass + decoded_name + id + flags):</span>
+                <span class="info-value"><code>{{ debug_info.sign3_variant_decoded }}</code></span>
+                <span style="color: {% if debug_info.sign3_match_decoded %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign3_match_decoded %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Полученная подпись sign3 от GWars:</span>
+                <span class="info-value"><code style="font-weight: bold;">{{ debug_info.sign3_received }}</code></span>
+            </div>
+            
+            <h3>Проверка подписи sign4:</h3>
+            <div class="info-row">
+                <span class="info-label">Ожидаемая подпись sign4:</span>
+                <span class="info-value"><code>{{ debug_info.sign4_variant1 }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Полученная подпись sign4:</span>
+                <span class="info-value"><code>{{ debug_info.sign4_received }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Совпадение sign4:</span>
+                <span class="info-value" style="color: {% if debug_info.sign4_match %}var(--success-color){% else %}var(--error-color){% endif %};">
+                    {% if debug_info.sign4_match %}✅ Да{% else %}❌ Нет{% endif %}
+                </span>
+            </div>
+        </div>
+        {% else %}
+        <p>Нет параметров для отладки.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

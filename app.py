@@ -136,11 +136,37 @@ def verify_sign2(level, synd, user_id, sign2):
     return expected_sign2 == sign2
 
 # Проверка подписи sign3
-def verify_sign3(username, user_id, has_passport, has_mobile, old_passport, sign3):
-    expected_sign3 = hashlib.md5(
+def verify_sign3(username, user_id, has_passport, has_mobile, old_passport, sign3, encoded_name=None):
+    # В PHP: $sign3=substr(md5($pass.$user_name.$user_id.$has_passport.$has_mobile.$old_passport),0,10);
+    # ВАЖНО: Используем оригинальные байты, как и для sign!
+    variants = []
+    
+    # Вариант 1: ОРИГИНАЛЬНЫЕ БАЙТЫ из URL (правильный способ!)
+    if encoded_name:
+        try:
+            name_bytes = unquote_to_bytes(encoded_name)
+            expected_sign3_bytes = hashlib.md5(
+                GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8') + 
+                str(has_passport).encode('utf-8') + str(has_mobile).encode('utf-8') + str(old_passport).encode('utf-8')
+            ).hexdigest()[:10]
+            variants.append(('bytes', expected_sign3_bytes))
+        except:
+            pass
+    
+    # Вариант 2: декодированное имя
+    expected_sign3_decoded = hashlib.md5(
         (GWARS_PASSWORD + username + str(user_id) + str(has_passport) + str(has_mobile) + str(old_passport)).encode('utf-8')
     ).hexdigest()[:10]
-    return expected_sign3 == sign3
+    variants.append(('decoded', expected_sign3_decoded))
+    
+    # Проверяем все варианты
+    for variant_name, variant_sign in variants:
+        if variant_sign == sign3:
+            log_error(f"verify_sign3: SUCCESS with variant {variant_name}!")
+            return True
+    
+    log_error(f"verify_sign3: ALL VARIANTS FAILED! Received sign3={sign3}")
+    return False
 
 # Проверка подписи sign4 (дата)
 def verify_sign4(sign3, sign4):
@@ -367,9 +393,50 @@ def login():
         flash('Ошибка проверки подписи sign2', 'error')
         return redirect(url_for('index'))
     
-    if not verify_sign3(name, user_id, has_passport, has_mobile, old_passport, sign3):
-        flash('Ошибка проверки подписи sign3', 'error')
-        return redirect(url_for('index'))
+    if not verify_sign3(name, user_id, has_passport, has_mobile, old_passport, sign3, name_encoded):
+        # Показываем страницу отладки для sign3
+        flash('Ошибка проверки подписи sign3. Смотрите информацию ниже.', 'error')
+        
+        # Вычисляем варианты sign3 для отладки
+        sign3_variant_bytes = None
+        if name_encoded:
+            try:
+                name_bytes = unquote_to_bytes(name_encoded)
+                sign3_variant_bytes = hashlib.md5(
+                    GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8') + 
+                    str(has_passport).encode('utf-8') + str(has_mobile).encode('utf-8') + str(old_passport).encode('utf-8')
+                ).hexdigest()[:10]
+            except:
+                pass
+        
+        sign3_variant_decoded = hashlib.md5(
+            (GWARS_PASSWORD + name + str(user_id) + str(has_passport) + str(has_mobile) + str(old_passport)).encode('utf-8')
+        ).hexdigest()[:10]
+        
+        # Вычисляем sign4 варианты
+        today = datetime.now().strftime("%Y-%m-%d")
+        sign4_variant1 = hashlib.md5((today + sign3 + GWARS_PASSWORD).encode('utf-8')).hexdigest()[:10]
+        
+        debug_info = {
+            'received_params': dict(request.args),
+            'password': GWARS_PASSWORD,
+            'encoded_name': name_encoded if name_encoded else 'EMPTY',
+            'decoded_name': name if name else 'EMPTY',
+            'user_id': user_id,
+            'has_passport': has_passport,
+            'has_mobile': has_mobile,
+            'old_passport': old_passport,
+            'sign3_received': sign3,
+            'sign3_variant_bytes': sign3_variant_bytes if sign3_variant_bytes else 'N/A',
+            'sign3_variant_decoded': sign3_variant_decoded,
+            'sign3_match_bytes': sign3_variant_bytes == sign3 if sign3_variant_bytes else False,
+            'sign3_match_decoded': sign3_variant_decoded == sign3,
+            'sign4_received': sign4,
+            'sign4_variant1': sign4_variant1,
+            'sign4_match': sign4_variant1 == sign4,
+        }
+        
+        return render_template('debug_sign3.html', debug_info=debug_info)
     
     if not verify_sign4(sign3, sign4):
         flash('Ошибка проверки подписи sign4 (устаревшая подпись)', 'error')
