@@ -23,6 +23,10 @@
                 <span class="info-value"><code>{{ debug_info.decoded_name }}</code></span>
             </div>
             <div class="info-row">
+                <span class="info-label">Имя (декодированное CP1251):</span>
+                <span class="info-value"><code>{{ debug_info.decoded_name_cp1251 }}</code></span>
+            </div>
+            <div class="info-row">
                 <span class="info-label">Имя (декодированное Latin1):</span>
                 <span class="info-value"><code>{{ debug_info.decoded_name_latin1 }}</code></span>
             </div>
@@ -44,6 +48,14 @@
             </div>
             
             <h3>Варианты вычисления подписи sign:</h3>
+            
+            <div class="info-row">
+                <span class="info-label" style="font-weight: bold; color: var(--accent-color);">Вариант BYTES (pass + raw_bytes + id) - ПРАВИЛЬНЫЙ:</span>
+                <span class="info-value"><code>{{ debug_info.variant_bytes }}</code></span>
+                <span style="color: {% if debug_info.sign_match_bytes %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px; font-size: 1.2em;">
+                    {% if debug_info.sign_match_bytes %}✅ СОВПАДАЕТ!{% else %}❌{% endif %}
+                </span>
+            </div>
             
             <div class="info-row">
                 <span class="info-label">Вариант 1 (pass + decoded_name + id):</span>
@@ -79,10 +91,20 @@
             
             {% if debug_info.variant5 != 'N/A' %}
             <div class="info-row">
-                <span class="info-label">Вариант 5 (pass + latin1_decoded_name + id):</span>
+                <span class="info-label">Вариант 5 (pass + cp1251_decoded_name + id):</span>
                 <span class="info-value"><code>{{ debug_info.variant5 }}</code></span>
                 <span style="color: {% if debug_info.sign_match_v5 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
                     {% if debug_info.sign_match_v5 %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            
+            {% if debug_info.variant_latin1_bytes != 'N/A' %}
+            <div class="info-row">
+                <span class="info-label">Вариант LATIN1_BYTES (pass + latin1_bytes + id):</span>
+                <span class="info-value"><code>{{ debug_info.variant_latin1_bytes }}</code></span>
+                <span style="color: {% if debug_info.sign_match_latin1_bytes %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_latin1_bytes %}✅{% else %}❌{% endif %}
                 </span>
             </div>
             {% endif %}

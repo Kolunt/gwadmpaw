@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from urllib.parse import unquote
+from urllib.parse import unquote, unquote_to_bytes
 import hashlib
 import sqlite3
 from datetime import datetime
@@ -60,32 +60,55 @@ def get_db_connection():
 def verify_sign(username, user_id, sign, encoded_name=None):
     # Формируем подпись: md5(password + username + user_id)
     # В PHP: $sign=md5($pass.$user_name.$user_user_id);
-    # ВАЖНО: В PHP подпись вычисляется ДО urlencode, поэтому используем оригинальное имя
-    # Но в URL имя приходит уже закодированным, поэтому пробуем разные варианты
+    # ВАЖНО: В PHP подпись вычисляется с оригинальными байтами ДО urlencode!
+    # Поэтому нужно использовать unquote_to_bytes для получения оригинальных байтов
     
     variants = []
     
-    # Вариант 1: декодированное имя
+    # Вариант 1: ОРИГИНАЛЬНЫЕ БАЙТЫ из URL (правильный способ!)
+    # В PHP подпись вычисляется с оригинальными байтами, а не с декодированной строкой
+    if encoded_name:
+        try:
+            name_bytes = unquote_to_bytes(encoded_name)
+            expected_sign_bytes = hashlib.md5(
+                GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8')
+            ).hexdigest()
+            variants.append(('bytes', expected_sign_bytes))
+        except:
+            pass
+    
+    # Вариант 2: декодированное имя через UTF-8
     expected_sign_decoded = hashlib.md5(
         (GWARS_PASSWORD + username + str(user_id)).encode('utf-8')
     ).hexdigest()
     variants.append(('decoded', expected_sign_decoded))
     
-    # Вариант 2: закодированное имя (как пришло в URL)
+    # Вариант 3: закодированное имя (как пришло в URL)
     if encoded_name:
         expected_sign_encoded = hashlib.md5(
             (GWARS_PASSWORD + encoded_name + str(user_id)).encode('utf-8')
         ).hexdigest()
         variants.append(('encoded', expected_sign_encoded))
     
-    # Вариант 3: декодированное через latin1 (часто используется для URL)
+    # Вариант 4: декодированное через CP1251 (Windows-1251)
     if encoded_name:
         try:
-            name_latin1 = unquote(encoded_name, encoding='latin1')
-            expected_sign_latin1 = hashlib.md5(
-                (GWARS_PASSWORD + name_latin1 + str(user_id)).encode('utf-8')
+            name_cp1251 = unquote(encoded_name, encoding='cp1251')
+            expected_sign_cp1251 = hashlib.md5(
+                (GWARS_PASSWORD + name_cp1251 + str(user_id)).encode('utf-8')
             ).hexdigest()
-            variants.append(('latin1', expected_sign_latin1))
+            variants.append(('cp1251', expected_sign_cp1251))
+        except:
+            pass
+        
+        # Вариант 5: декодированное через latin1, затем байты
+        try:
+            name_latin1 = unquote(encoded_name, encoding='latin1')
+            name_latin1_bytes = name_latin1.encode('latin1')
+            expected_sign_latin1_bytes = hashlib.md5(
+                GWARS_PASSWORD.encode('utf-8') + name_latin1_bytes + str(user_id).encode('utf-8')
+            ).hexdigest()
+            variants.append(('latin1_bytes', expected_sign_latin1_bytes))
         except:
             pass
     
@@ -167,13 +190,17 @@ def login():
         name_encoded_for_comparison = name_encoded
     
     # Пробуем декодировать разными способами
+    # ВАЖНО: GWars использует CP1251 (Windows-1251) для кодирования русских символов!
     name = name_encoded
     name_latin1 = None
+    name_cp1251 = None
     try:
-        name = unquote(name_encoded, encoding='utf-8')
+        # Сначала пробуем CP1251 (Windows-1251) - это основная кодировка для русских символов
+        name_cp1251 = unquote(name_encoded, encoding='cp1251')
+        name = name_cp1251  # Используем CP1251 как основной вариант
     except:
         try:
-            name = unquote(name_encoded, encoding='cp1251')
+            name = unquote(name_encoded, encoding='utf-8')
         except:
             try:
                 name = unquote(name_encoded, encoding='latin1')
@@ -181,6 +208,13 @@ def login():
             except:
                 name = name_encoded
                 name_latin1 = name_encoded
+    
+    # Если CP1251 декодирование не сработало, пробуем еще раз
+    if not name_cp1251:
+        try:
+            name_cp1251 = unquote(name_encoded, encoding='cp1251')
+        except:
+            name_cp1251 = None
     
     level = request.args.get('level', '0')
     synd = request.args.get('synd', '0')
@@ -237,28 +271,47 @@ def login():
         flash('Ошибка проверки подписи sign. Смотрите информацию ниже.', 'error')
         
         # Вычисляем все варианты для отображения
-        # Важно: пробуем разные комбинации, так как имя может быть в разных форматах
+        # ВАЖНО: Правильный способ - использовать оригинальные байты из URL!
+        variant_bytes = None
+        if name_encoded:
+            try:
+                name_bytes = unquote_to_bytes(name_encoded)
+                variant_bytes = hashlib.md5(
+                    GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8')
+                ).hexdigest()
+            except:
+                pass
+        
         variant1 = hashlib.md5((GWARS_PASSWORD + name + str(user_id)).encode('utf-8')).hexdigest()
         variant2 = hashlib.md5((GWARS_PASSWORD + name_encoded + str(user_id)).encode('utf-8')).hexdigest()
         variant3 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name).encode('utf-8')).hexdigest()
         variant4 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name_encoded).encode('utf-8')).hexdigest()
         
-        # Пробуем с name_encoded_for_comparison (если мы его создали)
-        variant6 = None
-        if 'name_encoded_for_comparison' in locals() and name_encoded_for_comparison and name_encoded_for_comparison != name_encoded:
-            variant6 = hashlib.md5((GWARS_PASSWORD + name_encoded_for_comparison + str(user_id)).encode('utf-8')).hexdigest()
+        # Пробуем CP1251
+        try:
+            if not name_cp1251:
+                name_cp1251 = unquote(name_encoded, encoding='cp1251') if name_encoded else None
+            if name_cp1251:
+                variant5 = hashlib.md5((GWARS_PASSWORD + name_cp1251 + str(user_id)).encode('utf-8')).hexdigest()
+            else:
+                variant5 = None
+        except:
+            name_cp1251 = None
+            variant5 = None
         
-        # Пробуем latin1
+        # Пробуем latin1 с байтами (правильный способ!)
+        variant_latin1_bytes = None
         try:
             if not name_latin1:
                 name_latin1 = unquote(name_encoded, encoding='latin1') if name_encoded else None
             if name_latin1:
-                variant5 = hashlib.md5((GWARS_PASSWORD + name_latin1 + str(user_id)).encode('utf-8')).hexdigest()
-            else:
-                variant5 = None
+                name_latin1_bytes = name_latin1.encode('latin1')
+                variant_latin1_bytes = hashlib.md5(
+                    GWARS_PASSWORD.encode('utf-8') + name_latin1_bytes + str(user_id).encode('utf-8')
+                ).hexdigest()
         except:
             name_latin1 = None
-            variant5 = None
+            variant_latin1_bytes = None
         
         # Пробуем с именем как оно пришло через request.args (уже декодированное)
         name_from_args = request.args.get('name', '')
@@ -282,30 +335,27 @@ def login():
             'password': GWARS_PASSWORD,
             'encoded_name': name_encoded if name_encoded else 'EMPTY',
             'decoded_name': name if name else 'EMPTY',
+            'decoded_name_cp1251': name_cp1251 if name_cp1251 else 'N/A',
             'decoded_name_latin1': name_latin1 if name_latin1 else 'N/A',
             'name_from_args': name_from_args if name_from_args else 'EMPTY',
             'user_id': user_id,
             'query_string': query_string,
             'full_url': request.url,
+            'variant_bytes': variant_bytes if variant_bytes else 'N/A',
             'variant1': variant1,
             'variant2': variant2,
             'variant3': variant3,
             'variant4': variant4,
             'variant5': variant5 if variant5 else 'N/A',
-            'variant6': variant6 if variant6 else 'N/A',
-            'variant7': variant7 if variant7 else 'N/A',
-            'variant8': variant8 if variant8 else 'N/A',
-            'variant9': variant9 if variant9 else 'N/A',
+            'variant_latin1_bytes': variant_latin1_bytes if variant_latin1_bytes else 'N/A',
             'received_sign': sign,
+            'sign_match_bytes': variant_bytes == sign if variant_bytes else False,
             'sign_match_v1': variant1 == sign,
             'sign_match_v2': variant2 == sign,
             'sign_match_v3': variant3 == sign,
             'sign_match_v4': variant4 == sign,
             'sign_match_v5': variant5 == sign if variant5 else False,
-            'sign_match_v6': variant6 == sign if variant6 else False,
-            'sign_match_v7': variant7 == sign if variant7 else False,
-            'sign_match_v8': variant8 == sign if variant8 else False,
-            'sign_match_v9': variant9 == sign if variant9 else False,
+            'sign_match_latin1_bytes': variant_latin1_bytes == sign if variant_latin1_bytes else False,
             'expected_sign2': expected_sign2,
             'received_sign2': sign2,
             'sign2_match': expected_sign2 == sign2,
