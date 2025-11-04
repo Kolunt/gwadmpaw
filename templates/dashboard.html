@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль - GWars Auth{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="profile-card">
+        <h2>Профиль пользователя</h2>
+        
+        <div class="profile-info">
+            <div class="info-row">
+                <span class="info-label">ID пользователя:</span>
+                <span class="info-value">{{ user.user_id }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Имя:</span>
+                <span class="info-value">{{ user.username }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Уровень:</span>
+                <span class="info-value">{{ user.level }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Синдикат:</span>
+                <span class="info-value">{{ user.synd }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Пол:</span>
+                <span class="info-value">{{ user.usersex or 'Не указан' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Паспорт:</span>
+                <span class="info-value">{{ 'Есть' if user.has_passport else 'Нет' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Мобильный:</span>
+                <span class="info-value">{{ 'Есть' if user.has_mobile else 'Нет' }}</span>
+            </div>
+            {% if user.last_login %}
+            <div class="info-row">
+                <span class="info-label">Последний вход:</span>
+                <span class="info-value">{{ user.last_login }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="profile-actions">
+            <a href="{{ url_for('logout') }}" class="btn btn-secondary">Выйти</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

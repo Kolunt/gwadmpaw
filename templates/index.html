@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - GWars Auth{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Добро пожаловать!</h2>
+        <p class="auth-description">
+            Для входа в систему используйте авторизацию через GWars
+        </p>
+        <a href="{{ url_for('login') }}" class="btn btn-primary btn-large">
+            Войти через GWars
+        </a>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,18 @@
+# Пример WSGI файла для PythonAnywhere
+# Скопируйте этот код в ваш wsgi.py файл на PythonAnywhere
+# Путь обычно: /var/www/yourusername_pythonanywhere_com_wsgi.py
+
+import sys
+import os
+
+# Укажите путь к вашему проекту
+path = '/home/yourusername/gwadmpaw'
+if path not in sys.path:
+    sys.path.insert(0, path)
+
+# Импортируем приложение
+from app import app as application
+
+if __name__ == "__main__":
+    application.run()
+
