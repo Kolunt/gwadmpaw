@@ -107,6 +107,26 @@
             </div>
             {% endif %}
             
+            {% if debug_info.variant8 != 'N/A' %}
+            <div class="info-row">
+                <span class="info-label">Вариант 8 (pass + empty_string + id):</span>
+                <span class="info-value"><code>{{ debug_info.variant8 }}</code></span>
+                <span style="color: {% if debug_info.sign_match_v8 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_v8 %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            
+            {% if debug_info.variant9 != 'N/A' %}
+            <div class="info-row">
+                <span class="info-label">Вариант 9 (pass + id + empty_string):</span>
+                <span class="info-value"><code>{{ debug_info.variant9 }}</code></span>
+                <span style="color: {% if debug_info.sign_match_v9 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_v9 %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            
             <div class="info-row">
                 <span class="info-label">Полученная подпись от GWars:</span>
                 <span class="info-value"><code style="font-weight: bold;">{{ debug_info.received_sign }}</code></span>
