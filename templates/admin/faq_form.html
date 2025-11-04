@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}{% if faq_item %}Редактирование FAQ{% else %}Создание FAQ{% endif %} - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>{% if faq_item %}Редактирование FAQ{% else %}Создание нового FAQ вопроса{% endif %}</h1>
+        <a href="{{ url_for('admin_faq') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+    
+    <div class="form-container">
+        <form method="POST" class="role-form">
+            <div class="form-group">
+                <label for="question">Вопрос:</label>
+                <input type="text" id="question" name="question" required 
+                       value="{{ faq_item.question if faq_item else '' }}"
+                       placeholder="Введите вопрос"
+                       class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="answer">Ответ:</label>
+                <textarea id="answer" name="answer" rows="6" required 
+                          placeholder="Введите ответ на вопрос"
+                          class="form-textarea">{{ faq_item.answer if faq_item else '' }}</textarea>
+                <small>Поддерживается HTML разметка</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Категория:</label>
+                <select id="category" name="category" class="form-input">
+                    <option value="general" {% if faq_item and faq_item.category == 'general' %}selected{% endif %}>Общие вопросы</option>
+                    <option value="events" {% if faq_item and faq_item.category == 'events' %}selected{% endif %}>Мероприятия</option>
+                    <option value="profile" {% if faq_item and faq_item.category == 'profile' %}selected{% endif %}>Профиль и настройки</option>
+                    <option value="technical" {% if faq_item and faq_item.category == 'technical' %}selected{% endif %}>Технические вопросы</option>
+                    <option value="security" {% if faq_item and faq_item.category == 'security' %}selected{% endif %}>Безопасность и конфиденциальность</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="sort_order">Порядок сортировки:</label>
+                <input type="number" id="sort_order" name="sort_order" 
+                       value="{{ faq_item.sort_order if faq_item else '0' }}"
+                       min="0" step="1"
+                       class="form-input">
+                <small>Чем меньше число, тем выше вопрос в списке</small>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="is_active" value="1" 
+                           {% if not faq_item or faq_item.is_active %}checked{% endif %}>
+                    Активен (виден на сайте)
+                </label>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    {% if faq_item %}Сохранить изменения{% else %}Создать вопрос{% endif %}
+                </button>
+                <a href="{{ url_for('admin_faq') }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

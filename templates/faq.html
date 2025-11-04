@@ -7,6 +7,35 @@
     <div class="faq-container">
         <h1>Часто задаваемые вопросы (FAQ)</h1>
         
+        {% if faq_by_category %}
+        {# Динамический контент из БД #}
+        {% for category, items in faq_by_category.items() %}
+        <div class="faq-section">
+            <h2>
+                {% if category == 'general' %}Общие вопросы
+                {% elif category == 'events' %}Мероприятия
+                {% elif category == 'profile' %}Профиль и настройки
+                {% elif category == 'technical' %}Технические вопросы
+                {% elif category == 'security' %}Безопасность и конфиденциальность
+                {% else %}{{ category|title }}
+                {% endif %}
+            </h2>
+            
+            {% for item in items %}
+            <div class="faq-item">
+                <div class="faq-question">
+                    <h3>{{ item.question }}</h3>
+                </div>
+                <div class="faq-answer">
+                    {{ item.answer|safe }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        
+        {% else %}
+        {# Статический контент (для обратной совместимости) #}
         <div class="faq-section">
             <h2>Общие вопросы</h2>
             
@@ -170,6 +199,8 @@
                 </div>
             </div>
         </div>
+        
+        {% endif %}
         
         <div class="faq-footer">
             <p>Не нашли ответ на свой вопрос? Обратитесь к администраторам через раздел "Участники" или используйте контакты в вашем профиле.</p>

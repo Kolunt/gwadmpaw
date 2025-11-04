@@ -2370,7 +2370,29 @@ def events():
 @app.route('/faq')
 def faq():
     """Страница с часто задаваемыми вопросами"""
-    return render_template('faq.html')
+    conn = get_db_connection()
+    # Получаем все активные FAQ вопросы, отсортированные по категории и порядку
+    faq_items = conn.execute('''
+        SELECT * FROM faq_items 
+        WHERE is_active = 1 
+        ORDER BY category, sort_order, id
+    ''').fetchall()
+    
+    # Группируем по категориям
+    faq_by_category = {}
+    for item in faq_items:
+        category = item['category'] or 'general'
+        if category not in faq_by_category:
+            faq_by_category[category] = []
+        faq_by_category[category].append(dict(item))
+    
+    conn.close()
+    
+    # Если нет FAQ в БД, используем статический контент (для обратной совместимости)
+    if not faq_items:
+        return render_template('faq.html', faq_by_category=None)
+    
+    return render_template('faq.html', faq_by_category=faq_by_category)
 
 @app.route('/admin/events')
 @require_role('admin')
