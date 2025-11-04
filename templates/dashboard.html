@@ -7,6 +7,12 @@
     <div class="profile-card">
         <h2>Профиль пользователя</h2>
         
+        {% if user.avatar_seed %}
+        <div class="profile-avatar">
+            <img src="{{ get_avatar_url(user.avatar_seed) }}" alt="Аватар {{ user.username }}" class="avatar-large">
+        </div>
+        {% endif %}
+        
         <div class="profile-info">
             <div class="info-row">
                 <span class="info-label">ID пользователя:</span>

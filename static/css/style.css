@@ -944,6 +944,58 @@ body {
     color: var(--text-secondary);
 }
 
+/* Avatars */
+.avatar-large {
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    border: 3px solid var(--border-color);
+    display: block;
+    margin: 0 auto 1.5rem;
+    box-shadow: var(--shadow-lg);
+}
+
+.avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    margin-right: 0.75rem;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.avatar-medium {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    box-shadow: var(--shadow);
+}
+
+.profile-avatar {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.participant-name-cell {
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .avatar-large {
+        width: 96px;
+        height: 96px;
+    }
+    
+    .avatar-small {
+        width: 28px;
+        height: 28px;
+        margin-right: 0.5rem;
+    }
+}
+
 /* Settings Page */
 .settings-form {
     background-color: var(--bg-card);

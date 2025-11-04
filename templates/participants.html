@@ -20,7 +20,12 @@
                 {% for participant in participants %}
                 <tr>
                     <td data-label="Никнейм в GWars">
-                        <strong>{{ participant.username }}</strong>
+                        <div class="participant-name-cell">
+                            {% if participant.avatar_seed %}
+                            <img src="{{ get_avatar_url(participant.avatar_seed, size=32) }}" alt="Аватар {{ participant.username }}" class="avatar-small">
+                            {% endif %}
+                            <strong>{{ participant.username }}</strong>
+                        </div>
                     </td>
                     <td data-label="Статус">
                         {% if participant.status == 'Онлайн' %}
