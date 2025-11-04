@@ -1,7 +1,11 @@
 // Theme management
 (function() {
     const themeToggle = document.getElementById('theme-toggle');
-    const themeIcon = themeToggle.querySelector('.theme-icon');
+    
+    if (!themeToggle) return;
+    
+    // Ищем иконку темы в navbar
+    const themeIcon = themeToggle.querySelector('.theme-icon') || themeToggle.querySelector('.navbar-icon');
     
     // Get saved theme or default to light
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -19,7 +23,9 @@
     });
     
     function updateIcon(theme) {
-        themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        if (themeIcon) {
+            themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
     }
 })();
 

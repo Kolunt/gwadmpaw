@@ -32,8 +32,8 @@ GWARS_PASSWORD = "deadmoroz"
 GWARS_HOST = "gwadm.pythonanywhere.com"
 GWARS_SITE_ID = 4
 
-# ID администратора по умолчанию
-ADMIN_USER_ID = 283494
+# ID администраторов по умолчанию
+ADMIN_USER_IDS = [283494, 240139]
 
 # Инициализация базы данных
 _db_initialized = False
@@ -407,8 +407,8 @@ def login_dev():
         flash('Тестовый режим доступен только на localhost', 'error')
         return redirect(url_for('index'))
     
-    # Используем тестовые данные для user_id 283494 (администратор)
-    user_id = ADMIN_USER_ID
+    # Используем тестовые данные для первого администратора (user_id 283494)
+    user_id = ADMIN_USER_IDS[0]
     name = "_Колунт_"
     level = 50
     synd = 5594
@@ -447,10 +447,11 @@ def login_dev():
     finally:
         conn.close()
     
-    # Автоматически назначаем роль админа
-    if not has_role(user_id, 'admin'):
-        assign_role(user_id, 'admin', assigned_by=user_id)
-        log_debug(f"Admin role automatically assigned to user_id {user_id}")
+    # Автоматически назначаем роль админа для администраторов по умолчанию
+    if user_id in ADMIN_USER_IDS:
+        if not has_role(user_id, 'admin'):
+            assign_role(user_id, 'admin', assigned_by=user_id)
+            log_debug(f"Admin role automatically assigned to user_id {user_id}")
     
     # Если у пользователя нет ролей, назначаем роль 'user' по умолчанию
     if not get_user_roles(user_id):
@@ -777,8 +778,8 @@ def login():
     finally:
         conn.close()
     
-    # Автоматически назначаем роль админа для user_id 283494
-    if int(user_id) == ADMIN_USER_ID:
+    # Автоматически назначаем роль админа для администраторов по умолчанию
+    if int(user_id) in ADMIN_USER_IDS:
         if not has_role(user_id, 'admin'):
             assign_role(user_id, 'admin', assigned_by=user_id)
             log_debug(f"Admin role automatically assigned to user_id {user_id}")
@@ -812,6 +813,56 @@ def dashboard():
     conn.close()
     
     return render_template('dashboard.html', user=user, user_roles=user_roles)
+
+@app.route('/participants')
+@require_login
+def participants():
+    """Страница со списком участников"""
+    conn = get_db_connection()
+    
+    # Получаем всех пользователей с их ролями
+    users = conn.execute('''
+        SELECT 
+            u.user_id,
+            u.username,
+            u.created_at,
+            u.last_login,
+            GROUP_CONCAT(r.display_name, ', ') as roles
+        FROM users u
+        LEFT JOIN user_roles ur ON u.user_id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
+        GROUP BY u.user_id
+        ORDER BY u.created_at DESC
+    ''').fetchall()
+    
+    # Для каждого пользователя определяем статус
+    participants_data = []
+    for user in users:
+        # Определяем статус: онлайн (если был вход сегодня) или оффлайн
+        last_login = user['last_login']
+        status = 'Оффлайн'
+        if last_login:
+            try:
+                last_login_date = datetime.strptime(last_login.split('.')[0], '%Y-%m-%d %H:%M:%S')
+                now = datetime.now()
+                if (now - last_login_date).total_seconds() < 3600:  # Меньше часа
+                    status = 'Онлайн'
+                elif (now - last_login_date).days == 0:  # Сегодня
+                    status = 'Был сегодня'
+            except:
+                pass
+        
+        participants_data.append({
+            'user_id': user['user_id'],
+            'username': user['username'],
+            'status': status,
+            'roles': user['roles'] or 'Пользователь',
+            'created_at': user['created_at']
+        })
+    
+    conn.close()
+    
+    return render_template('participants.html', participants=participants_data)
 
 @app.route('/logout')
 def logout():

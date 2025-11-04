@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Участники - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="participants-container">
+    <h1>Участники</h1>
+    
+    <div class="table-container">
+        <table class="participants-table">
+            <thead>
+                <tr>
+                    <th>Никнейм в GWars</th>
+                    <th>Статус</th>
+                    <th>Роль</th>
+                    <th>Дата регистрации</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for participant in participants %}
+                <tr>
+                    <td data-label="Никнейм в GWars">
+                        <strong>{{ participant.username }}</strong>
+                    </td>
+                    <td data-label="Статус">
+                        {% if participant.status == 'Онлайн' %}
+                            <span class="status-badge status-online">{{ participant.status }}</span>
+                        {% elif participant.status == 'Был сегодня' %}
+                            <span class="status-badge status-today">{{ participant.status }}</span>
+                        {% else %}
+                            <span class="status-badge status-offline">{{ participant.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Роль">
+                        {% for role in participant.roles.split(', ') %}
+                            <span class="role-badge">{{ role }}</span>
+                        {% endfor %}
+                    </td>
+                    <td data-label="Дата регистрации">
+                        {{ participant.created_at or 'N/A' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

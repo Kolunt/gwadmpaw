@@ -26,14 +26,14 @@
             <tbody>
                 {% for user in users %}
                 <tr>
-                    <td>{{ user.user_id }}</td>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.level }}</td>
-                    <td>{{ user.synd }}</td>
-                    <td>{{ user.roles or 'Нет ролей' }}</td>
-                    <td>{{ user.created_at or 'N/A' }}</td>
-                    <td>{{ user.last_login or 'N/A' }}</td>
-                    <td>
+                    <td data-label="ID">{{ user.user_id }}</td>
+                    <td data-label="Имя">{{ user.username }}</td>
+                    <td data-label="Уровень">{{ user.level }}</td>
+                    <td data-label="Синдикат">{{ user.synd }}</td>
+                    <td data-label="Роли">{{ user.roles or 'Нет ролей' }}</td>
+                    <td data-label="Дата регистрации">{{ user.created_at or 'N/A' }}</td>
+                    <td data-label="Последний вход">{{ user.last_login or 'N/A' }}</td>
+                    <td data-label="Действия">
                         <a href="{{ url_for('admin_user_roles', user_id=user.user_id) }}" class="btn btn-sm btn-primary">Управление ролями</a>
                     </td>
                 </tr>

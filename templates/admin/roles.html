@@ -28,19 +28,19 @@
             <tbody>
                 {% for role in roles %}
                 <tr>
-                    <td><code>{{ role.name }}</code></td>
-                    <td>{{ role.display_name }}</td>
-                    <td>{{ role.description or '-' }}</td>
-                    <td>
+                    <td data-label="Название"><code>{{ role.name }}</code></td>
+                    <td data-label="Отображаемое имя">{{ role.display_name }}</td>
+                    <td data-label="Описание">{{ role.description or '-' }}</td>
+                    <td data-label="Тип">
                         {% if role.is_system %}
                             <span class="badge badge-system">Системная</span>
                         {% else %}
                             <span class="badge badge-custom">Кастомная</span>
                         {% endif %}
                     </td>
-                    <td>{{ role.user_count }}</td>
-                    <td>{{ role.created_at or 'N/A' }}</td>
-                    <td>
+                    <td data-label="Пользователей">{{ role.user_count }}</td>
+                    <td data-label="Дата создания">{{ role.created_at or 'N/A' }}</td>
+                    <td data-label="Действия">
                         {% if not role.is_system %}
                         <a href="{{ url_for('admin_role_edit', role_id=role.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
                         <form method="POST" action="{{ url_for('admin_role_delete', role_id=role.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту роль?');">
