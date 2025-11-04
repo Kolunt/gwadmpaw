@@ -1843,7 +1843,6 @@ def admin_user_edit(user_id):
         synd = request.form.get('synd', '0')
         has_passport = request.form.get('has_passport', '0')
         has_mobile = request.form.get('has_mobile', '0')
-        old_passport = request.form.get('old_passport', '0')
         usersex = request.form.get('usersex', '0')
         bio = request.form.get('bio', '').strip()
         contact_info = request.form.get('contact_info', '').strip()
