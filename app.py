@@ -397,6 +397,76 @@ def index():
         return redirect(url_for('dashboard'))
     return render_template('index.html')
 
+@app.route('/login/dev')
+def login_dev():
+    """Тестовый режим авторизации для локальной разработки"""
+    # Проверяем, что мы на localhost
+    is_local = request.host in ['127.0.0.1:5000', 'localhost:5000', '127.0.0.1', 'localhost']
+    
+    if not is_local:
+        flash('Тестовый режим доступен только на localhost', 'error')
+        return redirect(url_for('index'))
+    
+    # Используем тестовые данные для user_id 283494 (администратор)
+    user_id = ADMIN_USER_ID
+    name = "_Колунт_"
+    level = 50
+    synd = 5594
+    has_passport = 1
+    has_mobile = 1
+    old_passport = 0
+    usersex = "0"
+    
+    # Генерируем правильные подписи для тестовых данных
+    from urllib.parse import quote
+    name_encoded = quote(name.encode('cp1251'), safe='')
+    
+    # Вычисляем подписи
+    sign = hashlib.md5((GWARS_PASSWORD.encode('utf-8') + name.encode('cp1251') + str(user_id).encode('utf-8'))).hexdigest()
+    sign2 = hashlib.md5((GWARS_PASSWORD + str(level) + str(round(float(synd))) + str(user_id)).encode('utf-8')).hexdigest()
+    sign3 = hashlib.md5((GWARS_PASSWORD.encode('utf-8') + name.encode('cp1251') + str(user_id).encode('utf-8') + str(has_passport).encode('utf-8') + str(has_mobile).encode('utf-8') + str(old_passport).encode('utf-8'))).hexdigest()[:10]
+    
+    from datetime import datetime
+    today = datetime.now().strftime('%Y-%m-%d')
+    sign4 = hashlib.md5((today + sign3 + GWARS_PASSWORD).encode('utf-8')).hexdigest()[:10]
+    
+    # Сохраняем пользователя в БД
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            INSERT OR REPLACE INTO users 
+            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, last_login)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, datetime.now()))
+        conn.commit()
+        log_debug(f"Dev user saved successfully: user_id={user_id}, username={name}")
+    except Exception as e:
+        log_error(f"Error saving dev user: {e}")
+        flash(f'Ошибка сохранения пользователя: {str(e)}', 'error')
+        return redirect(url_for('index'))
+    finally:
+        conn.close()
+    
+    # Автоматически назначаем роль админа
+    if not has_role(user_id, 'admin'):
+        assign_role(user_id, 'admin', assigned_by=user_id)
+        log_debug(f"Admin role automatically assigned to user_id {user_id}")
+    
+    # Если у пользователя нет ролей, назначаем роль 'user' по умолчанию
+    if not get_user_roles(user_id):
+        assign_role(user_id, 'user', assigned_by=user_id)
+        log_debug(f"Default 'user' role assigned to user_id {user_id}")
+    
+    # Сохраняем в сессию
+    session['user_id'] = user_id
+    session['username'] = name
+    session['level'] = level
+    session['synd'] = synd
+    session['roles'] = get_user_role_names(user_id)
+    
+    flash('Тестовая авторизация выполнена успешно!', 'success')
+    return redirect(url_for('dashboard'))
+
 @app.route('/login')
 def login():
     # Получаем параметры от GWars

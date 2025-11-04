@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Главная - GWars Auth{% endblock %}
+{% block title %}Главная - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
 <div class="auth-container">
@@ -12,6 +12,17 @@
         <a href="{{ url_for('login') }}" class="btn btn-primary btn-large">
             Войти через GWars
         </a>
+        
+        {% if request.host in ['127.0.0.1:5000', 'localhost:5000', '127.0.0.1', 'localhost'] %}
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
+            <p class="auth-description" style="font-size: 0.9rem; color: var(--text-secondary);">
+                Локальная разработка: тестовый вход
+            </p>
+            <a href="{{ url_for('login_dev') }}" class="btn btn-secondary btn-large">
+                Тестовая авторизация (localhost)
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
