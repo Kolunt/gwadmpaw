@@ -41,6 +41,52 @@
                           placeholder="Описание роли и её назначения">{{ role.description if role else '' }}</textarea>
             </div>
             
+            {% if permissions %}
+            <div class="form-group">
+                <label>Права доступа:</label>
+                <div class="permissions-section">
+                    {% set permissions_by_category = {} %}
+                    {% for perm in permissions %}
+                        {% set category = perm.category or 'general' %}
+                        {% if category not in permissions_by_category %}
+                            {% set _ = permissions_by_category.update({category: []}) %}
+                        {% endif %}
+                        {% set _ = permissions_by_category[category].append(perm) %}
+                    {% endfor %}
+                    
+                    {% for category, perms in permissions_by_category.items() %}
+                    <div class="permission-category">
+                        <h4 class="permission-category-title">
+                            {% if category == 'users' %}Управление пользователями
+                            {% elif category == 'roles' %}Управление ролями
+                            {% elif category == 'events' %}Управление мероприятиями
+                            {% elif category == 'settings' %}Настройки
+                            {% elif category == 'moderation' %}Модерация
+                            {% else %}{{ category|title }}
+                            {% endif %}
+                        </h4>
+                        <div class="permissions-grid">
+                            {% for perm in perms %}
+                            <label class="permission-item">
+                                <input type="checkbox" 
+                                       name="permissions" 
+                                       value="{{ perm.id }}"
+                                       {% if role_permissions and perm.id in role_permissions %}checked{% endif %}>
+                                <div class="permission-info">
+                                    <span class="permission-name">{{ perm.display_name }}</span>
+                                    {% if perm.description %}
+                                    <span class="permission-description">{{ perm.description }}</span>
+                                    {% endif %}
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     {% if role %}Сохранить изменения{% else %}Создать роль{% endif %}

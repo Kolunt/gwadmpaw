@@ -1938,8 +1938,11 @@ def admin_role_edit(role_id):
             conn.close()
     
     permissions = get_all_permissions()
+    # Получаем права текущей роли
+    role_perms = get_role_permissions(role_id)
+    role_permissions_list = [p['id'] for p in role_perms]
     conn.close()
-    return render_template('admin/role_form.html', role=role, permissions=permissions)
+    return render_template('admin/role_form.html', role=role, permissions=permissions, role_permissions=role_permissions_list)
 
 @app.route('/admin/roles/<int:role_id>/delete', methods=['POST'])
 @require_role('admin')
