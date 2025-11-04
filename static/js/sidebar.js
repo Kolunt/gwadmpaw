@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('touchend', function(e) {
         if (!isMobile()) return;
         touchEndX = e.changedTouches[0].screenX;
-        touchEndY = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
         
         const swipeDistanceX = touchEndX - touchStartX;
         const swipeDistanceY = Math.abs(e.changedTouches[0].screenY - touchStartY);
