@@ -210,7 +210,7 @@ body {
 .sidebar-header {
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border-color);
-    display: flex;
+    display: none; /* По умолчанию скрыт на десктопе, где кнопка закрытия не видна */
     justify-content: flex-end;
     align-items: center;
     position: sticky;
@@ -219,14 +219,9 @@ body {
     z-index: 10;
 }
 
-/* Скрываем sidebar-header, если внутри нет видимого контента */
-.sidebar-header:has(.sidebar-close:not([style*="display: block"]):not([style*="display:flex"])):not(:has(.sidebar-close[style*="display: block"])):not(:has(.sidebar-close[style*="display:flex"])) {
-    display: none;
-}
-
-/* Для мобильных: показываем header, если кнопка закрытия видна */
+/* Показываем sidebar-header только на мобильных, где кнопка закрытия видна */
 @media (max-width: 768px) {
-    .sidebar-header:has(.sidebar-close[style*="display: block"]) {
+    .sidebar-header {
         display: flex;
     }
 }
