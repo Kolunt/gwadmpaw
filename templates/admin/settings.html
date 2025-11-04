@@ -13,8 +13,8 @@
         <!-- Табы -->
         <div class="settings-tabs">
             {% for category, settings in settings_by_category.items() %}
-            <button 
-                type="button" 
+            <a 
+                href="{{ url_for('admin_settings') }}#{{ category }}"
                 class="settings-tab {% if loop.first %}active{% endif %}"
                 data-tab="{{ category }}"
             >
@@ -25,7 +25,7 @@
                 {% else %}
                     📋 Общие
                 {% endif %}
-            </button>
+            </a>
             {% endfor %}
         </div>
         
@@ -136,23 +136,59 @@
 </div>
 
 <script>
-// Переключение табов
+// Переключение табов с поддержкой URL hash
 document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.settings-tab');
     const tabContents = document.querySelectorAll('.settings-tab-content');
     
+    // Функция для переключения таба
+    function switchTab(tabName) {
+        // Убираем активный класс у всех табов и содержимого
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Добавляем активный класс к выбранному табу и содержимому
+        const selectedTab = document.querySelector(`.settings-tab[data-tab="${tabName}"]`);
+        const selectedContent = document.querySelector(`.settings-tab-content[data-tab="${tabName}"]`);
+        
+        if (selectedTab && selectedContent) {
+            selectedTab.classList.add('active');
+            selectedContent.classList.add('active');
+            // Обновляем URL hash без перезагрузки страницы
+            if (window.location.hash !== '#' + tabName) {
+                window.history.replaceState(null, '', '#' + tabName);
+            }
+        }
+    }
+    
+    // Обработка кликов по табам
     tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
             const targetTab = this.getAttribute('data-tab');
-            
-            // Убираем активный класс у всех табов и содержимого
-            tabs.forEach(t => t.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
-            
-            // Добавляем активный класс к выбранному табу и содержимому
-            this.classList.add('active');
-            document.querySelector(`.settings-tab-content[data-tab="${targetTab}"]`).classList.add('active');
+            switchTab(targetTab);
         });
+    });
+    
+    // Проверяем hash при загрузке страницы
+    const hash = window.location.hash.substring(1); // Убираем #
+    if (hash) {
+        // Проверяем, существует ли таб с таким именем
+        const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === hash);
+        if (tabExists) {
+            switchTab(hash);
+        }
+    }
+    
+    // Обработка изменения hash (когда пользователь использует кнопки браузера)
+    window.addEventListener('hashchange', function() {
+        const newHash = window.location.hash.substring(1);
+        if (newHash) {
+            const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === newHash);
+            if (tabExists) {
+                switchTab(newHash);
+            }
+        }
     });
 });
 </script>
