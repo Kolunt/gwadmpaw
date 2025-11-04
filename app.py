@@ -275,6 +275,24 @@ def init_db():
             )
         ''')
         
+        # Таблица FAQ
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS faq_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                category TEXT DEFAULT 'general',
+                sort_order INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP,
+                created_by INTEGER,
+                updated_by INTEGER,
+                FOREIGN KEY (created_by) REFERENCES users(user_id),
+                FOREIGN KEY (updated_by) REFERENCES users(user_id)
+            )
+        ''')
+        
         # Инициализация настроек по умолчанию
         default_settings = [
             ('gwars_host', GWARS_HOST, 'Домен для GWars авторизации', 'gwars'),
