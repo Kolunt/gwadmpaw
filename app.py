@@ -270,7 +270,14 @@ def debug():
         # Вычисляем ожидаемые подписи
         sign = request.args.get('sign', '')
         name_encoded = request.args.get('name', '')
-        name = unquote(name_encoded)
+        # Пробуем декодировать разными способами
+        try:
+            name = unquote(name_encoded, encoding='utf-8')
+        except:
+            try:
+                name = unquote(name_encoded, encoding='cp1251')
+            except:
+                name = name_encoded
         user_id = request.args.get('user_id', '')
         level = request.args.get('level', '0')
         synd = request.args.get('synd', '0')
