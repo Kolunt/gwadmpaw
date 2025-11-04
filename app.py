@@ -204,39 +204,51 @@ def login():
     
     # Проверяем подписи (пробуем оба варианта - с декодированным и закодированным именем)
     if not verify_sign(name, user_id, sign, name_encoded):
-        log_error(f"Sign verification failed!")
-        log_error(f"Trying to compute manually:")
-        log_error(f"  Password: {GWARS_PASSWORD}")
-        log_error(f"  Username (decoded): {name}")
-        log_error(f"  Username (encoded): {name_encoded}")
-        log_error(f"  User ID: {user_id}")
+        # Вместо редиректа, сразу показываем страницу отладки
+        # Это позволит увидеть информацию даже если логи не работают
+        flash('Ошибка проверки подписи sign. Смотрите информацию ниже.', 'error')
         
-        # Вычисляем все возможные варианты
-        # Важно: для подписи используется ОРИГИНАЛЬНОЕ значение имени (до urlencode)
-        # Но в URL оно приходит уже закодированным, поэтому используем name_encoded (как оно пришло)
+        # Вычисляем все варианты для отображения
         variant1 = hashlib.md5((GWARS_PASSWORD + name + str(user_id)).encode('utf-8')).hexdigest()
         variant2 = hashlib.md5((GWARS_PASSWORD + name_encoded + str(user_id)).encode('utf-8')).hexdigest()
         variant3 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name).encode('utf-8')).hexdigest()
         variant4 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name_encoded).encode('utf-8')).hexdigest()
         
-        # Также пробуем с декодированием через latin1 (часто используется для URL)
         try:
             name_latin1 = unquote(name_encoded, encoding='latin1')
             variant5 = hashlib.md5((GWARS_PASSWORD + name_latin1 + str(user_id)).encode('utf-8')).hexdigest()
         except:
+            name_latin1 = None
             variant5 = None
         
-        log_error(f"  Variant 1 (pass+decoded_name+id): {variant1}")
-        log_error(f"  Variant 2 (pass+encoded_name+id): {variant2}")
-        log_error(f"  Variant 3 (pass+id+decoded_name): {variant3}")
-        log_error(f"  Variant 4 (pass+id+encoded_name): {variant4}")
-        if variant5:
-            log_error(f"  Variant 5 (pass+latin1_decoded_name+id): {variant5}")
-        log_error(f"  Received sign: {sign}")
+        expected_sign2 = hashlib.md5(
+            (GWARS_PASSWORD + str(level) + str(round(float(synd))) + str(user_id)).encode('utf-8')
+        ).hexdigest()
         
-        # Перенаправляем на страницу отладки с полным URL
-        flash('Ошибка проверки подписи sign. Смотрите страницу отладки ниже.', 'error')
-        return redirect(url_for('debug') + '?' + request.query_string.decode('utf-8'))
+        debug_info = {
+            'received_params': dict(request.args),
+            'password': GWARS_PASSWORD,
+            'encoded_name': name_encoded,
+            'decoded_name': name,
+            'decoded_name_latin1': name_latin1 if name_latin1 else 'N/A',
+            'user_id': user_id,
+            'variant1': variant1,
+            'variant2': variant2,
+            'variant3': variant3,
+            'variant4': variant4,
+            'variant5': variant5 if variant5 else 'N/A',
+            'received_sign': sign,
+            'sign_match_v1': variant1 == sign,
+            'sign_match_v2': variant2 == sign,
+            'sign_match_v3': variant3 == sign,
+            'sign_match_v4': variant4 == sign,
+            'sign_match_v5': variant5 == sign if variant5 else False,
+            'expected_sign2': expected_sign2,
+            'received_sign2': sign2,
+            'sign2_match': expected_sign2 == sign2,
+        }
+        
+        return render_template('debug.html', debug_info=debug_info)
     
     if not verify_sign2(level, synd, user_id, sign2):
         flash('Ошибка проверки подписи sign2', 'error')
