@@ -9,7 +9,7 @@ app.secret_key = os.urandom(24)
 
 # Константы для GWars авторизации
 GWARS_PASSWORD = "deadmoroz"
-GWARS_HOST = "gwadm.site"
+GWARS_HOST = "gwadm.pythonanywhere.com"
 GWARS_SITE_ID = 4
 
 # Инициализация базы данных
