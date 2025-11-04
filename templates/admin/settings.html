@@ -54,8 +54,20 @@
                                 <small class="setting-hint">Числовой ID сайта в GWars</small>
                             {% elif setting.key == 'gwars_host' %}
                                 <small class="setting-hint">Домен без http:// (например: gwadm.pythonanywhere.com)</small>
+                            {% elif setting.key == 'default_theme' %}
+                                <small class="setting-hint">Тема по умолчанию для новых пользователей</small>
                             {% endif %}
                         </label>
+                        {% if setting.key == 'default_theme' %}
+                        <select 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            class="setting-input"
+                        >
+                            <option value="light" {% if setting.value == 'light' %}selected{% endif %}>Светлая</option>
+                            <option value="dark" {% if setting.value == 'dark' %}selected{% endif %}>Темная</option>
+                        </select>
+                        {% else %}
                         <input 
                             type="text" 
                             id="setting_{{ setting.key }}" 
@@ -64,6 +76,7 @@
                             class="setting-input"
                             {% if setting.key == 'gwars_site_id' %}pattern="[0-9]+"{% endif %}
                         >
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>

@@ -114,6 +114,10 @@
         </footer>
     </div>
 
+    <script>
+        // Передаем настройку темы по умолчанию из сервера
+        window.DEFAULT_THEME = '{{ default_theme }}';
+    </script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
     {% block scripts %}{% endblock %}

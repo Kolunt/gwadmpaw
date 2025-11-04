@@ -7,8 +7,9 @@
     // Ищем иконку темы в navbar
     const themeIcon = themeToggle.querySelector('.theme-icon') || themeToggle.querySelector('.navbar-icon');
     
-    // Get saved theme or default to light
-    const savedTheme = localStorage.getItem('theme') || 'light';
+    // Get saved theme or default from server settings
+    const defaultTheme = window.DEFAULT_THEME || 'light';
+    const savedTheme = localStorage.getItem('theme') || defaultTheme;
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateIcon(savedTheme);
     

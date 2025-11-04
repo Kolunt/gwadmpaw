@@ -130,6 +130,7 @@ def init_db():
             ('gwars_site_id', str(GWARS_SITE_ID), 'ID сайта в GWars', 'gwars'),
             ('admin_user_ids', ','.join(map(str, ADMIN_USER_IDS)), 'ID администраторов по умолчанию (через запятую)', 'system'),
             ('project_name', 'Анонимные Деды Морозы', 'Название проекта', 'general'),
+            ('default_theme', 'light', 'Тема по умолчанию (light или dark)', 'general'),
         ]
         
         for key, value, description, category in default_settings:
@@ -417,6 +418,12 @@ def verify_sign4(sign3, sign4):
         (today + sign3 + GWARS_PASSWORD).encode('utf-8')
     ).hexdigest()[:10]
     return expected_sign4 == sign4
+
+@app.context_processor
+def inject_default_theme():
+    """Добавляет настройку темы по умолчанию во все шаблоны"""
+    default_theme = get_setting('default_theme', 'light')
+    return dict(default_theme=default_theme)
 
 @app.route('/')
 def index():
