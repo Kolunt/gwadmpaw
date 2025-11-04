@@ -13,12 +13,6 @@
             Войти через GWars
         </a>
         
-        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
-            <a href="{{ url_for('events') }}" class="btn btn-secondary btn-large">
-                🎉 Мероприятия
-            </a>
-        </div>
-        
         {% if request.host in ['127.0.0.1:5000', 'localhost:5000', '127.0.0.1', 'localhost'] %}
         <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
             <p class="auth-description" style="font-size: 0.9rem; color: var(--text-secondary);">
