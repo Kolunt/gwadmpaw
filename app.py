@@ -297,9 +297,21 @@ def logout():
 def debug():
     """Страница для отладки - показывает все параметры от GWars"""
     if request.args:
-        # Вычисляем ожидаемые подписи
+        # Получаем параметры
         sign = request.args.get('sign', '')
-        name_encoded = request.args.get('name', '')
+        user_id = request.args.get('user_id', '')
+        
+        # Получаем оригинальное закодированное имя из query_string
+        query_string = request.query_string.decode('utf-8')
+        name_encoded = None
+        for param in query_string.split('&'):
+            if param.startswith('name='):
+                name_encoded = param.split('=', 1)[1]
+                break
+        
+        if not name_encoded:
+            name_encoded = request.args.get('name', '')
+        
         # Пробуем декодировать разными способами
         try:
             name = unquote(name_encoded, encoding='utf-8')
@@ -307,8 +319,10 @@ def debug():
             try:
                 name = unquote(name_encoded, encoding='cp1251')
             except:
-                name = name_encoded
-        user_id = request.args.get('user_id', '')
+                try:
+                    name = unquote(name_encoded, encoding='latin1')
+                except:
+                    name = name_encoded
         level = request.args.get('level', '0')
         synd = request.args.get('synd', '0')
         sign2 = request.args.get('sign2', '')
@@ -322,6 +336,15 @@ def debug():
         variant1 = hashlib.md5((GWARS_PASSWORD + name + str(user_id)).encode('utf-8')).hexdigest()
         variant2 = hashlib.md5((GWARS_PASSWORD + name_encoded + str(user_id)).encode('utf-8')).hexdigest()
         variant3 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name).encode('utf-8')).hexdigest()
+        variant4 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name_encoded).encode('utf-8')).hexdigest()
+        
+        # Пробуем latin1 декодирование
+        try:
+            name_latin1 = unquote(name_encoded, encoding='latin1')
+            variant5 = hashlib.md5((GWARS_PASSWORD + name_latin1 + str(user_id)).encode('utf-8')).hexdigest()
+        except:
+            name_latin1 = None
+            variant5 = None
         
         expected_sign2 = hashlib.md5(
             (GWARS_PASSWORD + str(level) + str(round(float(synd))) + str(user_id)).encode('utf-8')
@@ -332,14 +355,19 @@ def debug():
             'password': GWARS_PASSWORD,
             'encoded_name': name_encoded,
             'decoded_name': name,
+            'decoded_name_latin1': name_latin1 if name_latin1 else 'N/A',
             'user_id': user_id,
             'variant1': variant1,
             'variant2': variant2,
             'variant3': variant3,
+            'variant4': variant4,
+            'variant5': variant5 if variant5 else 'N/A',
             'received_sign': sign,
             'sign_match_v1': variant1 == sign,
             'sign_match_v2': variant2 == sign,
             'sign_match_v3': variant3 == sign,
+            'sign_match_v4': variant4 == sign,
+            'sign_match_v5': variant5 == sign if variant5 else False,
             'expected_sign2': expected_sign2,
             'received_sign2': sign2,
             'sign2_match': expected_sign2 == sign2,
