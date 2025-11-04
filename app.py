@@ -49,37 +49,46 @@ def get_db_connection():
 def verify_sign(username, user_id, sign, encoded_name=None):
     # Формируем подпись: md5(password + username + user_id)
     # В PHP: $sign=md5($pass.$user_name.$user_user_id);
-    # Важно: для подписи используется оригинальное имя (до urlencode)
+    # ВАЖНО: В PHP подпись вычисляется ДО urlencode, поэтому используем оригинальное имя
+    # Но в URL имя приходит уже закодированным, поэтому пробуем разные варианты
     
-    # Пробуем оба варианта: с декодированным и закодированным именем
-    # Обычно подпись делается с оригинальным значением (до urlencode)
+    variants = []
+    
+    # Вариант 1: декодированное имя
     expected_sign_decoded = hashlib.md5(
         (GWARS_PASSWORD + username + str(user_id)).encode('utf-8')
     ).hexdigest()
+    variants.append(('decoded', expected_sign_decoded))
     
-    # Если передан закодированный вариант, пробуем и его
-    expected_sign_encoded = None
+    # Вариант 2: закодированное имя (как пришло в URL)
     if encoded_name:
         expected_sign_encoded = hashlib.md5(
             (GWARS_PASSWORD + encoded_name + str(user_id)).encode('utf-8')
         ).hexdigest()
+        variants.append(('encoded', expected_sign_encoded))
+    
+    # Вариант 3: декодированное через latin1 (часто используется для URL)
+    if encoded_name:
+        try:
+            name_latin1 = unquote(encoded_name, encoding='latin1')
+            expected_sign_latin1 = hashlib.md5(
+                (GWARS_PASSWORD + name_latin1 + str(user_id)).encode('utf-8')
+            ).hexdigest()
+            variants.append(('latin1', expected_sign_latin1))
+        except:
+            pass
     
     # Логирование для отладки
-    logger.debug(f"verify_sign: username={username}, user_id={user_id}")
-    logger.debug(f"verify_sign: encoded_name={encoded_name}")
-    logger.debug(f"verify_sign: expected (decoded)={expected_sign_decoded}")
-    if expected_sign_encoded:
-        logger.debug(f"verify_sign: expected (encoded)={expected_sign_encoded}")
-    logger.debug(f"verify_sign: received={sign}")
-    logger.debug(f"verify_sign: match (decoded)={expected_sign_decoded == sign}")
-    if expected_sign_encoded:
-        logger.debug(f"verify_sign: match (encoded)={expected_sign_encoded == sign}")
+    logger.error(f"verify_sign: username={username}, user_id={user_id}")
+    logger.error(f"verify_sign: encoded_name={encoded_name}")
+    for variant_name, variant_sign in variants:
+        logger.error(f"verify_sign: variant {variant_name}={variant_sign}, match={variant_sign == sign}")
     
-    # Проверяем оба варианта
-    if expected_sign_decoded == sign:
-        return True
-    if expected_sign_encoded and expected_sign_encoded == sign:
-        return True
+    # Проверяем все варианты
+    for variant_name, variant_sign in variants:
+        if variant_sign == sign:
+            logger.error(f"verify_sign: SUCCESS with variant {variant_name}!")
+            return True
     
     return False
 
@@ -115,8 +124,17 @@ def index():
 def login():
     # Получаем параметры от GWars
     sign = request.args.get('sign', '')
-    name_encoded = request.args.get('name', '')  # Получаем имя в закодированном виде
-    name = unquote(name_encoded)  # Декодируем имя из URL
+    # Получаем имя - важно: сохраняем оригинальное значение из URL до декодирования
+    name_encoded = request.args.get('name', '')
+    # Пробуем декодировать разными способами
+    try:
+        name = unquote(name_encoded, encoding='utf-8')
+    except:
+        try:
+            name = unquote(name_encoded, encoding='cp1251')  # Альтернативная кодировка
+        except:
+            name = name_encoded  # Если не удалось декодировать, используем как есть
+    
     user_id = request.args.get('user_id', '')
     level = request.args.get('level', '0')
     synd = request.args.get('synd', '0')
@@ -146,8 +164,9 @@ def login():
     logger.error(f"=== LOGIN DEBUG ===")
     logger.error(f"Received parameters:")
     logger.error(f"  sign={sign}")
-    logger.error(f"  name (encoded)={name_encoded}")
+    logger.error(f"  name (encoded/raw)={name_encoded}")
     logger.error(f"  name (decoded)={name}")
+    logger.error(f"  name (bytes)={name_encoded.encode('utf-8') if name_encoded else ''}")
     logger.error(f"  user_id={user_id}")
     logger.error(f"  level={level}")
     logger.error(f"  synd={synd}")
@@ -164,13 +183,26 @@ def login():
         logger.error(f"  User ID: {user_id}")
         
         # Вычисляем все возможные варианты
+        # Важно: для подписи используется ОРИГИНАЛЬНОЕ значение имени (до urlencode)
+        # Но в URL оно приходит уже закодированным, поэтому используем name_encoded (как оно пришло)
         variant1 = hashlib.md5((GWARS_PASSWORD + name + str(user_id)).encode('utf-8')).hexdigest()
         variant2 = hashlib.md5((GWARS_PASSWORD + name_encoded + str(user_id)).encode('utf-8')).hexdigest()
         variant3 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name).encode('utf-8')).hexdigest()
+        variant4 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name_encoded).encode('utf-8')).hexdigest()
         
-        logger.error(f"  Variant 1 (pass+name+id): {variant1}")
+        # Также пробуем с декодированием через latin1 (часто используется для URL)
+        try:
+            name_latin1 = unquote(name_encoded, encoding='latin1')
+            variant5 = hashlib.md5((GWARS_PASSWORD + name_latin1 + str(user_id)).encode('utf-8')).hexdigest()
+        except:
+            variant5 = None
+        
+        logger.error(f"  Variant 1 (pass+decoded_name+id): {variant1}")
         logger.error(f"  Variant 2 (pass+encoded_name+id): {variant2}")
-        logger.error(f"  Variant 3 (pass+id+name): {variant3}")
+        logger.error(f"  Variant 3 (pass+id+decoded_name): {variant3}")
+        logger.error(f"  Variant 4 (pass+id+encoded_name): {variant4}")
+        if variant5:
+            logger.error(f"  Variant 5 (pass+latin1_decoded_name+id): {variant5}")
         logger.error(f"  Received sign: {sign}")
         
         flash('Ошибка проверки подписи sign. Проверьте логи.', 'error')

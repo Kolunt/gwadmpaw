@@ -19,8 +19,12 @@
                 <span class="info-value"><code>{{ debug_info.encoded_name }}</code></span>
             </div>
             <div class="info-row">
-                <span class="info-label">Имя (декодированное):</span>
+                <span class="info-label">Имя (декодированное UTF-8):</span>
                 <span class="info-value"><code>{{ debug_info.decoded_name }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Имя (декодированное Latin1):</span>
+                <span class="info-value"><code>{{ debug_info.decoded_name_latin1 }}</code></span>
             </div>
             <div class="info-row">
                 <span class="info-label">User ID:</span>
@@ -52,6 +56,24 @@
                     {% if debug_info.sign_match_v3 %}✅{% else %}❌{% endif %}
                 </span>
             </div>
+            
+            <div class="info-row">
+                <span class="info-label">Вариант 4 (pass + id + encoded_name):</span>
+                <span class="info-value"><code>{{ debug_info.variant4 }}</code></span>
+                <span style="color: {% if debug_info.sign_match_v4 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_v4 %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            
+            {% if debug_info.variant5 != 'N/A' %}
+            <div class="info-row">
+                <span class="info-label">Вариант 5 (pass + latin1_decoded_name + id):</span>
+                <span class="info-value"><code>{{ debug_info.variant5 }}</code></span>
+                <span style="color: {% if debug_info.sign_match_v5 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_v5 %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            {% endif %}
             
             <div class="info-row">
                 <span class="info-label">Полученная подпись от GWars:</span>
