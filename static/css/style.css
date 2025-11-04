@@ -146,6 +146,23 @@ body {
     transition: all 0.3s ease;
 }
 
+.navbar-gwars-btn {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.navbar-gwars-btn:hover {
+    background-color: var(--accent-color);
+    transform: scale(1.1);
+}
+
+.navbar-gwars-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    display: block;
+}
+
 /* Сайдбар */
 .content-wrapper {
     margin-left: 250px;
