@@ -46,20 +46,42 @@ def get_db_connection():
     return conn
 
 # Проверка подписи sign
-def verify_sign(username, user_id, sign):
+def verify_sign(username, user_id, sign, encoded_name=None):
     # Формируем подпись: md5(password + username + user_id)
     # В PHP: $sign=md5($pass.$user_name.$user_user_id);
-    # Но в URL приходит user_id, так что используем его
-    expected_sign = hashlib.md5(
+    # Важно: для подписи используется оригинальное имя (до urlencode)
+    
+    # Пробуем оба варианта: с декодированным и закодированным именем
+    # Обычно подпись делается с оригинальным значением (до urlencode)
+    expected_sign_decoded = hashlib.md5(
         (GWARS_PASSWORD + username + str(user_id)).encode('utf-8')
     ).hexdigest()
     
+    # Если передан закодированный вариант, пробуем и его
+    expected_sign_encoded = None
+    if encoded_name:
+        expected_sign_encoded = hashlib.md5(
+            (GWARS_PASSWORD + encoded_name + str(user_id)).encode('utf-8')
+        ).hexdigest()
+    
     # Логирование для отладки
     logger.debug(f"verify_sign: username={username}, user_id={user_id}")
-    logger.debug(f"verify_sign: expected={expected_sign}, received={sign}")
-    logger.debug(f"verify_sign: match={expected_sign == sign}")
+    logger.debug(f"verify_sign: encoded_name={encoded_name}")
+    logger.debug(f"verify_sign: expected (decoded)={expected_sign_decoded}")
+    if expected_sign_encoded:
+        logger.debug(f"verify_sign: expected (encoded)={expected_sign_encoded}")
+    logger.debug(f"verify_sign: received={sign}")
+    logger.debug(f"verify_sign: match (decoded)={expected_sign_decoded == sign}")
+    if expected_sign_encoded:
+        logger.debug(f"verify_sign: match (encoded)={expected_sign_encoded == sign}")
     
-    return expected_sign == sign
+    # Проверяем оба варианта
+    if expected_sign_decoded == sign:
+        return True
+    if expected_sign_encoded and expected_sign_encoded == sign:
+        return True
+    
+    return False
 
 # Проверка подписи sign2
 def verify_sign2(level, synd, user_id, sign2):
@@ -93,7 +115,8 @@ def index():
 def login():
     # Получаем параметры от GWars
     sign = request.args.get('sign', '')
-    name = unquote(request.args.get('name', ''))  # Декодируем имя из URL
+    name_encoded = request.args.get('name', '')  # Получаем имя в закодированном виде
+    name = unquote(name_encoded)  # Декодируем имя из URL
     user_id = request.args.get('user_id', '')
     level = request.args.get('level', '0')
     synd = request.args.get('synd', '0')
@@ -120,14 +143,38 @@ def login():
         return redirect(gwars_url)
     
     # Логируем все полученные параметры для отладки
-    logger.debug(f"Received parameters: sign={sign}, name={name}, user_id={user_id}, level={level}, synd={synd}")
-    logger.debug(f"Full URL: {request.url}")
+    logger.error(f"=== LOGIN DEBUG ===")
+    logger.error(f"Received parameters:")
+    logger.error(f"  sign={sign}")
+    logger.error(f"  name (encoded)={name_encoded}")
+    logger.error(f"  name (decoded)={name}")
+    logger.error(f"  user_id={user_id}")
+    logger.error(f"  level={level}")
+    logger.error(f"  synd={synd}")
+    logger.error(f"  sign2={sign2}")
+    logger.error(f"Full URL: {request.url}")
     
-    # Проверяем подписи
-    if not verify_sign(name, user_id, sign):
-        logger.error(f"Sign verification failed: name={name}, user_id={user_id}, sign={sign}")
-        flash('Ошибка проверки подписи sign', 'error')
-        return redirect(url_for('index'))
+    # Проверяем подписи (пробуем оба варианта - с декодированным и закодированным именем)
+    if not verify_sign(name, user_id, sign, name_encoded):
+        logger.error(f"Sign verification failed!")
+        logger.error(f"Trying to compute manually:")
+        logger.error(f"  Password: {GWARS_PASSWORD}")
+        logger.error(f"  Username (decoded): {name}")
+        logger.error(f"  Username (encoded): {name_encoded}")
+        logger.error(f"  User ID: {user_id}")
+        
+        # Вычисляем все возможные варианты
+        variant1 = hashlib.md5((GWARS_PASSWORD + name + str(user_id)).encode('utf-8')).hexdigest()
+        variant2 = hashlib.md5((GWARS_PASSWORD + name_encoded + str(user_id)).encode('utf-8')).hexdigest()
+        variant3 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name).encode('utf-8')).hexdigest()
+        
+        logger.error(f"  Variant 1 (pass+name+id): {variant1}")
+        logger.error(f"  Variant 2 (pass+encoded_name+id): {variant2}")
+        logger.error(f"  Variant 3 (pass+id+name): {variant3}")
+        logger.error(f"  Received sign: {sign}")
+        
+        flash('Ошибка проверки подписи sign. Проверьте логи.', 'error')
+        return redirect(url_for('debug') + '?' + request.query_string.decode())
     
     if not verify_sign2(level, synd, user_id, sign2):
         flash('Ошибка проверки подписи sign2', 'error')
@@ -190,7 +237,8 @@ def debug():
     if request.args:
         # Вычисляем ожидаемые подписи
         sign = request.args.get('sign', '')
-        name = unquote(request.args.get('name', ''))
+        name_encoded = request.args.get('name', '')
+        name = unquote(name_encoded)
         user_id = request.args.get('user_id', '')
         level = request.args.get('level', '0')
         synd = request.args.get('synd', '0')
@@ -201,10 +249,10 @@ def debug():
         sign3 = request.args.get('sign3', '')
         sign4 = request.args.get('sign4', '')
         
-        # Вычисляем ожидаемые подписи
-        expected_sign = hashlib.md5(
-            (GWARS_PASSWORD + name + str(user_id)).encode('utf-8')
-        ).hexdigest()
+        # Вычисляем все возможные варианты подписи
+        variant1 = hashlib.md5((GWARS_PASSWORD + name + str(user_id)).encode('utf-8')).hexdigest()
+        variant2 = hashlib.md5((GWARS_PASSWORD + name_encoded + str(user_id)).encode('utf-8')).hexdigest()
+        variant3 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name).encode('utf-8')).hexdigest()
         
         expected_sign2 = hashlib.md5(
             (GWARS_PASSWORD + str(level) + str(round(float(synd))) + str(user_id)).encode('utf-8')
@@ -212,10 +260,17 @@ def debug():
         
         debug_info = {
             'received_params': dict(request.args),
+            'password': GWARS_PASSWORD,
+            'encoded_name': name_encoded,
             'decoded_name': name,
-            'expected_sign': expected_sign,
+            'user_id': user_id,
+            'variant1': variant1,
+            'variant2': variant2,
+            'variant3': variant3,
             'received_sign': sign,
-            'sign_match': expected_sign == sign,
+            'sign_match_v1': variant1 == sign,
+            'sign_match_v2': variant2 == sign,
+            'sign_match_v3': variant3 == sign,
             'expected_sign2': expected_sign2,
             'received_sign2': sign2,
             'sign2_match': expected_sign2 == sign2,

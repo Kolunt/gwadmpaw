@@ -9,26 +9,53 @@
         
         {% if debug_info %}
         <div class="debug-info">
-            <h3>Полученные параметры:</h3>
-            <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: 4px; overflow-x: auto;">{{ debug_info.received_params | tojson(indent=2) }}</pre>
-            
-            <h3>Декодированное имя:</h3>
-            <p><code>{{ debug_info.decoded_name }}</code></p>
-            
-            <h3>Проверка подписи sign:</h3>
+            <h3>Исходные данные:</h3>
             <div class="info-row">
-                <span class="info-label">Ожидаемая подпись:</span>
-                <span class="info-value"><code>{{ debug_info.expected_sign }}</code></span>
+                <span class="info-label">Пароль (для подписи):</span>
+                <span class="info-value"><code>{{ debug_info.password }}</code></span>
             </div>
             <div class="info-row">
-                <span class="info-label">Полученная подпись:</span>
-                <span class="info-value"><code>{{ debug_info.received_sign }}</code></span>
+                <span class="info-label">Имя (закодированное):</span>
+                <span class="info-value"><code>{{ debug_info.encoded_name }}</code></span>
             </div>
             <div class="info-row">
-                <span class="info-label">Совпадение:</span>
-                <span class="info-value" style="color: {% if debug_info.sign_match %}var(--success-color){% else %}var(--error-color){% endif %};">
-                    {% if debug_info.sign_match %}✅ Да{% else %}❌ Нет{% endif %}
+                <span class="info-label">Имя (декодированное):</span>
+                <span class="info-value"><code>{{ debug_info.decoded_name }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">User ID:</span>
+                <span class="info-value"><code>{{ debug_info.user_id }}</code></span>
+            </div>
+            
+            <h3>Варианты вычисления подписи sign:</h3>
+            
+            <div class="info-row">
+                <span class="info-label">Вариант 1 (pass + decoded_name + id):</span>
+                <span class="info-value"><code>{{ debug_info.variant1 }}</code></span>
+                <span style="color: {% if debug_info.sign_match_v1 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_v1 %}✅{% else %}❌{% endif %}
                 </span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Вариант 2 (pass + encoded_name + id):</span>
+                <span class="info-value"><code>{{ debug_info.variant2 }}</code></span>
+                <span style="color: {% if debug_info.sign_match_v2 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_v2 %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Вариант 3 (pass + id + decoded_name):</span>
+                <span class="info-value"><code>{{ debug_info.variant3 }}</code></span>
+                <span style="color: {% if debug_info.sign_match_v3 %}var(--success-color){% else %}var(--error-color){% endif %}; margin-left: 10px;">
+                    {% if debug_info.sign_match_v3 %}✅{% else %}❌{% endif %}
+                </span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Полученная подпись от GWars:</span>
+                <span class="info-value"><code style="font-weight: bold;">{{ debug_info.received_sign }}</code></span>
             </div>
             
             <h3>Проверка подписи sign2:</h3>
@@ -46,6 +73,9 @@
                     {% if debug_info.sign2_match %}✅ Да{% else %}❌ Нет{% endif %}
                 </span>
             </div>
+            
+            <h3>Все параметры (JSON):</h3>
+            <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.9rem;">{{ debug_info.received_params | tojson(indent=2) }}</pre>
         </div>
         {% else %}
         <p>Нет параметров для отладки. Перейдите по ссылке с параметрами от GWars.</p>
