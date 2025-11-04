@@ -9,27 +9,94 @@
         <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
     </div>
     
+    <!-- Панель поиска и фильтров -->
+    <div class="table-controls">
+        <div class="search-box">
+            <input 
+                type="text" 
+                id="search-input" 
+                class="search-input" 
+                placeholder="Поиск по всем полям..."
+                autocomplete="off"
+            >
+            <span class="search-icon">🔍</span>
+        </div>
+        
+        <div class="filters-row">
+            <div class="filter-group">
+                <label for="filter-id" class="filter-label">ID:</label>
+                <input type="text" id="filter-id" class="filter-input" placeholder="Все">
+            </div>
+            <div class="filter-group">
+                <label for="filter-name" class="filter-label">Имя:</label>
+                <input type="text" id="filter-name" class="filter-input" placeholder="Все">
+            </div>
+            <div class="filter-group">
+                <label for="filter-level" class="filter-label">Уровень:</label>
+                <input type="text" id="filter-level" class="filter-input" placeholder="Все">
+            </div>
+            <div class="filter-group">
+                <label for="filter-synd" class="filter-label">Синдикат:</label>
+                <input type="text" id="filter-synd" class="filter-input" placeholder="Все">
+            </div>
+            <div class="filter-group">
+                <label for="filter-roles" class="filter-label">Роли:</label>
+                <input type="text" id="filter-roles" class="filter-input" placeholder="Все">
+            </div>
+            <button type="button" id="clear-filters" class="btn btn-secondary btn-sm">Очистить фильтры</button>
+        </div>
+        
+        <div class="table-info">
+            <span id="rows-count">Показано: <strong id="visible-count">0</strong> из <strong id="total-count">{{ users|length }}</strong></span>
+        </div>
+    </div>
+    
     <div class="table-container">
-        <table class="admin-table">
+        <table class="admin-table" id="users-table">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Имя</th>
-                    <th>Уровень</th>
-                    <th>Синдикат</th>
-                    <th>Роли</th>
-                    <th>Дата регистрации</th>
-                    <th>Последний вход</th>
+                    <th class="sortable" data-column="0" data-sort="none">
+                        ID
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="1" data-sort="none">
+                        Имя
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="2" data-sort="none">
+                        Уровень
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="3" data-sort="none">
+                        Синдикат
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="4" data-sort="none">
+                        Роли
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="5" data-sort="none">
+                        Дата регистрации
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="6" data-sort="none">
+                        Последний вход
+                        <span class="sort-indicator">⇅</span>
+                    </th>
                     <th>Действия</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="table-body">
                 {% for user in users %}
-                <tr>
+                <tr data-user-id="{{ user.user_id }}" 
+                    data-username="{{ user.username|lower }}" 
+                    data-level="{{ user.level or '' }}" 
+                    data-synd="{{ user.synd or '' }}" 
+                    data-roles="{{ (user.roles or 'Нет ролей')|lower }}">
                     <td data-label="ID">{{ user.user_id }}</td>
                     <td data-label="Имя">{{ user.username }}</td>
-                    <td data-label="Уровень">{{ user.level }}</td>
-                    <td data-label="Синдикат">{{ user.synd }}</td>
+                    <td data-label="Уровень">{{ user.level or 'N/A' }}</td>
+                    <td data-label="Синдикат">{{ user.synd or 'N/A' }}</td>
                     <td data-label="Роли">{{ user.roles or 'Нет ролей' }}</td>
                     <td data-label="Дата регистрации">{{ user.created_at or 'N/A' }}</td>
                     <td data-label="Последний вход">{{ user.last_login or 'N/A' }}</td>
@@ -42,5 +109,144 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('users-table');
+    const tbody = document.getElementById('table-body');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const searchInput = document.getElementById('search-input');
+    const filterInputs = {
+        id: document.getElementById('filter-id'),
+        name: document.getElementById('filter-name'),
+        level: document.getElementById('filter-level'),
+        synd: document.getElementById('filter-synd'),
+        roles: document.getElementById('filter-roles')
+    };
+    const clearFiltersBtn = document.getElementById('clear-filters');
+    const visibleCount = document.getElementById('visible-count');
+    const totalCount = document.getElementById('total-count');
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    
+    let currentSort = { column: null, direction: 'asc' };
+    
+    // Инициализация счетчика
+    totalCount.textContent = rows.length;
+    updateRowCount();
+    
+    // Функция обновления счетчика строк
+    function updateRowCount() {
+        const visibleRows = rows.filter(row => row.style.display !== 'none');
+        visibleCount.textContent = visibleRows.length;
+    }
+    
+    // Функция фильтрации
+    function filterRows() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const filters = {
+            id: filterInputs.id.value.toLowerCase().trim(),
+            name: filterInputs.name.value.toLowerCase().trim(),
+            level: filterInputs.level.value.toLowerCase().trim(),
+            synd: filterInputs.synd.value.toLowerCase().trim(),
+            roles: filterInputs.roles.value.toLowerCase().trim()
+        };
+        
+        rows.forEach(row => {
+            const userId = String(row.dataset.userId || '').toLowerCase();
+            const username = row.dataset.username || '';
+            const level = String(row.dataset.level || '').toLowerCase();
+            const synd = String(row.dataset.synd || '').toLowerCase();
+            const roles = row.dataset.roles || '';
+            
+            // Проверка поиска по всем полям
+            const searchMatch = !searchTerm || 
+                userId.includes(searchTerm) ||
+                username.includes(searchTerm) ||
+                level.includes(searchTerm) ||
+                synd.includes(searchTerm) ||
+                roles.includes(searchTerm);
+            
+            // Проверка фильтров по столбцам
+            const filterMatch = 
+                (!filters.id || userId.includes(filters.id)) &&
+                (!filters.name || username.includes(filters.name)) &&
+                (!filters.level || level.includes(filters.level)) &&
+                (!filters.synd || synd.includes(filters.synd)) &&
+                (!filters.roles || roles.includes(filters.roles));
+            
+            row.style.display = (searchMatch && filterMatch) ? '' : 'none';
+        });
+        
+        updateRowCount();
+    }
+    
+    // Обработчики событий для поиска и фильтров
+    searchInput.addEventListener('input', filterRows);
+    Object.values(filterInputs).forEach(input => {
+        input.addEventListener('input', filterRows);
+    });
+    
+    // Очистка фильтров
+    clearFiltersBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        Object.values(filterInputs).forEach(input => input.value = '');
+        filterRows();
+    });
+    
+    // Сортировка
+    function sortTable(columnIndex, direction) {
+        const visibleRows = rows.filter(row => row.style.display !== 'none');
+        
+        visibleRows.sort((a, b) => {
+            const aCell = a.cells[columnIndex].textContent.trim();
+            const bCell = b.cells[columnIndex].textContent.trim();
+            
+            // Пытаемся сравнить как числа
+            const aNum = parseFloat(aCell);
+            const bNum = parseFloat(bCell);
+            
+            let comparison = 0;
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                comparison = aNum - bNum;
+            } else {
+                // Сравниваем как строки
+                comparison = aCell.localeCompare(bCell, 'ru', { numeric: true });
+            }
+            
+            return direction === 'asc' ? comparison : -comparison;
+        });
+        
+        // Перемещаем отсортированные строки в DOM
+        visibleRows.forEach(row => tbody.appendChild(row));
+        
+        // Обновляем индикаторы сортировки
+        sortableHeaders.forEach((header, index) => {
+            const indicator = header.querySelector('.sort-indicator');
+            if (index === columnIndex) {
+                indicator.textContent = direction === 'asc' ? '↑' : '↓';
+                header.dataset.sort = direction;
+            } else {
+                indicator.textContent = '⇅';
+                header.dataset.sort = 'none';
+            }
+        });
+        
+        currentSort = { column: columnIndex, direction };
+    }
+    
+    // Обработчики клика на заголовки
+    sortableHeaders.forEach((header, index) => {
+        header.addEventListener('click', function() {
+            const currentDirection = header.dataset.sort === 'asc' ? 'desc' : 'asc';
+            sortTable(index, currentDirection);
+        });
+    });
+    
+    // Изначальная сортировка по ID по возрастанию
+    if (rows.length > 0) {
+        sortTable(0, 'asc');
+    }
+});
+</script>
 {% endblock %}
 
