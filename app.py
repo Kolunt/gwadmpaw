@@ -772,11 +772,36 @@ def verify_sign3(username, user_id, has_passport, has_mobile, old_passport, sign
 
 # Проверка подписи sign4 (дата)
 def verify_sign4(sign3, sign4):
-    today = datetime.now().strftime("%Y-%m-%d")
-    expected_sign4 = hashlib.md5(
-        (today + sign3 + GWARS_PASSWORD).encode('utf-8')
-    ).hexdigest()[:10]
-    return expected_sign4 == sign4
+    """
+    Проверяет подпись sign4 с учетом возможной разницы в часовых поясах.
+    GWars может использовать другую дату из-за часового пояса, поэтому проверяем
+    сегодняшнюю, вчерашнюю и завтрашнюю даты.
+    """
+    from datetime import datetime, timedelta
+    
+    # Получаем текущую дату и соседние даты (на случай разницы в часовых поясах)
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
+    tomorrow = today + timedelta(days=1)
+    
+    dates_to_check = [
+        today.strftime("%Y-%m-%d"),
+        yesterday.strftime("%Y-%m-%d"),
+        tomorrow.strftime("%Y-%m-%d")
+    ]
+    
+    # Проверяем все возможные варианты дат
+    for date_str in dates_to_check:
+        expected_sign4 = hashlib.md5(
+            (date_str + sign3 + GWARS_PASSWORD).encode('utf-8')
+        ).hexdigest()[:10]
+        if expected_sign4 == sign4:
+            log_debug(f"verify_sign4: SUCCESS with date {date_str}")
+            return True
+    
+    log_error(f"verify_sign4: FAILED. Received sign4={sign4}, sign3={sign3}")
+    log_error(f"verify_sign4: Checked dates: {dates_to_check}")
+    return False
 
 @app.context_processor
 def inject_default_theme():
