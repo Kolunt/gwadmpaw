@@ -93,6 +93,15 @@ def init_db():
             # Колонка уже существует, это нормально
             pass
         
+        # Добавляем пользовательские поля для редактирования профиля (миграция)
+        user_editable_fields = ['bio', 'display_name', 'contact_info']
+        for field in user_editable_fields:
+            try:
+                c.execute(f'ALTER TABLE users ADD COLUMN {field} TEXT')
+            except sqlite3.OperationalError:
+                # Колонка уже существует, это нормально
+                pass
+        
         # Таблица ролей
         c.execute('''
             CREATE TABLE IF NOT EXISTS roles (
