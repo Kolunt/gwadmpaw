@@ -1600,7 +1600,8 @@ body {
     border-radius: 8px;
     padding: 2rem;
     box-shadow: var(--shadow-lg);
-    max-width: 600px;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .role-form {
@@ -1668,6 +1669,34 @@ body {
     margin-top: 0.5rem;
     color: var(--text-secondary);
     font-size: 0.875rem;
+}
+
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 0.5rem;
+    cursor: pointer;
+}
+
+.form-group input[type="number"] {
+    max-width: 150px;
+}
+
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
 .form-actions {

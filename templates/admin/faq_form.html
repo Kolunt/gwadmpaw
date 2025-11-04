@@ -10,7 +10,7 @@
     </div>
     
     <div class="form-container">
-        <form method="POST" class="role-form">
+        <form method="POST">
             <div class="form-group">
                 <label for="question">Вопрос:</label>
                 <input type="text" id="question" name="question" required 
@@ -48,10 +48,10 @@
             </div>
             
             <div class="form-group">
-                <label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                     <input type="checkbox" name="is_active" value="1" 
                            {% if not faq_item or faq_item.is_active %}checked{% endif %}>
-                    Активен (виден на сайте)
+                    <span>Активен (виден на сайте)</span>
                 </label>
             </div>
             
