@@ -1253,7 +1253,13 @@ def login():
         return render_template('debug_sign3.html', debug_info=debug_info)
     
     if not verify_sign4(sign3, sign4):
-        flash('Ошибка проверки подписи sign4 (устаревшая подпись)', 'error')
+        # Логируем детали для отладки
+        today = datetime.now().strftime("%Y-%m-%d")
+        log_error(f"sign4 verification failed: sign3={sign3}, sign4={sign4}, today={today}")
+        log_error(f"sign4 verification failed: user_id={user_id}, name={name}")
+        
+        # Показываем более информативное сообщение
+        flash('Ошибка проверки подписи sign4. Возможно, разница в часовых поясах. Попробуйте войти еще раз.', 'error')
         return redirect(url_for('index'))
     
     # Сохраняем пользователя в БД
