@@ -65,21 +65,45 @@
                             {% else %}{{ category|title }}
                             {% endif %}
                         </h4>
-                        <div class="permissions-grid">
-                            {% for perm in perms %}
-                            <label class="permission-item">
-                                <input type="checkbox" 
-                                       name="permissions" 
-                                       value="{{ perm.id }}"
-                                       {% if role_permissions and perm.id in role_permissions %}checked{% endif %}>
-                                <div class="permission-info">
-                                    <span class="permission-name">{{ perm.display_name }}</span>
-                                    {% if perm.description %}
-                                    <span class="permission-description">{{ perm.description }}</span>
-                                    {% endif %}
-                                </div>
-                            </label>
-                            {% endfor %}
+                        <div class="table-container">
+                            <table class="admin-table permissions-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">
+                                            <input type="checkbox" 
+                                                   class="permission-select-all" 
+                                                   data-category="{{ category }}"
+                                                   title="Выбрать все">
+                                        </th>
+                                        <th>Название права</th>
+                                        <th>Описание</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for perm in perms %}
+                                    <tr>
+                                        <td data-label="">
+                                            <input type="checkbox" 
+                                                   name="permissions" 
+                                                   value="{{ perm.id }}"
+                                                   class="permission-checkbox"
+                                                   data-category="{{ category }}"
+                                                   {% if role_permissions and perm.id in role_permissions %}checked{% endif %}>
+                                        </td>
+                                        <td data-label="Название права">
+                                            <strong>{{ perm.display_name }}</strong>
+                                        </td>
+                                        <td data-label="Описание">
+                                            {% if perm.description %}
+                                                <span class="text-muted">{{ perm.description }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                     {% endfor %}
@@ -96,5 +120,59 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка "Выбрать все" для каждой категории
+    const selectAllCheckboxes = document.querySelectorAll('.permission-select-all');
+    
+    selectAllCheckboxes.forEach(function(selectAll) {
+        selectAll.addEventListener('change', function() {
+            const category = this.getAttribute('data-category');
+            const checkboxes = document.querySelectorAll(
+                `.permission-checkbox[data-category="${category}"]`
+            );
+            
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = selectAll.checked;
+            });
+        });
+    });
+    
+    // Обновление состояния "Выбрать все" при изменении отдельных чекбоксов
+    const permissionCheckboxes = document.querySelectorAll('.permission-checkbox');
+    
+    permissionCheckboxes.forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const category = this.getAttribute('data-category');
+            const categoryCheckboxes = document.querySelectorAll(
+                `.permission-checkbox[data-category="${category}"]`
+            );
+            const selectAll = document.querySelector(
+                `.permission-select-all[data-category="${category}"]`
+            );
+            
+            if (selectAll) {
+                const allChecked = Array.from(categoryCheckboxes).every(cb => cb.checked);
+                const someChecked = Array.from(categoryCheckboxes).some(cb => cb.checked);
+                selectAll.checked = allChecked;
+                selectAll.indeterminate = someChecked && !allChecked;
+            }
+        });
+    });
+    
+    // Инициализация состояния "Выбрать все" при загрузке страницы
+    selectAllCheckboxes.forEach(function(selectAll) {
+        const category = selectAll.getAttribute('data-category');
+        const categoryCheckboxes = document.querySelectorAll(
+            `.permission-checkbox[data-category="${category}"]`
+        );
+        const allChecked = Array.from(categoryCheckboxes).every(cb => cb.checked);
+        const someChecked = Array.from(categoryCheckboxes).some(cb => cb.checked);
+        selectAll.checked = allChecked;
+        selectAll.indeterminate = someChecked && !allChecked;
+    });
+});
+</script>
 {% endblock %}
 
