@@ -1602,6 +1602,115 @@ EVENT_STAGES = [
     {'type': 'after_party', 'name': 'Послепраздничное настроение', 'required': True, 'has_start': False, 'has_end': True},
 ]
 
+def get_current_event_stage(event_id):
+    """Определяет текущий этап мероприятия на основе текущей даты"""
+    conn = get_db_connection()
+    stages = conn.execute('''
+        SELECT * FROM event_stages 
+        WHERE event_id = ? 
+        ORDER BY stage_order
+    ''', (event_id,)).fetchall()
+    conn.close()
+    
+    if not stages:
+        return None
+    
+    now = datetime.now()
+    
+    # Создаем словарь этапов с их информацией
+    stages_dict = {stage['stage_type']: stage for stage in stages}
+    stages_info_dict = {stage['type']: stage for stage in EVENT_STAGES}
+    
+    # Ищем текущий этап
+    current_stage = None
+    
+    for stage_info in EVENT_STAGES:
+        stage_type = stage_info['type']
+        if stage_type not in stages_dict:
+            continue
+        
+        stage = stages_dict[stage_type]
+        
+        # Проверяем, начался ли этап
+        if stage['start_datetime']:
+            try:
+                start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
+            except:
+                try:
+                    start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%dT%H:%M')
+                except:
+                    continue
+            
+            # Если этап еще не начался, пропускаем
+            if now < start_dt:
+                continue
+        
+        # Проверяем, закончился ли этап
+        if stage['end_datetime']:
+            try:
+                end_dt = datetime.strptime(stage['end_datetime'], '%Y-%m-%d %H:%M:%S')
+            except:
+                try:
+                    end_dt = datetime.strptime(stage['end_datetime'], '%Y-%m-%dT%H:%M')
+                except:
+                    end_dt = None
+            
+            if end_dt and now > end_dt:
+                continue
+        
+        # Если этап не имеет даты начала, но есть следующий этап с датой начала
+        # Проверяем, не начался ли следующий этап
+        if not stage['start_datetime']:
+            # Ищем следующий этап с датой начала
+            next_stage_started = False
+            current_order = stage['stage_order']
+            for next_stage in stages:
+                if next_stage['stage_order'] > current_order and next_stage['start_datetime']:
+                    try:
+                        next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
+                    except:
+                        try:
+                            next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%dT%H:%M')
+                        except:
+                            continue
+                    if now >= next_start_dt:
+                        next_stage_started = True
+                        break
+            if next_stage_started:
+                continue
+        
+        # Этот этап активен
+        current_stage = {
+            'data': stage,
+            'info': stage_info
+        }
+        break
+    
+    return current_stage
+
+@app.route('/events')
+def events():
+    """Публичная страница со списком всех мероприятий"""
+    conn = get_db_connection()
+    events_list = conn.execute('''
+        SELECT e.*, u.username as creator_name
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
+        ORDER BY e.created_at DESC
+    ''').fetchall()
+    conn.close()
+    
+    # Определяем текущий этап для каждого мероприятия
+    events_with_stages = []
+    for event in events_list:
+        current_stage = get_current_event_stage(event['id'])
+        events_with_stages.append({
+            'event': event,
+            'current_stage': current_stage
+        })
+    
+    return render_template('events.html', events_with_stages=events_with_stages)
+
 @app.route('/admin/events')
 @require_role('admin')
 def admin_events():

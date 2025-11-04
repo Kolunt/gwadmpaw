@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Мероприятия - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="events-header">
+        <h1>Мероприятия</h1>
+        {% if session.user_id and 'admin' in session.get('roles', []) %}
+        <a href="{{ url_for('admin_events') }}" class="btn btn-primary">Управление мероприятиями</a>
+        {% endif %}
+    </div>
+    
+    {% if events_with_stages %}
+    <div class="events-grid">
+        {% for item in events_with_stages %}
+        {% set event = item.event %}
+        {% set current_stage = item.current_stage %}
+        <div class="event-card">
+            <div class="event-card-header">
+                <h2>{{ event.name }}</h2>
+                {% if current_stage %}
+                <span class="event-stage-badge stage-active">
+                    {{ current_stage.info.name }}
+                </span>
+                {% else %}
+                <span class="event-stage-badge stage-upcoming">
+                    Скоро
+                </span>
+                {% endif %}
+            </div>
+            
+            {% if event.description %}
+            <div class="event-card-description">
+                <p>{{ event.description }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="event-card-info">
+                <div class="info-row">
+                    <span class="info-label">Создано:</span>
+                    <span class="info-value">{{ event.created_at }}</span>
+                </div>
+                {% if event.creator_name %}
+                <div class="info-row">
+                    <span class="info-label">Организатор:</span>
+                    <span class="info-value">{{ event.creator_name }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if current_stage %}
+            <div class="event-card-stage">
+                <h4>Текущий этап</h4>
+                <div class="stage-info">
+                    <p><strong>{{ current_stage.info.name }}</strong></p>
+                    {% if current_stage.data.start_datetime %}
+                    <p class="stage-date">
+                        <span class="stage-date-label">Начало:</span>
+                        <span class="stage-date-value">{{ current_stage.data.start_datetime }}</span>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>Мероприятия пока не созданы</p>
+        {% if session.user_id and 'admin' in session.get('roles', []) %}
+        <a href="{{ url_for('admin_event_create') }}" class="btn btn-primary">Создать первое мероприятие</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

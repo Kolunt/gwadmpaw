@@ -75,6 +75,10 @@
                         <span class="sidebar-icon">👤</span>
                         <span>Профиль</span>
                     </a>
+                    <a href="{{ url_for('events') }}" class="sidebar-link">
+                        <span class="sidebar-icon">🎉</span>
+                        <span>Мероприятия</span>
+                    </a>
                     <a href="{{ url_for('participants') }}" class="sidebar-link">
                         <span class="sidebar-icon">👥</span>
                         <span>Участники</span>
@@ -83,6 +87,10 @@
                     <a href="{{ url_for('index') }}" class="sidebar-link">
                         <span class="sidebar-icon">🏠</span>
                         <span>Главная</span>
+                    </a>
+                    <a href="{{ url_for('events') }}" class="sidebar-link">
+                        <span class="sidebar-icon">🎉</span>
+                        <span>Мероприятия</span>
                     </a>
                 {% endif %}
             </div>
