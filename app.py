@@ -1107,7 +1107,15 @@ def get_avatar_candidates():
     style = request.args.get('style', 'avataaars')
     count = int(request.args.get('count', 20))
     
-    if style not in ['avataaars', 'bottts', 'identicon', 'initials', 'lorelei', 'micah', 'miniavs', 'open-peeps', 'personas', 'pixel-art', 'shapes', 'thumbs']:
+    valid_styles = [
+        'adventurer', 'adventurer-neutral', 'avataaars', 'avataaars-neutral',
+        'big-ears', 'big-ears-neutral', 'big-smile', 'bottts', 'bottts-neutral',
+        'croodles', 'croodles-neutral', 'fun-emoji', 'icons', 'identicon', 'initials',
+        'lorelei', 'lorelei-neutral', 'micah', 'miniavs', 'open-peeps', 'personas',
+        'pixel-art', 'pixel-art-neutral', 'rings', 'shapes', 'thumbs'
+    ]
+    
+    if style not in valid_styles:
         return jsonify({'error': 'Invalid style'}), 400
     
     candidates = generate_unique_avatar_candidates(style, count, exclude_user_id=session['user_id'])
