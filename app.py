@@ -525,16 +525,19 @@ def inject_default_theme():
     default_theme = get_setting('default_theme', 'light')
     # Получаем аватар текущего пользователя для хэдера
     current_user_avatar_seed = None
+    current_user_avatar_style = None
     if 'user_id' in session:
         conn = get_db_connection()
-        user = conn.execute('SELECT avatar_seed FROM users WHERE user_id = ?', (session['user_id'],)).fetchone()
+        user = conn.execute('SELECT avatar_seed, avatar_style FROM users WHERE user_id = ?', (session['user_id'],)).fetchone()
         if user:
             current_user_avatar_seed = user['avatar_seed']
+            current_user_avatar_style = user['avatar_style']
         conn.close()
     return dict(
         default_theme=default_theme, 
         get_avatar_url=get_avatar_url,
-        current_user_avatar_seed=current_user_avatar_seed
+        current_user_avatar_seed=current_user_avatar_seed,
+        current_user_avatar_style=current_user_avatar_style
     )
 
 @app.route('/')
