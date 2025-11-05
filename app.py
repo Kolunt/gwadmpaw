@@ -1838,8 +1838,13 @@ def participants():
         # Для каждого пользователя определяем статус
         participants_data = []
         for user in users:
-            # Определяем статус: онлайн (если был вход сегодня) или оффлайн
-            last_login = user.get('last_login')
+            # sqlite3.Row работает как словарь, но не имеет метода .get()
+            # Используем прямой доступ с обработкой отсутствующих ключей
+            try:
+                last_login = user['last_login'] if 'last_login' in user.keys() else None
+            except:
+                last_login = None
+            
             status = 'Оффлайн'
             if last_login:
                 try:
@@ -1852,20 +1857,49 @@ def participants():
                     elif (now - last_login_date).days == 0:  # Сегодня
                         status = 'Был сегодня'
                 except Exception as e:
-                    log_debug(f"Error parsing last_login for user {user.get('user_id')}: {e}")
+                    try:
+                        user_id = user['user_id']
+                    except:
+                        user_id = 'unknown'
+                    log_debug(f"Error parsing last_login for user {user_id}: {e}")
                     pass
             
             # Обрабатываем роли - если их нет, используем 'Пользователь'
-            roles_str = user.get('roles') if user.get('roles') else 'Пользователь'
+            try:
+                roles_str = user['roles'] if user['roles'] else 'Пользователь'
+            except:
+                roles_str = 'Пользователь'
+            
+            # Получаем значения с обработкой отсутствующих ключей
+            try:
+                user_id = user['user_id']
+            except:
+                user_id = None
+            try:
+                username = user['username'] or 'Неизвестно'
+            except:
+                username = 'Неизвестно'
+            try:
+                avatar_seed = user['avatar_seed']
+            except:
+                avatar_seed = None
+            try:
+                avatar_style = user['avatar_style']
+            except:
+                avatar_style = None
+            try:
+                created_at = user['created_at'] or 'N/A'
+            except:
+                created_at = 'N/A'
             
             participants_data.append({
-                'user_id': user.get('user_id'),
-                'username': user.get('username') or 'Неизвестно',
-                'avatar_seed': user.get('avatar_seed'),
-                'avatar_style': user.get('avatar_style'),
+                'user_id': user_id,
+                'username': username,
+                'avatar_seed': avatar_seed,
+                'avatar_style': avatar_style,
                 'status': status,
                 'roles': roles_str,
-                'created_at': user.get('created_at') or 'N/A'
+                'created_at': created_at
             })
         
         conn.close()
