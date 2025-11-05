@@ -744,6 +744,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Функция для выделения текущего цвета в палитре
+    function highlightCurrentColor(palette, currentColor) {
+        palette.querySelectorAll('.color-palette-item').forEach(function(item) {
+            const itemColor = item.getAttribute('data-color');
+            item.classList.remove('selected');
+            if (itemColor && itemColor.toLowerCase() === currentColor.toLowerCase()) {
+                item.classList.add('selected');
+            }
+        });
+    }
+    
     // Обработка кликов по палитре цветов
     document.querySelectorAll('.color-palette-grid').forEach(function(palette) {
         const targetId = palette.getAttribute('data-target');
@@ -752,6 +763,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const previewId = 'preview_' + targetId;
         
         if (colorInput && textInput) {
+            // Выделяем текущий цвет при загрузке страницы
+            const currentColor = colorInput.value;
+            highlightCurrentColor(palette, currentColor);
+            
+            // Обработка кликов по цветам в палитре
             palette.querySelectorAll('.color-palette-item').forEach(function(item) {
                 item.addEventListener('click', function() {
                     const color = this.getAttribute('data-color');
@@ -761,12 +777,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         updateColorPreview(color, previewId);
                         
                         // Визуальная обратная связь - подсветка выбранного цвета
-                        palette.querySelectorAll('.color-palette-item').forEach(function(i) {
-                            i.classList.remove('selected');
-                        });
-                        this.classList.add('selected');
+                        highlightCurrentColor(palette, color);
                     }
                 });
+            });
+            
+            // Обновляем выделение при изменении через color picker или text input
+            colorInput.addEventListener('input', function() {
+                highlightCurrentColor(palette, colorInput.value);
+            });
+            
+            textInput.addEventListener('input', function() {
+                const value = textInput.value.trim();
+                if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                    highlightCurrentColor(palette, value);
+                }
             });
         }
     });
