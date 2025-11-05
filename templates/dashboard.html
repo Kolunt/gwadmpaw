@@ -40,6 +40,14 @@
                data-tab="main">
                 📋 {{ _('Main') }}
             </a>
+            {% set user_titles = get_user_titles(user.user_id) %}
+            {% if user_titles %}
+            <a href="{{ url_for('dashboard') }}#titles" 
+               class="dashboard-tab" 
+               data-tab="titles">
+                🏆 Звания
+            </a>
+            {% endif %}
             <a href="{{ url_for('dashboard') }}#contacts" 
                class="dashboard-tab" 
                data-tab="contacts">
@@ -121,6 +129,47 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Содержимое таба "Звания" -->
+        {% set user_titles = get_user_titles(user.user_id) %}
+        {% if user_titles %}
+        <div class="dashboard-tab-content" data-tab="titles">
+            <div class="profile-info">
+                <table class="titles-table">
+                    <thead>
+                        <tr>
+                            <th>Иконка</th>
+                            <th>Название</th>
+                            <th>Описание</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for title in user_titles %}
+                        <tr>
+                            <td class="title-icon-cell" data-label="Иконка">
+                                <span class="title-icon-large" style="color: {{ title.color }};">
+                                    {% if title.icon %}{{ title.icon }}{% else %}🏆{% endif %}
+                                </span>
+                            </td>
+                            <td class="title-name-cell" data-label="Название">
+                                <span class="title-name" style="color: {{ title.color }};">
+                                    {{ title.display_name }}
+                                </span>
+                            </td>
+                            <td class="title-description-cell" data-label="Описание">
+                                {% if title.description %}
+                                    {{ title.description }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Содержимое таба "Контакты" -->
         <div class="dashboard-tab-content" data-tab="contacts">
