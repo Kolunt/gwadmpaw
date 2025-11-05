@@ -39,9 +39,13 @@
                         {% endif %}
                     </td>
                     <td data-label="Роль">
-                        {% for role in participant.roles.split(', ') %}
-                            <span class="role-badge">{{ role }}</span>
-                        {% endfor %}
+                        {% if participant.roles %}
+                            {% for role in participant.roles.split(', ') %}
+                                <span class="role-badge">{{ role.strip() }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="role-badge">Пользователь</span>
+                        {% endif %}
                     </td>
                     <td data-label="Дата регистрации">
                         {{ participant.created_at or 'N/A' }}

@@ -17,6 +17,21 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['VERSION'] = __version__
 
+# Настройка логирования (должно быть перед использованием log_error)
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Для PythonAnywhere также используем print (видно в error log)
+def log_error(msg):
+    """Логирует ошибку через logger и print для PythonAnywhere"""
+    logger.error(msg)
+    print(msg, flush=True)  # flush=True для немедленного вывода
+
+def log_debug(msg):
+    """Логирует отладочную информацию через logger и print"""
+    logger.debug(msg)
+    print(msg, flush=True)
+
 # Настройка локализации
 app.config['LANGUAGES'] = {
     'ru': 'Русский',
@@ -117,21 +132,6 @@ except Exception as e:
     # Любая другая ошибка при инициализации Babel
     log_error(f"Error initializing Babel: {e}")
     BABEL_AVAILABLE = False
-
-# Настройка логирования
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
-# Для PythonAnywhere также используем print (видно в error log)
-def log_error(msg):
-    """Логирует ошибку через logger и print для PythonAnywhere"""
-    logger.error(msg)
-    print(msg, flush=True)  # flush=True для немедленного вывода
-
-def log_debug(msg):
-    """Логирует отладочную информацию через logger и print"""
-    logger.debug(msg)
-    print(msg, flush=True)
 
 # Константы для GWars авторизации
 GWARS_PASSWORD = "deadmoroz"
@@ -1815,55 +1815,70 @@ def view_profile(user_id):
 @app.route('/participants')
 def participants():
     """Страница со списком участников"""
-    conn = get_db_connection()
-    
-    # Получаем всех пользователей с их ролями
-    users = conn.execute('''
-        SELECT 
-            u.user_id,
-            u.username,
-            u.avatar_seed,
-            u.avatar_style,
-            u.created_at,
-            u.last_login,
-            GROUP_CONCAT(r.display_name, ', ') as roles
-        FROM users u
-        LEFT JOIN user_roles ur ON u.user_id = ur.user_id
-        LEFT JOIN roles r ON ur.role_id = r.id
-        GROUP BY u.user_id
-        ORDER BY u.created_at DESC
-    ''').fetchall()
-    
-    # Для каждого пользователя определяем статус
-    participants_data = []
-    for user in users:
-        # Определяем статус: онлайн (если был вход сегодня) или оффлайн
-        last_login = user['last_login']
-        status = 'Оффлайн'
-        if last_login:
-            try:
-                last_login_date = datetime.strptime(last_login.split('.')[0], '%Y-%m-%d %H:%M:%S')
-                now = datetime.now()
-                if (now - last_login_date).total_seconds() < 3600:  # Меньше часа
-                    status = 'Онлайн'
-                elif (now - last_login_date).days == 0:  # Сегодня
-                    status = 'Был сегодня'
-            except:
-                pass
+    try:
+        conn = get_db_connection()
         
-        participants_data.append({
-            'user_id': user['user_id'],
-            'username': user['username'],
-            'avatar_seed': user['avatar_seed'],
-            'avatar_style': user['avatar_style'],
-            'status': status,
-            'roles': user['roles'] or 'Пользователь',
-            'created_at': user['created_at']
-        })
-    
-    conn.close()
-    
-    return render_template('participants.html', participants=participants_data)
+        # Получаем всех пользователей с их ролями
+        users = conn.execute('''
+            SELECT 
+                u.user_id,
+                u.username,
+                u.avatar_seed,
+                u.avatar_style,
+                u.created_at,
+                u.last_login,
+                GROUP_CONCAT(r.display_name, ', ') as roles
+            FROM users u
+            LEFT JOIN user_roles ur ON u.user_id = ur.user_id
+            LEFT JOIN roles r ON ur.role_id = r.id
+            GROUP BY u.user_id
+            ORDER BY u.created_at DESC
+        ''').fetchall()
+        
+        # Для каждого пользователя определяем статус
+        participants_data = []
+        for user in users:
+            # Определяем статус: онлайн (если был вход сегодня) или оффлайн
+            last_login = user.get('last_login')
+            status = 'Оффлайн'
+            if last_login:
+                try:
+                    # Обрабатываем разные форматы даты
+                    last_login_str = str(last_login).split('.')[0] if '.' in str(last_login) else str(last_login)
+                    last_login_date = datetime.strptime(last_login_str, '%Y-%m-%d %H:%M:%S')
+                    now = datetime.now()
+                    if (now - last_login_date).total_seconds() < 3600:  # Меньше часа
+                        status = 'Онлайн'
+                    elif (now - last_login_date).days == 0:  # Сегодня
+                        status = 'Был сегодня'
+                except Exception as e:
+                    log_debug(f"Error parsing last_login for user {user.get('user_id')}: {e}")
+                    pass
+            
+            # Обрабатываем роли - если их нет, используем 'Пользователь'
+            roles_str = user.get('roles') if user.get('roles') else 'Пользователь'
+            
+            participants_data.append({
+                'user_id': user.get('user_id'),
+                'username': user.get('username') or 'Неизвестно',
+                'avatar_seed': user.get('avatar_seed'),
+                'avatar_style': user.get('avatar_style'),
+                'status': status,
+                'roles': roles_str,
+                'created_at': user.get('created_at') or 'N/A'
+            })
+        
+        conn.close()
+        
+        return render_template('participants.html', 
+                             participants=participants_data,
+                             get_avatar_url=get_avatar_url)
+    except Exception as e:
+        log_error(f"Error in participants route: {e}")
+        import traceback
+        log_error(traceback.format_exc())
+        conn.close()
+        return f"Ошибка при загрузке участников: {str(e)}", 500
 
 @app.route('/logout')
 def logout():
