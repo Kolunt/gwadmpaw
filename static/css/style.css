@@ -1579,7 +1579,8 @@ body {
     font-weight: 500;
 }
 
-.title-badge {
+.title-badge,
+.award-badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
     border-radius: 12px;

@@ -300,6 +300,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS awards (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
+                icon TEXT,
                 image TEXT,
                 sort_order INTEGER DEFAULT 100,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -307,6 +308,13 @@ def init_db():
                 FOREIGN KEY (created_by) REFERENCES users(user_id)
             )
         ''')
+        
+        # Миграция: добавляем поле icon в таблицу awards, если его нет
+        try:
+            c.execute('ALTER TABLE awards ADD COLUMN icon TEXT')
+        except sqlite3.OperationalError:
+            # Колонка уже существует, это нормально
+            pass
         
         # Таблица связи пользователей и наград
         c.execute('''
@@ -3523,6 +3531,7 @@ def admin_award_create():
     
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
+        icon = request.form.get('icon', '').strip()
         sort_order = request.form.get('sort_order', '100').strip()
         image_file = request.files.get('image')
         selected_users = request.form.getlist('users')  # Получаем список выбранных пользователей
@@ -3556,9 +3565,9 @@ def admin_award_create():
         try:
             # Создаем награду
             cursor = conn.execute('''
-                INSERT INTO awards (title, image, sort_order, created_by)
-                VALUES (?, ?, ?, ?)
-            ''', (title, image_path, sort_order, session['user_id']))
+                INSERT INTO awards (title, icon, image, sort_order, created_by)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (title, icon, image_path, sort_order, session['user_id']))
             award_id = cursor.lastrowid
             
             # Присваиваем награду выбранным пользователям
@@ -3598,6 +3607,7 @@ def admin_award_edit(award_id):
     
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
+        icon = request.form.get('icon', '').strip()
         sort_order = request.form.get('sort_order', '100').strip()
         image_file = request.files.get('image')
         delete_image = request.form.get('delete_image', '0')
@@ -3658,9 +3668,9 @@ def admin_award_edit(award_id):
         try:
             # Обновляем награду
             conn.execute('''
-                UPDATE awards SET title = ?, image = ?, sort_order = ?
+                UPDATE awards SET title = ?, icon = ?, image = ?, sort_order = ?
                 WHERE id = ?
-            ''', (title, image_path, sort_order, award_id))
+            ''', (title, icon, image_path, sort_order, award_id))
             
             # Обновляем присвоение наград пользователям
             # Получаем текущих пользователей с наградой

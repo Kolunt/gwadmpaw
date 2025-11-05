@@ -25,6 +25,20 @@
             </div>
             
             <div class="form-group">
+                <label for="icon" class="form-label">Иконка награды</label>
+                <input 
+                    type="text" 
+                    id="icon" 
+                    name="icon" 
+                    class="form-input" 
+                    value="{{ award.icon if award else '🎖️' }}" 
+                    placeholder="🎖️"
+                    maxlength="2"
+                >
+                <small class="form-hint">Эмодзи-иконка для отображения в профиле (например: 🎖️, 🏅, ⭐, 🥇)</small>
+            </div>
+            
+            <div class="form-group">
                 <label for="sort_order" class="form-label">Порядок сортировки</label>
                 <input 
                     type="number" 

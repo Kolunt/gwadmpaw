@@ -21,6 +21,20 @@
                     {% else %}
                         <span class="role-badge">Пользователь</span>
                     {% endif %}
+                    {% if user_titles %}
+                        {% for title in user_titles %}
+                            <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
+                                {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+                            </span>
+                        {% endfor %}
+                    {% endif %}
+                    {% if user_awards %}
+                        {% for award in user_awards %}
+                            <span class="award-badge" style="background-color: var(--accent-color)20; color: var(--accent-color); border-color: var(--accent-color);">
+                                {% if award.icon %}{{ award.icon }} {% else %}🎖️{% endif %} {{ award.title }}
+                            </span>
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -148,8 +162,14 @@
                         <div style="margin-bottom: 1rem;">
                             <img src="{{ award.image }}" alt="{{ award.title }}" style="max-width: 120px; max-height: 120px; width: auto; height: auto; border-radius: 8px;">
                         </div>
+                        {% elif award.icon %}
+                        <div style="margin-bottom: 1rem; font-size: 4rem; line-height: 1;">
+                            {{ award.icon }}
+                        </div>
                         {% endif %}
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">{{ award.title }}</h3>
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">
+                            {% if award.icon and not award.image %}{{ award.icon }} {% endif %}{{ award.title }}
+                        </h3>
                     </div>
                     {% endfor %}
                 </div>
