@@ -13,6 +13,7 @@
         <!-- Табы -->
         <div class="settings-tabs">
             {% for category, settings in settings_by_category.items() %}
+            {% if category != 'design' %}
             <a 
                 href="{{ url_for('admin_settings') }}#{{ category }}"
                 class="settings-tab {% if loop.first %}active{% endif %}"
@@ -24,12 +25,11 @@
                     🔧 Блатные
                 {% elif category == 'integrations' %}
                     🔌 Интеграции
-                {% elif category == 'design' %}
-                    🎨 Дизайн
                 {% else %}
                     📋 Общие
                 {% endif %}
             </a>
+            {% endif %}
             {% endfor %}
             <a 
                 href="{{ url_for('admin_settings') }}#design"
