@@ -87,9 +87,11 @@
                 <div class="info-row">
                     <span class="info-label">Дата регистрации:</span>
                     <span class="info-value">
-                        {% if user.created_at %}
-                            {% set created_date = user.created_at.split(' ')[0] if ' ' in str(user.created_at) else str(user.created_at) %}
-                            {% set created_time = user.created_at.split(' ')[1] if ' ' in str(user.created_at) and len(user.created_at.split(' ')) > 1 else '' %}
+                        {% set created_at_str = user.created_at|string %}
+                        {% if ' ' in created_at_str %}
+                            {% set date_time_parts = created_at_str.split(' ') %}
+                            {% set created_date = date_time_parts[0] %}
+                            {% set created_time = date_time_parts[1] if date_time_parts|length > 1 else '' %}
                             {% if created_date %}
                                 {% set date_parts = created_date.split('-') %}
                                 {% if date_parts|length == 3 %}
@@ -97,6 +99,13 @@
                                 {% else %}
                                     {{ user.created_at }}
                                 {% endif %}
+                            {% else %}
+                                {{ user.created_at }}
+                            {% endif %}
+                        {% else %}
+                            {% set date_parts = created_at_str.split('-') %}
+                            {% if date_parts|length == 3 %}
+                                {{ date_parts[2] }}.{{ date_parts[1] }}.{{ date_parts[0] }}
                             {% else %}
                                 {{ user.created_at }}
                             {% endif %}
