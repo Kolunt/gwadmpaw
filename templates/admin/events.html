@@ -6,7 +6,9 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>Мероприятия</h1>
-        <a href="{{ url_for('admin_event_create') }}" class="btn btn-primary">+ Создать мероприятие</a>
+        <a href="{{ url_for('admin_event_create') }}" class="btn btn-primary" title="Создать мероприятие">
+            <span style="font-size: 1.2em;">➕</span>
+        </a>
     </div>
     
     {% if events %}
@@ -42,10 +44,16 @@
                     </td>
                     <td data-label="Действия">
                         <div class="action-buttons">
-                            <a href="{{ url_for('admin_event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary">Просмотр</a>
-                            <a href="{{ url_for('admin_event_edit', event_id=event.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
+                            <a href="{{ url_for('admin_event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Просмотр">
+                                <span style="font-size: 1.2em;">👁️</span>
+                            </a>
+                            <a href="{{ url_for('admin_event_edit', event_id=event.id) }}" class="btn btn-sm btn-primary" title="Редактировать">
+                                <span style="font-size: 1.2em;">✏️</span>
+                            </a>
                             <form method="POST" action="{{ url_for('admin_event_delete', event_id=event.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это мероприятие?');">
-                                <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                                <button type="submit" class="btn btn-sm btn-danger" title="Удалить">
+                                    <span style="font-size: 1.2em;">🗑️</span>
+                                </button>
                             </form>
                         </div>
                     </td>
@@ -57,7 +65,9 @@
     {% else %}
     <div class="empty-state">
         <p>Мероприятия еще не созданы</p>
-        <a href="{{ url_for('admin_event_create') }}" class="btn btn-primary">Создать первое мероприятие</a>
+        <a href="{{ url_for('admin_event_create') }}" class="btn btn-primary" title="Создать первое мероприятие">
+            <span style="font-size: 1.2em;">➕</span>
+        </a>
     </div>
     {% endif %}
 </div>

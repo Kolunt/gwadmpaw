@@ -38,17 +38,17 @@
             <a href="{{ url_for('dashboard') }}#main" 
                class="dashboard-tab active" 
                data-tab="main">
-                📋 Основное
+                📋 {{ _('Main') }}
             </a>
             <a href="{{ url_for('dashboard') }}#contacts" 
                class="dashboard-tab" 
                data-tab="contacts">
-                📞 Контакты
+                📞 {{ _('Contacts') }}
             </a>
             <a href="{{ url_for('dashboard') }}#about" 
                class="dashboard-tab" 
                data-tab="about">
-                📝 О себе
+                📝 {{ _('About') }}
             </a>
         </div>
 
@@ -56,36 +56,36 @@
         <div class="dashboard-tab-content active" data-tab="main">
             <div class="profile-info">
                 <div class="info-row">
-                    <span class="info-label">ID пользователя:</span>
+                    <span class="info-label">{{ _('User ID:') }}</span>
                     <span class="info-value">{{ user.user_id }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Имя:</span>
+                    <span class="info-label">{{ _('Name:') }}</span>
                     <span class="info-value">{{ user.username }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Уровень:</span>
+                    <span class="info-label">{{ _('Level:') }}</span>
                     <span class="info-value">{{ user.level }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Синдикат:</span>
+                    <span class="info-label">{{ _('Syndicate:') }}</span>
                     <span class="info-value">{{ user.synd }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Пол:</span>
-                    <span class="info-value">{{ user.usersex or 'Не указан' }}</span>
+                    <span class="info-label">{{ _('Gender:') }}</span>
+                    <span class="info-value">{{ user.usersex or _('Not specified') }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Паспорт:</span>
-                    <span class="info-value">{{ 'Есть' if user.has_passport else 'Нет' }}</span>
+                    <span class="info-label">{{ _('Passport:') }}</span>
+                    <span class="info-value">{{ _('Yes') if user.has_passport else _('No') }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Мобильный:</span>
-                    <span class="info-value">{{ 'Есть' if user.has_mobile else 'Нет' }}</span>
+                    <span class="info-label">{{ _('Mobile:') }}</span>
+                    <span class="info-value">{{ _('Yes') if user.has_mobile else _('No') }}</span>
                 </div>
                 {% if user.last_login %}
                 <div class="info-row">
-                    <span class="info-label">Последний вход:</span>
+                    <span class="info-label">{{ _('Last login:') }}</span>
                     <span class="info-value">{{ user.last_login }}</span>
                 </div>
                 {% endif %}
@@ -129,7 +129,7 @@
             </div>
             {% else %}
             <div class="empty-state">
-                <p class="text-muted">Контактная информация не указана</p>
+                <p class="text-muted">{{ _('Contact information not specified') }}</p>
             </div>
             {% endif %}
         </div>
@@ -154,17 +154,17 @@
             </div>
             {% else %}
             <div class="empty-state">
-                <p class="text-muted">Дополнительная информация не указана</p>
+                <p class="text-muted">{{ _('Additional information not specified') }}</p>
             </div>
             {% endif %}
         </div>
 
         <div class="profile-actions">
-            <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Редактировать профиль</a>
+            <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">{{ _('Edit Profile') }}</a>
             {% if 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Админ-панель</a>
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">{{ _('Admin Panel') }}</a>
             {% endif %}
-            <a href="{{ url_for('logout') }}" class="btn btn-secondary">Выйти</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-secondary">{{ _('Logout') }}</a>
         </div>
     </div>
 </div>

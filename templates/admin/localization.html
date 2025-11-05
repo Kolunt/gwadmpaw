@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Локализация - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>🌐 Локализация</h1>
+        <p class="admin-subtitle">Управление языковыми настройками сайта</p>
+    </div>
+
+    {% if not BABEL_AVAILABLE %}
+    <div class="alert alert-warning">
+        <strong>⚠️ Внимание:</strong> Flask-Babel не установлен. Для работы локализации установите зависимости: <code>pip install -r requirements.txt</code>
+    </div>
+    {% endif %}
+
+    <div class="settings-form">
+        <form method="POST" action="{{ url_for('admin_localization') }}">
+            <div class="setting-card">
+                <div class="setting-card-header">
+                    <label for="default_language" class="setting-label">
+                        Язык по умолчанию
+                    </label>
+                    <span class="setting-badge">Основные настройки</span>
+                </div>
+                <div class="setting-card-body">
+                    <small class="setting-hint">Язык интерфейса по умолчанию для всех пользователей</small>
+                    <select 
+                        id="default_language" 
+                        name="default_language" 
+                        class="setting-input"
+                    >
+                        {% for lang_code, lang_name in available_languages.items() %}
+                        <option value="{{ lang_code }}" {% if default_language == lang_code %}selected{% endif %}>
+                            {{ lang_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="setting-card">
+                <div class="setting-card-header">
+                    <label class="setting-label">Текущая локаль</label>
+                    <span class="setting-badge">Информация</span>
+                </div>
+                <div class="setting-card-body">
+                    <p><strong>Активный язык:</strong> 
+                        <span class="badge">{{ available_languages.get(current_locale, current_locale) }}</span>
+                        <code>({{ current_locale }})</code>
+                    </p>
+                    <small class="setting-hint">
+                        Текущий язык определяется в следующем порядке:<br>
+                        1. Язык пользователя в профиле (если авторизован)<br>
+                        2. Язык по умолчанию (настройка выше)<br>
+                        3. Русский (системный)
+                    </small>
+                </div>
+            </div>
+
+            <div class="setting-card">
+                <div class="setting-card-header">
+                    <label class="setting-label">Доступные языки</label>
+                    <span class="setting-badge">Информация</span>
+                </div>
+                <div class="setting-card-body">
+                    <ul class="language-list">
+                        {% for lang_code, lang_name in available_languages.items() %}
+                        <li>
+                            <strong>{{ lang_name }}</strong>
+                            <code>{{ lang_code }}</code>
+                            {% if lang_code == current_locale %}
+                            <span class="badge badge-active">Активен</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <small class="setting-hint">
+                        Для добавления новых языков необходимо обновить конфигурацию в <code>app.py</code> и создать файлы переводов.
+                    </small>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.language-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+
+.language-list li {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.language-list li strong {
+    min-width: 120px;
+}
+
+.language-list li code {
+    background: var(--bg-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.badge-active {
+    background-color: #28a745;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    margin-left: auto;
+}
+
+.alert {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.alert code {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+}
+</style>
+{% endblock %}
+

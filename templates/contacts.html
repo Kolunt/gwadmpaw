@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}Контакты - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="contacts-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Контакты</h1>
+            {% if session.user_id and 'admin' in session.get('roles', []) %}
+            <a href="{{ url_for('admin_contacts') }}" class="btn btn-primary">Управление контактами</a>
+            {% endif %}
+        </div>
+        
+        <!-- Блок администраторов и модераторов -->
+        {% if admins_moderators %}
+        <div class="contacts-section">
+            <h2>👑 Администрация</h2>
+            <div class="contacts-grid">
+                {% for user in admins_moderators %}
+                <div class="contact-card user-contact-card">
+                    <div class="contact-avatar">
+                        {% if user.avatar_seed %}
+                            <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars', 64) }}" alt="{{ user.username }}" class="avatar-medium">
+                        {% else %}
+                            <span class="avatar-placeholder">👤</span>
+                        {% endif %}
+                    </div>
+                    <div class="contact-info">
+                        <h3>
+                            <a href="{{ url_for('view_profile', user_id=user.user_id) }}">{{ user.username }}</a>
+                        </h3>
+                        <div class="contact-badges">
+                            {% for role in user.roles %}
+                                <span class="role-badge">{{ role.display_name }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="contact-details">
+                            {% if user.email %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">📧</span>
+                                <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                            </div>
+                            {% endif %}
+                            {% if user.phone %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">📱</span>
+                                <a href="tel:{{ user.phone|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ user.phone }}</a>
+                            </div>
+                            {% endif %}
+                            {% if user.telegram %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">✈️</span>
+                                <a href="https://t.me/{{ user.telegram|replace('@', '') }}" target="_blank" rel="noopener noreferrer">{{ user.telegram }}</a>
+                            </div>
+                            {% endif %}
+                            {% if user.whatsapp %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">💬</span>
+                                <a href="https://wa.me/{{ user.whatsapp|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank" rel="noopener noreferrer">{{ user.whatsapp }}</a>
+                            </div>
+                            {% endif %}
+                            {% if user.viber %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">💜</span>
+                                <a href="viber://chat?number={{ user.viber|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank" rel="noopener noreferrer">{{ user.viber }}</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Блок пользователей со званиями -->
+        {% if users_with_titles %}
+        <div class="contacts-section">
+            <h2>🏆 Обладатели званий</h2>
+            <div class="contacts-grid">
+                {% for user in users_with_titles %}
+                <div class="contact-card user-contact-card">
+                    <div class="contact-avatar">
+                        {% if user.avatar_seed %}
+                            <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars', 64) }}" alt="{{ user.username }}" class="avatar-medium">
+                        {% else %}
+                            <span class="avatar-placeholder">👤</span>
+                        {% endif %}
+                    </div>
+                    <div class="contact-info">
+                        <h3>
+                            <a href="{{ url_for('view_profile', user_id=user.user_id) }}">{{ user.username }}</a>
+                        </h3>
+                        <div class="contact-badges">
+                            {% for title in user.titles %}
+                                <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
+                                    {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                        <div class="contact-details">
+                            {% if user.email %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">📧</span>
+                                <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                            </div>
+                            {% endif %}
+                            {% if user.phone %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">📱</span>
+                                <a href="tel:{{ user.phone|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ user.phone }}</a>
+                            </div>
+                            {% endif %}
+                            {% if user.telegram %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">✈️</span>
+                                <a href="https://t.me/{{ user.telegram|replace('@', '') }}" target="_blank" rel="noopener noreferrer">{{ user.telegram }}</a>
+                            </div>
+                            {% endif %}
+                            {% if user.whatsapp %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">💬</span>
+                                <a href="https://wa.me/{{ user.whatsapp|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank" rel="noopener noreferrer">{{ user.whatsapp }}</a>
+                            </div>
+                            {% endif %}
+                            {% if user.viber %}
+                            <div class="contact-detail-item">
+                                <span class="contact-detail-icon">💜</span>
+                                <a href="viber://chat?number={{ user.viber|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank" rel="noopener noreferrer">{{ user.viber }}</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if not admins_moderators and not users_with_titles %}
+        <div class="empty-state">
+            <p>Контакты пока не добавлены</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.contacts-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.contacts-section {
+    margin-bottom: 3rem;
+}
+
+.contacts-section h2 {
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.contacts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.user-contact-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-contact-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.contact-avatar {
+    flex-shrink: 0;
+}
+
+.contact-avatar img {
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+}
+
+.avatar-placeholder {
+    display: inline-block;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    text-align: center;
+    line-height: 64px;
+    font-size: 2rem;
+}
+
+.contact-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.contact-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.contact-info h3 a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.contact-info h3 a:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+.contact-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.role-badge, .title-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.role-badge {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.contact-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.contact-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.contact-detail-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.contact-detail-item a {
+    color: var(--accent-color);
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.contact-detail-item a:hover {
+    text-decoration: underline;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .contacts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .contacts-container {
+        padding: 1rem;
+    }
+    
+    .user-contact-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .contact-info {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
+

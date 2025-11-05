@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}{% if contact %}Редактирование контакта{% else %}Создание контакта{% endif %} - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>{% if contact %}Редактирование контакта{% else %}Создание контакта{% endif %}</h1>
+        <a href="{{ url_for('admin_contacts') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+    
+    <form method="POST" class="form-container">
+        <div class="form-group">
+            <label for="name" class="form-label">Название *</label>
+            <input type="text" id="name" name="name" class="form-input" value="{{ contact.name if contact else '' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="type" class="form-label">Тип контакта *</label>
+            <select id="type" name="type" class="form-input" required>
+                <option value="email" {% if contact and contact.type == 'email' %}selected{% endif %}>Email</option>
+                <option value="phone" {% if contact and contact.type == 'phone' %}selected{% endif %}>Телефон</option>
+                <option value="telegram" {% if contact and contact.type == 'telegram' %}selected{% endif %}>Telegram</option>
+                <option value="whatsapp" {% if contact and contact.type == 'whatsapp' %}selected{% endif %}>WhatsApp</option>
+                <option value="viber" {% if contact and contact.type == 'viber' %}selected{% endif %}>Viber</option>
+                <option value="social" {% if contact and contact.type == 'social' %}selected{% endif %}>Социальные сети</option>
+                <option value="other" {% if contact and contact.type == 'other' or not contact %}selected{% endif %}>Прочее</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="value" class="form-label">Значение *</label>
+            <input type="text" id="value" name="value" class="form-input" value="{{ contact.value if contact else '' }}" required>
+            <small class="form-hint">Email, телефон, ссылка или username в зависимости от типа</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="icon" class="form-label">Иконка</label>
+            <input type="text" id="icon" name="icon" class="form-input" value="{{ contact.icon if contact else '' }}" placeholder="📞">
+            <small class="form-hint">Эмодзи или символ для отображения иконки</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="description" class="form-label">Описание</label>
+            <textarea id="description" name="description" class="form-textarea" rows="3">{{ contact.description if contact else '' }}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="sort_order" class="form-label">Порядок сортировки</label>
+            <input type="number" id="sort_order" name="sort_order" class="form-input" value="{{ contact.sort_order if contact else 100 }}" min="0">
+            <small class="form-hint">Чем меньше число, тем выше в списке (по умолчанию: 100)</small>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">
+                <input type="checkbox" id="is_active" name="is_active" value="1" {% if contact and contact.is_active or not contact %}checked{% endif %}>
+                Активен (отображается на странице контактов)
+            </label>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <a href="{{ url_for('admin_contacts') }}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

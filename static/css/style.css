@@ -2395,11 +2395,56 @@ body {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .btn-sm {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
+}
+
+/* Стили для кнопок с иконками */
+.action-buttons .btn-sm {
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.action-buttons .btn-sm span {
+    display: inline-block;
+    line-height: 1;
+}
+
+.admin-header .btn {
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-header .btn span {
+    display: inline-block;
+    line-height: 1;
+}
+
+.empty-state .btn {
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-state .btn span {
+    display: inline-block;
+    line-height: 1;
 }
 
 .btn-danger {

@@ -17,6 +17,138 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['VERSION'] = __version__
 
+# Настройка локализации
+app.config['LANGUAGES'] = {
+    'ru': 'Русский',
+    'en': 'English'
+}
+app.config['BABEL_DEFAULT_LOCALE'] = 'ru'
+app.config['BABEL_DEFAULT_TIMEZONE'] = 'Europe/Moscow'
+app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
+# Отключаем автоматическое определение языка из Accept-Language заголовка
+app.config['BABEL_DEFAULT_LOCALE_DETECT'] = False
+
+try:
+    from flask_babel import Babel, gettext, format_date, format_datetime
+    babel = Babel(app)
+    BABEL_AVAILABLE = True
+    
+    @babel.localeselector
+    def get_locale():
+        """Определяет текущую локаль из настроек. Всегда возвращает русский для неавторизованных пользователей."""
+        # Если пользователь авторизован, проверяем его настройку языка
+        if 'user_id' in session:
+            try:
+                conn = get_db_connection()
+                user = conn.execute('SELECT language FROM users WHERE user_id = ?', (session['user_id'],)).fetchone()
+                conn.close()
+                if user and user.get('language') and user['language'] in app.config['LANGUAGES']:
+                    return user['language']
+            except Exception as e:
+                log_error(f"Error getting user language: {e}")
+        
+        # Для неавторизованных пользователей всегда используем русский
+        # (игнорируем Accept-Language заголовок браузера)
+        return 'ru'
+    
+    # Словарь русских переводов для fallback
+    _russian_translations = {
+        'Home': 'Главная',
+        'Events': 'Мероприятия',
+        'Participants': 'Участники',
+        'FAQ': 'FAQ',
+        'Admin Panel': 'Админ-панель',
+        'Users': 'Пользователи',
+        'Roles': 'Роли',
+        'Titles': 'Звания',
+        'Settings': 'Настройки',
+        'Localization': 'Локализация',
+        'Profile': 'Профиль',
+        'Logout': 'Выйти',
+        'Login via GWars': 'Войти через GWars',
+        'Edit Profile': 'Редактировать профиль',
+        'Main': 'Основное',
+        'Contacts': 'Контакты',
+        'About': 'О себе',
+        'User Profile': 'Профиль пользователя',
+        'User ID:': 'ID пользователя:',
+        'Name:': 'Имя:',
+        'Level:': 'Уровень:',
+        'Syndicate:': 'Синдикат:',
+        'Gender:': 'Пол:',
+        'Passport:': 'Паспорт:',
+        'Mobile:': 'Мобильный:',
+        'Last login:': 'Последний вход:',
+        'Yes': 'Есть',
+        'No': 'Нет',
+        'Not specified': 'Не указан',
+        'Contact information not specified': 'Контактная информация не указана',
+        'Additional information not specified': 'Дополнительная информация не указана',
+        'Toggle theme': 'Переключить тему',
+    }
+    
+    # Создаем функцию _ с fallback на русские переводы
+    def _(text):
+        """Функция перевода с fallback на русский"""
+        # Если локаль русская, всегда используем русские переводы из словаря
+        if get_locale() == 'ru':
+            return _russian_translations.get(text, text)
+        
+        # Для других локалей используем Flask-Babel
+        try:
+            translated = gettext(text)
+            return translated
+        except Exception as e:
+            log_error(f"Translation error: {e}")
+            return text
+    
+except ImportError:
+    # Fallback если Flask-Babel не установлен
+    BABEL_AVAILABLE = False
+    def _(text):
+        # Возвращаем русские переводы напрямую, если Flask-Babel не установлен
+        translations = {
+            'Home': 'Главная',
+            'Events': 'Мероприятия',
+            'Participants': 'Участники',
+            'FAQ': 'FAQ',
+            'Admin Panel': 'Админ-панель',
+            'Users': 'Пользователи',
+            'Roles': 'Роли',
+            'Titles': 'Звания',
+            'Settings': 'Настройки',
+            'Localization': 'Локализация',
+            'Profile': 'Профиль',
+            'Logout': 'Выйти',
+            'Login via GWars': 'Войти через GWars',
+            'Edit Profile': 'Редактировать профиль',
+            'Main': 'Основное',
+            'Contacts': 'Контакты',
+            'About': 'О себе',
+            'User Profile': 'Профиль пользователя',
+            'User ID:': 'ID пользователя:',
+            'Name:': 'Имя:',
+            'Level:': 'Уровень:',
+            'Syndicate:': 'Синдикат:',
+            'Gender:': 'Пол:',
+            'Passport:': 'Паспорт:',
+            'Mobile:': 'Мобильный:',
+            'Last login:': 'Последний вход:',
+            'Yes': 'Есть',
+            'No': 'Нет',
+            'Not specified': 'Не указан',
+            'Contact information not specified': 'Контактная информация не указана',
+            'Additional information not specified': 'Дополнительная информация не указана',
+            'Toggle theme': 'Переключить тему',
+        }
+        return translations.get(text, text)
+    def get_locale():
+        return 'ru'
+    def format_date(date, format=None):
+        return str(date)
+    def format_datetime(datetime, format=None):
+        return str(datetime)
+
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -93,6 +225,13 @@ def init_db():
         # Добавляем колонку avatar_seed если её нет (миграция для существующих БД)
         try:
             c.execute('ALTER TABLE users ADD COLUMN avatar_seed TEXT')
+        except sqlite3.OperationalError:
+            # Колонка уже существует, это нормально
+            pass
+        
+        # Добавляем колонку language если её нет (миграция)
+        try:
+            c.execute('ALTER TABLE users ADD COLUMN language TEXT')
         except sqlite3.OperationalError:
             # Колонка уже существует, это нормально
             pass
@@ -297,6 +436,26 @@ def init_db():
             )
         ''')
         
+        # Таблица контактов
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS contacts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                type TEXT NOT NULL,
+                value TEXT NOT NULL,
+                icon TEXT,
+                description TEXT,
+                sort_order INTEGER DEFAULT 100,
+                is_active INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP,
+                created_by INTEGER,
+                updated_by INTEGER,
+                FOREIGN KEY (created_by) REFERENCES users(user_id),
+                FOREIGN KEY (updated_by) REFERENCES users(user_id)
+            )
+        ''')
+        
         # Таблица FAQ
         c.execute('''
             CREATE TABLE IF NOT EXISTS faq_items (
@@ -339,7 +498,7 @@ def init_db():
             ('site_title', 'Анонимные Деды Морозы', 'Заголовок сайта (title)', 'general'),
             ('site_description', 'Проект для организации анонимных подарков', 'Описание сайта (meta description)', 'general'),
             ('logo_text', 'Анонимные Деды Морозы', 'Надпись рядом с логотипом', 'general'),
-            ('default_theme', 'light', 'Тема по умолчанию (light или dark)', 'general'),
+            ('default_theme', 'dark', 'Тема по умолчанию (light или dark)', 'general'),
             ('site_icon', '🎅', 'Иконка сайта (favicon)', 'general'),
             ('site_logo', '🎅', 'Логотип сайта', 'general'),
             # Настройки интеграций
@@ -359,6 +518,30 @@ def init_db():
                 c.execute('''
                     UPDATE settings SET value = ? WHERE key = ? AND (value = '' OR value IS NULL)
                 ''', (value, key))
+        
+        # Обновляем настройки для всех пользователей: темная тема и русский язык по умолчанию
+        try:
+            # Устанавливаем default_theme на 'dark', если она 'light'
+            c.execute('''
+                UPDATE settings 
+                SET value = 'dark' 
+                WHERE key = 'default_theme' AND value = 'light'
+            ''')
+            # Устанавливаем default_language на 'ru', если не установлен
+            c.execute('''
+                UPDATE settings 
+                SET value = 'ru' 
+                WHERE key = 'default_language' AND (value IS NULL OR value = '' OR value != 'ru')
+            ''')
+            # Устанавливаем русский язык всем пользователям, у которых язык не установлен
+            c.execute('''
+                UPDATE users 
+                SET language = 'ru' 
+                WHERE language IS NULL OR language = ''
+            ''')
+        except sqlite3.OperationalError as e:
+            # Игнорируем ошибки миграции
+            log_error(f"Migration error (non-critical): {e}")
         
         # Создаем системные роли, если их еще нет
         system_roles = [
@@ -874,7 +1057,7 @@ def verify_sign4(sign3, sign4):
 @app.context_processor
 def inject_default_theme():
     """Добавляет настройку темы по умолчанию и функции во все шаблоны"""
-    default_theme = get_setting('default_theme', 'light')
+    default_theme = get_setting('default_theme', 'dark')
     # Получаем аватар текущего пользователя для хэдера
     current_user_avatar_seed = None
     current_user_avatar_style = None
@@ -885,6 +1068,11 @@ def inject_default_theme():
             current_user_avatar_seed = user['avatar_seed']
             current_user_avatar_style = user['avatar_style']
         conn.close()
+    
+    # Получаем текущую локаль
+    current_locale = get_locale() if BABEL_AVAILABLE else 'ru'
+    available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
+    
     return dict(
         default_theme=default_theme, 
         get_avatar_url=get_avatar_url,
@@ -892,7 +1080,10 @@ def inject_default_theme():
         current_user_avatar_style=current_user_avatar_style,
         get_role_permissions=get_role_permissions,
         get_setting=get_setting,
-        get_user_titles=get_user_titles
+        get_user_titles=get_user_titles,
+        _=_,
+        current_locale=current_locale,
+        available_languages=available_languages
     )
 
 @app.route('/')
@@ -2537,9 +2728,11 @@ def admin_settings():
         conn.close()
         return redirect(url_for('admin_settings'))
     
-    # Получаем все настройки, сгруппированные по категориям
+    # Получаем все настройки, сгруппированные по категориям (исключаем default_language)
     settings = conn.execute('''
-        SELECT * FROM settings ORDER BY category, key
+        SELECT * FROM settings 
+        WHERE key != 'default_language'
+        ORDER BY category, key
     ''').fetchall()
     
     # Группируем по категориям
@@ -2593,6 +2786,38 @@ def verify_dadata_api(api_key, secret_key):
         return False, "Ошибка подключения к Dadata API. Проверьте интернет-соединение"
     except Exception as e:
         return False, f"Ошибка при проверке: {str(e)}"
+
+@app.route('/admin/localization', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_localization():
+    """Страница управления локализацией"""
+    conn = get_db_connection()
+    
+    if request.method == 'POST':
+        # Обновляем настройку языка по умолчанию
+        default_language = request.form.get('default_language', 'ru').strip()
+        if default_language in app.config['LANGUAGES']:
+            set_setting('default_language', default_language, 'Язык по умолчанию (ru или en)', 'general')
+            flash('Настройки локализации успешно сохранены', 'success')
+        else:
+            flash('Неверный язык', 'error')
+    
+    # Получаем текущую настройку языка
+    default_language = get_setting('default_language', 'ru')
+    
+    # Получаем список доступных языков
+    available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
+    
+    # Получаем текущую локаль
+    current_locale = get_locale() if BABEL_AVAILABLE else 'ru'
+    
+    conn.close()
+    
+    return render_template('admin/localization.html',
+                         default_language=default_language,
+                         available_languages=available_languages,
+                         current_locale=current_locale,
+                         BABEL_AVAILABLE=BABEL_AVAILABLE)
 
 @app.route('/admin/settings/verify-dadata', methods=['POST'])
 @require_role('admin')
@@ -3071,6 +3296,190 @@ def faq():
     """Страница с часто задаваемыми вопросами (всегда показывает статический контент)"""
     # Всегда используем статический контент (дефолтный)
     return render_template('faq.html', faq_by_category=None)
+
+@app.route('/contacts')
+def contacts():
+    """Страница контактов - показывает администраторов/модераторов и пользователей со званиями"""
+    conn = get_db_connection()
+    
+    # Получаем пользователей с ролями администратора или модератора
+    admins_moderators = conn.execute('''
+        SELECT DISTINCT u.*, 
+               GROUP_CONCAT(DISTINCT r.name) as roles_list
+        FROM users u
+        INNER JOIN user_roles ur ON u.user_id = ur.user_id
+        INNER JOIN roles r ON ur.role_id = r.id
+        WHERE r.name IN ('admin', 'moderator')
+        GROUP BY u.user_id
+        ORDER BY 
+            CASE WHEN r.name = 'admin' THEN 1 ELSE 2 END,
+            u.username
+    ''').fetchall()
+    
+    # Получаем пользователей со званиями
+    users_with_titles = conn.execute('''
+        SELECT DISTINCT u.*
+        FROM users u
+        INNER JOIN user_titles ut ON u.user_id = ut.user_id
+        WHERE u.user_id NOT IN (
+            SELECT DISTINCT u2.user_id
+            FROM users u2
+            INNER JOIN user_roles ur2 ON u2.user_id = ur2.user_id
+            INNER JOIN roles r2 ON ur2.role_id = r2.id
+            WHERE r2.name IN ('admin', 'moderator')
+        )
+        GROUP BY u.user_id
+        ORDER BY u.username
+    ''').fetchall()
+    
+    # Получаем звания для пользователей со званиями
+    users_with_titles_data = []
+    for user in users_with_titles:
+        user_dict = dict(user)
+        user_titles = get_user_titles(user['user_id'])
+        user_dict['titles'] = user_titles
+        users_with_titles_data.append(user_dict)
+    
+    # Получаем роли для администраторов/модераторов
+    admins_moderators_data = []
+    for user in admins_moderators:
+        user_dict = dict(user)
+        user_roles = get_user_roles(user['user_id'])
+        user_dict['roles'] = user_roles
+        admins_moderators_data.append(user_dict)
+    
+    conn.close()
+    
+    return render_template('contacts.html', 
+                         admins_moderators=admins_moderators_data,
+                         users_with_titles=users_with_titles_data)
+
+@app.route('/admin/contacts')
+@require_role('admin')
+def admin_contacts():
+    """Список контактов"""
+    conn = get_db_connection()
+    contacts_list = conn.execute('''
+        SELECT c.*, u1.username as creator_name, u2.username as updater_name
+        FROM contacts c
+        LEFT JOIN users u1 ON c.created_by = u1.user_id
+        LEFT JOIN users u2 ON c.updated_by = u2.user_id
+        ORDER BY c.sort_order, c.name
+    ''').fetchall()
+    conn.close()
+    return render_template('admin/contacts.html', contacts=contacts_list)
+
+@app.route('/admin/contacts/create', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_contact_create():
+    """Создание контакта"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        contact_type = request.form.get('type', 'other').strip()
+        value = request.form.get('value', '').strip()
+        icon = request.form.get('icon', '').strip()
+        description = request.form.get('description', '').strip()
+        sort_order = request.form.get('sort_order', '100')
+        is_active = request.form.get('is_active', '0')
+        
+        if not name or not value:
+            flash('Название и значение контакта обязательны', 'error')
+            return render_template('admin/contact_form.html', contact=None)
+        
+        try:
+            sort_order = int(sort_order)
+        except ValueError:
+            sort_order = 100
+        
+        conn = get_db_connection()
+        try:
+            conn.execute('''
+                INSERT INTO contacts (name, type, value, icon, description, sort_order, is_active, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (name, contact_type, value, icon, description, sort_order, 1 if is_active else 0, session.get('user_id')))
+            conn.commit()
+            flash('Контакт успешно создан', 'success')
+            conn.close()
+            return redirect(url_for('admin_contacts'))
+        except Exception as e:
+            log_error(f"Error creating contact: {e}")
+            flash(f'Ошибка создания контакта: {str(e)}', 'error')
+            conn.close()
+    
+    return render_template('admin/contact_form.html', contact=None)
+
+@app.route('/admin/contacts/<int:contact_id>/edit', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_contact_edit(contact_id):
+    """Редактирование контакта"""
+    conn = get_db_connection()
+    contact = conn.execute('SELECT * FROM contacts WHERE id = ?', (contact_id,)).fetchone()
+    
+    if not contact:
+        flash('Контакт не найден', 'error')
+        conn.close()
+        return redirect(url_for('admin_contacts'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        contact_type = request.form.get('type', 'other').strip()
+        value = request.form.get('value', '').strip()
+        icon = request.form.get('icon', '').strip()
+        description = request.form.get('description', '').strip()
+        sort_order = request.form.get('sort_order', '100')
+        is_active = request.form.get('is_active', '0')
+        
+        if not name or not value:
+            flash('Название и значение контакта обязательны', 'error')
+            conn.close()
+            return render_template('admin/contact_form.html', contact=dict(contact))
+        
+        try:
+            sort_order = int(sort_order)
+        except ValueError:
+            sort_order = 100
+        
+        try:
+            conn.execute('''
+                UPDATE contacts 
+                SET name = ?, type = ?, value = ?, icon = ?, description = ?, 
+                    sort_order = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
+                WHERE id = ?
+            ''', (name, contact_type, value, icon, description, sort_order, 1 if is_active else 0, session.get('user_id'), contact_id))
+            conn.commit()
+            flash('Контакт успешно обновлен', 'success')
+            conn.close()
+            return redirect(url_for('admin_contacts'))
+        except Exception as e:
+            log_error(f"Error updating contact: {e}")
+            flash(f'Ошибка обновления контакта: {str(e)}', 'error')
+            conn.close()
+    
+    conn.close()
+    return render_template('admin/contact_form.html', contact=dict(contact))
+
+@app.route('/admin/contacts/<int:contact_id>/delete', methods=['POST'])
+@require_role('admin')
+def admin_contact_delete(contact_id):
+    """Удаление контакта"""
+    conn = get_db_connection()
+    contact = conn.execute('SELECT * FROM contacts WHERE id = ?', (contact_id,)).fetchone()
+    
+    if not contact:
+        flash('Контакт не найден', 'error')
+        conn.close()
+        return redirect(url_for('admin_contacts'))
+    
+    try:
+        conn.execute('DELETE FROM contacts WHERE id = ?', (contact_id,))
+        conn.commit()
+        flash('Контакт успешно удален', 'success')
+    except Exception as e:
+        log_error(f"Error deleting contact: {e}")
+        flash(f'Ошибка удаления контакта: {str(e)}', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_contacts'))
 
 @app.route('/admin/events')
 @require_role('admin')

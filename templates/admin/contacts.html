@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Управление контактами - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Управление контактами</h1>
+        <a href="{{ url_for('admin_contact_create') }}" class="btn btn-primary" title="Создать контакт">
+            <span style="font-size: 1.2em;">➕</span>
+        </a>
+    </div>
+    
+    {% if contacts %}
+    <div class="table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Тип</th>
+                    <th>Значение</th>
+                    <th>Иконка</th>
+                    <th>Порядок</th>
+                    <th>Активен</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contact in contacts %}
+                <tr>
+                    <td data-label="Название">
+                        <strong>{{ contact.name }}</strong>
+                    </td>
+                    <td data-label="Тип">
+                        {% if contact.type == 'email' %}Email
+                        {% elif contact.type == 'phone' %}Телефон
+                        {% elif contact.type == 'telegram' %}Telegram
+                        {% elif contact.type == 'whatsapp' %}WhatsApp
+                        {% elif contact.type == 'viber' %}Viber
+                        {% elif contact.type == 'social' %}Социальные сети
+                        {% else %}Прочее
+                        {% endif %}
+                    </td>
+                    <td data-label="Значение">
+                        {{ contact.value }}
+                    </td>
+                    <td data-label="Иконка">
+                        {{ contact.icon or '—' }}
+                    </td>
+                    <td data-label="Порядок">
+                        {{ contact.sort_order }}
+                    </td>
+                    <td data-label="Активен">
+                        {% if contact.is_active %}
+                            <span class="badge badge-success">Да</span>
+                        {% else %}
+                            <span class="badge badge-secondary">Нет</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Действия">
+                        <div class="action-buttons">
+                            <a href="{{ url_for('admin_contact_edit', contact_id=contact.id) }}" class="btn btn-sm btn-primary" title="Редактировать">
+                                <span style="font-size: 1.2em;">✏️</span>
+                            </a>
+                            <form method="POST" action="{{ url_for('admin_contact_delete', contact_id=contact.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот контакт?');">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Удалить">
+                                    <span style="font-size: 1.2em;">🗑️</span>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>Контакты еще не созданы</p>
+        <a href="{{ url_for('admin_contact_create') }}" class="btn btn-primary" title="Создать первый контакт">
+            <span style="font-size: 1.2em;">➕</span>
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

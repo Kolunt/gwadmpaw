@@ -28,14 +28,14 @@
                 var savedTheme = localStorage.getItem('theme');
                 
                 // Если тема не сохранена, используем настройку по умолчанию с сервера
-                var defaultTheme = '{{ default_theme }}' || 'light';
+                var defaultTheme = '{{ default_theme }}' || 'dark';
                 var theme = savedTheme || defaultTheme;
                 
                 // Применяем тему сразу
                 document.documentElement.setAttribute('data-theme', theme);
             } catch(e) {
-                // Если произошла ошибка, используем светлую тему
-                document.documentElement.setAttribute('data-theme', 'light');
+                // Если произошла ошибка, используем темную тему
+                document.documentElement.setAttribute('data-theme', 'dark');
             }
         })();
     </script>
@@ -67,23 +67,23 @@
             </div>
             <div class="navbar-actions">
                 {% if not session.user_id %}
-                <a href="{{ url_for('login') }}" class="navbar-icon-btn navbar-gwars-btn" title="Войти через GWars" aria-label="Войти через GWars">
+                <a href="{{ url_for('login') }}" class="navbar-icon-btn navbar-gwars-btn" title="{{ _('Login via GWars') }}" aria-label="{{ _('Login via GWars') }}">
                     <img src="https://www.gwars.io/favicon.ico" alt="GWars" class="navbar-gwars-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
                     <span class="navbar-icon" style="display: none;">⚔️</span>
                 </a>
                 {% endif %}
-                <button id="theme-toggle" class="navbar-icon-btn" title="Переключить тему" aria-label="Переключить тему">
+                <button id="theme-toggle" class="navbar-icon-btn" title="{{ _('Toggle theme') }}" aria-label="{{ _('Toggle theme') }}">
                     <span class="navbar-icon theme-icon">🌙</span>
                 </button>
                 {% if session.user_id %}
-                <a href="{{ url_for('dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="Профиль">
+                <a href="{{ url_for('dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="{{ _('Profile') }}">
                     {% if current_user_avatar_seed %}
                         <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="Аватар" class="navbar-avatar">
                     {% else %}
                         <span class="navbar-icon">👤</span>
                     {% endif %}
                 </a>
-                <a href="{{ url_for('logout') }}" class="navbar-icon-btn" title="Выход">
+                <a href="{{ url_for('logout') }}" class="navbar-icon-btn" title="{{ _('Logout') }}">
                     <span class="navbar-icon">🚪</span>
                 </a>
                 {% endif %}
@@ -106,49 +106,61 @@
             <div class="sidebar-section">
                 <a href="{{ url_for('index') }}" class="sidebar-link">
                     <span class="sidebar-icon">🏠</span>
-                    <span>Главная</span>
+                    <span>{{ _('Home') }}</span>
                 </a>
                 <a href="{{ url_for('events') }}" class="sidebar-link">
                     <span class="sidebar-icon">🎉</span>
-                    <span>Мероприятия</span>
+                    <span>{{ _('Events') }}</span>
                 </a>
                 <a href="{{ url_for('participants') }}" class="sidebar-link">
                     <span class="sidebar-icon">👥</span>
-                    <span>Участники</span>
+                    <span>{{ _('Participants') }}</span>
                 </a>
                 <a href="{{ url_for('faq') }}" class="sidebar-link">
                     <span class="sidebar-icon">❓</span>
-                    <span>FAQ</span>
+                    <span>{{ _('FAQ') }}</span>
+                </a>
+                <a href="{{ url_for('contacts') }}" class="sidebar-link">
+                    <span class="sidebar-icon">📞</span>
+                    <span>{{ _('Contacts') }}</span>
                 </a>
             </div>
             
             <!-- Админ-панель (только для администраторов) -->
             {% if 'admin' in session.get('roles', []) %}
             <div class="sidebar-section sidebar-section-admin">
-                <div class="sidebar-section-title">Админ-панель</div>
+                <div class="sidebar-section-title">{{ _('Admin Panel') }}</div>
                 <a href="{{ url_for('admin_users') }}" class="sidebar-link">
                     <span class="sidebar-icon">👥</span>
-                    <span>Пользователи</span>
+                    <span>{{ _('Users') }}</span>
                 </a>
                 <a href="{{ url_for('admin_roles') }}" class="sidebar-link">
                     <span class="sidebar-icon">🔐</span>
-                    <span>Роли</span>
+                    <span>{{ _('Roles') }}</span>
                 </a>
                 <a href="{{ url_for('admin_titles') }}" class="sidebar-link">
                     <span class="sidebar-icon">🏆</span>
-                    <span>Звания</span>
+                    <span>{{ _('Titles') }}</span>
                 </a>
                 <a href="{{ url_for('admin_settings') }}" class="sidebar-link">
                     <span class="sidebar-icon">⚙️</span>
-                    <span>Настройки</span>
+                    <span>{{ _('Settings') }}</span>
+                </a>
+                <a href="{{ url_for('admin_localization') }}" class="sidebar-link">
+                    <span class="sidebar-icon">🌐</span>
+                    <span>{{ _('Localization') }}</span>
                 </a>
                 <a href="{{ url_for('admin_events') }}" class="sidebar-link">
                     <span class="sidebar-icon">🎉</span>
-                    <span>Мероприятия</span>
+                    <span>{{ _('Events') }}</span>
                 </a>
                 <a href="{{ url_for('admin_faq') }}" class="sidebar-link">
                     <span class="sidebar-icon">❓</span>
-                    <span>FAQ</span>
+                    <span>{{ _('FAQ') }}</span>
+                </a>
+                <a href="{{ url_for('admin_contacts') }}" class="sidebar-link">
+                    <span class="sidebar-icon">📞</span>
+                    <span>{{ _('Contacts') }}</span>
                 </a>
             </div>
             {% endif %}
