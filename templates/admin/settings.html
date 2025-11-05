@@ -269,7 +269,7 @@
                 {% set accent_color_hover_dark = settings_dict.get('accent_color_hover_dark', {}) %}
                 
                 <div class="settings-grid">
-                    <div class="setting-card">
+                    <div class="setting-card color-picker-card">
                         <div class="setting-card-header">
                             <label for="setting_accent_color" class="setting-label">
                                 Основной цвет (светлая тема)
@@ -278,21 +278,41 @@
                         </div>
                         <div class="setting-card-body">
                             <small class="setting-hint">Основной цвет интерфейса для светлой темы</small>
-                            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                            
+                            <!-- Превью цвета -->
+                            <div class="color-preview" id="preview_accent_color" style="background-color: {{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }};">
+                                <span class="color-preview-text">{{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }}</span>
+                            </div>
+                            
+                            <!-- Палитра предустановленных цветов -->
+                            <div class="color-palette">
+                                <div class="color-palette-title">Популярные цвета:</div>
+                                <div class="color-palette-grid" data-target="setting_accent_color">
+                                    <div class="color-palette-item" data-color="#007bff" style="background-color: #007bff;" title="Синий (Blue)"></div>
+                                    <div class="color-palette-item" data-color="#28a745" style="background-color: #28a745;" title="Зеленый (Green)"></div>
+                                    <div class="color-palette-item" data-color="#dc3545" style="background-color: #dc3545;" title="Красный (Red)"></div>
+                                    <div class="color-palette-item" data-color="#ffc107" style="background-color: #ffc107;" title="Желтый (Yellow)"></div>
+                                    <div class="color-palette-item" data-color="#17a2b8" style="background-color: #17a2b8;" title="Голубой (Cyan)"></div>
+                                    <div class="color-palette-item" data-color="#6f42c1" style="background-color: #6f42c1;" title="Фиолетовый (Purple)"></div>
+                                    <div class="color-palette-item" data-color="#e83e8c" style="background-color: #e83e8c;" title="Розовый (Pink)"></div>
+                                    <div class="color-palette-item" data-color="#fd7e14" style="background-color: #fd7e14;" title="Оранжевый (Orange)"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Поля ввода -->
+                            <div class="color-input-group">
                                 <input 
                                     type="color" 
                                     id="setting_accent_color" 
                                     value="{{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }}"
-                                    class="setting-input"
-                                    style="width: 80px; height: 40px; cursor: pointer;"
+                                    class="setting-input color-picker-input"
                                 >
                                 <input 
                                     type="text" 
                                     id="setting_accent_color_text" 
                                     name="setting_accent_color"
                                     value="{{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }}"
-                                    class="setting-input"
-                                    style="flex: 1;"
+                                    class="setting-input color-text-input"
                                     placeholder="#007bff"
                                     pattern="^#[0-9A-Fa-f]{6}$"
                                 >
@@ -300,7 +320,7 @@
                         </div>
                     </div>
                     
-                    <div class="setting-card">
+                    <div class="setting-card color-picker-card">
                         <div class="setting-card-header">
                             <label for="setting_accent_color_hover" class="setting-label">
                                 Цвет при наведении (светлая тема)
@@ -309,21 +329,41 @@
                         </div>
                         <div class="setting-card-body">
                             <small class="setting-hint">Цвет кнопок и ссылок при наведении (светлая тема)</small>
-                            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                            
+                            <!-- Превью цвета -->
+                            <div class="color-preview" id="preview_accent_color_hover" style="background-color: {{ accent_color_hover.get('value', '#0056b3') if accent_color_hover else '#0056b3' }};">
+                                <span class="color-preview-text">{{ accent_color_hover.get('value', '#0056b3') if accent_color_hover else '#0056b3' }}</span>
+                            </div>
+                            
+                            <!-- Палитра предустановленных цветов -->
+                            <div class="color-palette">
+                                <div class="color-palette-title">Популярные цвета:</div>
+                                <div class="color-palette-grid" data-target="setting_accent_color_hover">
+                                    <div class="color-palette-item" data-color="#0056b3" style="background-color: #0056b3;" title="Темно-синий"></div>
+                                    <div class="color-palette-item" data-color="#1e7e34" style="background-color: #1e7e34;" title="Темно-зеленый"></div>
+                                    <div class="color-palette-item" data-color="#c82333" style="background-color: #c82333;" title="Темно-красный"></div>
+                                    <div class="color-palette-item" data-color="#e0a800" style="background-color: #e0a800;" title="Темно-желтый"></div>
+                                    <div class="color-palette-item" data-color="#138496" style="background-color: #138496;" title="Темно-голубой"></div>
+                                    <div class="color-palette-item" data-color="#5a32a3" style="background-color: #5a32a3;" title="Темно-фиолетовый"></div>
+                                    <div class="color-palette-item" data-color="#c2185b" style="background-color: #c2185b;" title="Темно-розовый"></div>
+                                    <div class="color-palette-item" data-color="#d68910" style="background-color: #d68910;" title="Темно-оранжевый"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Поля ввода -->
+                            <div class="color-input-group">
                                 <input 
                                     type="color" 
                                     id="setting_accent_color_hover" 
                                     value="{{ accent_color_hover.get('value', '#0056b3') if accent_color_hover else '#0056b3' }}"
-                                    class="setting-input"
-                                    style="width: 80px; height: 40px; cursor: pointer;"
+                                    class="setting-input color-picker-input"
                                 >
                                 <input 
                                     type="text" 
                                     id="setting_accent_color_hover_text" 
                                     name="setting_accent_color_hover"
                                     value="{{ accent_color_hover.get('value', '#0056b3') if accent_color_hover else '#0056b3' }}"
-                                    class="setting-input"
-                                    style="flex: 1;"
+                                    class="setting-input color-text-input"
                                     placeholder="#0056b3"
                                     pattern="^#[0-9A-Fa-f]{6}$"
                                 >
@@ -331,7 +371,7 @@
                         </div>
                     </div>
                     
-                    <div class="setting-card">
+                    <div class="setting-card color-picker-card">
                         <div class="setting-card-header">
                             <label for="setting_accent_color_dark" class="setting-label">
                                 Основной цвет (темная тема)
@@ -340,21 +380,41 @@
                         </div>
                         <div class="setting-card-body">
                             <small class="setting-hint">Основной цвет интерфейса для темной темы</small>
-                            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                            
+                            <!-- Превью цвета -->
+                            <div class="color-preview" id="preview_accent_color_dark" style="background-color: {{ accent_color_dark.get('value', '#4a9eff') if accent_color_dark else '#4a9eff' }};">
+                                <span class="color-preview-text">{{ accent_color_dark.get('value', '#4a9eff') if accent_color_dark else '#4a9eff' }}</span>
+                            </div>
+                            
+                            <!-- Палитра предустановленных цветов -->
+                            <div class="color-palette">
+                                <div class="color-palette-title">Популярные цвета:</div>
+                                <div class="color-palette-grid" data-target="setting_accent_color_dark">
+                                    <div class="color-palette-item" data-color="#4a9eff" style="background-color: #4a9eff;" title="Светло-синий"></div>
+                                    <div class="color-palette-item" data-color="#66bb6a" style="background-color: #66bb6a;" title="Светло-зеленый"></div>
+                                    <div class="color-palette-item" data-color="#ef5350" style="background-color: #ef5350;" title="Светло-красный"></div>
+                                    <div class="color-palette-item" data-color="#ffca28" style="background-color: #ffca28;" title="Светло-желтый"></div>
+                                    <div class="color-palette-item" data-color="#26c6da" style="background-color: #26c6da;" title="Светло-голубой"></div>
+                                    <div class="color-palette-item" data-color="#ab47bc" style="background-color: #ab47bc;" title="Светло-фиолетовый"></div>
+                                    <div class="color-palette-item" data-color="#ec407a" style="background-color: #ec407a;" title="Светло-розовый"></div>
+                                    <div class="color-palette-item" data-color="#ff9800" style="background-color: #ff9800;" title="Светло-оранжевый"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Поля ввода -->
+                            <div class="color-input-group">
                                 <input 
                                     type="color" 
                                     id="setting_accent_color_dark" 
                                     value="{{ accent_color_dark.get('value', '#4a9eff') if accent_color_dark else '#4a9eff' }}"
-                                    class="setting-input"
-                                    style="width: 80px; height: 40px; cursor: pointer;"
+                                    class="setting-input color-picker-input"
                                 >
                                 <input 
                                     type="text" 
                                     id="setting_accent_color_dark_text" 
                                     name="setting_accent_color_dark"
                                     value="{{ accent_color_dark.get('value', '#4a9eff') if accent_color_dark else '#4a9eff' }}"
-                                    class="setting-input"
-                                    style="flex: 1;"
+                                    class="setting-input color-text-input"
                                     placeholder="#4a9eff"
                                     pattern="^#[0-9A-Fa-f]{6}$"
                                 >
@@ -362,7 +422,7 @@
                         </div>
                     </div>
                     
-                    <div class="setting-card">
+                    <div class="setting-card color-picker-card">
                         <div class="setting-card-header">
                             <label for="setting_accent_color_hover_dark" class="setting-label">
                                 Цвет при наведении (темная тема)
@@ -371,21 +431,41 @@
                         </div>
                         <div class="setting-card-body">
                             <small class="setting-hint">Цвет кнопок и ссылок при наведении (темная тема)</small>
-                            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                            
+                            <!-- Превью цвета -->
+                            <div class="color-preview" id="preview_accent_color_hover_dark" style="background-color: {{ accent_color_hover_dark.get('value', '#357abd') if accent_color_hover_dark else '#357abd' }};">
+                                <span class="color-preview-text">{{ accent_color_hover_dark.get('value', '#357abd') if accent_color_hover_dark else '#357abd' }}</span>
+                            </div>
+                            
+                            <!-- Палитра предустановленных цветов -->
+                            <div class="color-palette">
+                                <div class="color-palette-title">Популярные цвета:</div>
+                                <div class="color-palette-grid" data-target="setting_accent_color_hover_dark">
+                                    <div class="color-palette-item" data-color="#357abd" style="background-color: #357abd;" title="Темно-синий"></div>
+                                    <div class="color-palette-item" data-color="#4caf50" style="background-color: #4caf50;" title="Темно-зеленый"></div>
+                                    <div class="color-palette-item" data-color="#d32f2f" style="background-color: #d32f2f;" title="Темно-красный"></div>
+                                    <div class="color-palette-item" data-color="#f57c00" style="background-color: #f57c00;" title="Темно-желтый"></div>
+                                    <div class="color-palette-item" data-color="#0288d1" style="background-color: #0288d1;" title="Темно-голубой"></div>
+                                    <div class="color-palette-item" data-color="#7b1fa2" style="background-color: #7b1fa2;" title="Темно-фиолетовый"></div>
+                                    <div class="color-palette-item" data-color="#c2185b" style="background-color: #c2185b;" title="Темно-розовый"></div>
+                                    <div class="color-palette-item" data-color="#e65100" style="background-color: #e65100;" title="Темно-оранжевый"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Поля ввода -->
+                            <div class="color-input-group">
                                 <input 
                                     type="color" 
                                     id="setting_accent_color_hover_dark" 
                                     value="{{ accent_color_hover_dark.get('value', '#357abd') if accent_color_hover_dark else '#357abd' }}"
-                                    class="setting-input"
-                                    style="width: 80px; height: 40px; cursor: pointer;"
+                                    class="setting-input color-picker-input"
                                 >
                                 <input 
                                     type="text" 
                                     id="setting_accent_color_hover_dark_text" 
                                     name="setting_accent_color_hover_dark"
                                     value="{{ accent_color_hover_dark.get('value', '#357abd') if accent_color_hover_dark else '#357abd' }}"
-                                    class="setting-input"
-                                    style="flex: 1;"
+                                    class="setting-input color-text-input"
                                     placeholder="#357abd"
                                     pattern="^#[0-9A-Fa-f]{6}$"
                                 >
