@@ -455,13 +455,6 @@ body {
     color: #ffd54f;
 }
 
-.alert {
-    padding: 1rem;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-    border-left: 4px solid;
-}
-
 .alert-success {
     background-color: rgba(40, 167, 69, 0.1);
     border-color: var(--success-color);
