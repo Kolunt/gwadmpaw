@@ -426,6 +426,37 @@ body {
 
 .alert {
     padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #17a2b8;
+    color: #0c5460;
+}
+
+[data-theme="dark"] .alert-info {
+    background-color: #1a3d45;
+    border-color: #17a2b8;
+    color: #b8e5f0;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+[data-theme="dark"] .alert-warning {
+    background-color: #3d2f0f;
+    border-color: #ffc107;
+    color: #ffd54f;
+}
+
+.alert {
+    padding: 1rem;
     border-radius: 4px;
     margin-bottom: 1rem;
     border-left: 4px solid;
