@@ -1839,11 +1839,10 @@ def participants():
         participants_data = []
         for user in users:
             # sqlite3.Row работает как словарь, но не имеет метода .get()
-            # Используем прямой доступ с обработкой отсутствующих ключей
-            try:
-                last_login = user['last_login'] if 'last_login' in user.keys() else None
-            except:
-                last_login = None
+            # Используем прямой доступ с проверкой наличия ключей
+            user_keys = user.keys()
+            
+            last_login = user['last_login'] if 'last_login' in user_keys else None
             
             status = 'Оффлайн'
             if last_login:
@@ -1857,40 +1856,18 @@ def participants():
                     elif (now - last_login_date).days == 0:  # Сегодня
                         status = 'Был сегодня'
                 except Exception as e:
-                    try:
-                        user_id = user['user_id']
-                    except:
-                        user_id = 'unknown'
+                    user_id = user['user_id'] if 'user_id' in user_keys else 'unknown'
                     log_debug(f"Error parsing last_login for user {user_id}: {e}")
-                    pass
             
             # Обрабатываем роли - если их нет, используем 'Пользователь'
-            try:
-                roles_str = user['roles'] if user['roles'] else 'Пользователь'
-            except:
-                roles_str = 'Пользователь'
+            roles_str = user['roles'] if ('roles' in user_keys and user['roles']) else 'Пользователь'
             
             # Получаем значения с обработкой отсутствующих ключей
-            try:
-                user_id = user['user_id']
-            except:
-                user_id = None
-            try:
-                username = user['username'] or 'Неизвестно'
-            except:
-                username = 'Неизвестно'
-            try:
-                avatar_seed = user['avatar_seed']
-            except:
-                avatar_seed = None
-            try:
-                avatar_style = user['avatar_style']
-            except:
-                avatar_style = None
-            try:
-                created_at = user['created_at'] or 'N/A'
-            except:
-                created_at = 'N/A'
+            user_id = user['user_id'] if 'user_id' in user_keys else None
+            username = user['username'] if ('username' in user_keys and user['username']) else 'Неизвестно'
+            avatar_seed = user['avatar_seed'] if 'avatar_seed' in user_keys else None
+            avatar_style = user['avatar_style'] if 'avatar_style' in user_keys else None
+            created_at = user['created_at'] if ('created_at' in user_keys and user['created_at']) else 'N/A'
             
             participants_data.append({
                 'user_id': user_id,
