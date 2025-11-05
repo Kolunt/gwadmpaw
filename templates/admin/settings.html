@@ -32,6 +32,13 @@
             </a>
             {% endfor %}
             <a 
+                href="{{ url_for('admin_settings') }}#design"
+                class="settings-tab"
+                data-tab="design"
+            >
+                🎨 Дизайн
+            </a>
+            <a 
                 href="{{ url_for('admin_settings') }}#localization"
                 class="settings-tab"
                 data-tab="localization"
@@ -42,6 +49,7 @@
         
         <!-- Содержимое табов -->
         {% for category, settings in settings_by_category.items() %}
+        {% if category != 'design' %}
         <div class="settings-tab-content {% if loop.first %}active{% endif %}" data-tab="{{ category }}">
             {% if category == 'integrations' %}
             <!-- Специальная обработка для интеграций -->
@@ -409,6 +417,7 @@
             </div>
             {% endif %}
         </div>
+        {% endif %}
         {% endfor %}
         
         <!-- Вкладка дизайна -->
