@@ -206,13 +206,13 @@
                         <div class="system-items-list" style="margin-top: 1rem;">
                             {% for title in system_titles %}
                             <div class="system-item" style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
-                                <div style="font-size: 1.2rem; margin-right: 0.75rem;">
+                                <div style="font-size: 1.3rem; margin-right: 0.75rem; line-height: 1;">
                                     {{ title.icon or '🏆' }}
                                 </div>
-                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--accent-color); font-family: 'Courier New', monospace; margin-right: 0.5rem;">
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--accent-color); font-family: 'Courier New', monospace; margin-right: 0.75rem; min-width: 120px;">
                                     {{ title.name }}
                                 </div>
-                                <div style="color: var(--text-primary);">
+                                <div style="color: var(--text-primary); font-weight: 500;">
                                     {{ title.display_name }}
                                 </div>
                             </div>
