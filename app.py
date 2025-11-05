@@ -2775,6 +2775,23 @@ def admin_settings():
     except Exception:
         current_locale = 'ru'
     
+    # Получаем список всех администраторов
+    admin_users = []
+    try:
+        # Получаем всех пользователей с ролью admin
+        admin_role = conn.execute('SELECT id FROM roles WHERE name = ?', ('admin',)).fetchone()
+        if admin_role:
+            admin_user_rows = conn.execute('''
+                SELECT DISTINCT u.user_id 
+                FROM users u
+                INNER JOIN user_roles ur ON u.user_id = ur.user_id
+                WHERE ur.role_id = ?
+                ORDER BY u.user_id
+            ''', (admin_role['id'],)).fetchall()
+            admin_users = [row['user_id'] for row in admin_user_rows]
+    except Exception as e:
+        log_error(f"Error fetching admin users: {e}")
+    
     conn.close()
     
     return render_template('admin/settings.html', 
@@ -2783,7 +2800,8 @@ def admin_settings():
                          default_language=default_language,
                          available_languages=available_languages,
                          current_locale=current_locale,
-                         BABEL_AVAILABLE=BABEL_AVAILABLE)
+                         BABEL_AVAILABLE=BABEL_AVAILABLE,
+                         admin_users=admin_users)
 
 def verify_dadata_api(api_key, secret_key):
     """Проверяет валидность Dadata API ключей"""
