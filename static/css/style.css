@@ -3316,6 +3316,13 @@ html.dark .avatar-candidate-img {
     transform: scale(0.95);
 }
 
+.color-palette-item.selected {
+    border-color: var(--accent-color);
+    border-width: 3px;
+    box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-color);
+    transform: scale(1.1);
+}
+
 .color-input-group {
     display: flex;
     gap: 1rem;

@@ -277,7 +277,7 @@
                             <span class="setting-badge">Цвета</span>
                         </div>
                         <div class="setting-card-body">
-                            <small class="setting-hint">Основной цвет интерфейса для светлой темы</small>
+                            <small class="setting-hint">Основной цвет интерфейса для светлой темы. Выберите цвет из палитры, используйте color picker или введите hex-код вручную.</small>
                             
                             <!-- Превью цвета -->
                             <div class="color-preview" id="preview_accent_color" style="background-color: {{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }};">
@@ -697,28 +697,70 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Синхронизация color picker и text input для цветов
     const colorInputs = [
-        { color: 'setting_accent_color', text: 'setting_accent_color_text' },
-        { color: 'setting_accent_color_hover', text: 'setting_accent_color_hover_text' },
-        { color: 'setting_accent_color_dark', text: 'setting_accent_color_dark_text' },
-        { color: 'setting_accent_color_hover_dark', text: 'setting_accent_color_hover_dark_text' }
+        { color: 'setting_accent_color', text: 'setting_accent_color_text', preview: 'preview_accent_color' },
+        { color: 'setting_accent_color_hover', text: 'setting_accent_color_hover_text', preview: 'preview_accent_color_hover' },
+        { color: 'setting_accent_color_dark', text: 'setting_accent_color_dark_text', preview: 'preview_accent_color_dark' },
+        { color: 'setting_accent_color_hover_dark', text: 'setting_accent_color_hover_dark_text', preview: 'preview_accent_color_hover_dark' }
     ];
+    
+    // Функция для обновления превью цвета
+    function updateColorPreview(colorValue, previewId) {
+        const preview = document.getElementById(previewId);
+        if (preview) {
+            preview.style.backgroundColor = colorValue;
+            const text = preview.querySelector('.color-preview-text');
+            if (text) {
+                text.textContent = colorValue;
+            }
+        }
+    }
     
     colorInputs.forEach(function(pair) {
         const colorInput = document.getElementById(pair.color);
         const textInput = document.getElementById(pair.text);
         
         if (colorInput && textInput) {
-            // При изменении color picker обновляем text input
+            // При изменении color picker обновляем text input и превью
             colorInput.addEventListener('input', function() {
-                textInput.value = colorInput.value;
+                const value = colorInput.value;
+                textInput.value = value;
+                updateColorPreview(value, pair.preview);
             });
             
-            // При изменении text input обновляем color picker
+            // При изменении text input обновляем color picker и превью
             textInput.addEventListener('input', function() {
                 const value = textInput.value.trim();
                 if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
                     colorInput.value = value;
+                    updateColorPreview(value, pair.preview);
                 }
+            });
+        }
+    });
+    
+    // Обработка кликов по палитре цветов
+    document.querySelectorAll('.color-palette-grid').forEach(function(palette) {
+        const targetId = palette.getAttribute('data-target');
+        const colorInput = document.getElementById(targetId);
+        const textInput = document.getElementById(targetId + '_text');
+        const previewId = 'preview_' + targetId;
+        
+        if (colorInput && textInput) {
+            palette.querySelectorAll('.color-palette-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                    const color = this.getAttribute('data-color');
+                    if (color) {
+                        colorInput.value = color;
+                        textInput.value = color;
+                        updateColorPreview(color, previewId);
+                        
+                        // Визуальная обратная связь - подсветка выбранного цвета
+                        palette.querySelectorAll('.color-palette-item').forEach(function(i) {
+                            i.classList.remove('selected');
+                        });
+                        this.classList.add('selected');
+                    }
+                });
             });
         }
     });
