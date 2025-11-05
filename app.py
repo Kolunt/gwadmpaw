@@ -1142,6 +1142,7 @@ def inject_default_theme():
         get_role_permissions=get_role_permissions,
         get_setting=get_setting,
         get_user_titles=get_user_titles,
+        get_user_awards=get_user_awards,
         _=_,
         current_locale=current_locale,
         accent_color=accent_color,
@@ -1896,13 +1897,14 @@ def view_profile(user_id):
     # Получаем роли и звания пользователя
     user_roles = get_user_roles(user_id)
     user_titles = get_user_titles(user_id)
+    user_awards = get_user_awards(user_id)
     
     conn.close()
     
     # Проверяем, является ли это профилем текущего пользователя (если авторизован)
     is_own_profile = session.get('user_id') == user_id if 'user_id' in session else False
     
-    return render_template('view_profile.html', user=user, user_roles=user_roles, user_titles=user_titles, is_own_profile=is_own_profile)
+    return render_template('view_profile.html', user=user, user_roles=user_roles, user_titles=user_titles, user_awards=user_awards, is_own_profile=is_own_profile)
 
 @app.route('/participants')
 def participants():

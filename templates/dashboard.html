@@ -41,11 +41,19 @@
                 📋 {{ _('Main') }}
             </a>
             {% set user_titles = get_user_titles(user.user_id) %}
+            {% set user_awards = get_user_awards(user.user_id) %}
             {% if user_titles %}
             <a href="{{ url_for('dashboard') }}#titles" 
                class="dashboard-tab" 
                data-tab="titles">
                 🏆 Звания
+            </a>
+            {% endif %}
+            {% if user_awards %}
+            <a href="{{ url_for('dashboard') }}#awards" 
+               class="dashboard-tab" 
+               data-tab="awards">
+                🎖️ Награды
             </a>
             {% endif %}
             <a href="{{ url_for('dashboard') }}#contacts" 
@@ -167,6 +175,27 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Содержимое таба "Награды" -->
+        {% set user_awards = get_user_awards(user.user_id) %}
+        {% if user_awards %}
+        <div class="dashboard-tab-content" data-tab="awards">
+            <div class="profile-info">
+                <div class="awards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                    {% for award in user_awards %}
+                    <div class="award-card" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; text-align: center; transition: transform 0.2s, box-shadow 0.2s;">
+                        {% if award.image %}
+                        <div style="margin-bottom: 1rem;">
+                            <img src="{{ award.image }}" alt="{{ award.title }}" style="max-width: 120px; max-height: 120px; width: auto; height: auto; border-radius: 8px;">
+                        </div>
+                        {% endif %}
+                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">{{ award.title }}</h3>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
         {% endif %}
