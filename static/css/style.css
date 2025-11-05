@@ -1670,6 +1670,36 @@ body {
     }
 }
 
+/* Иконки-кнопки для админ-панели */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 1.2em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.btn-icon:hover {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+    transform: scale(1.05);
+}
+
+.btn-icon:active {
+    transform: scale(0.95);
+}
+
 /* Компактная форма редактирования пользователя */
 .user-form-compact {
     display: flex;
