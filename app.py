@@ -866,6 +866,56 @@ def remove_title(user_id, title_id):
         conn.close()
         return False
 
+def get_user_awards(user_id):
+    """Получает список наград пользователя"""
+    if not user_id:
+        return []
+    conn = get_db_connection()
+    awards = conn.execute('''
+        SELECT a.* FROM awards a
+        INNER JOIN user_awards ua ON a.id = ua.award_id
+        WHERE ua.user_id = ?
+        ORDER BY a.sort_order, a.title
+    ''', (user_id,)).fetchall()
+    conn.close()
+    return [dict(a) for a in awards]
+
+def assign_award(user_id, award_id, assigned_by=None):
+    """Назначает награду пользователю"""
+    if not user_id or not award_id:
+        return False
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            INSERT OR REPLACE INTO user_awards (user_id, award_id, assigned_by)
+            VALUES (?, ?, ?)
+        ''', (user_id, award_id, assigned_by))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error assigning award: {e}")
+        conn.close()
+        return False
+
+def remove_award(user_id, award_id):
+    """Удаляет награду у пользователя"""
+    if not user_id or not award_id:
+        return False
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            DELETE FROM user_awards
+            WHERE user_id = ? AND award_id = ?
+        ''', (user_id, award_id))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error removing award: {e}")
+        conn.close()
+        return False
+
 # Декораторы для проверки прав доступа
 def require_role(role_name):
     """Декоратор для проверки наличия роли у пользователя"""
@@ -3467,14 +3517,19 @@ def admin_awards():
 @require_role('admin')
 def admin_award_create():
     """Создание награды"""
+    conn = get_db_connection()
+    
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         sort_order = request.form.get('sort_order', '100').strip()
         image_file = request.files.get('image')
+        selected_users = request.form.getlist('users')  # Получаем список выбранных пользователей
         
         if not title:
             flash('Заголовок награды обязателен', 'error')
-            return render_template('admin/award_form.html')
+            users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
+            conn.close()
+            return render_template('admin/award_form.html', users=users)
         
         try:
             sort_order = int(sort_order) if sort_order else 100
@@ -3496,12 +3551,23 @@ def admin_award_create():
                 image_file.save(filepath)
                 image_path = f'/static/uploads/awards/{filename}'
         
-        conn = get_db_connection()
         try:
-            conn.execute('''
+            # Создаем награду
+            cursor = conn.execute('''
                 INSERT INTO awards (title, image, sort_order, created_by)
                 VALUES (?, ?, ?, ?)
             ''', (title, image_path, sort_order, session['user_id']))
+            award_id = cursor.lastrowid
+            
+            # Присваиваем награду выбранным пользователям
+            if selected_users:
+                for user_id_str in selected_users:
+                    try:
+                        user_id = int(user_id_str)
+                        assign_award(user_id, award_id, assigned_by=session['user_id'])
+                    except ValueError:
+                        continue
+            
             conn.commit()
             flash('Награда успешно создана', 'success')
             conn.close()
@@ -3511,7 +3577,10 @@ def admin_award_create():
             flash(f'Ошибка создания награды: {str(e)}', 'error')
             conn.close()
     
-    return render_template('admin/award_form.html')
+    # GET запрос - получаем список пользователей
+    users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
+    conn.close()
+    return render_template('admin/award_form.html', users=users)
 
 @app.route('/admin/awards/<int:award_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
@@ -3530,11 +3599,18 @@ def admin_award_edit(award_id):
         sort_order = request.form.get('sort_order', '100').strip()
         image_file = request.files.get('image')
         delete_image = request.form.get('delete_image', '0')
+        selected_users = request.form.getlist('users')  # Получаем список выбранных пользователей
         
         if not title:
             flash('Заголовок награды обязателен', 'error')
+            users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
+            # Получаем текущих пользователей с наградой
+            current_users = conn.execute('''
+                SELECT user_id FROM user_awards WHERE award_id = ?
+            ''', (award_id,)).fetchall()
+            current_user_ids = [u['user_id'] for u in current_users]
             conn.close()
-            return render_template('admin/award_form.html', award=award)
+            return render_template('admin/award_form.html', award=award, users=users, current_user_ids=current_user_ids)
         
         try:
             sort_order = int(sort_order) if sort_order else 100
@@ -3578,10 +3654,30 @@ def admin_award_edit(award_id):
                 image_path = f'/static/uploads/awards/{filename}'
         
         try:
+            # Обновляем награду
             conn.execute('''
                 UPDATE awards SET title = ?, image = ?, sort_order = ?
                 WHERE id = ?
             ''', (title, image_path, sort_order, award_id))
+            
+            # Обновляем присвоение наград пользователям
+            # Получаем текущих пользователей с наградой
+            current_users = conn.execute('''
+                SELECT user_id FROM user_awards WHERE award_id = ?
+            ''', (award_id,)).fetchall()
+            current_user_ids = {u['user_id'] for u in current_users}
+            selected_user_ids = {int(uid) for uid in selected_users if uid}
+            
+            # Добавляем новых пользователей
+            for user_id in selected_user_ids:
+                if user_id not in current_user_ids:
+                    assign_award(user_id, award_id, assigned_by=session['user_id'])
+            
+            # Удаляем пользователей, которых больше нет в списке
+            for user_id in current_user_ids:
+                if user_id not in selected_user_ids:
+                    remove_award(user_id, award_id)
+            
             conn.commit()
             flash('Награда успешно обновлена', 'success')
             conn.close()
@@ -3591,8 +3687,14 @@ def admin_award_edit(award_id):
             flash(f'Ошибка обновления награды: {str(e)}', 'error')
             conn.close()
     
+    # GET запрос - получаем список пользователей и текущих пользователей с наградой
+    users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
+    current_users = conn.execute('''
+        SELECT user_id FROM user_awards WHERE award_id = ?
+    ''', (award_id,)).fetchall()
+    current_user_ids = [u['user_id'] for u in current_users]
     conn.close()
-    return render_template('admin/award_form.html', award=award)
+    return render_template('admin/award_form.html', award=award, users=users, current_user_ids=current_user_ids)
 
 @app.route('/admin/awards/<int:award_id>/delete', methods=['POST'])
 @require_role('admin')
