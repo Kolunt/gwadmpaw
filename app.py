@@ -2792,6 +2792,32 @@ def admin_settings():
     except Exception as e:
         log_error(f"Error fetching admin users: {e}")
     
+    # Получаем список всех системных ролей
+    system_roles = []
+    try:
+        role_rows = conn.execute('''
+            SELECT name, display_name 
+            FROM roles 
+            WHERE is_system = 1 
+            ORDER BY name
+        ''').fetchall()
+        system_roles = [{'name': row['name'], 'display_name': row['display_name']} for row in role_rows]
+    except Exception as e:
+        log_error(f"Error fetching system roles: {e}")
+    
+    # Получаем список всех системных званий
+    system_titles = []
+    try:
+        title_rows = conn.execute('''
+            SELECT name, display_name, icon 
+            FROM titles 
+            WHERE is_system = 1 
+            ORDER BY name
+        ''').fetchall()
+        system_titles = [{'name': row['name'], 'display_name': row['display_name'], 'icon': row['icon']} for row in title_rows]
+    except Exception as e:
+        log_error(f"Error fetching system titles: {e}")
+    
     conn.close()
     
     return render_template('admin/settings.html', 
@@ -2801,7 +2827,9 @@ def admin_settings():
                          available_languages=available_languages,
                          current_locale=current_locale,
                          BABEL_AVAILABLE=BABEL_AVAILABLE,
-                         admin_users=admin_users)
+                         admin_users=admin_users,
+                         system_roles=system_roles,
+                         system_titles=system_titles)
 
 def verify_dadata_api(api_key, secret_key):
     """Проверяет валидность Dadata API ключей"""

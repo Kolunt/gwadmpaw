@@ -165,6 +165,65 @@
                     </div>
                 </div>
                 
+                <!-- Список системных ролей -->
+                <div class="setting-card" style="margin-bottom: 2rem;">
+                    <div class="setting-card-header">
+                        <label class="setting-label">Системные роли</label>
+                        <span class="setting-badge">Роли</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <small class="setting-hint">Список всех ролей по умолчанию</small>
+                        
+                        {% if system_roles %}
+                        <div class="system-items-list" style="margin-top: 1rem;">
+                            {% for role in system_roles %}
+                            <div class="system-item" style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--accent-color); font-family: 'Courier New', monospace; margin-right: 0.5rem;">
+                                    {{ role.name }}
+                                </div>
+                                <div style="color: var(--text-primary);">
+                                    {{ role.display_name }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p style="color: var(--text-secondary); margin-top: 1rem;">Роли не найдены</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Список системных званий -->
+                <div class="setting-card" style="margin-bottom: 2rem;">
+                    <div class="setting-card-header">
+                        <label class="setting-label">Системные звания</label>
+                        <span class="setting-badge">Звания</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <small class="setting-hint">Список всех званий по умолчанию</small>
+                        
+                        {% if system_titles %}
+                        <div class="system-items-list" style="margin-top: 1rem;">
+                            {% for title in system_titles %}
+                            <div class="system-item" style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div style="font-size: 1.2rem; margin-right: 0.75rem;">
+                                    {{ title.icon or '🏆' }}
+                                </div>
+                                <div style="font-weight: 600; font-size: 1.1rem; color: var(--accent-color); font-family: 'Courier New', monospace; margin-right: 0.5rem;">
+                                    {{ title.name }}
+                                </div>
+                                <div style="color: var(--text-primary);">
+                                    {{ title.display_name }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p style="color: var(--text-secondary); margin-top: 1rem;">Звания не найдены</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
                 <!-- Остальные системные настройки -->
                 <div class="settings-grid">
                     {% for setting in settings %}
