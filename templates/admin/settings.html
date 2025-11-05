@@ -282,7 +282,6 @@
                                 <input 
                                     type="color" 
                                     id="setting_accent_color" 
-                                    name="setting_accent_color" 
                                     value="{{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }}"
                                     class="setting-input"
                                     style="width: 80px; height: 40px; cursor: pointer;"
@@ -290,6 +289,7 @@
                                 <input 
                                     type="text" 
                                     id="setting_accent_color_text" 
+                                    name="setting_accent_color"
                                     value="{{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }}"
                                     class="setting-input"
                                     style="flex: 1;"
@@ -313,7 +313,6 @@
                                 <input 
                                     type="color" 
                                     id="setting_accent_color_hover" 
-                                    name="setting_accent_color_hover" 
                                     value="{{ accent_color_hover.get('value', '#0056b3') if accent_color_hover else '#0056b3' }}"
                                     class="setting-input"
                                     style="width: 80px; height: 40px; cursor: pointer;"
@@ -321,6 +320,7 @@
                                 <input 
                                     type="text" 
                                     id="setting_accent_color_hover_text" 
+                                    name="setting_accent_color_hover"
                                     value="{{ accent_color_hover.get('value', '#0056b3') if accent_color_hover else '#0056b3' }}"
                                     class="setting-input"
                                     style="flex: 1;"
@@ -344,7 +344,6 @@
                                 <input 
                                     type="color" 
                                     id="setting_accent_color_dark" 
-                                    name="setting_accent_color_dark" 
                                     value="{{ accent_color_dark.get('value', '#4a9eff') if accent_color_dark else '#4a9eff' }}"
                                     class="setting-input"
                                     style="width: 80px; height: 40px; cursor: pointer;"
@@ -352,6 +351,7 @@
                                 <input 
                                     type="text" 
                                     id="setting_accent_color_dark_text" 
+                                    name="setting_accent_color_dark"
                                     value="{{ accent_color_dark.get('value', '#4a9eff') if accent_color_dark else '#4a9eff' }}"
                                     class="setting-input"
                                     style="flex: 1;"
@@ -375,7 +375,6 @@
                                 <input 
                                     type="color" 
                                     id="setting_accent_color_hover_dark" 
-                                    name="setting_accent_color_hover_dark" 
                                     value="{{ accent_color_hover_dark.get('value', '#357abd') if accent_color_hover_dark else '#357abd' }}"
                                     class="setting-input"
                                     style="width: 80px; height: 40px; cursor: pointer;"
@@ -383,6 +382,7 @@
                                 <input 
                                     type="text" 
                                     id="setting_accent_color_hover_dark_text" 
+                                    name="setting_accent_color_hover_dark"
                                     value="{{ accent_color_hover_dark.get('value', '#357abd') if accent_color_hover_dark else '#357abd' }}"
                                     class="setting-input"
                                     style="flex: 1;"
