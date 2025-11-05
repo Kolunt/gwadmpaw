@@ -24,11 +24,20 @@
                     🔧 Системные
                 {% elif category == 'integrations' %}
                     🔌 Интеграции
+                {% elif category == 'design' %}
+                    🎨 Дизайн
                 {% else %}
                     📋 Общие
                 {% endif %}
             </a>
             {% endfor %}
+            <a 
+                href="{{ url_for('admin_settings') }}#design"
+                class="settings-tab"
+                data-tab="design"
+            >
+                🎨 Дизайн
+            </a>
             <a 
                 href="{{ url_for('admin_settings') }}#localization"
                 class="settings-tab"
@@ -249,6 +258,148 @@
         </div>
         {% endfor %}
         
+        <!-- Вкладка дизайна -->
+        <div class="settings-tab-content" data-tab="design">
+            <div class="settings-section">
+                <h2 class="settings-section-title">🎨 Настройки цветов интерфейса</h2>
+                
+                {% set accent_color = settings_dict.get('accent_color', {}) %}
+                {% set accent_color_hover = settings_dict.get('accent_color_hover', {}) %}
+                {% set accent_color_dark = settings_dict.get('accent_color_dark', {}) %}
+                {% set accent_color_hover_dark = settings_dict.get('accent_color_hover_dark', {}) %}
+                
+                <div class="settings-grid">
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <label for="setting_accent_color" class="setting-label">
+                                Основной цвет (светлая тема)
+                            </label>
+                            <span class="setting-badge">Цвета</span>
+                        </div>
+                        <div class="setting-card-body">
+                            <small class="setting-hint">Основной цвет интерфейса для светлой темы</small>
+                            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                                <input 
+                                    type="color" 
+                                    id="setting_accent_color" 
+                                    name="setting_accent_color" 
+                                    value="{{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }}"
+                                    class="setting-input"
+                                    style="width: 80px; height: 40px; cursor: pointer;"
+                                >
+                                <input 
+                                    type="text" 
+                                    id="setting_accent_color_text" 
+                                    value="{{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }}"
+                                    class="setting-input"
+                                    style="flex: 1;"
+                                    placeholder="#007bff"
+                                    pattern="^#[0-9A-Fa-f]{6}$"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <label for="setting_accent_color_hover" class="setting-label">
+                                Цвет при наведении (светлая тема)
+                            </label>
+                            <span class="setting-badge">Цвета</span>
+                        </div>
+                        <div class="setting-card-body">
+                            <small class="setting-hint">Цвет кнопок и ссылок при наведении (светлая тема)</small>
+                            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                                <input 
+                                    type="color" 
+                                    id="setting_accent_color_hover" 
+                                    name="setting_accent_color_hover" 
+                                    value="{{ accent_color_hover.get('value', '#0056b3') if accent_color_hover else '#0056b3' }}"
+                                    class="setting-input"
+                                    style="width: 80px; height: 40px; cursor: pointer;"
+                                >
+                                <input 
+                                    type="text" 
+                                    id="setting_accent_color_hover_text" 
+                                    value="{{ accent_color_hover.get('value', '#0056b3') if accent_color_hover else '#0056b3' }}"
+                                    class="setting-input"
+                                    style="flex: 1;"
+                                    placeholder="#0056b3"
+                                    pattern="^#[0-9A-Fa-f]{6}$"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <label for="setting_accent_color_dark" class="setting-label">
+                                Основной цвет (темная тема)
+                            </label>
+                            <span class="setting-badge">Цвета</span>
+                        </div>
+                        <div class="setting-card-body">
+                            <small class="setting-hint">Основной цвет интерфейса для темной темы</small>
+                            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                                <input 
+                                    type="color" 
+                                    id="setting_accent_color_dark" 
+                                    name="setting_accent_color_dark" 
+                                    value="{{ accent_color_dark.get('value', '#4a9eff') if accent_color_dark else '#4a9eff' }}"
+                                    class="setting-input"
+                                    style="width: 80px; height: 40px; cursor: pointer;"
+                                >
+                                <input 
+                                    type="text" 
+                                    id="setting_accent_color_dark_text" 
+                                    value="{{ accent_color_dark.get('value', '#4a9eff') if accent_color_dark else '#4a9eff' }}"
+                                    class="setting-input"
+                                    style="flex: 1;"
+                                    placeholder="#4a9eff"
+                                    pattern="^#[0-9A-Fa-f]{6}$"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <label for="setting_accent_color_hover_dark" class="setting-label">
+                                Цвет при наведении (темная тема)
+                            </label>
+                            <span class="setting-badge">Цвета</span>
+                        </div>
+                        <div class="setting-card-body">
+                            <small class="setting-hint">Цвет кнопок и ссылок при наведении (темная тема)</small>
+                            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                                <input 
+                                    type="color" 
+                                    id="setting_accent_color_hover_dark" 
+                                    name="setting_accent_color_hover_dark" 
+                                    value="{{ accent_color_hover_dark.get('value', '#357abd') if accent_color_hover_dark else '#357abd' }}"
+                                    class="setting-input"
+                                    style="width: 80px; height: 40px; cursor: pointer;"
+                                >
+                                <input 
+                                    type="text" 
+                                    id="setting_accent_color_hover_dark_text" 
+                                    value="{{ accent_color_hover_dark.get('value', '#357abd') if accent_color_hover_dark else '#357abd' }}"
+                                    class="setting-input"
+                                    style="flex: 1;"
+                                    placeholder="#357abd"
+                                    pattern="^#[0-9A-Fa-f]{6}$"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info" style="margin-top: 2rem;">
+                    <strong>💡 Совет:</strong> Изменения цветов применяются сразу после сохранения. Цвета используются для кнопок, ссылок, акцентов и других интерактивных элементов интерфейса.
+                </div>
+            </div>
+        </div>
+        
         <!-- Вкладка локализации -->
         <div class="settings-tab-content" data-tab="localization">
             <div class="settings-section">
@@ -462,6 +613,34 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    });
+    
+    // Синхронизация color picker и text input для цветов
+    const colorInputs = [
+        { color: 'setting_accent_color', text: 'setting_accent_color_text' },
+        { color: 'setting_accent_color_hover', text: 'setting_accent_color_hover_text' },
+        { color: 'setting_accent_color_dark', text: 'setting_accent_color_dark_text' },
+        { color: 'setting_accent_color_hover_dark', text: 'setting_accent_color_hover_dark_text' }
+    ];
+    
+    colorInputs.forEach(function(pair) {
+        const colorInput = document.getElementById(pair.color);
+        const textInput = document.getElementById(pair.text);
+        
+        if (colorInput && textInput) {
+            // При изменении color picker обновляем text input
+            colorInput.addEventListener('input', function() {
+                textInput.value = colorInput.value;
+            });
+            
+            // При изменении text input обновляем color picker
+            textInput.addEventListener('input', function() {
+                const value = textInput.value.trim();
+                if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                    colorInput.value = value;
+                }
+            });
+        }
     });
 </script>
 

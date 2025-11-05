@@ -470,6 +470,11 @@ def init_db():
             ('default_theme', 'dark', 'Тема по умолчанию (light или dark)', 'general'),
             ('site_icon', '🎅', 'Иконка сайта (favicon)', 'general'),
             ('site_logo', '🎅', 'Логотип сайта', 'general'),
+            # Настройки цветов
+            ('accent_color', '#007bff', 'Основной цвет интерфейса (светлая тема)', 'design'),
+            ('accent_color_hover', '#0056b3', 'Цвет при наведении (светлая тема)', 'design'),
+            ('accent_color_dark', '#4a9eff', 'Основной цвет интерфейса (темная тема)', 'design'),
+            ('accent_color_hover_dark', '#357abd', 'Цвет при наведении (темная тема)', 'design'),
             # Настройки интеграций
             ('dadata_api_key', '', 'Dadata API ключ', 'integrations'),
             ('dadata_secret_key', '', 'Dadata Secret ключ', 'integrations'),
@@ -1045,6 +1050,12 @@ def inject_default_theme():
         current_locale = 'ru'
     available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
     
+    # Получаем цвета из настроек
+    accent_color = get_setting('accent_color', '#007bff')
+    accent_color_hover = get_setting('accent_color_hover', '#0056b3')
+    accent_color_dark = get_setting('accent_color_dark', '#4a9eff')
+    accent_color_hover_dark = get_setting('accent_color_hover_dark', '#357abd')
+    
     return dict(
         default_theme=default_theme, 
         get_avatar_url=get_avatar_url,
@@ -1055,6 +1066,10 @@ def inject_default_theme():
         get_user_titles=get_user_titles,
         _=_,
         current_locale=current_locale,
+        accent_color=accent_color,
+        accent_color_hover=accent_color_hover,
+        accent_color_dark=accent_color_dark,
+        accent_color_hover_dark=accent_color_hover_dark,
         available_languages=available_languages
     )
 
