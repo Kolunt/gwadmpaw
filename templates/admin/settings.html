@@ -224,6 +224,88 @@
                     </div>
                 </div>
                 
+                <!-- Управление званиями -->
+                <div class="setting-card" style="margin-bottom: 2rem;">
+                    <div class="setting-card-header">
+                        <label class="setting-label">Управление званиями</label>
+                        <span class="setting-badge">Звания</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <small class="setting-hint">Создание и редактирование званий для пользователей</small>
+                        
+                        <div style="margin-top: 1rem; margin-bottom: 1rem;">
+                            <a href="{{ url_for('admin_title_create') }}" class="btn btn-primary" style="display: inline-block;">
+                                ➕ Создать звание
+                            </a>
+                        </div>
+                        
+                        {% if all_titles %}
+                        <div class="table-container" style="margin-top: 1rem;">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Иконка</th>
+                                        <th>Название</th>
+                                        <th>Отображаемое имя</th>
+                                        <th>Описание</th>
+                                        <th>Цвет</th>
+                                        <th>Тип</th>
+                                        <th>Пользователей</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for title in all_titles %}
+                                    <tr>
+                                        <td data-label="Иконка">
+                                            {% if title.icon %}
+                                            <span style="font-size: 1.5rem;">{{ title.icon }}</span>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td data-label="Название"><code>{{ title.name }}</code></td>
+                                        <td data-label="Отображаемое имя">
+                                            <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
+                                                {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+                                            </span>
+                                        </td>
+                                        <td data-label="Описание">{{ title.description or '-' }}</td>
+                                        <td data-label="Цвет">
+                                            <span style="display: inline-block; width: 30px; height: 30px; background-color: {{ title.color }}; border-radius: 4px; border: 1px solid var(--border-color);"></span>
+                                            <code style="margin-left: 0.5rem;">{{ title.color }}</code>
+                                        </td>
+                                        <td data-label="Тип">
+                                            {% if title.is_system %}
+                                                <span class="badge badge-system">Системное</span>
+                                            {% else %}
+                                                <span class="badge badge-custom">Кастомное</span>
+                                            {% endif %}
+                                        </td>
+                                        <td data-label="Пользователей">{{ title.user_count }}</td>
+                                        <td data-label="Действия">
+                                            {% if not title.is_system %}
+                                            <div style="display: flex; gap: 0.5rem;">
+                                                <a href="{{ url_for('admin_title_edit', title_id=title.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                                <form method="POST" action="{{ url_for('admin_title_delete', title_id=title.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это звание?');">
+                                                    <button type="submit" class="btn-icon" title="Удалить" style="background-color: var(--error-color); color: white;">🗑️</button>
+                                                </form>
+                                            </div>
+                                            {% else %}
+                                            <span class="text-muted">Системное</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p style="color: var(--text-secondary); margin-top: 1rem;">Звания не найдены</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
                 <!-- Остальные системные настройки -->
                 <div class="settings-grid">
                     {% for setting in settings %}

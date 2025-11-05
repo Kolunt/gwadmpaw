@@ -2818,6 +2818,19 @@ def admin_settings():
     except Exception as e:
         log_error(f"Error fetching system titles: {e}")
     
+    # Получаем список всех званий (системных и кастомных) для управления
+    all_titles = []
+    try:
+        title_rows = conn.execute('''
+            SELECT t.*, 
+                   (SELECT COUNT(*) FROM user_titles WHERE title_id = t.id) as user_count
+            FROM titles t
+            ORDER BY t.is_system DESC, t.display_name
+        ''').fetchall()
+        all_titles = [dict(row) for row in title_rows]
+    except Exception as e:
+        log_error(f"Error fetching all titles: {e}")
+    
     conn.close()
     
     return render_template('admin/settings.html', 
@@ -2829,7 +2842,8 @@ def admin_settings():
                          BABEL_AVAILABLE=BABEL_AVAILABLE,
                          admin_users=admin_users,
                          system_roles=system_roles,
-                         system_titles=system_titles)
+                         system_titles=system_titles,
+                         all_titles=all_titles)
 
 def verify_dadata_api(api_key, secret_key):
     """Проверяет валидность Dadata API ключей"""
