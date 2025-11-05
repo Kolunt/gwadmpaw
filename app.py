@@ -1877,7 +1877,10 @@ def participants():
         log_error(f"Error in participants route: {e}")
         import traceback
         log_error(traceback.format_exc())
-        conn.close()
+        try:
+            conn.close()
+        except:
+            pass
         return f"Ошибка при загрузке участников: {str(e)}", 500
 
 @app.route('/logout')
