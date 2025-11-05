@@ -83,6 +83,12 @@
                     <span class="info-label">{{ _('Mobile:') }}</span>
                     <span class="info-value">{{ _('Yes') if user.has_mobile else _('No') }}</span>
                 </div>
+                {% if user.created_at %}
+                <div class="info-row">
+                    <span class="info-label">Дата регистрации:</span>
+                    <span class="info-value">{{ user.created_at }}</span>
+                </div>
+                {% endif %}
                 {% if user.last_login %}
                 <div class="info-row">
                     <span class="info-label">{{ _('Last login:') }}</span>
