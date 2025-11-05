@@ -25,18 +25,48 @@ app.config['LANGUAGES'] = {
 app.config['BABEL_DEFAULT_LOCALE'] = 'ru'
 app.config['BABEL_DEFAULT_TIMEZONE'] = 'Europe/Moscow'
 app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
-# Отключаем автоматическое определение языка из Accept-Language заголовка
-app.config['BABEL_DEFAULT_LOCALE_DETECT'] = False
 
-try:
-    from flask_babel import Babel, gettext, format_date, format_datetime
-    babel = Babel(app)
-    BABEL_AVAILABLE = True
-    
-    @babel.localeselector
-    def get_locale():
-        """Определяет текущую локаль из настроек. Всегда возвращает русский для неавторизованных пользователей."""
+# Словарь русских переводов для fallback (используется всегда)
+_russian_translations = {
+    'Home': 'Главная',
+    'Events': 'Мероприятия',
+    'Participants': 'Участники',
+    'FAQ': 'FAQ',
+    'Admin Panel': 'Админ-панель',
+    'Users': 'Пользователи',
+    'Roles': 'Роли',
+    'Titles': 'Звания',
+    'Settings': 'Настройки',
+    'Localization': 'Локализация',
+    'Profile': 'Профиль',
+    'Logout': 'Выйти',
+    'Login via GWars': 'Войти через GWars',
+    'Edit Profile': 'Редактировать профиль',
+    'Main': 'Основное',
+    'Contacts': 'Контакты',
+    'About': 'О себе',
+    'User Profile': 'Профиль пользователя',
+    'User ID:': 'ID пользователя:',
+    'Name:': 'Имя:',
+    'Level:': 'Уровень:',
+    'Syndicate:': 'Синдикат:',
+    'Gender:': 'Пол:',
+    'Passport:': 'Паспорт:',
+    'Mobile:': 'Мобильный:',
+    'Last login:': 'Последний вход:',
+    'Yes': 'Есть',
+    'No': 'Нет',
+    'Not specified': 'Не указан',
+    'Contact information not specified': 'Контактная информация не указана',
+    'Additional information not specified': 'Дополнительная информация не указана',
+    'Toggle theme': 'Переключить тему',
+}
+
+def get_locale():
+    """Определяет текущую локаль из настроек. Всегда возвращает русский для неавторизованных пользователей."""
+    try:
         # Если пользователь авторизован, проверяем его настройку языка
+        from flask import session
         if 'user_id' in session:
             try:
                 conn = get_db_connection()
@@ -46,108 +76,39 @@ try:
                     return user['language']
             except Exception as e:
                 log_error(f"Error getting user language: {e}")
-        
-        # Для неавторизованных пользователей всегда используем русский
-        # (игнорируем Accept-Language заголовок браузера)
-        return 'ru'
+    except Exception:
+        # Если session недоступен (например, вне контекста запроса)
+        pass
     
-    # Словарь русских переводов для fallback
-    _russian_translations = {
-        'Home': 'Главная',
-        'Events': 'Мероприятия',
-        'Participants': 'Участники',
-        'FAQ': 'FAQ',
-        'Admin Panel': 'Админ-панель',
-        'Users': 'Пользователи',
-        'Roles': 'Роли',
-        'Titles': 'Звания',
-        'Settings': 'Настройки',
-        'Localization': 'Локализация',
-        'Profile': 'Профиль',
-        'Logout': 'Выйти',
-        'Login via GWars': 'Войти через GWars',
-        'Edit Profile': 'Редактировать профиль',
-        'Main': 'Основное',
-        'Contacts': 'Контакты',
-        'About': 'О себе',
-        'User Profile': 'Профиль пользователя',
-        'User ID:': 'ID пользователя:',
-        'Name:': 'Имя:',
-        'Level:': 'Уровень:',
-        'Syndicate:': 'Синдикат:',
-        'Gender:': 'Пол:',
-        'Passport:': 'Паспорт:',
-        'Mobile:': 'Мобильный:',
-        'Last login:': 'Последний вход:',
-        'Yes': 'Есть',
-        'No': 'Нет',
-        'Not specified': 'Не указан',
-        'Contact information not specified': 'Контактная информация не указана',
-        'Additional information not specified': 'Дополнительная информация не указана',
-        'Toggle theme': 'Переключить тему',
-    }
+    # Для неавторизованных пользователей всегда используем русский
+    return 'ru'
+
+def _(text):
+    """Функция перевода - всегда использует русские переводы из словаря"""
+    # Всегда используем русские переводы из словаря
+    return _russian_translations.get(text, text)
+
+def format_date(date, format=None):
+    """Форматирование даты (fallback)"""
+    return str(date)
+
+def format_datetime(datetime, format=None):
+    """Форматирование даты и времени (fallback)"""
+    return str(datetime)
+
+try:
+    from flask_babel import Babel
+    babel = Babel(app)
+    BABEL_AVAILABLE = True
     
-    # Создаем функцию _ с fallback на русские переводы
-    def _(text):
-        """Функция перевода с fallback на русский"""
-        # Если локаль русская, всегда используем русские переводы из словаря
-        if get_locale() == 'ru':
-            return _russian_translations.get(text, text)
-        
-        # Для других локалей используем Flask-Babel
-        try:
-            translated = gettext(text)
-            return translated
-        except Exception as e:
-            log_error(f"Translation error: {e}")
-            return text
+    @babel.localeselector
+    def babel_get_locale():
+        """Определяет локаль для Flask-Babel"""
+        return get_locale()
     
 except ImportError:
-    # Fallback если Flask-Babel не установлен
+    # Flask-Babel не установлен - используем fallback функции
     BABEL_AVAILABLE = False
-    def _(text):
-        # Возвращаем русские переводы напрямую, если Flask-Babel не установлен
-        translations = {
-            'Home': 'Главная',
-            'Events': 'Мероприятия',
-            'Participants': 'Участники',
-            'FAQ': 'FAQ',
-            'Admin Panel': 'Админ-панель',
-            'Users': 'Пользователи',
-            'Roles': 'Роли',
-            'Titles': 'Звания',
-            'Settings': 'Настройки',
-            'Localization': 'Локализация',
-            'Profile': 'Профиль',
-            'Logout': 'Выйти',
-            'Login via GWars': 'Войти через GWars',
-            'Edit Profile': 'Редактировать профиль',
-            'Main': 'Основное',
-            'Contacts': 'Контакты',
-            'About': 'О себе',
-            'User Profile': 'Профиль пользователя',
-            'User ID:': 'ID пользователя:',
-            'Name:': 'Имя:',
-            'Level:': 'Уровень:',
-            'Syndicate:': 'Синдикат:',
-            'Gender:': 'Пол:',
-            'Passport:': 'Паспорт:',
-            'Mobile:': 'Мобильный:',
-            'Last login:': 'Последний вход:',
-            'Yes': 'Есть',
-            'No': 'Нет',
-            'Not specified': 'Не указан',
-            'Contact information not specified': 'Контактная информация не указана',
-            'Additional information not specified': 'Дополнительная информация не указана',
-            'Toggle theme': 'Переключить тему',
-        }
-        return translations.get(text, text)
-    def get_locale():
-        return 'ru'
-    def format_date(date, format=None):
-        return str(date)
-    def format_datetime(datetime, format=None):
-        return str(datetime)
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -1070,7 +1031,10 @@ def inject_default_theme():
         conn.close()
     
     # Получаем текущую локаль
-    current_locale = get_locale() if BABEL_AVAILABLE else 'ru'
+    try:
+        current_locale = get_locale()
+    except Exception:
+        current_locale = 'ru'
     available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
     
     return dict(
@@ -2809,7 +2773,10 @@ def admin_localization():
     available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
     
     # Получаем текущую локаль
-    current_locale = get_locale() if BABEL_AVAILABLE else 'ru'
+    try:
+        current_locale = get_locale()
+    except Exception:
+        current_locale = 'ru'
     
     conn.close()
     
