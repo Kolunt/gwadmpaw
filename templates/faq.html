@@ -234,8 +234,8 @@ document.addEventListener('DOMContentLoaded', function() {
             icon.innerHTML = '▼';
             question.appendChild(icon);
             
-            // По умолчанию все открыты
-            item.classList.add('expanded');
+            // По умолчанию все закрыты
+            item.classList.remove('expanded');
             
             question.addEventListener('click', function() {
                 item.classList.toggle('expanded');
