@@ -1786,9 +1786,8 @@ def get_avatar_candidates():
     })
 
 @app.route('/profile/<int:user_id>')
-@require_login
 def view_profile(user_id):
-    """Просмотр профиля другого пользователя"""
+    """Просмотр профиля другого пользователя (доступно всем)"""
     conn = get_db_connection()
     
     # Получаем данные пользователя
@@ -1807,8 +1806,8 @@ def view_profile(user_id):
     
     conn.close()
     
-    # Проверяем, является ли это профилем текущего пользователя
-    is_own_profile = session.get('user_id') == user_id
+    # Проверяем, является ли это профилем текущего пользователя (если авторизован)
+    is_own_profile = session.get('user_id') == user_id if 'user_id' in session else False
     
     return render_template('view_profile.html', user=user, user_roles=user_roles, user_titles=user_titles, is_own_profile=is_own_profile)
 

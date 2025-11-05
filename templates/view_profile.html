@@ -95,7 +95,7 @@
         <div class="profile-actions">
             {% if is_own_profile %}
             <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Редактировать профиль</a>
-            {% if 'admin' in session.get('roles', []) %}
+            {% if session.get('user_id') and 'admin' in session.get('roles', []) %}
             <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Админ-панель</a>
             {% endif %}
             {% else %}
