@@ -2076,6 +2076,18 @@ body {
     margin: 0 auto;
 }
 
+/* Для формы создания/редактирования роли - полная ширина на десктопе */
+@media (min-width: 769px) {
+    .admin-container .form-container .role-form {
+        max-width: none;
+    }
+    
+    .admin-container .form-container {
+        max-width: none;
+        width: 100%;
+    }
+}
+
 .role-form {
     display: flex;
     gap: 1rem;

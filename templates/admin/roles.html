@@ -6,28 +6,87 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>Управление ролями</h1>
-        <div>
-            <a href="{{ url_for('admin_role_create') }}" class="btn btn-primary">Создать роль</a>
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{{ url_for('admin_role_create') }}" class="btn-icon" title="Создать роль">➕</a>
+            <a href="{{ url_for('admin_panel') }}" class="btn-icon" title="Назад">←</a>
+        </div>
+    </div>
+    
+    <!-- Панель поиска и фильтров -->
+    <div class="table-controls">
+        <div class="search-box">
+            <input 
+                type="text" 
+                id="search-input" 
+                class="search-input" 
+                placeholder="Поиск по всем полям..."
+                autocomplete="off"
+            >
+            <span class="search-icon">🔍</span>
+        </div>
+        
+        <div class="filters-row">
+            <div class="filter-group">
+                <label for="filter-name" class="filter-label">Название:</label>
+                <input type="text" id="filter-name" class="filter-input" placeholder="Все">
+            </div>
+            <div class="filter-group">
+                <label for="filter-display-name" class="filter-label">Отображаемое имя:</label>
+                <input type="text" id="filter-display-name" class="filter-input" placeholder="Все">
+            </div>
+            <div class="filter-group">
+                <label for="filter-type" class="filter-label">Тип:</label>
+                <input type="text" id="filter-type" class="filter-input" placeholder="Все">
+            </div>
+            <div class="filter-group">
+                <label for="filter-users" class="filter-label">Пользователей:</label>
+                <input type="text" id="filter-users" class="filter-input" placeholder="Все">
+            </div>
+            <button type="button" id="clear-filters" class="btn btn-secondary btn-sm">Очистить фильтры</button>
+        </div>
+        
+        <div class="table-info">
+            <span id="rows-count">Показано: <strong id="visible-count">0</strong> из <strong id="total-count">{{ roles|length }}</strong></span>
         </div>
     </div>
     
     <div class="table-container">
-        <table class="admin-table">
+        <table class="admin-table" id="roles-table">
             <thead>
                 <tr>
-                    <th>Название</th>
-                    <th>Отображаемое имя</th>
-                    <th>Описание</th>
-                    <th>Тип</th>
-                    <th>Пользователей</th>
-                    <th>Дата создания</th>
+                    <th class="sortable" data-column="0" data-sort="none">
+                        Название
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="1" data-sort="none">
+                        Отображаемое имя
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="2" data-sort="none">
+                        Описание
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="3" data-sort="none">
+                        Тип
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="4" data-sort="none">
+                        Пользователей
+                        <span class="sort-indicator">⇅</span>
+                    </th>
+                    <th class="sortable" data-column="5" data-sort="none">
+                        Дата создания
+                        <span class="sort-indicator">⇅</span>
+                    </th>
                     <th>Действия</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="table-body">
                 {% for role in roles %}
-                <tr>
+                <tr data-name="{{ role.name|lower }}" 
+                    data-display-name="{{ role.display_name|lower }}" 
+                    data-type="{% if role.is_system %}системная{% else %}кастомная{% endif %}"
+                    data-users="{{ role.user_count }}">
                     <td data-label="Название"><code>{{ role.name }}</code></td>
                     <td data-label="Отображаемое имя">{{ role.display_name }}</td>
                     <td data-label="Описание">{{ role.description or '-' }}</td>
@@ -42,10 +101,12 @@
                     <td data-label="Дата создания">{{ role.created_at or 'N/A' }}</td>
                     <td data-label="Действия">
                         {% if not role.is_system %}
-                        <a href="{{ url_for('admin_role_edit', role_id=role.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
-                        <form method="POST" action="{{ url_for('admin_role_delete', role_id=role.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту роль?');">
-                            <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
-                        </form>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <a href="{{ url_for('admin_role_edit', role_id=role.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                            <form method="POST" action="{{ url_for('admin_role_delete', role_id=role.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту роль?');">
+                                <button type="submit" class="btn-icon" title="Удалить" style="background-color: var(--error-color); border-color: var(--error-color); color: white;">🗑️</button>
+                            </form>
+                        </div>
                         {% else %}
                         <span class="text-muted">Системная роль</span>
                         {% endif %}
@@ -56,5 +117,145 @@
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('roles-table');
+    const tbody = document.getElementById('table-body');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const searchInput = document.getElementById('search-input');
+    const filterInputs = {
+        name: document.getElementById('filter-name'),
+        displayName: document.getElementById('filter-display-name'),
+        type: document.getElementById('filter-type'),
+        users: document.getElementById('filter-users')
+    };
+    const clearFiltersBtn = document.getElementById('clear-filters');
+    const visibleCount = document.getElementById('visible-count');
+    const totalCount = document.getElementById('total-count');
+    const sortableHeaders = document.querySelectorAll('.sortable');
+    
+    let currentSort = { column: null, direction: 'asc' };
+    
+    // Инициализация счетчика
+    totalCount.textContent = rows.length;
+    updateRowCount();
+    
+    // Функция обновления счетчика строк
+    function updateRowCount() {
+        const visibleRows = rows.filter(row => row.style.display !== 'none');
+        visibleCount.textContent = visibleRows.length;
+    }
+    
+    // Функция фильтрации
+    function filterRows() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const filters = {
+            name: filterInputs.name.value.toLowerCase().trim(),
+            displayName: filterInputs.displayName.value.toLowerCase().trim(),
+            type: filterInputs.type.value.toLowerCase().trim(),
+            users: filterInputs.users.value.toLowerCase().trim()
+        };
+        
+        rows.forEach(row => {
+            const name = row.dataset.name || '';
+            const displayName = row.dataset.displayName || '';
+            const type = row.dataset.type || '';
+            const users = String(row.dataset.users || '').toLowerCase();
+            
+            // Получаем текст из всех ячеек для поиска
+            const allText = Array.from(row.cells).map(cell => cell.textContent.toLowerCase()).join(' ');
+            
+            // Проверка поиска по всем полям
+            const searchMatch = !searchTerm || allText.includes(searchTerm);
+            
+            // Проверка фильтров по столбцам
+            const filterMatch = 
+                (!filters.name || name.includes(filters.name)) &&
+                (!filters.displayName || displayName.includes(filters.displayName)) &&
+                (!filters.type || type.includes(filters.type)) &&
+                (!filters.users || users.includes(filters.users));
+            
+            row.style.display = (searchMatch && filterMatch) ? '' : 'none';
+        });
+        
+        updateRowCount();
+    }
+    
+    // Обработчики событий для поиска и фильтров
+    searchInput.addEventListener('input', filterRows);
+    Object.values(filterInputs).forEach(input => {
+        input.addEventListener('input', filterRows);
+    });
+    
+    // Очистка фильтров
+    clearFiltersBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        Object.values(filterInputs).forEach(input => input.value = '');
+        filterRows();
+    });
+    
+    // Сортировка
+    function sortTable(columnIndex, direction) {
+        const visibleRows = rows.filter(row => row.style.display !== 'none');
+        
+        visibleRows.sort((a, b) => {
+            const aCell = a.cells[columnIndex].textContent.trim();
+            const bCell = b.cells[columnIndex].textContent.trim();
+            
+            // Для колонки "Пользователей" сравниваем как числа
+            if (columnIndex === 4) {
+                const aNum = parseInt(aCell) || 0;
+                const bNum = parseInt(bCell) || 0;
+                return direction === 'asc' ? aNum - bNum : bNum - aNum;
+            }
+            
+            // Пытаемся сравнить как числа
+            const aNum = parseFloat(aCell);
+            const bNum = parseFloat(bCell);
+            
+            let comparison = 0;
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                comparison = aNum - bNum;
+            } else {
+                // Сравниваем как строки
+                comparison = aCell.localeCompare(bCell, 'ru', { numeric: true });
+            }
+            
+            return direction === 'asc' ? comparison : -comparison;
+        });
+        
+        // Перемещаем отсортированные строки в DOM
+        visibleRows.forEach(row => tbody.appendChild(row));
+        
+        // Обновляем индикаторы сортировки
+        sortableHeaders.forEach((header, index) => {
+            const indicator = header.querySelector('.sort-indicator');
+            if (index === columnIndex) {
+                indicator.textContent = direction === 'asc' ? '↑' : '↓';
+                header.dataset.sort = direction;
+            } else {
+                indicator.textContent = '⇅';
+                header.dataset.sort = 'none';
+            }
+        });
+        
+        currentSort = { column: columnIndex, direction };
+    }
+    
+    // Обработчики клика на заголовки
+    sortableHeaders.forEach((header, index) => {
+        header.addEventListener('click', function() {
+            const currentDirection = header.dataset.sort === 'asc' ? 'desc' : 'asc';
+            sortTable(index, currentDirection);
+        });
+    });
+    
+    // Изначальная сортировка по названию по возрастанию
+    if (rows.length > 0) {
+        sortTable(0, 'asc');
+    }
+});
+</script>
 {% endblock %}
 
