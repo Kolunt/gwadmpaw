@@ -295,6 +295,34 @@ def init_db():
             )
         ''')
         
+        # Таблица наград
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS awards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                image TEXT,
+                sort_order INTEGER DEFAULT 100,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_by INTEGER,
+                FOREIGN KEY (created_by) REFERENCES users(user_id)
+            )
+        ''')
+        
+        # Таблица связи пользователей и наград
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS user_awards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                award_id INTEGER NOT NULL,
+                assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                assigned_by INTEGER,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (award_id) REFERENCES awards(id) ON DELETE CASCADE,
+                FOREIGN KEY (assigned_by) REFERENCES users(user_id),
+                UNIQUE(user_id, award_id)
+            )
+        ''')
+        
         # Инициализация стандартных званий
         default_titles = [
             ('author', 'Автор идеи', 'Автор идеи проекта', '#28a745', '💡', 1),
@@ -3415,6 +3443,188 @@ def contacts():
                          admins_moderators=admins_moderators_data,
                          users_with_titles=users_with_titles_data)
 
+# ========== Управление наградами ==========
+
+@app.route('/admin/awards')
+@require_role('admin')
+def admin_awards():
+    """Список наград"""
+    conn = get_db_connection()
+    awards = conn.execute('''
+        SELECT a.*, 
+               COUNT(ua.id) as users_count,
+               u.username as creator_name
+        FROM awards a
+        LEFT JOIN user_awards ua ON a.id = ua.award_id
+        LEFT JOIN users u ON a.created_by = u.user_id
+        GROUP BY a.id
+        ORDER BY a.sort_order, a.created_at DESC
+    ''').fetchall()
+    conn.close()
+    return render_template('admin/awards.html', awards=awards)
+
+@app.route('/admin/awards/create', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_award_create():
+    """Создание награды"""
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        sort_order = request.form.get('sort_order', '100').strip()
+        image_file = request.files.get('image')
+        
+        if not title:
+            flash('Заголовок награды обязателен', 'error')
+            return render_template('admin/award_form.html')
+        
+        try:
+            sort_order = int(sort_order) if sort_order else 100
+        except ValueError:
+            sort_order = 100
+        
+        # Обработка загрузки изображения
+        image_path = None
+        if image_file and image_file.filename:
+            upload_dir = os.path.join(app.static_folder, 'uploads', 'awards')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Проверяем расширение
+            allowed_extensions = {'.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'}
+            file_ext = os.path.splitext(image_file.filename)[1].lower()
+            if file_ext in allowed_extensions:
+                filename = f"award_{int(datetime.now().timestamp())}{file_ext}"
+                filepath = os.path.join(upload_dir, filename)
+                image_file.save(filepath)
+                image_path = f'/static/uploads/awards/{filename}'
+        
+        conn = get_db_connection()
+        try:
+            conn.execute('''
+                INSERT INTO awards (title, image, sort_order, created_by)
+                VALUES (?, ?, ?, ?)
+            ''', (title, image_path, sort_order, session['user_id']))
+            conn.commit()
+            flash('Награда успешно создана', 'success')
+            conn.close()
+            return redirect(url_for('admin_awards'))
+        except Exception as e:
+            log_error(f"Error creating award: {e}")
+            flash(f'Ошибка создания награды: {str(e)}', 'error')
+            conn.close()
+    
+    return render_template('admin/award_form.html')
+
+@app.route('/admin/awards/<int:award_id>/edit', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_award_edit(award_id):
+    """Редактирование награды"""
+    conn = get_db_connection()
+    award = conn.execute('SELECT * FROM awards WHERE id = ?', (award_id,)).fetchone()
+    
+    if not award:
+        flash('Награда не найдена', 'error')
+        conn.close()
+        return redirect(url_for('admin_awards'))
+    
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        sort_order = request.form.get('sort_order', '100').strip()
+        image_file = request.files.get('image')
+        delete_image = request.form.get('delete_image', '0')
+        
+        if not title:
+            flash('Заголовок награды обязателен', 'error')
+            conn.close()
+            return render_template('admin/award_form.html', award=award)
+        
+        try:
+            sort_order = int(sort_order) if sort_order else 100
+        except ValueError:
+            sort_order = 100
+        
+        # Обработка загрузки/удаления изображения
+        image_path = award['image']
+        
+        if delete_image == '1':
+            # Удаляем старое изображение
+            if image_path:
+                old_filepath = os.path.join(app.static_folder, image_path.replace('/static/', ''))
+                if os.path.exists(old_filepath):
+                    try:
+                        os.remove(old_filepath)
+                    except Exception as e:
+                        log_debug(f"Error deleting old image: {e}")
+            image_path = None
+        
+        if image_file and image_file.filename:
+            # Удаляем старое изображение при загрузке нового
+            if image_path:
+                old_filepath = os.path.join(app.static_folder, image_path.replace('/static/', ''))
+                if os.path.exists(old_filepath):
+                    try:
+                        os.remove(old_filepath)
+                    except Exception as e:
+                        log_debug(f"Error deleting old image: {e}")
+            
+            upload_dir = os.path.join(app.static_folder, 'uploads', 'awards')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Проверяем расширение
+            allowed_extensions = {'.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'}
+            file_ext = os.path.splitext(image_file.filename)[1].lower()
+            if file_ext in allowed_extensions:
+                filename = f"award_{int(datetime.now().timestamp())}{file_ext}"
+                filepath = os.path.join(upload_dir, filename)
+                image_file.save(filepath)
+                image_path = f'/static/uploads/awards/{filename}'
+        
+        try:
+            conn.execute('''
+                UPDATE awards SET title = ?, image = ?, sort_order = ?
+                WHERE id = ?
+            ''', (title, image_path, sort_order, award_id))
+            conn.commit()
+            flash('Награда успешно обновлена', 'success')
+            conn.close()
+            return redirect(url_for('admin_awards'))
+        except Exception as e:
+            log_error(f"Error updating award: {e}")
+            flash(f'Ошибка обновления награды: {str(e)}', 'error')
+            conn.close()
+    
+    conn.close()
+    return render_template('admin/award_form.html', award=award)
+
+@app.route('/admin/awards/<int:award_id>/delete', methods=['POST'])
+@require_role('admin')
+def admin_award_delete(award_id):
+    """Удаление награды"""
+    conn = get_db_connection()
+    award = conn.execute('SELECT * FROM awards WHERE id = ?', (award_id,)).fetchone()
+    
+    if not award:
+        flash('Награда не найдена', 'error')
+        conn.close()
+        return redirect(url_for('admin_awards'))
+    
+    try:
+        # Удаляем изображение если есть
+        if award['image']:
+            image_path = os.path.join(app.static_folder, award['image'].replace('/static/', ''))
+            if os.path.exists(image_path):
+                try:
+                    os.remove(image_path)
+                except Exception as e:
+                    log_debug(f"Error deleting award image: {e}")
+        
+        conn.execute('DELETE FROM awards WHERE id = ?', (award_id,))
+        conn.commit()
+        flash('Награда успешно удалена', 'success')
+    except Exception as e:
+        log_error(f"Error deleting award: {e}")
+        flash(f'Ошибка удаления награды: {str(e)}', 'error')
+    
+    conn.close()
+    return redirect(url_for('admin_awards'))
 
 @app.route('/admin/events')
 @require_role('admin')

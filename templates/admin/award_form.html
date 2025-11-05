@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{% if award %}Редактирование награды{% else %}Создание награды{% endif %} - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>{% if award %}Редактирование награды{% else %}Создание награды{% endif %}</h1>
+        <a href="{{ url_for('admin_awards') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+    
+    <div class="form-container">
+        <form method="POST" enctype="multipart/form-data" class="form">
+            <div class="form-group">
+                <label for="title" class="form-label">Заголовок награды *</label>
+                <input 
+                    type="text" 
+                    id="title" 
+                    name="title" 
+                    class="form-input" 
+                    value="{{ award.title if award else '' }}" 
+                    required
+                    placeholder="Введите заголовок награды"
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="sort_order" class="form-label">Порядок сортировки</label>
+                <input 
+                    type="number" 
+                    id="sort_order" 
+                    name="sort_order" 
+                    class="form-input" 
+                    value="{{ award.sort_order if award else 100 }}"
+                    placeholder="100"
+                >
+                <small class="form-hint">Чем меньше число, тем выше награда в списке. По умолчанию: 100</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="image" class="form-label">Изображение награды</label>
+                {% if award and award.image %}
+                <div class="file-upload-group" style="margin-bottom: 1rem;">
+                    <div class="current-file-preview">
+                        <img src="{{ award.image }}" alt="Текущее изображение" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
+                        <span class="current-file-label">Текущее изображение</span>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>
+                        <input type="checkbox" name="delete_image" value="1">
+                        Удалить текущее изображение
+                    </label>
+                </div>
+                {% endif %}
+                <input 
+                    type="file" 
+                    id="image" 
+                    name="image" 
+                    accept=".png,.jpg,.jpeg,.svg,.gif,.webp"
+                    class="file-input"
+                >
+                <label for="image" class="file-upload-label">
+                    <span class="file-upload-text">{% if award and award.image %}Заменить изображение{% else %}Выбрать файл{% endif %}</span>
+                    <span class="file-upload-btn">📁</span>
+                </label>
+                <small class="form-hint">Форматы: .png, .jpg, .jpeg, .svg, .gif, .webp</small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    {% if award %}Сохранить изменения{% else %}Создать награду{% endif %}
+                </button>
+                <a href="{{ url_for('admin_awards') }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
