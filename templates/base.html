@@ -120,10 +120,6 @@
                     <span class="sidebar-icon">❓</span>
                     <span>{{ _('FAQ') }}</span>
                 </a>
-                <a href="{{ url_for('contacts') }}" class="sidebar-link">
-                    <span class="sidebar-icon">📞</span>
-                    <span>{{ _('Contacts') }}</span>
-                </a>
             </div>
             
             <!-- Админ-панель (только для администраторов) -->
@@ -146,10 +142,6 @@
                     <span class="sidebar-icon">⚙️</span>
                     <span>{{ _('Settings') }}</span>
                 </a>
-                <a href="{{ url_for('admin_localization') }}" class="sidebar-link">
-                    <span class="sidebar-icon">🌐</span>
-                    <span>{{ _('Localization') }}</span>
-                </a>
                 <a href="{{ url_for('admin_events') }}" class="sidebar-link">
                     <span class="sidebar-icon">🎉</span>
                     <span>{{ _('Events') }}</span>
@@ -157,10 +149,6 @@
                 <a href="{{ url_for('admin_faq') }}" class="sidebar-link">
                     <span class="sidebar-icon">❓</span>
                     <span>{{ _('FAQ') }}</span>
-                </a>
-                <a href="{{ url_for('admin_contacts') }}" class="sidebar-link">
-                    <span class="sidebar-icon">📞</span>
-                    <span>{{ _('Contacts') }}</span>
                 </a>
             </div>
             {% endif %}

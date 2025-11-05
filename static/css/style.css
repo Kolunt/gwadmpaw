@@ -1543,6 +1543,132 @@ body {
     border-radius: 12px;
     font-size: 0.875rem;
     margin-right: 0.5rem;
+}
+
+/* Таблица званий */
+.titles-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.titles-table thead {
+    background-color: var(--bg-secondary);
+}
+
+.titles-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.titles-table td {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.titles-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.titles-table tbody tr:hover {
+    background-color: var(--bg-secondary);
+    transition: background-color 0.2s ease;
+}
+
+.title-icon-cell {
+    width: 80px;
+    text-align: center;
+}
+
+.title-icon-large {
+    font-size: 3rem;
+    display: inline-block;
+    line-height: 1;
+}
+
+.title-name-cell {
+    font-weight: 600;
+}
+
+.title-name {
+    font-size: 1.1rem;
+}
+
+.title-description-cell {
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .titles-table {
+        font-size: 0.9rem;
+    }
+    
+    .titles-table th,
+    .titles-table td {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .title-icon-large {
+        font-size: 2rem;
+    }
+    
+    .title-name {
+        font-size: 1rem;
+    }
+    
+    .titles-table thead {
+        display: none;
+    }
+    
+    .titles-table tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        background-color: var(--bg-card);
+    }
+    
+    .titles-table tbody tr td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: none;
+    }
+    
+    .titles-table tbody tr td:before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-right: 1rem;
+    }
+    
+    .title-icon-cell {
+        width: 100%;
+        justify-content: center !important;
+    }
+    
+    .title-icon-cell:before {
+        content: 'Иконка:';
+    }
+    
+    .title-name-cell:before {
+        content: 'Название:';
+    }
+    
+    .title-description-cell:before {
+        content: 'Описание:';
+    }
+}
     margin-bottom: 0.25rem;
     border: 1px solid;
     font-weight: 500;

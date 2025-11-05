@@ -2693,6 +2693,12 @@ def admin_settings():
                     # Сохраняем путь в настройках
                     set_setting('site_logo', f'/static/uploads/{filename}', 'Логотип сайта', 'general')
         
+        # Обработка настройки локализации
+        if 'default_language' in request.form:
+            default_language = request.form.get('default_language', 'ru').strip()
+            if default_language in app.config['LANGUAGES']:
+                set_setting('default_language', default_language, 'Язык по умолчанию (ru или en)', 'general')
+        
         # Обновляем настройки
         settings_dict = {}
         for key in request.form:
@@ -2728,10 +2734,9 @@ def admin_settings():
         conn.close()
         return redirect(url_for('admin_settings'))
     
-    # Получаем все настройки, сгруппированные по категориям (исключаем default_language)
+    # Получаем все настройки, сгруппированные по категориям
     settings = conn.execute('''
         SELECT * FROM settings 
-        WHERE key != 'default_language'
         ORDER BY category, key
     ''').fetchall()
     
@@ -2747,11 +2752,23 @@ def admin_settings():
         settings_by_category[category].append(setting_dict)
         settings_dict[setting['key']] = setting_dict
     
+    # Получаем настройки локализации для вкладки
+    default_language = get_setting('default_language', 'ru')
+    available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
+    try:
+        current_locale = get_locale()
+    except Exception:
+        current_locale = 'ru'
+    
     conn.close()
     
     return render_template('admin/settings.html', 
                          settings_by_category=settings_by_category,
-                         settings_dict=settings_dict)
+                         settings_dict=settings_dict,
+                         default_language=default_language,
+                         available_languages=available_languages,
+                         current_locale=current_locale,
+                         BABEL_AVAILABLE=BABEL_AVAILABLE)
 
 def verify_dadata_api(api_key, secret_key):
     """Проверяет валидность Dadata API ключей"""
@@ -2787,40 +2804,6 @@ def verify_dadata_api(api_key, secret_key):
     except Exception as e:
         return False, f"Ошибка при проверке: {str(e)}"
 
-@app.route('/admin/localization', methods=['GET', 'POST'])
-@require_role('admin')
-def admin_localization():
-    """Страница управления локализацией"""
-    conn = get_db_connection()
-    
-    if request.method == 'POST':
-        # Обновляем настройку языка по умолчанию
-        default_language = request.form.get('default_language', 'ru').strip()
-        if default_language in app.config['LANGUAGES']:
-            set_setting('default_language', default_language, 'Язык по умолчанию (ru или en)', 'general')
-            flash('Настройки локализации успешно сохранены', 'success')
-        else:
-            flash('Неверный язык', 'error')
-    
-    # Получаем текущую настройку языка
-    default_language = get_setting('default_language', 'ru')
-    
-    # Получаем список доступных языков
-    available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
-    
-    # Получаем текущую локаль
-    try:
-        current_locale = get_locale()
-    except Exception:
-        current_locale = 'ru'
-    
-    conn.close()
-    
-    return render_template('admin/localization.html',
-                         default_language=default_language,
-                         available_languages=available_languages,
-                         current_locale=current_locale,
-                         BABEL_AVAILABLE=BABEL_AVAILABLE)
 
 @app.route('/admin/settings/verify-dadata', methods=['POST'])
 @require_role('admin')
@@ -3357,132 +3340,6 @@ def contacts():
                          admins_moderators=admins_moderators_data,
                          users_with_titles=users_with_titles_data)
 
-@app.route('/admin/contacts')
-@require_role('admin')
-def admin_contacts():
-    """Список контактов"""
-    conn = get_db_connection()
-    contacts_list = conn.execute('''
-        SELECT c.*, u1.username as creator_name, u2.username as updater_name
-        FROM contacts c
-        LEFT JOIN users u1 ON c.created_by = u1.user_id
-        LEFT JOIN users u2 ON c.updated_by = u2.user_id
-        ORDER BY c.sort_order, c.name
-    ''').fetchall()
-    conn.close()
-    return render_template('admin/contacts.html', contacts=contacts_list)
-
-@app.route('/admin/contacts/create', methods=['GET', 'POST'])
-@require_role('admin')
-def admin_contact_create():
-    """Создание контакта"""
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        contact_type = request.form.get('type', 'other').strip()
-        value = request.form.get('value', '').strip()
-        icon = request.form.get('icon', '').strip()
-        description = request.form.get('description', '').strip()
-        sort_order = request.form.get('sort_order', '100')
-        is_active = request.form.get('is_active', '0')
-        
-        if not name or not value:
-            flash('Название и значение контакта обязательны', 'error')
-            return render_template('admin/contact_form.html', contact=None)
-        
-        try:
-            sort_order = int(sort_order)
-        except ValueError:
-            sort_order = 100
-        
-        conn = get_db_connection()
-        try:
-            conn.execute('''
-                INSERT INTO contacts (name, type, value, icon, description, sort_order, is_active, created_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (name, contact_type, value, icon, description, sort_order, 1 if is_active else 0, session.get('user_id')))
-            conn.commit()
-            flash('Контакт успешно создан', 'success')
-            conn.close()
-            return redirect(url_for('admin_contacts'))
-        except Exception as e:
-            log_error(f"Error creating contact: {e}")
-            flash(f'Ошибка создания контакта: {str(e)}', 'error')
-            conn.close()
-    
-    return render_template('admin/contact_form.html', contact=None)
-
-@app.route('/admin/contacts/<int:contact_id>/edit', methods=['GET', 'POST'])
-@require_role('admin')
-def admin_contact_edit(contact_id):
-    """Редактирование контакта"""
-    conn = get_db_connection()
-    contact = conn.execute('SELECT * FROM contacts WHERE id = ?', (contact_id,)).fetchone()
-    
-    if not contact:
-        flash('Контакт не найден', 'error')
-        conn.close()
-        return redirect(url_for('admin_contacts'))
-    
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        contact_type = request.form.get('type', 'other').strip()
-        value = request.form.get('value', '').strip()
-        icon = request.form.get('icon', '').strip()
-        description = request.form.get('description', '').strip()
-        sort_order = request.form.get('sort_order', '100')
-        is_active = request.form.get('is_active', '0')
-        
-        if not name or not value:
-            flash('Название и значение контакта обязательны', 'error')
-            conn.close()
-            return render_template('admin/contact_form.html', contact=dict(contact))
-        
-        try:
-            sort_order = int(sort_order)
-        except ValueError:
-            sort_order = 100
-        
-        try:
-            conn.execute('''
-                UPDATE contacts 
-                SET name = ?, type = ?, value = ?, icon = ?, description = ?, 
-                    sort_order = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
-                WHERE id = ?
-            ''', (name, contact_type, value, icon, description, sort_order, 1 if is_active else 0, session.get('user_id'), contact_id))
-            conn.commit()
-            flash('Контакт успешно обновлен', 'success')
-            conn.close()
-            return redirect(url_for('admin_contacts'))
-        except Exception as e:
-            log_error(f"Error updating contact: {e}")
-            flash(f'Ошибка обновления контакта: {str(e)}', 'error')
-            conn.close()
-    
-    conn.close()
-    return render_template('admin/contact_form.html', contact=dict(contact))
-
-@app.route('/admin/contacts/<int:contact_id>/delete', methods=['POST'])
-@require_role('admin')
-def admin_contact_delete(contact_id):
-    """Удаление контакта"""
-    conn = get_db_connection()
-    contact = conn.execute('SELECT * FROM contacts WHERE id = ?', (contact_id,)).fetchone()
-    
-    if not contact:
-        flash('Контакт не найден', 'error')
-        conn.close()
-        return redirect(url_for('admin_contacts'))
-    
-    try:
-        conn.execute('DELETE FROM contacts WHERE id = ?', (contact_id,))
-        conn.commit()
-        flash('Контакт успешно удален', 'success')
-    except Exception as e:
-        log_error(f"Error deleting contact: {e}")
-        flash(f'Ошибка удаления контакта: {str(e)}', 'error')
-    
-    conn.close()
-    return redirect(url_for('admin_contacts'))
 
 @app.route('/admin/events')
 @require_role('admin')

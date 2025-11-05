@@ -5,34 +5,15 @@
 {% block content %}
 <div class="dashboard-container">
     <div class="profile-card">
-        <h2>Профиль пользователя</h2>
-        
-        {% if user.avatar_seed %}
-        <div class="profile-avatar">
-            <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars') }}" alt="Аватар {{ user.username }}" class="avatar-large">
-        </div>
-        {% endif %}
-        
-        <div class="profile-info">
-            <div class="info-row">
-                <span class="info-label">ID пользователя:</span>
-                <span class="info-value">{{ user.user_id }}</span>
+        <div class="profile-header">
+            {% if user.avatar_seed %}
+            <div class="profile-avatar">
+                <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars') }}" alt="Аватар {{ user.username }}" class="avatar-large">
             </div>
-            <div class="info-row">
-                <span class="info-label">Имя:</span>
-                <span class="info-value">{{ user.username }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Уровень:</span>
-                <span class="info-value">{{ user.level }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Синдикат:</span>
-                <span class="info-value">{{ user.synd }}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Роли:</span>
-                <span class="info-value">
+            {% endif %}
+            <div class="profile-header-info">
+                <h2>{{ user.username }}</h2>
+                <div class="profile-badges">
                     {% if user_roles %}
                         {% for role in user_roles %}
                             <span class="role-badge">{{ role.display_name }}</span>
@@ -40,55 +21,132 @@
                     {% else %}
                         <span class="role-badge">Пользователь</span>
                     {% endif %}
-                </span>
+                </div>
             </div>
-            {% if user_titles %}
-            <div class="info-row">
-                <span class="info-label">Звания:</span>
-                <span class="info-value">
-                    {% for title in user_titles %}
-                        <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
-                            {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
-                        </span>
-                    {% endfor %}
-                </span>
-            </div>
+        </div>
+
+        <!-- Табы -->
+        <div class="dashboard-tabs">
+            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#main" 
+               class="dashboard-tab active" 
+               data-tab="main">
+                📋 Основное
+            </a>
+            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#titles" 
+               class="dashboard-tab" 
+               data-tab="titles">
+                🏆 Звания
+            </a>
+            {% if user.bio or user.contact_info %}
+            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#about" 
+               class="dashboard-tab" 
+               data-tab="about">
+                📝 О себе
+            </a>
             {% endif %}
-            <div class="info-row">
-                <span class="info-label">Пол:</span>
-                <span class="info-value">{{ user.usersex or 'Не указан' }}</span>
+        </div>
+
+        <!-- Содержимое таба "Основное" -->
+        <div class="dashboard-tab-content active" data-tab="main">
+            <div class="profile-info">
+                <div class="info-row">
+                    <span class="info-label">ID пользователя:</span>
+                    <span class="info-value">{{ user.user_id }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Имя:</span>
+                    <span class="info-value">{{ user.username }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Уровень:</span>
+                    <span class="info-value">{{ user.level }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Синдикат:</span>
+                    <span class="info-value">{{ user.synd }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Пол:</span>
+                    <span class="info-value">{{ user.usersex or 'Не указан' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Паспорт:</span>
+                    <span class="info-value">{{ 'Есть' if user.has_passport else 'Нет' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Мобильный:</span>
+                    <span class="info-value">{{ 'Есть' if user.has_mobile else 'Нет' }}</span>
+                </div>
+                {% if user.last_login %}
+                <div class="info-row">
+                    <span class="info-label">Последний вход:</span>
+                    <span class="info-value">{{ user.last_login }}</span>
+                </div>
+                {% endif %}
             </div>
-            <div class="info-row">
-                <span class="info-label">Паспорт:</span>
-                <span class="info-value">{{ 'Есть' if user.has_passport else 'Нет' }}</span>
+        </div>
+
+        <!-- Содержимое таба "Звания" -->
+        <div class="dashboard-tab-content" data-tab="titles">
+            {% if user_titles %}
+            <div class="profile-info">
+                <table class="titles-table">
+                    <thead>
+                        <tr>
+                            <th>Иконка</th>
+                            <th>Название</th>
+                            <th>Описание</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for title in user_titles %}
+                        <tr>
+                            <td class="title-icon-cell" data-label="Иконка">
+                                <span class="title-icon-large" style="color: {{ title.color }};">
+                                    {% if title.icon %}{{ title.icon }}{% else %}🏆{% endif %}
+                                </span>
+                            </td>
+                            <td class="title-name-cell" data-label="Название">
+                                <span class="title-name" style="color: {{ title.color }};">
+                                    {{ title.display_name }}
+                                </span>
+                            </td>
+                            <td class="title-description-cell" data-label="Описание">
+                                {% if title.description %}
+                                    {{ title.description }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <div class="info-row">
-                <span class="info-label">Мобильный:</span>
-                <span class="info-value">{{ 'Есть' if user.has_mobile else 'Нет' }}</span>
-            </div>
-            {% if user.last_login %}
-            <div class="info-row">
-                <span class="info-label">Последний вход:</span>
-                <span class="info-value">{{ user.last_login }}</span>
+            {% else %}
+            <div class="profile-info">
+                <p class="text-muted">У пользователя нет званий</p>
             </div>
             {% endif %}
         </div>
-        
+
+        <!-- Содержимое таба "О себе" -->
         {% if user.bio or user.contact_info %}
-        <div class="profile-user-info">
-            <h3>Дополнительная информация</h3>
-            {% if user.bio %}
-            <div class="info-row">
-                <span class="info-label">О себе:</span>
-                <span class="info-value">{{ user.bio }}</span>
+        <div class="dashboard-tab-content" data-tab="about">
+            <div class="profile-user-info">
+                {% if user.bio %}
+                <div class="info-row">
+                    <span class="info-label">О себе:</span>
+                    <span class="info-value">{{ user.bio }}</span>
+                </div>
+                {% endif %}
+                {% if user.contact_info %}
+                <div class="info-row">
+                    <span class="info-label">Контакты:</span>
+                    <span class="info-value">{{ user.contact_info }}</span>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
-            {% if user.contact_info %}
-            <div class="info-row">
-                <span class="info-label">Контакты:</span>
-                <span class="info-value">{{ user.contact_info }}</span>
-            </div>
-            {% endif %}
         </div>
         {% endif %}
 
@@ -104,5 +162,63 @@
         </div>
     </div>
 </div>
+
+<script>
+// Переключение табов с поддержкой URL hash
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.dashboard-tab');
+    const tabContents = document.querySelectorAll('.dashboard-tab-content');
+    
+    // Функция для переключения таба
+    function switchTab(tabName) {
+        // Убираем активный класс у всех табов и содержимого
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Добавляем активный класс к выбранному табу и содержимому
+        const selectedTab = document.querySelector(`.dashboard-tab[data-tab="${tabName}"]`);
+        const selectedContent = document.querySelector(`.dashboard-tab-content[data-tab="${tabName}"]`);
+        
+        if (selectedTab && selectedContent) {
+            selectedTab.classList.add('active');
+            selectedContent.classList.add('active');
+            // Обновляем URL hash без перезагрузки страницы
+            if (window.location.hash !== '#' + tabName) {
+                window.history.replaceState(null, '', '#' + tabName);
+            }
+        }
+    }
+    
+    // Обработка кликов по табам
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetTab = this.getAttribute('data-tab');
+            switchTab(targetTab);
+        });
+    });
+    
+    // Проверяем hash при загрузке страницы
+    const hash = window.location.hash.substring(1); // Убираем #
+    if (hash) {
+        // Проверяем, существует ли таб с таким именем
+        const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === hash);
+        if (tabExists) {
+            switchTab(hash);
+        }
+    }
+    
+    // Обработка изменения hash (когда пользователь использует кнопки браузера)
+    window.addEventListener('hashchange', function() {
+        const newHash = window.location.hash.substring(1);
+        if (newHash) {
+            const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === newHash);
+            if (tabExists) {
+                switchTab(newHash);
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
 
