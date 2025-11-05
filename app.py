@@ -96,6 +96,7 @@ def format_datetime(datetime, format=None):
     """Форматирование даты и времени (fallback)"""
     return str(datetime)
 
+BABEL_AVAILABLE = False
 try:
     from flask_babel import Babel
     babel = Babel(app)
@@ -104,10 +105,17 @@ try:
     @babel.localeselector
     def babel_get_locale():
         """Определяет локаль для Flask-Babel"""
-        return get_locale()
+        try:
+            return get_locale()
+        except Exception:
+            return 'ru'
     
 except ImportError:
     # Flask-Babel не установлен - используем fallback функции
+    BABEL_AVAILABLE = False
+except Exception as e:
+    # Любая другая ошибка при инициализации Babel
+    log_error(f"Error initializing Babel: {e}")
     BABEL_AVAILABLE = False
 
 # Настройка логирования
