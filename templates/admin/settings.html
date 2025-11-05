@@ -135,18 +135,37 @@
                     </div>
                 </div>
             </div>
-            {% else %}
+            {% elif category == 'system' %}
+            <!-- Специальная обработка для системных настроек (Блатные) -->
             <div class="settings-section">
-                <h2 class="settings-section-title">
-                    {% if category == 'gwars' %}
-                        ⚔️ Настройки GWars
-                    {% elif category == 'system' %}
-                        🔧 Блатные настройки
-                    {% else %}
-                        📋 Общие настройки
-                    {% endif %}
-                </h2>
+                <h2 class="settings-section-title">🔧 Блатные настройки</h2>
                 
+                <!-- Список администраторов -->
+                <div class="setting-card" style="margin-bottom: 2rem;">
+                    <div class="setting-card-header">
+                        <label class="setting-label">Администраторы системы</label>
+                        <span class="setting-badge">Пользователи</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <small class="setting-hint">Список всех пользователей с правами администратора</small>
+                        
+                        {% if admin_users %}
+                        <div class="admin-users-list" style="margin-top: 1rem;">
+                            {% for admin_id in admin_users %}
+                            <div class="admin-user-item" style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div class="admin-user-id" style="font-weight: 600; font-size: 1.1rem; color: var(--accent-color); font-family: 'Courier New', monospace;">
+                                    {{ admin_id }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p style="color: var(--text-secondary); margin-top: 1rem;">Администраторы не найдены</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Остальные системные настройки -->
                 <div class="settings-grid">
                     {% for setting in settings %}
                     <div class="setting-card">
