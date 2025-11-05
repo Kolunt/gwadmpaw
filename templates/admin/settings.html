@@ -415,6 +415,114 @@
                     {% endfor %}
                 </div>
             </div>
+            {% else %}
+            <!-- Обработка для остальных категорий (general и других) -->
+            <div class="settings-grid">
+                {% for setting in settings %}
+                <div class="setting-card">
+                    <div class="setting-card-header">
+                        <label for="setting_{{ setting.key }}" class="setting-label">
+                            {{ setting.description or setting.key }}
+                        </label>
+                        {% if setting.key == 'admin_user_ids' %}
+                            <span class="setting-badge">Система</span>
+                        {% elif setting.key in ['gwars_site_id', 'gwars_host'] %}
+                            <span class="setting-badge">GWars</span>
+                        {% elif setting.key in ['default_theme', 'site_icon', 'site_logo', 'site_title', 'site_description', 'logo_text'] %}
+                            <span class="setting-badge">Внешний вид</span>
+                        {% endif %}
+                    </div>
+                    <div class="setting-card-body">
+                        {% if setting.key == 'admin_user_ids' %}
+                            <small class="setting-hint">ID через запятую (например: 283494, 240139)</small>
+                        {% elif setting.key == 'gwars_site_id' %}
+                            <small class="setting-hint">Числовой ID сайта в GWars</small>
+                        {% elif setting.key == 'gwars_host' %}
+                            <small class="setting-hint">Домен без http:// (например: gwadm.pythonanywhere.com)</small>
+                        {% elif setting.key == 'default_theme' %}
+                            <small class="setting-hint">Тема по умолчанию для новых пользователей</small>
+                        {% elif setting.key == 'site_icon' %}
+                            <small class="setting-hint">Иконка сайта (favicon). Форматы: .ico, .png, .jpg, .svg</small>
+                        {% elif setting.key == 'site_logo' %}
+                            <small class="setting-hint">Логотип сайта. Форматы: .png, .jpg, .svg, .gif, .webp</small>
+                        {% elif setting.key == 'site_title' %}
+                            <small class="setting-hint">Заголовок сайта, отображается во вкладке браузера</small>
+                        {% elif setting.key == 'site_description' %}
+                            <small class="setting-hint">Краткое описание сайта для поисковых систем</small>
+                        {% elif setting.key == 'logo_text' %}
+                            <small class="setting-hint">Текст, отображаемый рядом с логотипом в шапке сайта</small>
+                        {% endif %}
+                        {% if setting.key == 'default_theme' %}
+                        <select 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            class="setting-input"
+                        >
+                            <option value="light" {% if setting.value == 'light' %}selected{% endif %}>Светлая</option>
+                            <option value="dark" {% if setting.value == 'dark' %}selected{% endif %}>Темная</option>
+                        </select>
+                        {% elif setting.key == 'site_icon' %}
+                        <div class="file-upload-group">
+                            {% if setting.value %}
+                            <div class="current-file-preview">
+                                <img src="{{ setting.value }}" alt="Текущая иконка" class="file-preview-icon">
+                                <span class="current-file-label">Текущая иконка</span>
+                            </div>
+                            {% endif %}
+                            <input 
+                                type="file" 
+                                id="site_icon" 
+                                name="site_icon" 
+                                accept=".ico,.png,.jpg,.jpeg,.svg"
+                                class="file-input"
+                            >
+                            <label for="site_icon" class="file-upload-label">
+                                <span class="file-upload-text">Выбрать файл</span>
+                                <span class="file-upload-btn">📁</span>
+                            </label>
+                        </div>
+                        {% elif setting.key == 'site_logo' %}
+                        <div class="file-upload-group">
+                            {% if setting.value %}
+                            <div class="current-file-preview">
+                                <img src="{{ setting.value }}" alt="Текущий логотип" class="file-preview-logo">
+                                <span class="current-file-label">Текущий логотип</span>
+                            </div>
+                            {% endif %}
+                            <input 
+                                type="file" 
+                                id="site_logo" 
+                                name="site_logo" 
+                                accept=".png,.jpg,.jpeg,.svg,.gif,.webp"
+                                class="file-input"
+                            >
+                            <label for="site_logo" class="file-upload-label">
+                                <span class="file-upload-text">Выбрать файл</span>
+                                <span class="file-upload-btn">📁</span>
+                            </label>
+                        </div>
+                        {% elif setting.key == 'site_description' %}
+                        <textarea 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            rows="3"
+                            class="setting-input"
+                            placeholder="Введите описание сайта"
+                        >{{ setting.value or '' }}</textarea>
+                        {% else %}
+                        <input 
+                            type="text" 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            value="{{ setting.value or '' }}"
+                            class="setting-input"
+                            {% if setting.key == 'gwars_site_id' %}pattern="[0-9]+"{% endif %}
+                        >
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
         </div>
         {% endif %}
