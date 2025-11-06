@@ -1259,54 +1259,112 @@ def login_dev():
     conn = get_db_connection()
     try:
         # Проверяем, существует ли пользователь и получаем все его данные
-        existing_user = conn.execute('SELECT avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        existing_user = conn.execute('''
+            SELECT username, level, synd, has_passport, has_mobile, old_passport, usersex,
+                   avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber 
+            FROM users WHERE user_id = ?
+        ''', (user_id,)).fetchone()
         
-        # Если пользователь новый, генерируем уникальный avatar_seed
-        avatar_seed = None
-        avatar_style = None
-        bio = None
-        contact_info = None
-        email = None
-        phone = None
-        telegram = None
-        whatsapp = None
-        viber = None
+        # Преобразуем данные в правильные типы
+        level_int = int(level) if level else 0
+        synd_int = int(synd) if synd else 0
+        has_passport_int = 1 if has_passport == 1 else 0
+        has_mobile_int = 1 if has_mobile == 1 else 0
+        old_passport_int = 1 if old_passport == 1 else 0
         
         if not existing_user:
-            # Новый пользователь - генерируем рандомный аватар
+            # Новый пользователь - создаем запись
             avatar_seed = generate_unique_avatar_seed(user_id)
             avatar_style = 'avataaars'  # Стиль по умолчанию
-        elif existing_user and not existing_user['avatar_seed']:
-            # Если у существующего пользователя нет seed, генерируем
-            avatar_seed = generate_unique_avatar_seed(user_id)
-            avatar_style = existing_user['avatar_style'] or 'avataaars'
-            bio = existing_user['bio']
-            contact_info = existing_user['contact_info']
-            email = existing_user['email']
-            phone = existing_user['phone']
-            telegram = existing_user['telegram']
-            whatsapp = existing_user['whatsapp']
-            viber = existing_user['viber']
+            conn.execute('''
+                INSERT INTO users 
+                (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, 
+                 avatar_seed, avatar_style, last_login)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, name, level_int, synd_int, has_passport_int, has_mobile_int, 
+                  old_passport_int, usersex, avatar_seed, avatar_style, datetime.now()))
+            log_debug(f"New dev user created: user_id={user_id}, username={name}")
         else:
-            # Используем существующий seed и сохраняем все пользовательские данные
-            avatar_seed = existing_user['avatar_seed']
-            avatar_style = existing_user['avatar_style']
-            bio = existing_user['bio']
-            contact_info = existing_user['contact_info']
-            email = existing_user['email']
-            phone = existing_user['phone']
-            telegram = existing_user['telegram']
-            whatsapp = existing_user['whatsapp']
-            viber = existing_user['viber']
+            # Существующий пользователь - проверяем, изменились ли данные
+            needs_update = False
+            update_fields = []
+            update_values = []
+            
+            # Проверяем каждое поле
+            if existing_user['username'] != name:
+                needs_update = True
+                update_fields.append('username = ?')
+                update_values.append(name)
+                log_debug(f"Dev username changed for user {user_id}: '{existing_user['username']}' -> '{name}'")
+            
+            if existing_user['level'] != level_int:
+                needs_update = True
+                update_fields.append('level = ?')
+                update_values.append(level_int)
+                log_debug(f"Dev level changed for user {user_id}: {existing_user['level']} -> {level_int}")
+            
+            if existing_user['synd'] != synd_int:
+                needs_update = True
+                update_fields.append('synd = ?')
+                update_values.append(synd_int)
+                log_debug(f"Dev synd changed for user {user_id}: {existing_user['synd']} -> {synd_int}")
+            
+            if existing_user['has_passport'] != has_passport_int:
+                needs_update = True
+                update_fields.append('has_passport = ?')
+                update_values.append(has_passport_int)
+            
+            if existing_user['has_mobile'] != has_mobile_int:
+                needs_update = True
+                update_fields.append('has_mobile = ?')
+                update_values.append(has_mobile_int)
+            
+            if existing_user['old_passport'] != old_passport_int:
+                needs_update = True
+                update_fields.append('old_passport = ?')
+                update_values.append(old_passport_int)
+            
+            if existing_user['usersex'] != usersex:
+                needs_update = True
+                update_fields.append('usersex = ?')
+                update_values.append(usersex)
+            
+            # Всегда обновляем last_login
+            update_fields.append('last_login = ?')
+            update_values.append(datetime.now())
+            
+            # Если есть изменения, обновляем только измененные поля
+            if needs_update:
+                update_values.append(user_id)
+                update_query = f'''
+                    UPDATE users 
+                    SET {', '.join(update_fields)}
+                    WHERE user_id = ?
+                '''
+                conn.execute(update_query, update_values)
+                log_debug(f"Dev user data updated: user_id={user_id}, fields: {', '.join([f.split('=')[0].strip() for f in update_fields])}")
+            else:
+                # Если данных не изменилось, обновляем только last_login
+                conn.execute('''
+                    UPDATE users 
+                    SET last_login = ?
+                    WHERE user_id = ?
+                ''', (datetime.now(), user_id))
+                log_debug(f"Dev user data unchanged, only last_login updated: user_id={user_id}")
+            
+            # Если у пользователя нет avatar_seed, генерируем его
+            if not existing_user['avatar_seed']:
+                avatar_seed = generate_unique_avatar_seed(user_id)
+                avatar_style = existing_user['avatar_style'] or 'avataaars'
+                conn.execute('''
+                    UPDATE users 
+                    SET avatar_seed = ?, avatar_style = ?
+                    WHERE user_id = ?
+                ''', (avatar_seed, avatar_style, user_id))
+                log_debug(f"Generated avatar_seed for dev user {user_id}")
         
-        # Обновляем данные пользователя, сохраняя пользовательские поля (avatar, bio, contact_info, contacts)
-        conn.execute('''
-            INSERT OR REPLACE INTO users 
-            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber, last_login)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber, datetime.now()))
         conn.commit()
-        log_debug(f"Dev user saved successfully: user_id={user_id}, username={name}, avatar_seed={avatar_seed}")
+        log_debug(f"Dev user saved successfully: user_id={user_id}, username={name}")
     except Exception as e:
         log_error(f"Error saving dev user: {e}")
         flash(f'Ошибка сохранения пользователя: {str(e)}', 'error')
@@ -1445,10 +1503,8 @@ def login():
             else:
                 callback_url = f"{request.scheme}://{request.host}/login"
         
-        gwars_url = f"https://www.gwars.io/cross-server-login.php?site_id={GWARS_SITE_ID}&url={callback_url}"
-        logger.debug(f"Redirecting to GWars: {gwars_url}")
-        logger.debug(f"Callback URL: {callback_url}")
-        return redirect(gwars_url)
+        # Вместо прямого редиректа на GWars, показываем страницу с сообщением
+        return redirect(url_for('gwars_required'))
     
     # Логируем все полученные параметры для отладки
     log_error("=== LOGIN DEBUG ===")
@@ -1630,54 +1686,112 @@ def login():
     conn = get_db_connection()
     try:
         # Проверяем, существует ли пользователь и получаем все его данные
-        existing_user = conn.execute('SELECT avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        existing_user = conn.execute('''
+            SELECT username, level, synd, has_passport, has_mobile, old_passport, usersex,
+                   avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber 
+            FROM users WHERE user_id = ?
+        ''', (user_id,)).fetchone()
         
-        # Если пользователь новый, генерируем уникальный avatar_seed
-        avatar_seed = None
-        avatar_style = None
-        bio = None
-        contact_info = None
-        email = None
-        phone = None
-        telegram = None
-        whatsapp = None
-        viber = None
+        # Преобразуем данные из GWars в правильные типы
+        level_int = int(level) if level else 0
+        synd_int = int(synd) if synd else 0
+        has_passport_int = 1 if has_passport == '1' else 0
+        has_mobile_int = 1 if has_mobile == '1' else 0
+        old_passport_int = 1 if old_passport == '1' else 0
         
         if not existing_user:
-            # Новый пользователь - генерируем рандомный аватар
+            # Новый пользователь - создаем запись
             avatar_seed = generate_unique_avatar_seed(user_id)
             avatar_style = 'avataaars'  # Стиль по умолчанию
-        elif existing_user and not existing_user['avatar_seed']:
-            # Если у существующего пользователя нет seed, генерируем
-            avatar_seed = generate_unique_avatar_seed(user_id)
-            avatar_style = existing_user['avatar_style'] or 'avataaars'
-            bio = existing_user['bio']
-            contact_info = existing_user['contact_info']
-            email = existing_user['email']
-            phone = existing_user['phone']
-            telegram = existing_user['telegram']
-            whatsapp = existing_user['whatsapp']
-            viber = existing_user['viber']
+            conn.execute('''
+                INSERT INTO users 
+                (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, 
+                 avatar_seed, avatar_style, last_login)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, name, level_int, synd_int, has_passport_int, has_mobile_int, 
+                  old_passport_int, usersex, avatar_seed, avatar_style, datetime.now()))
+            log_debug(f"New user created: user_id={user_id}, username={name}")
         else:
-            # Используем существующий seed и сохраняем все пользовательские данные
-            avatar_seed = existing_user['avatar_seed']
-            avatar_style = existing_user['avatar_style']
-            bio = existing_user['bio']
-            contact_info = existing_user['contact_info']
-            email = existing_user['email']
-            phone = existing_user['phone']
-            telegram = existing_user['telegram']
-            whatsapp = existing_user['whatsapp']
-            viber = existing_user['viber']
+            # Существующий пользователь - проверяем, изменились ли данные из GWars
+            needs_update = False
+            update_fields = []
+            update_values = []
+            
+            # Проверяем каждое поле из GWars
+            if existing_user['username'] != name:
+                needs_update = True
+                update_fields.append('username = ?')
+                update_values.append(name)
+                log_debug(f"Username changed for user {user_id}: '{existing_user['username']}' -> '{name}'")
+            
+            if existing_user['level'] != level_int:
+                needs_update = True
+                update_fields.append('level = ?')
+                update_values.append(level_int)
+                log_debug(f"Level changed for user {user_id}: {existing_user['level']} -> {level_int}")
+            
+            if existing_user['synd'] != synd_int:
+                needs_update = True
+                update_fields.append('synd = ?')
+                update_values.append(synd_int)
+                log_debug(f"Synd changed for user {user_id}: {existing_user['synd']} -> {synd_int}")
+            
+            if existing_user['has_passport'] != has_passport_int:
+                needs_update = True
+                update_fields.append('has_passport = ?')
+                update_values.append(has_passport_int)
+            
+            if existing_user['has_mobile'] != has_mobile_int:
+                needs_update = True
+                update_fields.append('has_mobile = ?')
+                update_values.append(has_mobile_int)
+            
+            if existing_user['old_passport'] != old_passport_int:
+                needs_update = True
+                update_fields.append('old_passport = ?')
+                update_values.append(old_passport_int)
+            
+            if existing_user['usersex'] != usersex:
+                needs_update = True
+                update_fields.append('usersex = ?')
+                update_values.append(usersex)
+            
+            # Всегда обновляем last_login
+            update_fields.append('last_login = ?')
+            update_values.append(datetime.now())
+            
+            # Если есть изменения, обновляем только измененные поля
+            if needs_update:
+                update_values.append(user_id)
+                update_query = f'''
+                    UPDATE users 
+                    SET {', '.join(update_fields)}
+                    WHERE user_id = ?
+                '''
+                conn.execute(update_query, update_values)
+                log_debug(f"User data updated: user_id={user_id}, fields: {', '.join([f.split('=')[0].strip() for f in update_fields])}")
+            else:
+                # Если данных не изменилось, обновляем только last_login
+                conn.execute('''
+                    UPDATE users 
+                    SET last_login = ?
+                    WHERE user_id = ?
+                ''', (datetime.now(), user_id))
+                log_debug(f"User data unchanged, only last_login updated: user_id={user_id}")
+            
+            # Если у пользователя нет avatar_seed, генерируем его
+            if not existing_user['avatar_seed']:
+                avatar_seed = generate_unique_avatar_seed(user_id)
+                avatar_style = existing_user['avatar_style'] or 'avataaars'
+                conn.execute('''
+                    UPDATE users 
+                    SET avatar_seed = ?, avatar_style = ?
+                    WHERE user_id = ?
+                ''', (avatar_seed, avatar_style, user_id))
+                log_debug(f"Generated avatar_seed for user {user_id}")
         
-        # Обновляем данные пользователя, сохраняя пользовательские поля (avatar, bio, contact_info, contacts)
-        conn.execute('''
-            INSERT OR REPLACE INTO users 
-            (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber, last_login)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, name, level, synd, has_passport, has_mobile, old_passport, usersex, avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber, datetime.now()))
         conn.commit()
-        log_debug(f"User saved successfully: user_id={user_id}, username={name}, avatar_seed={avatar_seed}")
+        log_debug(f"User saved successfully: user_id={user_id}, username={name}")
     except Exception as e:
         log_error(f"Error saving user: {e}")
         # Если ошибка из-за отсутствия таблицы, пробуем инициализировать БД заново
@@ -3785,6 +3899,11 @@ def event_unregister(event_id):
         conn.close()
     
     return redirect(url_for('event_view', event_id=event_id))
+
+@app.route('/gwars-required')
+def gwars_required():
+    """Страница с сообщением о необходимости авторизации в GWars"""
+    return render_template('gwars_required.html')
 
 @app.route('/faq')
 def faq():

@@ -98,10 +98,64 @@
                     <span class="info-label">Мобильный:</span>
                     <span class="info-value">{{ 'Есть' if user.has_mobile else 'Нет' }}</span>
                 </div>
+                {% if user.created_at %}
+                <div class="info-row">
+                    <span class="info-label">Дата регистрации:</span>
+                    <span class="info-value">
+                        {% set created_at_str = user.created_at|string %}
+                        {% if ' ' in created_at_str %}
+                            {% set date_time_parts = created_at_str.split(' ') %}
+                            {% set created_date = date_time_parts[0] %}
+                            {% set created_time = date_time_parts[1] if date_time_parts|length > 1 else '' %}
+                            {% if created_date %}
+                                {% set date_parts = created_date.split('-') %}
+                                {% if date_parts|length == 3 %}
+                                    {{ date_parts[2] }}.{{ date_parts[1] }}.{{ date_parts[0] }}{% if created_time %} {{ created_time[:5] }}{% endif %}
+                                {% else %}
+                                    {{ user.created_at }}
+                                {% endif %}
+                            {% else %}
+                                {{ user.created_at }}
+                            {% endif %}
+                        {% else %}
+                            {% set date_parts = created_at_str.split('-') %}
+                            {% if date_parts|length == 3 %}
+                                {{ date_parts[2] }}.{{ date_parts[1] }}.{{ date_parts[0] }}
+                            {% else %}
+                                {{ user.created_at }}
+                            {% endif %}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
                 {% if user.last_login %}
                 <div class="info-row">
                     <span class="info-label">Последний вход:</span>
-                    <span class="info-value">{{ user.last_login }}</span>
+                    <span class="info-value">
+                        {% set last_login_str = user.last_login|string %}
+                        {% if ' ' in last_login_str %}
+                            {% set date_time_parts = last_login_str.split(' ') %}
+                            {% set login_date = date_time_parts[0] %}
+                            {% set login_time = date_time_parts[1] if date_time_parts|length > 1 else '' %}
+                            {% if login_date %}
+                                {% set date_parts = login_date.split('-') %}
+                                {% if date_parts|length == 3 %}
+                                    {{ date_parts[2] }}.{{ date_parts[1] }}.{{ date_parts[0] }}{% if login_time %} {{ login_time[:5] }}{% endif %}
+                                {% else %}
+                                    {{ user.last_login }}
+                                {% endif %}
+                            {% else %}
+                                {{ user.last_login }}
+                            {% endif %}
+                        {% else %}
+                            {% set date_parts = last_login_str.split('-') %}
+                            {% if date_parts|length == 3 %}
+                                {{ date_parts[2] }}.{{ date_parts[1] }}.{{ date_parts[0] }}
+                            {% else %}
+                                {{ user.last_login }}
+                            {% endif %}
+                        {% endif %}
+                    </span>
                 </div>
                 {% endif %}
             </div>

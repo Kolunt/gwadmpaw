@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Требуется авторизация в GWars - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="admin-container">
+        <div class="empty-state" style="max-width: 600px; margin: 3rem auto; text-align: center; padding: 3rem;">
+            <div style="font-size: 4rem; margin-bottom: 1.5rem;">🔐</div>
+            <h1 style="margin-bottom: 1rem; color: var(--text-primary);">Требуется авторизация в GWars</h1>
+            <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.6;">
+                Вы должны быть авторизованы в игре, прежде чем пользоваться этим сервисом.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                {% set callback_url = request.scheme + '://' + request.host + '/login' %}
+                {% if 'pythonanywhere.com' in request.host %}
+                    {% set callback_url = 'https://' + request.host + '/login' %}
+                {% endif %}
+                <a href="https://www.gwars.io/cross-server-login.php?site_id=4&url={{ callback_url|urlencode }}" class="btn btn-primary btn-large">
+                    Войти через GWars
+                </a>
+                <a href="https://www.gwars.io/" target="_blank" class="btn btn-secondary btn-large">
+                    Перейти на GWars
+                </a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary btn-large">
+                    На главную
+                </a>
+            </div>
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    После авторизации на сайте GWars вернитесь сюда и нажмите "Войти через GWars" снова.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
