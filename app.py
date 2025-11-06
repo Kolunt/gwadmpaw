@@ -2184,7 +2184,7 @@ def participants():
             LEFT JOIN user_roles ur ON u.user_id = ur.user_id
             LEFT JOIN roles r ON ur.role_id = r.id
             GROUP BY u.user_id
-            ORDER BY u.created_at DESC
+            ORDER BY u.created_at ASC
         ''').fetchall()
         
         # Для каждого пользователя определяем статус

@@ -56,9 +56,9 @@
                         Роль
                         <span class="sort-indicator">⇅</span>
                     </th>
-                    <th class="sortable" data-column="3" data-sort="desc">
+                    <th class="sortable" data-column="3" data-sort="asc">
                         Дата регистрации
-                        <span class="sort-indicator">↓</span>
+                        <span class="sort-indicator">↑</span>
                     </th>
                 </tr>
             </thead>
@@ -254,9 +254,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализация
     filterRows();
     
-    // Автоматическая сортировка по дате регистрации (по убыванию - новые сверху)
+    // Автоматическая сортировка по дате регистрации (по возрастанию - старые сверху)
     currentSort.column = 3; // Колонка "Дата регистрации"
-    currentSort.direction = 'desc';
+    currentSort.direction = 'asc';
     sortTable(3);
 });
 </script>
