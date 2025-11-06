@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Пользователи - Админ-панель{% endblock %}
+{% block title %}Участники - Админ-панель{% endblock %}
 
 {% block content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>Управление пользователями</h1>
+        <h1>Участники</h1>
         <div style="display: flex; gap: 0.5rem;">
             <a href="{{ url_for('admin_user_create') }}" class="btn-icon" title="Создать пользователя">➕</a>
             <a href="{{ url_for('admin_panel') }}" class="btn-icon" title="Назад">←</a>

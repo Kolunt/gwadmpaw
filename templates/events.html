@@ -18,14 +18,12 @@
                 <thead>
                     <tr>
                         <th>Название</th>
-                        <th>Описание</th>
-                        <th>Организатор</th>
                         <th>Текущий этап</th>
                         <th>Дата начала этапа</th>
-                        <th>Дата создания</th>
-                        {% if session.user_id and 'admin' in session.get('roles', []) %}
+                        <th>Участники</th>
+                        <th>Статус</th>
+                        <th>Регистрация</th>
                         <th>Действия</th>
-                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -34,17 +32,11 @@
                     {% set current_stage = item.current_stage %}
                     <tr>
                         <td data-label="Название">
-                            <strong>{{ event.name }}</strong>
-                        </td>
-                        <td data-label="Описание">
-                            {% if event.description %}
-                                {{ event.description[:100] }}{% if event.description|length > 100 %}...{% endif %}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td data-label="Организатор">
-                            {{ event.creator_name or 'Не указан' }}
+                            <strong>
+                                <a href="{{ url_for('event_view', event_id=event.id) }}" style="color: var(--accent-color); text-decoration: none;">
+                                    {{ event.name }}
+                                </a>
+                            </strong>
                         </td>
                         <td data-label="Текущий этап">
                             {% if current_stage %}
@@ -64,14 +56,55 @@
                                 <span class="text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td data-label="Дата создания">
-                            {{ event.created_at or 'N/A' }}
+                        <td data-label="Участники">
+                            {{ item.registrations_count }} участник(ов)
                         </td>
-                        {% if session.user_id and 'admin' in session.get('roles', []) %}
+                        <td data-label="Статус">
+                            {% if session.user_id %}
+                                {% if item.is_registered %}
+                                    <span class="badge-active">Участвую</span>
+                                {% else %}
+                                    <span class="badge-upcoming">Не участвую</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Регистрация">
+                            {% if item.registration_open %}
+                                <span class="badge-active">Открыта</span>
+                            {% else %}
+                                <span class="badge-upcoming">Закрыта</span>
+                            {% endif %}
+                        </td>
                         <td data-label="Действия">
-                            <a href="{{ url_for('admin_event_view', event_id=event.id) }}" class="btn btn-sm btn-primary">Просмотр</a>
+                            <div class="action-buttons" style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start;">
+                                <a href="{{ url_for('event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Просмотр">
+                                    <span style="font-size: 1.2em;">👁️</span>
+                                </a>
+                                
+                                {% if session.user_id %}
+                                    {% if item.registration_open %}
+                                        {% if item.is_registered %}
+                                            <form method="POST" action="{{ url_for('event_unregister', event_id=event.id) }}" 
+                                                  onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');" 
+                                                  style="margin: 0;">
+                                                <button type="submit" class="btn btn-sm btn-danger">Отменить регистрацию</button>
+                                            </form>
+                                        {% else %}
+                                            <form method="POST" action="{{ url_for('event_register', event_id=event.id) }}" 
+                                                  style="margin: 0;">
+                                                <button type="submit" class="btn btn-sm btn-primary">Записаться</button>
+                                            </form>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                                
+                                {% if session.user_id and 'admin' in session.get('roles', []) %}
+                                    <a href="{{ url_for('admin_event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary">Админ</a>
+                                {% endif %}
+                            </div>
                         </td>
-                        {% endif %}
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.name }} - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>{{ event.name }}</h1>
+            <a href="{{ url_for('events') }}" class="btn btn-secondary">← Назад к мероприятиям</a>
+        </div>
+        
+        <div class="event-view-card">
+            <div class="event-info-section">
+                <h3>Описание</h3>
+                <p>{{ event.description or 'Описание не указано' }}</p>
+            </div>
+            
+            <div class="event-info-section">
+                <h3>Информация</h3>
+                <div class="info-row">
+                    <span class="info-label">Организатор:</span>
+                    <span class="info-value">{{ event.creator_name or 'Не указан' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Создано:</span>
+                    <span class="info-value">{{ event.created_at }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Зарегистрировано:</span>
+                    <span class="info-value">{{ registrations_count }} участник(ов)</span>
+                </div>
+            </div>
+            
+            <div class="event-info-section">
+                <h3>Текущий этап</h3>
+                {% if current_stage %}
+                    <div class="info-row">
+                        <span class="info-label">Этап:</span>
+                        <span class="event-stage-badge badge-active">{{ current_stage.info.name }}</span>
+                    </div>
+                    {% if current_stage.data.start_datetime %}
+                    <div class="info-row">
+                        <span class="info-label">Начало этапа:</span>
+                        <span class="info-value">{{ current_stage.data.start_datetime }}</span>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted">Мероприятие еще не началось</p>
+                {% endif %}
+            </div>
+            
+            <!-- Кнопки регистрации -->
+            {% if session.user_id %}
+                {% if registration_open %}
+                    {% if is_registered %}
+                        <div class="event-info-section">
+                            <div class="alert alert-success">
+                                <strong>✓ Вы зарегистрированы на это мероприятие!</strong>
+                            </div>
+                            <form method="POST" action="{{ url_for('event_unregister', event_id=event.id) }}" 
+                                  onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');">
+                                <button type="submit" class="btn btn-danger">Отменить регистрацию</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <div class="event-info-section">
+                            <form method="POST" action="{{ url_for('event_register', event_id=event.id) }}">
+                                <button type="submit" class="btn btn-primary btn-large">Зарегистрироваться на мероприятие</button>
+                            </form>
+                        </div>
+                    {% endif %}
+                {% elif is_registered %}
+                    <div class="event-info-section">
+                        <div class="alert alert-info">
+                            <strong>✓ Вы зарегистрированы на это мероприятие</strong>
+                            <p>Регистрация закрыта, вы не можете отменить участие.</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="event-info-section">
+                        <div class="alert alert-warning">
+                            <strong>Регистрация закрыта</strong>
+                            <p>Регистрация на это мероприятие в данный момент недоступна.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="event-info-section">
+                    <div class="alert alert-warning">
+                        <strong>Для регистрации необходимо авторизоваться</strong>
+                        <p><a href="{{ url_for('login') }}" class="btn btn-primary" style="margin-top: 0.5rem;">Войти через GWars</a></p>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Список зарегистрированных участников -->
+            {% if registrations %}
+            <div class="event-info-section">
+                <h3>Участники ({{ registrations_count }})</h3>
+                <div class="participants-grid">
+                    {% for reg in registrations %}
+                    <div class="participant-card">
+                        <a href="{{ url_for('view_profile', user_id=reg.user_id) }}">
+                            {% if reg.avatar_seed %}
+                            <img src="{{ get_avatar_url(reg.avatar_seed, reg.avatar_style or 'avataaars') }}" 
+                                 alt="{{ reg.username }}" 
+                                 class="avatar-medium" 
+                                 style="width: 60px; height: 60px; border-radius: 50%; margin-bottom: 0.5rem;">
+                            {% endif %}
+                            <div class="participant-name">{{ reg.username }}</div>
+                            {% if reg.level %}
+                            <div class="participant-level">Уровень {{ reg.level }}</div>
+                            {% endif %}
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Этапы мероприятия -->
+            <div class="event-stages-section">
+                <h3>Этапы мероприятия</h3>
+                {% for stage_item in stages_with_info %}
+                {% set stage = stage_item.data %}
+                {% set stage_info = stage_item.info %}
+                {% set stage_status = stage_item.status %}
+                {% set is_current = stage_status == 'current' %}
+                {% set is_past = stage_status == 'past' %}
+                {% set is_future = stage_status == 'future' %}
+                <div class="stage-card collapsible-stage {% if is_current %}stage-current{% elif is_past %}stage-past{% elif is_future %}stage-future{% endif %}" 
+                     {% if is_current %}style="border-color: var(--accent-color); background-color: var(--accent-color)10;"{% endif %}>
+                    <div class="stage-header collapsible-header" onclick="toggleStage(this)">
+                        <h4>
+                            <span class="stage-toggle-icon">{% if is_current %}▼{% else %}▶{% endif %}</span>
+                            {{ stage_info.name }}
+                            {% if is_current %}
+                            <span class="badge-active" style="margin-left: 0.5rem;">Текущий этап</span>
+                            {% elif is_past %}
+                            <span class="badge-upcoming" style="margin-left: 0.5rem; background-color: var(--text-secondary);">Завершен</span>
+                            {% elif is_future %}
+                            <span class="badge-upcoming" style="margin-left: 0.5rem;">Скоро</span>
+                            {% endif %}
+                        </h4>
+                    </div>
+                    
+                    <div class="stage-details collapsible-content" {% if not is_current %}style="display: none;"{% endif %}>
+                        {% if stage %}
+                            {% if stage.start_datetime %}
+                            <div class="info-row">
+                                <span class="info-label">Начало:</span>
+                                <span class="info-value">{{ stage.start_datetime }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if stage.end_datetime %}
+                            <div class="info-row">
+                                <span class="info-label">Окончание:</span>
+                                <span class="info-value">{{ stage.end_datetime }}</span>
+                            </div>
+                            {% elif not stage_info.has_end %}
+                            <div class="info-row">
+                                <span class="info-label">Окончание:</span>
+                                <span class="info-value">До начала следующего этапа</span>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="info-row">
+                                <span class="info-label">Статус:</span>
+                                <span class="info-value text-muted">Не настроен</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <script>
+                function toggleStage(header) {
+                    const card = header.closest('.collapsible-stage');
+                    const content = card.querySelector('.collapsible-content');
+                    const icon = header.querySelector('.stage-toggle-icon');
+                    
+                    if (content.style.display === 'none') {
+                        content.style.display = 'block';
+                        icon.textContent = '▼';
+                    } else {
+                        content.style.display = 'none';
+                        icon.textContent = '▶';
+                    }
+                }
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

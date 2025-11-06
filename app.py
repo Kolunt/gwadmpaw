@@ -402,9 +402,17 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 created_by INTEGER,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (created_by) REFERENCES users(user_id)
+                award_id INTEGER,
+                FOREIGN KEY (created_by) REFERENCES users(user_id),
+                FOREIGN KEY (award_id) REFERENCES awards(id)
             )
         ''')
+        
+        # Миграция: добавляем поле award_id если его нет
+        try:
+            c.execute('ALTER TABLE events ADD COLUMN award_id INTEGER REFERENCES awards(id)')
+        except sqlite3.OperationalError:
+            pass  # Колонка уже существует
         
         # Таблица этапов мероприятий
         c.execute('''
@@ -420,6 +428,19 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
                 UNIQUE(event_id, stage_type)
+            )
+        ''')
+        
+        # Таблица регистраций на мероприятия
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS event_registrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                UNIQUE(event_id, user_id)
             )
         ''')
         
@@ -3326,10 +3347,95 @@ EVENT_STAGES = [
     {'type': 'main_registration', 'name': 'Основная регистрация', 'required': True, 'has_start': True, 'has_end': False},
     {'type': 'registration_closed', 'name': 'Закрытие регистрации', 'required': True, 'has_start': True, 'has_end': False},
     {'type': 'lottery', 'name': 'Жеребьёвка', 'required': False, 'has_start': False, 'has_end': False},
-    {'type': 'gift_sending', 'name': 'Отправка подарков', 'required': True, 'has_start': True, 'has_end': False},
     {'type': 'celebration_date', 'name': 'Дата праздника', 'required': True, 'has_start': True, 'has_end': False},
     {'type': 'after_party', 'name': 'Послепраздничное настроение', 'required': True, 'has_start': False, 'has_end': True},
 ]
+
+def is_event_finished(event_id):
+    """Проверяет, закончилось ли мероприятие полностью"""
+    conn = get_db_connection()
+    stages = conn.execute('''
+        SELECT * FROM event_stages 
+        WHERE event_id = ? 
+        ORDER BY stage_order
+    ''', (event_id,)).fetchall()
+    conn.close()
+    
+    if not stages:
+        return False
+    
+    now = datetime.now()
+    
+    # Мероприятие считается завершенным, если последний этап (after_party) имеет end_datetime и оно прошло
+    after_party_stage = None
+    for stage in stages:
+        if stage['stage_type'] == 'after_party':
+            after_party_stage = stage
+            break
+    
+    if after_party_stage and after_party_stage['end_datetime']:
+        try:
+            end_dt = datetime.strptime(after_party_stage['end_datetime'], '%Y-%m-%d %H:%M:%S')
+        except:
+            try:
+                end_dt = datetime.strptime(after_party_stage['end_datetime'], '%Y-%m-%dT%H:%M')
+            except:
+                return False
+        
+        return now > end_dt
+    
+    return False
+
+def distribute_event_awards(event_id):
+    """Выдает награды всем участникам завершенного мероприятия"""
+    conn = get_db_connection()
+    
+    # Проверяем, есть ли награда для мероприятия
+    event = conn.execute('SELECT award_id FROM events WHERE id = ?', (event_id,)).fetchone()
+    if not event or not event['award_id']:
+        conn.close()
+        return False
+    
+    award_id = event['award_id']
+    
+    # Получаем всех участников мероприятия
+    participants = conn.execute('''
+        SELECT DISTINCT user_id FROM event_registrations WHERE event_id = ?
+    ''', (event_id,)).fetchall()
+    
+    if not participants:
+        conn.close()
+        return False
+    
+    # Выдаем награду каждому участнику
+    admin_user_id = session.get('user_id') or 1  # Используем текущего пользователя или системного
+    awarded_count = 0
+    
+    for participant in participants:
+        user_id = participant['user_id']
+        try:
+            # Проверяем, не выдана ли уже награда
+            existing = conn.execute('''
+                SELECT id FROM user_awards WHERE user_id = ? AND award_id = ?
+            ''', (user_id, award_id)).fetchone()
+            
+            if not existing:
+                conn.execute('''
+                    INSERT INTO user_awards (user_id, award_id, assigned_by)
+                    VALUES (?, ?, ?)
+                ''', (user_id, award_id, admin_user_id))
+                awarded_count += 1
+        except sqlite3.IntegrityError:
+            pass  # Награда уже выдана
+        except Exception as e:
+            log_error(f"Error awarding user {user_id} with award {award_id}: {e}")
+    
+    if awarded_count > 0:
+        conn.commit()
+        log_debug(f"Distributed {awarded_count} awards for event {event_id}")
+    
+    conn.close()
+    return awarded_count > 0
 
 def get_current_event_stage(event_id):
     """Определяет текущий этап мероприятия на основе текущей даты"""
@@ -3368,10 +3474,12 @@ def get_current_event_stage(event_id):
                 try:
                     start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%dT%H:%M')
                 except:
+                    log_debug(f"get_current_event_stage: cannot parse start_datetime for stage {stage_type}: {stage['start_datetime']}")
                     continue
             
             # Если этап еще не начался, пропускаем
             if now < start_dt:
+                log_debug(f"get_current_event_stage: stage {stage_type} not started yet (start: {start_dt}, now: {now})")
                 continue
         
         # Проверяем, закончился ли этап
@@ -3387,35 +3495,87 @@ def get_current_event_stage(event_id):
             if end_dt and now > end_dt:
                 continue
         
-        # Если этап не имеет даты начала, но есть следующий этап с датой начала
-        # Проверяем, не начался ли следующий этап
-        if not stage['start_datetime']:
-            # Ищем следующий этап с датой начала
-            next_stage_started = False
-            current_order = stage['stage_order']
-            for next_stage in stages:
-                if next_stage['stage_order'] > current_order and next_stage['start_datetime']:
+        # Проверяем, не начался ли следующий этап (если следующий этап начался, текущий должен закончиться)
+        # Это работает для всех этапов, не только для тех, у которых нет даты начала
+        current_order = stage['stage_order']
+        next_stage_started = False
+        for next_stage in stages:
+            if next_stage['stage_order'] > current_order and next_stage['start_datetime']:
+                try:
+                    next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
+                except:
                     try:
-                        next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
+                        next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%dT%H:%M')
                     except:
-                        try:
-                            next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%dT%H:%M')
-                        except:
-                            continue
-                    if now >= next_start_dt:
-                        next_stage_started = True
-                        break
-            if next_stage_started:
-                continue
+                        continue
+                if now >= next_start_dt:
+                    next_stage_started = True
+                    log_debug(f"get_current_event_stage: stage {stage_type} ended because next stage {next_stage['stage_type']} started at {next_start_dt}")
+                    break
+        
+        if next_stage_started:
+            continue
         
         # Этот этап активен
         current_stage = {
             'data': stage,
             'info': stage_info
         }
+        log_debug(f"get_current_event_stage: found active stage {stage_type} for event {event_id}")
         break
     
+    if not current_stage:
+        log_debug(f"get_current_event_stage: no active stage found for event {event_id}")
+    
     return current_stage
+
+def is_registration_open(event_id):
+    """Проверяет, открыта ли регистрация на мероприятие"""
+    current_stage = get_current_event_stage(event_id)
+    if not current_stage:
+        log_debug(f"is_registration_open: no current stage for event {event_id}")
+        return False
+    
+    stage_type = current_stage['info']['type']
+    # Регистрация открыта на этапах предварительной и основной регистрации
+    is_open = stage_type in ['pre_registration', 'main_registration']
+    log_debug(f"is_registration_open: event {event_id}, stage_type={stage_type}, is_open={is_open}")
+    return is_open
+
+def is_user_registered(event_id, user_id):
+    """Проверяет, зарегистрирован ли пользователь на мероприятие"""
+    if not user_id:
+        return False
+    conn = get_db_connection()
+    registration = conn.execute('''
+        SELECT id FROM event_registrations 
+        WHERE event_id = ? AND user_id = ?
+    ''', (event_id, user_id)).fetchone()
+    conn.close()
+    return registration is not None
+
+def get_event_registrations_count(event_id):
+    """Получает количество зарегистрированных пользователей на мероприятие"""
+    conn = get_db_connection()
+    count = conn.execute('''
+        SELECT COUNT(*) as count FROM event_registrations 
+        WHERE event_id = ?
+    ''', (event_id,)).fetchone()
+    conn.close()
+    return count['count'] if count else 0
+
+def get_event_registrations(event_id):
+    """Получает список зарегистрированных пользователей на мероприятие"""
+    conn = get_db_connection()
+    registrations = conn.execute('''
+        SELECT er.*, u.user_id, u.username, u.avatar_seed, u.avatar_style, u.level, u.synd
+        FROM event_registrations er
+        JOIN users u ON er.user_id = u.user_id
+        WHERE er.event_id = ?
+        ORDER BY er.registered_at ASC
+    ''', (event_id,)).fetchall()
+    conn.close()
+    return registrations
 
 @app.route('/events')
 def events():
@@ -3438,7 +3598,193 @@ def events():
             'current_stage': current_stage
         })
     
+    # Добавляем информацию о регистрации для каждого мероприятия
+    user_id = session.get('user_id')
+    for item in events_with_stages:
+        event = item['event']
+        item['is_registered'] = is_user_registered(event['id'], user_id) if user_id else False
+        item['registrations_count'] = get_event_registrations_count(event['id'])
+        item['registration_open'] = is_registration_open(event['id'])
+    
     return render_template('events.html', events_with_stages=events_with_stages)
+
+@app.route('/events/<int:event_id>')
+def event_view(event_id):
+    """Просмотр мероприятия для пользователей"""
+    conn = get_db_connection()
+    event = conn.execute('''
+        SELECT e.*, u.username as creator_name
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
+        WHERE e.id = ?
+    ''', (event_id,)).fetchone()
+    conn.close()
+    
+    if not event:
+        flash('Мероприятие не найдено', 'error')
+        return redirect(url_for('events'))
+    
+    user_id = session.get('user_id')
+    current_stage = get_current_event_stage(event_id)
+    registration_open = is_registration_open(event_id)
+    is_registered = is_user_registered(event_id, user_id)
+    registrations_count = get_event_registrations_count(event_id)
+    registrations = get_event_registrations(event_id)
+    
+    # Проверяем, закончилось ли мероприятие, и выдаем награды если нужно
+    if is_event_finished(event_id):
+        distribute_event_awards(event_id)
+    
+    # Получаем все этапы мероприятия
+    conn = get_db_connection()
+    stages = conn.execute('''
+        SELECT * FROM event_stages 
+        WHERE event_id = ? 
+        ORDER BY stage_order
+    ''', (event_id,)).fetchall()
+    conn.close()
+    
+    # Определяем статус каждого этапа (past, current, future)
+    now = datetime.now()
+    current_stage_type = current_stage['info']['type'] if current_stage else None
+    
+    stages_with_info = []
+    stages_dict = {stage['stage_type']: stage for stage in stages}
+    
+    for stage_info in EVENT_STAGES:
+        stage_type = stage_info['type']
+        stage_data = stages_dict.get(stage_type, None)
+        
+        # Определяем статус этапа
+        stage_status = 'future'  # по умолчанию будущий
+        if stage_data:
+            # Проверяем, является ли это текущим этапом
+            if current_stage_type == stage_type:
+                stage_status = 'current'
+            else:
+                # Проверяем, прошел ли этап
+                if stage_data['start_datetime']:
+                    try:
+                        start_dt = datetime.strptime(stage_data['start_datetime'], '%Y-%m-%d %H:%M:%S')
+                    except:
+                        try:
+                            start_dt = datetime.strptime(stage_data['start_datetime'], '%Y-%m-%dT%H:%M')
+                        except:
+                            start_dt = None
+                    
+                    if start_dt:
+                        # Проверяем, не начался ли следующий этап
+                        stage_order = stage_data['stage_order']
+                        next_stage_started = False
+                        for next_stage in stages:
+                            if next_stage['stage_order'] > stage_order and next_stage['start_datetime']:
+                                try:
+                                    next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
+                                except:
+                                    try:
+                                        next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%dT%H:%M')
+                                    except:
+                                        continue
+                                if now >= next_start_dt:
+                                    next_stage_started = True
+                                    break
+                        
+                        if next_stage_started or (now < start_dt):
+                            # Этап еще не начался или уже закончился
+                            if now < start_dt:
+                                stage_status = 'future'
+                            else:
+                                stage_status = 'past'
+                        else:
+                            # Этап должен быть текущим, но не определен как текущий
+                            # Это может быть ошибка в логике, но оставим как есть
+                            pass
+        
+        stages_with_info.append({
+            'info': stage_info,
+            'data': stage_data,
+            'status': stage_status
+        })
+    
+    return render_template('event_view.html', 
+                         event=event,
+                         current_stage=current_stage,
+                         registration_open=registration_open,
+                         is_registered=is_registered,
+                         registrations_count=registrations_count,
+                         registrations=registrations,
+                         stages_with_info=stages_with_info)
+
+@app.route('/events/<int:event_id>/register', methods=['POST'])
+@require_login
+def event_register(event_id):
+    """Регистрация пользователя на мероприятие"""
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Необходимо авторизоваться', 'error')
+        return redirect(url_for('login'))
+    
+    # Проверяем, открыта ли регистрация
+    if not is_registration_open(event_id):
+        flash('Регистрация на это мероприятие закрыта', 'error')
+        return redirect(url_for('event_view', event_id=event_id))
+    
+    # Проверяем, не зарегистрирован ли уже
+    if is_user_registered(event_id, user_id):
+        flash('Вы уже зарегистрированы на это мероприятие', 'info')
+        return redirect(url_for('event_view', event_id=event_id))
+    
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            INSERT INTO event_registrations (event_id, user_id)
+            VALUES (?, ?)
+        ''', (event_id, user_id))
+        conn.commit()
+        flash('Вы успешно зарегистрированы на мероприятие!', 'success')
+    except sqlite3.IntegrityError:
+        flash('Вы уже зарегистрированы на это мероприятие', 'info')
+    except Exception as e:
+        log_error(f"Ошибка регистрации на мероприятие: {e}")
+        flash('Ошибка при регистрации', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('event_view', event_id=event_id))
+
+@app.route('/events/<int:event_id>/unregister', methods=['POST'])
+@require_login
+def event_unregister(event_id):
+    """Отмена регистрации пользователя на мероприятие"""
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Необходимо авторизоваться', 'error')
+        return redirect(url_for('login'))
+    
+    # Проверяем, открыта ли регистрация (можно отменить только если регистрация открыта)
+    if not is_registration_open(event_id):
+        flash('Регистрация закрыта, нельзя отменить участие', 'error')
+        return redirect(url_for('event_view', event_id=event_id))
+    
+    conn = get_db_connection()
+    try:
+        cursor = conn.execute('''
+            DELETE FROM event_registrations 
+            WHERE event_id = ? AND user_id = ?
+        ''', (event_id, user_id))
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            flash('Регистрация отменена', 'success')
+        else:
+            flash('Вы не были зарегистрированы на это мероприятие', 'info')
+    except Exception as e:
+        log_error(f"Ошибка отмены регистрации: {e}")
+        flash('Ошибка при отмене регистрации', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('event_view', event_id=event_id))
 
 @app.route('/faq')
 def faq():
@@ -3678,17 +4024,38 @@ def admin_award_edit(award_id):
                 SELECT user_id FROM user_awards WHERE award_id = ?
             ''', (award_id,)).fetchall()
             current_user_ids = {u['user_id'] for u in current_users}
-            selected_user_ids = {int(uid) for uid in selected_users if uid}
+            
+            # Преобразуем selected_users в множество int
+            selected_user_ids = set()
+            for uid in selected_users:
+                try:
+                    selected_user_ids.add(int(uid))
+                except (ValueError, TypeError):
+                    continue
+            
+            assigned_by = session.get('user_id')
             
             # Добавляем новых пользователей
             for user_id in selected_user_ids:
                 if user_id not in current_user_ids:
-                    assign_award(user_id, award_id, assigned_by=session['user_id'])
+                    try:
+                        conn.execute('''
+                            INSERT OR REPLACE INTO user_awards (user_id, award_id, assigned_by)
+                            VALUES (?, ?, ?)
+                        ''', (user_id, award_id, assigned_by))
+                    except Exception as e:
+                        log_error(f"Error assigning award to user {user_id}: {e}")
             
             # Удаляем пользователей, которых больше нет в списке
             for user_id in current_user_ids:
                 if user_id not in selected_user_ids:
-                    remove_award(user_id, award_id)
+                    try:
+                        conn.execute('''
+                            DELETE FROM user_awards
+                            WHERE user_id = ? AND award_id = ?
+                        ''', (user_id, award_id))
+                    except Exception as e:
+                        log_error(f"Error removing award from user {user_id}: {e}")
             
             conn.commit()
             flash('Награда успешно обновлена', 'success')
@@ -3764,18 +4131,23 @@ def admin_event_create():
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
+        award_id = request.form.get('award_id', '').strip()
+        award_id = int(award_id) if award_id else None
         
         if not name:
             flash('Название мероприятия обязательно', 'error')
-            return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES)
+            conn = get_db_connection()
+            awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
+            conn.close()
+            return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES, awards=awards)
         
         conn = get_db_connection()
         try:
             # Создаем мероприятие
             cursor = conn.execute('''
-                INSERT INTO events (name, description, created_by)
-                VALUES (?, ?, ?)
-            ''', (name, description, session.get('user_id')))
+                INSERT INTO events (name, description, created_by, award_id)
+                VALUES (?, ?, ?, ?)
+            ''', (name, description, session.get('user_id'), award_id))
             event_id = cursor.lastrowid
             
             # Создаем этапы
@@ -3807,9 +4179,10 @@ def admin_event_create():
                 # Для обязательных этапов проверяем наличие даты начала
                 if stage['required'] and stage['has_start'] and not start_datetime:
                     flash(f'Дата начала этапа "{stage["name"]}" обязательна', 'error')
+                    awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
                     conn.rollback()
                     conn.close()
-                    return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES)
+                    return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES, awards=awards)
                 
                 conn.execute('''
                     INSERT INTO event_stages 
@@ -3828,7 +4201,11 @@ def admin_event_create():
             conn.rollback()
             conn.close()
     
-    return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES)
+    # GET запрос - получаем список наград
+    conn = get_db_connection()
+    awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
+    conn.close()
+    return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES, awards=awards)
 
 @app.route('/admin/events/<int:event_id>')
 @require_role('admin')
@@ -3885,19 +4262,22 @@ def admin_event_edit(event_id):
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
+        award_id = request.form.get('award_id', '').strip()
+        award_id = int(award_id) if award_id else None
         
         if not name:
             flash('Название мероприятия обязательно', 'error')
+            awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
             conn.close()
-            return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict)
+            return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
         
         try:
             # Обновляем мероприятие
             conn.execute('''
                 UPDATE events 
-                SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+                SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP, award_id = ?
                 WHERE id = ?
-            ''', (name, description, event_id))
+            ''', (name, description, award_id, event_id))
             
             # Обновляем этапы
             for stage in EVENT_STAGES:
@@ -3923,9 +4303,10 @@ def admin_event_edit(event_id):
                 # Проверяем обязательность
                 if stage['required'] and stage['has_start'] and not start_datetime:
                     flash(f'Дата начала этапа "{stage["name"]}" обязательна', 'error')
+                    awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
                     conn.rollback()
                     conn.close()
-                    return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict)
+                    return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
                 
                 # Обновляем или создаем этап
                 if stage['type'] in stages_dict:
@@ -3953,8 +4334,10 @@ def admin_event_edit(event_id):
             conn.rollback()
             conn.close()
     
+    # GET запрос - получаем список наград
+    awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
     conn.close()
-    return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict)
+    return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
 
 @app.route('/admin/events/<int:event_id>/delete', methods=['POST'])
 @require_role('admin')

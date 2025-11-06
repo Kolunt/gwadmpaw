@@ -40,6 +40,27 @@
                     placeholder="Описание мероприятия..."
                 >{{ event.description if event else '' }}</textarea>
             </div>
+            
+            <div class="form-group">
+                <label for="award_id" class="form-label">
+                    Награда для участников <span class="optional">(опционально)</span>
+                </label>
+                <select 
+                    id="award_id" 
+                    name="award_id" 
+                    class="form-input"
+                >
+                    <option value="">Не выдавать награду</option>
+                    {% if awards %}
+                        {% for award in awards %}
+                            <option value="{{ award.id }}" {% if event and event.award_id == award.id %}selected{% endif %}>
+                                {{ award.title }}
+                            </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+                <small class="form-hint">Награда будет автоматически выдана всем участникам мероприятия после его завершения</small>
+            </div>
         </div>
         
         <div class="form-section">
