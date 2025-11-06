@@ -11,11 +11,87 @@
         </div>
         
         <div class="admin-card">
-            <form method="POST" action="{{ url_for('admin_rules_edit') }}">
+            <form method="POST" action="{{ url_for('admin_rules_edit') }}" id="rules-form">
                 <div class="form-group">
-                    <label for="rules_content" class="form-label">Содержание правил</label>
-                    <p class="form-hint">Вы можете использовать HTML для форматирования текста. Например: &lt;h2&gt;Заголовок&lt;/h2&gt;, &lt;p&gt;Абзац&lt;/p&gt;, &lt;ul&gt;&lt;li&gt;Список&lt;/li&gt;&lt;/ul&gt;</p>
-                    <textarea id="rules_content" name="rules_content" class="form-input" rows="20" style="font-family: monospace;">{{ rules_content or '' }}</textarea>
+                    <label class="form-label">Правила</label>
+                    <p class="form-hint">Используйте формат пунктов: 1, 1.1, 1.1.1 и т.д. Вы можете добавлять и удалять строки.</p>
+                    
+                    <div class="rules-table-container">
+                        <table class="rules-table" id="rules-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 150px;">Пункт</th>
+                                    <th>Текст правила</th>
+                                    <th style="width: 240px;">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rules-tbody">
+                                {% if rules_items %}
+                                    {% for item in rules_items %}
+                                    <tr class="rule-row">
+                                        <td>
+                                            <input type="text" 
+                                                   name="rule_point[]" 
+                                                   class="form-input rule-point" 
+                                                   value="{{ item.point }}" 
+                                                   placeholder="1.1.1"
+                                                   pattern="^\d+(\.\d+)*$"
+                                                   title="Формат: 1, 1.1, 1.1.1 и т.д.">
+                                        </td>
+                                        <td>
+                                            <textarea name="rule_text[]" 
+                                                      class="form-input rule-text" 
+                                                      rows="2" 
+                                                      placeholder="Текст правила...">{{ item.text }}</textarea>
+                                        </td>
+                                        <td>
+                                            <div style="display: flex; gap: 0.25rem; align-items: center; flex-wrap: wrap;">
+                                                <button type="button" class="btn btn-sm btn-success add-below" title="Добавить пункт ниже">+</button>
+                                                <button type="button" class="btn btn-sm btn-secondary move-up" title="Переместить вверх">↑</button>
+                                                <button type="button" class="btn btn-sm btn-secondary move-down" title="Переместить вниз">↓</button>
+                                                <button type="button" class="btn btn-sm btn-secondary move-left" title="Уменьшить уровень (влево)">←</button>
+                                                <button type="button" class="btn btn-sm btn-secondary move-right" title="Увеличить уровень (вправо)">→</button>
+                                                <button type="button" class="btn btn-sm btn-danger remove-row" title="Удалить строку">×</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr class="rule-row">
+                                        <td>
+                                            <input type="text" 
+                                                   name="rule_point[]" 
+                                                   class="form-input rule-point" 
+                                                   value="1" 
+                                                   placeholder="1.1.1"
+                                                   pattern="^\d+(\.\d+)*$"
+                                                   title="Формат: 1, 1.1, 1.1.1 и т.д.">
+                                        </td>
+                                        <td>
+                                            <textarea name="rule_text[]" 
+                                                      class="form-input rule-text" 
+                                                      rows="2" 
+                                                      placeholder="Текст правила..."></textarea>
+                                        </td>
+                                        <td>
+                                            <div style="display: flex; gap: 0.25rem; align-items: center; flex-wrap: wrap;">
+                                                <button type="button" class="btn btn-sm btn-success add-below" title="Добавить пункт ниже">+</button>
+                                                <button type="button" class="btn btn-sm btn-secondary move-up" title="Переместить вверх">↑</button>
+                                                <button type="button" class="btn btn-sm btn-secondary move-down" title="Переместить вниз">↓</button>
+                                                <button type="button" class="btn btn-sm btn-secondary move-left" title="Уменьшить уровень (влево)">←</button>
+                                                <button type="button" class="btn btn-sm btn-secondary move-right" title="Увеличить уровень (вправо)">→</button>
+                                                <button type="button" class="btn btn-sm btn-danger remove-row" title="Удалить строку">×</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                        
+                        <div class="rules-table-actions">
+                            <button type="button" id="add-row" class="btn btn-secondary btn-sm">+ Добавить строку</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="form-actions">
@@ -26,5 +102,443 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
+<style>
+.rules-table-container {
+    margin-top: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.rules-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--bg-card);
+}
+
+.rules-table thead {
+    background-color: var(--bg-secondary);
+}
+
+.rules-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.rules-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+}
+
+.rules-table tbody tr:hover {
+    background-color: var(--bg-secondary);
+}
+
+.rules-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.rule-point {
+    width: 100%;
+    font-family: monospace;
+    font-weight: 600;
+}
+
+.rule-text {
+    width: 100%;
+    resize: vertical;
+    min-height: 50px;
+}
+
+.rules-table-actions {
+    padding: 0.75rem;
+    background-color: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+.remove-row {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 1.5rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.remove-row:hover {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.move-up, .move-down {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.move-up:hover, .move-down:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.move-up:disabled, .move-down:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.move-left, .move-right {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.move-left:hover, .move-right:hover {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.move-left:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.add-below {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 1.2rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background-color: var(--success-color, #28a745);
+    color: white;
+    border: none;
+}
+
+.add-below:hover {
+    background-color: var(--success-color-dark, #218838);
+    color: white;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tbody = document.getElementById('rules-tbody');
+    const addRowBtn = document.getElementById('add-row');
+    let rowCounter = 0;
+    
+    // Добавление новой строки
+    addRowBtn.addEventListener('click', function() {
+        const rows = tbody.querySelectorAll('.rule-row');
+        let nextPoint = '1';
+        
+        if (rows.length > 0) {
+            // Находим последний пункт и увеличиваем его
+            const lastPoint = rows[rows.length - 1].querySelector('.rule-point').value.trim();
+            if (lastPoint) {
+                const parts = lastPoint.split('.');
+                const lastNum = parseInt(parts[parts.length - 1]) || 0;
+                parts[parts.length - 1] = (lastNum + 1).toString();
+                nextPoint = parts.join('.');
+            } else {
+                nextPoint = (rows.length + 1).toString();
+            }
+        }
+        
+        const newRow = document.createElement('tr');
+        newRow.className = 'rule-row';
+        newRow.innerHTML = `
+            <td>
+                <input type="text" 
+                       name="rule_point[]" 
+                       class="form-input rule-point" 
+                       value="${nextPoint}" 
+                       placeholder="1.1.1"
+                       pattern="^\\d+(\\.\\d+)*$"
+                       title="Формат: 1, 1.1, 1.1.1 и т.д.">
+            </td>
+            <td>
+                <textarea name="rule_text[]" 
+                          class="form-input rule-text" 
+                          rows="2" 
+                          placeholder="Текст правила..."></textarea>
+            </td>
+            <td>
+                <div style="display: flex; gap: 0.25rem; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm btn-success add-below" title="Добавить пункт ниже">+</button>
+                    <button type="button" class="btn btn-sm btn-secondary move-up" title="Переместить вверх">↑</button>
+                    <button type="button" class="btn btn-sm btn-secondary move-down" title="Переместить вниз">↓</button>
+                    <button type="button" class="btn btn-sm btn-secondary move-left" title="Уменьшить уровень (влево)">←</button>
+                    <button type="button" class="btn btn-sm btn-secondary move-right" title="Увеличить уровень (вправо)">→</button>
+                    <button type="button" class="btn btn-sm btn-danger remove-row" title="Удалить строку">×</button>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(newRow);
+        recalculatePoints();
+        updateMoveButtons();
+    });
+    
+    // Функция для пересчета пунктов (автоматически после перемещения)
+    function recalculatePoints() {
+        const rows = tbody.querySelectorAll('.rule-row');
+        rows.forEach((row, index) => {
+            const pointInput = row.querySelector('.rule-point');
+            pointInput.value = (index + 1).toString();
+        });
+    }
+    
+    // Функция для перемещения строки вверх
+    function moveRowUp(row) {
+        const prevRow = row.previousElementSibling;
+        if (prevRow && prevRow.classList.contains('rule-row')) {
+            row.parentNode.insertBefore(row, prevRow);
+            recalculatePoints();
+            updateMoveButtons();
+        }
+    }
+    
+    // Функция для перемещения строки вниз
+    function moveRowDown(row) {
+        const nextRow = row.nextElementSibling;
+        if (nextRow && nextRow.classList.contains('rule-row')) {
+            row.parentNode.insertBefore(nextRow, row);
+            recalculatePoints();
+            updateMoveButtons();
+        }
+    }
+    
+    // Функция для увеличения уровня вложенности (вправо)
+    function increaseLevel(row) {
+        const pointInput = row.querySelector('.rule-point');
+        const currentPoint = pointInput.value.trim();
+        
+        if (currentPoint && /^\d+(\.\d+)*$/.test(currentPoint)) {
+            // Добавляем .1 к текущему пункту
+            pointInput.value = currentPoint + '.1';
+        } else if (!currentPoint) {
+            // Если пункт пустой, устанавливаем 1.1
+            pointInput.value = '1.1';
+        }
+    }
+    
+    // Функция для уменьшения уровня вложенности (влево)
+    function decreaseLevel(row) {
+        const pointInput = row.querySelector('.rule-point');
+        const currentPoint = pointInput.value.trim();
+        
+        if (currentPoint && /^\d+(\.\d+)*$/.test(currentPoint)) {
+            const parts = currentPoint.split('.');
+            if (parts.length > 1) {
+                // Убираем последний уровень
+                parts.pop();
+                pointInput.value = parts.join('.');
+            } else {
+                // Если это уже первый уровень (например, "3"), ничего не делаем
+                // или можно оставить как есть
+            }
+        }
+    }
+    
+    // Функция для определения следующего пункта с учетом вложенности
+    function getNextPoint(currentPoint) {
+        if (!currentPoint || !/^\d+(\.\d+)*$/.test(currentPoint)) {
+            return '1';
+        }
+        
+        const parts = currentPoint.split('.');
+        const lastNum = parseInt(parts[parts.length - 1]) || 0;
+        
+        // Увеличиваем последнее число
+        parts[parts.length - 1] = (lastNum + 1).toString();
+        return parts.join('.');
+    }
+    
+    // Функция для добавления пункта ниже текущего
+    function addRowBelow(row) {
+        const pointInput = row.querySelector('.rule-point');
+        const textInput = row.querySelector('.rule-text');
+        const currentPoint = pointInput.value.trim();
+        
+        // Определяем следующий пункт с учетом вложенности
+        const nextPoint = getNextPoint(currentPoint);
+        
+        // Создаем новую строку
+        const newRow = document.createElement('tr');
+        newRow.className = 'rule-row';
+        newRow.innerHTML = `
+            <td>
+                <input type="text" 
+                       name="rule_point[]" 
+                       class="form-input rule-point" 
+                       value="${nextPoint}" 
+                       placeholder="1.1.1"
+                       pattern="^\\d+(\\.\\d+)*$"
+                       title="Формат: 1, 1.1, 1.1.1 и т.д.">
+            </td>
+            <td>
+                <textarea name="rule_text[]" 
+                          class="form-input rule-text" 
+                          rows="2" 
+                          placeholder="Текст правила..."></textarea>
+            </td>
+            <td>
+                <div style="display: flex; gap: 0.25rem; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm btn-success add-below" title="Добавить пункт ниже">+</button>
+                    <button type="button" class="btn btn-sm btn-secondary move-up" title="Переместить вверх">↑</button>
+                    <button type="button" class="btn btn-sm btn-secondary move-down" title="Переместить вниз">↓</button>
+                    <button type="button" class="btn btn-sm btn-secondary move-left" title="Уменьшить уровень (влево)">←</button>
+                    <button type="button" class="btn btn-sm btn-secondary move-right" title="Увеличить уровень (вправо)">→</button>
+                    <button type="button" class="btn btn-sm btn-danger remove-row" title="Удалить строку">×</button>
+                </div>
+            </td>
+        `;
+        
+        // Вставляем новую строку сразу после текущей
+        row.parentNode.insertBefore(newRow, row.nextSibling);
+        
+        // Фокусируемся на текстовом поле новой строки
+        const newTextInput = newRow.querySelector('.rule-text');
+        if (newTextInput) {
+            newTextInput.focus();
+        }
+        
+        updateMoveButtons();
+    }
+    
+    // Функция для обновления состояния кнопок перемещения
+    function updateMoveButtons() {
+        const rows = tbody.querySelectorAll('.rule-row');
+        rows.forEach((row, index) => {
+            const upBtn = row.querySelector('.move-up');
+            const downBtn = row.querySelector('.move-down');
+            const leftBtn = row.querySelector('.move-left');
+            
+            if (upBtn) {
+                upBtn.disabled = (index === 0);
+            }
+            if (downBtn) {
+                downBtn.disabled = (index === rows.length - 1);
+            }
+            if (leftBtn) {
+                const pointInput = row.querySelector('.rule-point');
+                const currentPoint = pointInput.value.trim();
+                // Отключаем кнопку влево, если это уже первый уровень (нет точек)
+                leftBtn.disabled = !currentPoint || !currentPoint.includes('.');
+            }
+        });
+    }
+    
+    // Обработчики для кнопок перемещения
+    tbody.addEventListener('click', function(e) {
+        if (e.target.classList.contains('add-below')) {
+            const row = e.target.closest('.rule-row');
+            addRowBelow(row);
+        } else if (e.target.classList.contains('move-up')) {
+            const row = e.target.closest('.rule-row');
+            moveRowUp(row);
+        } else if (e.target.classList.contains('move-down')) {
+            const row = e.target.closest('.rule-row');
+            moveRowDown(row);
+        } else if (e.target.classList.contains('move-left')) {
+            const row = e.target.closest('.rule-row');
+            decreaseLevel(row);
+            updateMoveButtons();
+        } else if (e.target.classList.contains('move-right')) {
+            const row = e.target.closest('.rule-row');
+            increaseLevel(row);
+            updateMoveButtons();
+        } else if (e.target.classList.contains('remove-row')) {
+            const rows = tbody.querySelectorAll('.rule-row');
+            if (rows.length > 1) {
+                e.target.closest('.rule-row').remove();
+                recalculatePoints();
+                updateMoveButtons();
+            } else {
+                alert('Должна остаться хотя бы одна строка');
+            }
+        }
+    });
+    
+    // Обновляем состояние кнопок при изменении пункта вручную
+    tbody.addEventListener('input', function(e) {
+        if (e.target.classList.contains('rule-point')) {
+            updateMoveButtons();
+        }
+    });
+    
+    // Инициализация кнопок перемещения при загрузке
+    updateMoveButtons();
+    
+    // Валидация формы
+    document.getElementById('rules-form').addEventListener('submit', function(e) {
+        const rows = tbody.querySelectorAll('.rule-row');
+        let hasError = false;
+        const points = [];
+        
+        rows.forEach((row, index) => {
+            const pointInput = row.querySelector('.rule-point');
+            const textInput = row.querySelector('.rule-text');
+            const point = pointInput.value.trim();
+            const text = textInput.value.trim();
+            
+            // Проверка формата пункта
+            if (point && !/^\d+(\.\d+)*$/.test(point)) {
+                alert(`Строка ${index + 1}: Неверный формат пункта. Используйте формат: 1, 1.1, 1.1.1 и т.д.`);
+                pointInput.focus();
+                hasError = true;
+                return;
+            }
+            
+            // Проверка на дубликаты пунктов
+            if (point && points.includes(point)) {
+                alert(`Строка ${index + 1}: Пункт "${point}" уже используется.`);
+                pointInput.focus();
+                hasError = true;
+                return;
+            }
+            
+            if (point) {
+                points.push(point);
+            }
+            
+            // Проверка, что если есть пункт, должен быть и текст
+            if (point && !text) {
+                alert(`Строка ${index + 1}: Если указан пункт, должен быть указан и текст.`);
+                textInput.focus();
+                hasError = true;
+                return;
+            }
+        });
+        
+        if (hasError) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

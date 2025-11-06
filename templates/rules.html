@@ -12,7 +12,18 @@
             {% endif %}
         </div>
         
-        {% if rules_content %}
+        {% if rules_items %}
+        <div class="rules-content">
+            <ol class="rules-list">
+                {% for item in rules_items %}
+                <li class="rule-item">
+                    <span class="rule-point">{{ item.point }}</span>
+                    <span class="rule-text">{{ item.text|safe }}</span>
+                </li>
+                {% endfor %}
+            </ol>
+        </div>
+        {% elif rules_content %}
         <div class="rules-content">
             {{ rules_content|safe }}
         </div>
@@ -35,6 +46,33 @@
     color: var(--text-primary);
 }
 
+.rules-list {
+    list-style: none;
+    counter-reset: rule-counter;
+    padding-left: 0;
+    margin: 0;
+}
+
+.rule-item {
+    counter-increment: rule-counter;
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+    position: relative;
+}
+
+.rule-point {
+    font-weight: 600;
+    color: var(--accent-color);
+    margin-right: 0.75rem;
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+.rule-text {
+    color: var(--text-primary);
+}
+
+/* Для старых HTML правил */
 .rules-content h2 {
     color: var(--accent-color);
     margin-top: 2rem;
@@ -71,4 +109,3 @@
 }
 </style>
 {% endblock %}
-
