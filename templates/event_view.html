@@ -65,7 +65,7 @@
                         </div>
                     {% else %}
                         <div class="event-info-section">
-                            <form method="POST" action="{{ url_for('event_register', event_id=event.id) }}">
+                            <form id="register-form" method="POST" action="{{ url_for('event_register', event_id=event.id) }}">
                                 <button type="submit" class="btn btn-primary btn-large">Зарегистрироваться на мероприятие</button>
                             </form>
                         </div>
@@ -194,5 +194,608 @@
         </div>
     </div>
 </div>
+
+<!-- Модальное окно для заполнения обязательных полей -->
+<div id="registration-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2 id="modal-title">Заполнение обязательных данных</h2>
+            <button type="button" class="modal-close" id="close-registration-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="step-intro" class="registration-step">
+                <div class="alert alert-info">
+                    <p><strong>Для регистрации на мероприятие необходимо заполнить обязательную информацию.</strong></p>
+                    <p>Это необходимо для организации мероприятия и связи с участниками.</p>
+                </div>
+                <p>Мы поможем вам заполнить все необходимые данные пошагово.</p>
+            </div>
+            
+            <!-- Шаг 1: Личные данные -->
+            <div id="step-personal" class="registration-step" style="display: none;">
+                <h3>Шаг 1: Личные данные</h3>
+                <div class="form-group">
+                    <label for="modal-last-name" class="form-label">Фамилия *</label>
+                    <input type="text" id="modal-last-name" class="form-input" placeholder="Иванов" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-first-name" class="form-label">Имя *</label>
+                    <input type="text" id="modal-first-name" class="form-input" placeholder="Иван" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-middle-name" class="form-label">Отчество *</label>
+                    <input type="text" id="modal-middle-name" class="form-input" placeholder="Иванович" required>
+                </div>
+            </div>
+            
+            <!-- Шаг 2: Адрес -->
+            <div id="step-address" class="registration-step" style="display: none;">
+                <h3>Шаг 2: Адрес</h3>
+                <div class="form-group">
+                    <label for="modal-postal-code" class="form-label">Индекс *</label>
+                    <input type="text" id="modal-postal-code" class="form-input" placeholder="123456" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-country" class="form-label">Страна *</label>
+                    <input type="text" id="modal-country" class="form-input" placeholder="Россия" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-city" class="form-label">Город *</label>
+                    <input type="text" id="modal-city" class="form-input" placeholder="Москва" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-street" class="form-label">Улица *</label>
+                    <input type="text" id="modal-street" class="form-input" placeholder="Ленина" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-house" class="form-label">Дом *</label>
+                    <input type="text" id="modal-house" class="form-input" placeholder="10" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-building" class="form-label">Корпус/Строение *</label>
+                    <input type="text" id="modal-building" class="form-input" placeholder="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-apartment" class="form-label">Квартира *</label>
+                    <input type="text" id="modal-apartment" class="form-input" placeholder="25" required>
+                </div>
+            </div>
+            
+            <!-- Шаг 3+: Контактные данные -->
+            <div id="step-contact" class="registration-step" style="display: none;">
+                <h3 id="step-contact-title">Шаг 3: Контактные данные</h3>
+                <p id="step-contact-description">Для связи с вами необходимо указать хотя бы один способ связи.</p>
+                <div id="contact-fields-container"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" id="modal-prev-btn" class="btn btn-secondary" style="display: none;">Назад</button>
+            <button type="button" id="modal-next-btn" class="btn btn-primary">Далее</button>
+            <button type="button" id="modal-skip-btn" class="btn btn-secondary" style="display: none;">Пропустить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Ждем загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    const registerForm = document.getElementById('register-form');
+    if (!registerForm) {
+        console.log('Форма регистрации не найдена');
+        return;
+    }
+    
+    console.log('Форма регистрации найдена, добавляем обработчик');
+    
+    const modal = document.getElementById('registration-modal');
+    const closeBtn = document.getElementById('close-registration-modal');
+    const prevBtn = document.getElementById('modal-prev-btn');
+    const nextBtn = document.getElementById('modal-next-btn');
+    const skipBtn = document.getElementById('modal-skip-btn');
+    
+    let currentStep = 0;
+    let missingFields = null;
+    let contactStepIndex = 3;
+    let currentContactField = null;
+    
+    const steps = ['intro', 'personal', 'address', 'contact'];
+    const contactFields = [
+        {key: 'email', label: 'Email', type: 'email', placeholder: 'example@mail.com'},
+        {key: 'phone', label: 'Телефон', type: 'tel', placeholder: '+7 (999) 123-45-67'},
+        {key: 'telegram', label: 'Telegram', type: 'text', placeholder: 'username (без @)'},
+        {key: 'whatsapp', label: 'WhatsApp', type: 'tel', placeholder: '+7 (999) 123-45-67'},
+        {key: 'viber', label: 'Viber', type: 'tel', placeholder: '+7 (999) 123-45-67'}
+    ];
+    
+    // Обработчик отправки формы регистрации
+    const formSubmitHandler = async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('Форма регистрации отправлена через AJAX');
+        
+        try {
+            const response = await fetch(registerForm.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            
+            console.log('Статус ответа:', response.status);
+            console.log('Заголовки ответа:', Object.fromEntries(response.headers.entries()));
+            
+            // Проверяем тип ответа
+            const contentType = response.headers.get('content-type') || '';
+            console.log('Content-Type ответа:', contentType);
+            
+            if (!contentType.includes('application/json')) {
+                // Сервер вернул не JSON (возможно HTML редирект)
+                console.log('Сервер вернул не JSON, тип:', contentType);
+                // Позволяем форме отправиться обычным способом
+                registerForm.removeEventListener('submit', formSubmitHandler);
+                registerForm.submit();
+                return;
+            }
+            
+            const data = await response.json();
+            console.log('Ответ сервера:', data);
+            
+            if (data.success) {
+                // Регистрация успешна
+                location.reload();
+            } else if (data.needs_filling) {
+                // Нужно заполнить данные
+                console.log('Нужно заполнить данные:', data.missing_fields);
+                missingFields = data.missing_fields;
+                showModal();
+            } else {
+                alert(data.error || 'Ошибка при регистрации');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            // Если ошибка парсинга JSON, возможно сервер вернул HTML (редирект)
+            if (error instanceof SyntaxError || error.name === 'SyntaxError') {
+                console.log('Сервер вернул не JSON, отправляем форму обычным способом');
+                // Удаляем обработчик и отправляем форму обычным способом
+                registerForm.removeEventListener('submit', formSubmitHandler);
+                registerForm.submit();
+                return;
+            }
+            console.error('Неожиданная ошибка:', error);
+            alert('Ошибка при регистрации. Попробуйте еще раз.');
+        }
+    };
+    
+    registerForm.addEventListener('submit', formSubmitHandler);
+    
+    console.log('Обработчик формы регистрации установлен');
+    
+    function showModal() {
+        modal.style.display = 'block';
+        currentStep = 0;
+        showStep(0);
+    }
+    
+    function hideModal() {
+        modal.style.display = 'none';
+    }
+    
+    function showStep(stepIndex) {
+        // Скрываем все шаги
+        document.querySelectorAll('.registration-step').forEach(step => {
+            step.style.display = 'none';
+        });
+        
+        // Показываем текущий шаг
+        const stepName = steps[stepIndex];
+        if (stepName === 'intro') {
+            document.getElementById('step-intro').style.display = 'block';
+        } else if (stepName === 'personal') {
+            document.getElementById('step-personal').style.display = 'block';
+        } else if (stepName === 'address') {
+            document.getElementById('step-address').style.display = 'block';
+        } else if (stepName === 'contact') {
+            showContactStep();
+        }
+        
+        // Управление кнопками
+        prevBtn.style.display = stepIndex > 0 ? 'inline-block' : 'none';
+        
+        if (stepName === 'intro') {
+            nextBtn.textContent = 'Начать';
+        } else if (stepName === 'contact') {
+            if (!missingFields.has_contact && missingFields.missing_contacts.length > 0) {
+                // Нет ни одного контакта - обязательно нужно заполнить
+                nextBtn.textContent = 'Сохранить и продолжить';
+                skipBtn.style.display = 'none';
+            } else if (missingFields.has_contact && missingFields.missing_contacts.length > 0) {
+                // Есть контакт, но есть незаполненные - опционально
+                nextBtn.textContent = 'Сохранить и продолжить';
+                skipBtn.style.display = 'inline-block';
+            } else {
+                // Все контакты заполнены или нет незаполненных
+                nextBtn.textContent = 'Завершить и зарегистрироваться';
+                skipBtn.style.display = 'none';
+            }
+        } else if (stepIndex === steps.length - 1) {
+            nextBtn.textContent = 'Завершить и зарегистрироваться';
+            skipBtn.style.display = 'none';
+        } else {
+            nextBtn.textContent = 'Далее';
+            skipBtn.style.display = 'none';
+        }
+    }
+    
+    function showContactStep() {
+        const container = document.getElementById('contact-fields-container');
+        const title = document.getElementById('step-contact-title');
+        const description = document.getElementById('step-contact-description');
+        
+        container.innerHTML = '';
+        
+        if (missingFields.has_contact && missingFields.missing_contacts.length > 0) {
+            // Уже есть контакт, но есть незаполненные - предлагаем заполнить (опционально)
+            currentContactField = missingFields.missing_contacts[0];
+            const field = contactFields.find(f => f.key === currentContactField);
+            
+            if (field) {
+                title.textContent = 'Шаг ' + contactStepIndex + ': ' + field.label + ' (необязательно)';
+                description.textContent = 'У вас уже указан способ связи. Вы можете добавить еще один способ связи или пропустить этот шаг.';
+                nextBtn.textContent = 'Сохранить и продолжить';
+                skipBtn.style.display = 'inline-block';
+                
+                const input = document.createElement('input');
+                input.type = field.type;
+                input.id = 'modal-contact-' + field.key;
+                input.className = 'form-input';
+                input.placeholder = field.placeholder;
+                input.required = false; // Необязательное поле
+                
+                const label = document.createElement('label');
+                label.className = 'form-label';
+                label.textContent = field.label + ' (необязательно)';
+                label.setAttribute('for', 'modal-contact-' + field.key);
+                
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+                formGroup.appendChild(label);
+                formGroup.appendChild(input);
+                
+                container.appendChild(formGroup);
+            }
+        } else if (!missingFields.has_contact && missingFields.missing_contacts.length > 0) {
+            // Показываем первое незаполненное поле
+            currentContactField = missingFields.missing_contacts[0];
+            const field = contactFields.find(f => f.key === currentContactField);
+            
+            if (field) {
+                title.textContent = 'Шаг ' + contactStepIndex + ': ' + field.label;
+                description.textContent = 'Для связи с вами необходимо указать хотя бы один способ связи.';
+                
+                const input = document.createElement('input');
+                input.type = field.type;
+                input.id = 'modal-contact-' + field.key;
+                input.className = 'form-input';
+                input.placeholder = field.placeholder;
+                input.required = true;
+                
+                const label = document.createElement('label');
+                label.className = 'form-label';
+                label.textContent = field.label + ' *';
+                label.setAttribute('for', 'modal-contact-' + field.key);
+                
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+                formGroup.appendChild(label);
+                formGroup.appendChild(input);
+                
+                container.appendChild(formGroup);
+            }
+        }
+        
+        document.getElementById('step-contact').style.display = 'block';
+    }
+    
+    async function saveStepData(stepName) {
+        const data = {};
+        
+        if (stepName === 'personal') {
+            data.last_name = document.getElementById('modal-last-name').value.trim();
+            data.first_name = document.getElementById('modal-first-name').value.trim();
+            data.middle_name = document.getElementById('modal-middle-name').value.trim();
+        } else if (stepName === 'address') {
+            data.postal_code = document.getElementById('modal-postal-code').value.trim();
+            data.country = document.getElementById('modal-country').value.trim();
+            data.city = document.getElementById('modal-city').value.trim();
+            data.street = document.getElementById('modal-street').value.trim();
+            data.house = document.getElementById('modal-house').value.trim();
+            data.building = document.getElementById('modal-building').value.trim();
+            data.apartment = document.getElementById('modal-apartment').value.trim();
+        } else if (stepName === 'contact' && currentContactField) {
+            const fieldKey = currentContactField;
+            const input = document.getElementById('modal-contact-' + fieldKey);
+            if (input) {
+                data[fieldKey] = input.value.trim();
+            }
+        }
+        
+        try {
+            const response = await fetch('/api/profile/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Обновляем информацию о незаполненных полях
+                missingFields = result.missing_fields;
+                return true;
+            } else {
+                alert(result.error || 'Ошибка при сохранении данных');
+                return false;
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при сохранении данных. Попробуйте еще раз.');
+            return false;
+        }
+    }
+    
+    async function nextStep() {
+        const stepName = steps[currentStep];
+        
+        if (stepName === 'intro') {
+            currentStep = 1;
+            showStep(currentStep);
+        } else if (stepName === 'personal') {
+            // Проверяем заполненность
+            const lastName = document.getElementById('modal-last-name').value.trim();
+            const firstName = document.getElementById('modal-first-name').value.trim();
+            const middleName = document.getElementById('modal-middle-name').value.trim();
+            
+            if (!lastName || !firstName || !middleName) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            const saved = await saveStepData('personal');
+            if (saved) {
+                currentStep = 2;
+                showStep(currentStep);
+            }
+        } else if (stepName === 'address') {
+            // Проверяем заполненность
+            const postalCode = document.getElementById('modal-postal-code').value.trim();
+            const country = document.getElementById('modal-country').value.trim();
+            const city = document.getElementById('modal-city').value.trim();
+            const street = document.getElementById('modal-street').value.trim();
+            const house = document.getElementById('modal-house').value.trim();
+            const building = document.getElementById('modal-building').value.trim();
+            const apartment = document.getElementById('modal-apartment').value.trim();
+            
+            if (!postalCode || !country || !city || !street || !house || !building || !apartment) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+            
+            const saved = await saveStepData('address');
+            if (saved) {
+                // Проверяем, нужны ли контакты
+                // Если нет ни одного контакта - обязательно нужно заполнить
+                // Если есть хотя бы один, но есть незаполненные - предлагаем заполнить (опционально)
+                if (!missingFields.has_contact) {
+                    // Нет ни одного контакта - обязательно нужно заполнить
+                    if (missingFields.missing_contacts.length > 0) {
+                        currentStep = 3;
+                        contactStepIndex = 3;
+                        showStep(currentStep);
+                    } else {
+                        // Все заполнено, регистрируем
+                        await finalizeRegistration();
+                    }
+                } else if (missingFields.missing_contacts.length > 0) {
+                    // Есть хотя бы один контакт, но есть незаполненные - предлагаем заполнить (опционально)
+                    currentStep = 3;
+                    contactStepIndex = 3;
+                    showStep(currentStep);
+                } else {
+                    // Все заполнено, регистрируем
+                    await finalizeRegistration();
+                }
+            }
+        } else if (stepName === 'contact') {
+            if (currentContactField) {
+                const input = document.getElementById('modal-contact-' + currentContactField);
+                
+                // Если поле пустое и контакт обязателен (нет ни одного контакта)
+                if (!missingFields.has_contact && (!input || !input.value.trim())) {
+                    alert('Пожалуйста, заполните поле. Необходимо указать хотя бы один способ связи.');
+                    return;
+                }
+                
+                // Если поле заполнено, сохраняем
+                if (input && input.value.trim()) {
+                    const saved = await saveStepData('contact');
+                    if (!saved) {
+                        return; // Ошибка сохранения
+                    }
+                    
+                    // Удаляем заполненное поле из списка
+                    const index = missingFields.missing_contacts.indexOf(currentContactField);
+                    if (index > -1) {
+                        missingFields.missing_contacts.splice(index, 1);
+                    }
+                }
+                
+                // Проверяем, есть ли еще незаполненные контакты
+                if (missingFields.missing_contacts.length > 0) {
+                    // Показываем следующий контакт
+                    contactStepIndex++;
+                    showContactStep();
+                } else {
+                    // Все заполнено, регистрируем
+                    await finalizeRegistration();
+                }
+            } else {
+                // Все заполнено, регистрируем
+                await finalizeRegistration();
+            }
+        }
+    }
+    
+    async function finalizeRegistration() {
+        // Проверяем, все ли заполнено
+        if (!missingFields.has_personal_data || !missingFields.has_address || !missingFields.has_contact) {
+            alert('Пожалуйста, заполните все обязательные поля');
+            return;
+        }
+        
+        // Регистрируем на мероприятие
+        try {
+            const response = await fetch(registerForm.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                hideModal();
+                location.reload();
+            } else {
+                alert(data.error || 'Ошибка при регистрации');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка при регистрации. Попробуйте еще раз.');
+        }
+    }
+    
+    function prevStep() {
+        if (currentStep > 0) {
+            currentStep--;
+            if (currentStep < 3) {
+                contactStepIndex = 3;
+            } else {
+                contactStepIndex--;
+            }
+            showStep(currentStep);
+        }
+    }
+    
+    async function skipContact() {
+        // Пропускаем контакт, если уже есть хотя бы один
+        if (missingFields.has_contact) {
+            await finalizeRegistration();
+        } else {
+            alert('Необходимо указать хотя бы один способ связи');
+        }
+    }
+    
+    nextBtn.addEventListener('click', nextStep);
+    prevBtn.addEventListener('click', prevStep);
+    skipBtn.addEventListener('click', skipContact);
+    closeBtn.addEventListener('click', hideModal);
+    
+    // Закрытие по клику вне модального окна
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            hideModal();
+        }
+    });
+});
+</script>
+
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    line-height: 1;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.registration-step {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
 {% endblock %}
 

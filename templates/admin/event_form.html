@@ -90,7 +90,7 @@
                             type="datetime-local" 
                             id="stage_{{ stage.type }}_start" 
                             name="stage_{{ stage.type }}_start" 
-                            value="{% if existing_stage and existing_stage.start_datetime %}{{ existing_stage.start_datetime[:16] }}{% endif %}"
+                            value="{% if existing_stage and existing_stage.start_datetime %}{{ existing_stage.start_datetime.replace(' ', 'T')[:16] }}{% endif %}"
                             class="form-input"
                             {% if stage.required %}required{% endif %}
                         >
@@ -108,7 +108,7 @@
                             type="datetime-local" 
                             id="stage_{{ stage.type }}_end" 
                             name="stage_{{ stage.type }}_end" 
-                            value="{{ stage_end }}"
+                            value="{% if existing_stage and existing_stage.end_datetime %}{{ existing_stage.end_datetime.replace(' ', 'T')[:16] }}{% endif %}"
                             class="form-input"
                             {% if stage.required %}required{% endif %}
                         >

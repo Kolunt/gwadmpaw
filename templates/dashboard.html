@@ -216,44 +216,124 @@
 
         <!-- Содержимое таба "Контакты" -->
         <div class="dashboard-tab-content" data-tab="contacts">
-            {% if user.email or user.phone or user.telegram or user.whatsapp or user.viber %}
             <div class="contacts-section">
-                {% if user.email %}
-                <div class="info-row">
-                    <span class="info-label">📧 Email:</span>
-                    <span class="info-value"><a href="mailto:{{ user.email }}">{{ user.email }}</a></span>
+                <!-- Личные данные -->
+                {% if user.last_name or user.first_name or user.middle_name %}
+                <div class="info-section">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Личные данные</h4>
+                    {% if user.last_name %}
+                    <div class="info-row">
+                        <span class="info-label">Фамилия:</span>
+                        <span class="info-value">{{ user.last_name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.first_name %}
+                    <div class="info-row">
+                        <span class="info-label">Имя:</span>
+                        <span class="info-value">{{ user.first_name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.middle_name %}
+                    <div class="info-row">
+                        <span class="info-label">Отчество:</span>
+                        <span class="info-value">{{ user.middle_name }}</span>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
-                {% if user.phone %}
-                <div class="info-row">
-                    <span class="info-label">📱 Телефон:</span>
-                    <span class="info-value"><a href="tel:{{ user.phone }}">{{ user.phone }}</a></span>
+                
+                <!-- Адрес -->
+                {% if user.postal_code or user.country or user.city or user.street or user.house or user.building or user.apartment %}
+                <div class="info-section" style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Адрес</h4>
+                    {% if user.postal_code %}
+                    <div class="info-row">
+                        <span class="info-label">Индекс:</span>
+                        <span class="info-value">{{ user.postal_code }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.country %}
+                    <div class="info-row">
+                        <span class="info-label">Страна:</span>
+                        <span class="info-value">{{ user.country }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.city %}
+                    <div class="info-row">
+                        <span class="info-label">Город:</span>
+                        <span class="info-value">{{ user.city }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.street %}
+                    <div class="info-row">
+                        <span class="info-label">Улица:</span>
+                        <span class="info-value">{{ user.street }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.house %}
+                    <div class="info-row">
+                        <span class="info-label">Дом:</span>
+                        <span class="info-value">{{ user.house }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.building %}
+                    <div class="info-row">
+                        <span class="info-label">Корпус/Строение:</span>
+                        <span class="info-value">{{ user.building }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.apartment %}
+                    <div class="info-row">
+                        <span class="info-label">Квартира:</span>
+                        <span class="info-value">{{ user.apartment }}</span>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
-                {% if user.telegram %}
-                <div class="info-row">
-                    <span class="info-label">💬 Telegram:</span>
-                    <span class="info-value"><a href="https://t.me/{{ user.telegram }}" target="_blank">@{{ user.telegram }}</a></span>
+                
+                <!-- Контактные данные -->
+                {% if user.email or user.phone or user.telegram or user.whatsapp or user.viber %}
+                <div class="info-section" style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-primary);">Контактные данные</h4>
+                    {% if user.email %}
+                    <div class="info-row">
+                        <span class="info-label">📧 Email:</span>
+                        <span class="info-value"><a href="mailto:{{ user.email }}">{{ user.email }}</a></span>
+                    </div>
+                    {% endif %}
+                    {% if user.phone %}
+                    <div class="info-row">
+                        <span class="info-label">📱 Телефон:</span>
+                        <span class="info-value"><a href="tel:{{ user.phone }}">{{ user.phone }}</a></span>
+                    </div>
+                    {% endif %}
+                    {% if user.telegram %}
+                    <div class="info-row">
+                        <span class="info-label">💬 Telegram:</span>
+                        <span class="info-value"><a href="https://t.me/{{ user.telegram }}" target="_blank">@{{ user.telegram }}</a></span>
+                    </div>
+                    {% endif %}
+                    {% if user.whatsapp %}
+                    <div class="info-row">
+                        <span class="info-label">📲 WhatsApp:</span>
+                        <span class="info-value"><a href="https://wa.me/{{ user.whatsapp|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank">{{ user.whatsapp }}</a></span>
+                    </div>
+                    {% endif %}
+                    {% if user.viber %}
+                    <div class="info-row">
+                        <span class="info-label">💜 Viber:</span>
+                        <span class="info-value"><a href="viber://chat?number={{ user.viber|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ user.viber }}</a></span>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
-                {% if user.whatsapp %}
-                <div class="info-row">
-                    <span class="info-label">📲 WhatsApp:</span>
-                    <span class="info-value"><a href="https://wa.me/{{ user.whatsapp|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank">{{ user.whatsapp }}</a></span>
-                </div>
-                {% endif %}
-                {% if user.viber %}
-                <div class="info-row">
-                    <span class="info-label">💜 Viber:</span>
-                    <span class="info-value"><a href="viber://chat?number={{ user.viber|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ user.viber }}</a></span>
+                
+                {% if not (user.last_name or user.first_name or user.middle_name or user.postal_code or user.country or user.city or user.street or user.house or user.building or user.apartment or user.email or user.phone or user.telegram or user.whatsapp or user.viber) %}
+                <div class="empty-state">
+                    <p class="text-muted">{{ _('Contact information not specified') }}</p>
                 </div>
                 {% endif %}
             </div>
-            {% else %}
-            <div class="empty-state">
-                <p class="text-muted">{{ _('Contact information not specified') }}</p>
-            </div>
-            {% endif %}
         </div>
 
         <!-- Содержимое таба "О себе" -->

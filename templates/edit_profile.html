@@ -151,9 +151,172 @@
                 </div>
             </div>
             
+            <div class="form-section">
+                <h3>Личные данные (обязательно для регистрации на мероприятия)</h3>
+                
+                <div class="form-group">
+                    <label for="last_name" class="form-label">
+                        Фамилия *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="last_name" 
+                        name="last_name" 
+                        class="form-input"
+                        placeholder="Иванов"
+                        value="{{ user.last_name or '' }}"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="first_name" class="form-label">
+                        Имя *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="first_name" 
+                        name="first_name" 
+                        class="form-input"
+                        placeholder="Иван"
+                        value="{{ user.first_name or '' }}"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="middle_name" class="form-label">
+                        Отчество *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="middle_name" 
+                        name="middle_name" 
+                        class="form-input"
+                        placeholder="Иванович"
+                        value="{{ user.middle_name or '' }}"
+                        required
+                    >
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Адрес (обязательно для регистрации на мероприятия)</h3>
+                
+                <div class="form-group">
+                    <label for="postal_code" class="form-label">
+                        Индекс *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="postal_code" 
+                        name="postal_code" 
+                        class="form-input"
+                        placeholder="123456"
+                        value="{{ user.postal_code or '' }}"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="country" class="form-label">
+                        Страна *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="country" 
+                        name="country" 
+                        class="form-input"
+                        placeholder="Россия"
+                        value="{{ user.country or '' }}"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="city" class="form-label">
+                        Город *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="city" 
+                        name="city" 
+                        class="form-input"
+                        placeholder="Москва"
+                        value="{{ user.city or '' }}"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="street" class="form-label">
+                        Улица *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="street" 
+                        name="street" 
+                        class="form-input"
+                        placeholder="Ленина"
+                        value="{{ user.street or '' }}"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="house" class="form-label">
+                        Дом *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="house" 
+                        name="house" 
+                        class="form-input"
+                        placeholder="10"
+                        value="{{ user.house or '' }}"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="building" class="form-label">
+                        Корпус/Строение *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="building" 
+                        name="building" 
+                        class="form-input"
+                        placeholder="1"
+                        value="{{ user.building or '' }}"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="apartment" class="form-label">
+                        Квартира *
+                    </label>
+                    <input 
+                        type="text" 
+                        id="apartment" 
+                        name="apartment" 
+                        class="form-input"
+                        placeholder="25"
+                        value="{{ user.apartment or '' }}"
+                        required
+                    >
+                </div>
+            </div>
+            
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Сохранить изменения</button>
                 <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Отмена</a>
+                {% if session.user_id and 'admin' in session.get('roles', []) %}
+                <button type="button" id="clear-profile-btn" class="btn btn-danger" title="Стереть все редактируемые поля в профиле" style="margin-left: auto;">
+                    🗑️
+                </button>
+                {% endif %}
             </div>
         </form>
     </div>
@@ -392,6 +555,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else {
                 alert('Пожалуйста, выберите аватар');
+            }
+        });
+    }
+    
+    // Обработчик кнопки очистки профиля (только для администратора)
+    const clearProfileBtn = document.getElementById('clear-profile-btn');
+    if (clearProfileBtn) {
+        clearProfileBtn.addEventListener('click', function() {
+            if (confirm('Вы уверены, что хотите стереть все редактируемые поля в профиле? Это действие нельзя отменить.')) {
+                fetch('/profile/clear', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Перезагружаем страницу для отображения очищенных полей
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Ошибка при очистке профиля');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Ошибка при очистке профиля. Попробуйте еще раз.');
+                });
             }
         });
     }

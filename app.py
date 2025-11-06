@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify, send_from_directory
-from urllib.parse import unquote, unquote_to_bytes
+from urllib.parse import unquote, unquote_to_bytes, quote
 import hashlib
 import sqlite3
 from datetime import datetime
@@ -206,7 +206,9 @@ def init_db():
             pass
         
         # Добавляем пользовательские поля для редактирования профиля (миграция)
-        user_editable_fields = ['bio', 'contact_info', 'avatar_style', 'email', 'phone', 'telegram', 'whatsapp', 'viber']
+        user_editable_fields = ['bio', 'contact_info', 'avatar_style', 'email', 'phone', 'telegram', 'whatsapp', 'viber',
+                                'last_name', 'first_name', 'middle_name',  # Личные данные
+                                'postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment']  # Адрес
         for field in user_editable_fields:
             try:
                 c.execute(f'ALTER TABLE users ADD COLUMN {field} TEXT')
@@ -1399,6 +1401,8 @@ def login_dev():
     session['level'] = level
     session['synd'] = synd
     session['roles'] = get_user_role_names(user_id)
+    # Очищаем флаг попытки авторизации через GWars (если был установлен)
+    session.pop('gwars_auth_attempt', None)
     
     flash('Тестовая авторизация выполнена успешно!', 'success')
     return redirect(url_for('dashboard'))
@@ -1479,8 +1483,23 @@ def login():
         if name:
             name_encoded = name  # Если получили через args, значит оно уже декодировано
     
-    # Если нет параметров, редиректим на GWars для авторизации
+    # Если нет параметров, проверяем, вернулся ли пользователь с GWars без авторизации
     if not sign or not user_id:
+        # Проверяем, есть ли в сессии флаг о попытке авторизации через GWars
+        gwars_auth_attempt = session.get('gwars_auth_attempt', False)
+        
+        # Если пользователь уже пытался авторизоваться через GWars (флаг в сессии),
+        # но параметров авторизации нет, значит он не авторизован в GWars
+        if gwars_auth_attempt:
+            # Очищаем флаг
+            session.pop('gwars_auth_attempt', None)
+            # Показываем страницу с сообщением о необходимости авторизации
+            return redirect(url_for('gwars_required'))
+        
+        # Если параметров нет и пользователь еще не пытался авторизоваться,
+        # устанавливаем флаг и редиректим на GWars для авторизации
+        session['gwars_auth_attempt'] = True
+        
         # ВАЖНО: GWars проверяет домен callback URL
         # Для локальной разработки используем production URL, чтобы GWars принял запрос
         # После авторизации пользователь будет редиректиться на production, 
@@ -1503,8 +1522,12 @@ def login():
             else:
                 callback_url = f"{request.scheme}://{request.host}/login"
         
-        # Вместо прямого редиректа на GWars, показываем страницу с сообщением
-        return redirect(url_for('gwars_required'))
+        # Редиректим на GWars для авторизации
+        # Если пользователь авторизован в GWars, он получит параметры (sign, user_id и т.д.)
+        # и будет авторизован в нашей системе (флаг gwars_auth_attempt будет очищен при успешной авторизации)
+        # Если не авторизован, вернется без параметров, и мы покажем страницу /gwars-required
+        gwars_login_url = f"https://www.gwars.io/cross-server-login.php?site_id={GWARS_SITE_ID}&url={quote(callback_url)}"
+        return redirect(gwars_login_url)
     
     # Логируем все полученные параметры для отладки
     log_error("=== LOGIN DEBUG ===")
@@ -1858,6 +1881,8 @@ def login():
     session['level'] = level
     session['synd'] = synd
     session['roles'] = get_user_role_names(user_id)  # Сохраняем роли в сессию
+    # Очищаем флаг попытки авторизации через GWars (если был установлен)
+    session.pop('gwars_auth_attempt', None)
     
     return redirect(url_for('dashboard'))
 
@@ -1954,6 +1979,20 @@ def edit_profile():
         whatsapp = request.form.get('whatsapp', '').strip()
         viber = request.form.get('viber', '').strip()
         
+        # Личные данные
+        last_name = request.form.get('last_name', '').strip()
+        first_name = request.form.get('first_name', '').strip()
+        middle_name = request.form.get('middle_name', '').strip()
+        
+        # Адрес
+        postal_code = request.form.get('postal_code', '').strip()
+        country = request.form.get('country', '').strip()
+        city = request.form.get('city', '').strip()
+        street = request.form.get('street', '').strip()
+        house = request.form.get('house', '').strip()
+        building = request.form.get('building', '').strip()
+        apartment = request.form.get('apartment', '').strip()
+        
         try:
             # Если передан новый avatar_seed и avatar_style, проверяем уникальность
             if avatar_seed and avatar_style:
@@ -1966,19 +2005,29 @@ def edit_profile():
             
             # Обновляем профиль
             if avatar_seed and avatar_style:
-                # Обновляем с новым аватаром и контактами
+                # Обновляем с новым аватаром и всеми полями
                 conn.execute('''
                     UPDATE users 
-                    SET bio = ?, contact_info = ?, avatar_style = ?, avatar_seed = ?, email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?
+                    SET bio = ?, contact_info = ?, avatar_style = ?, avatar_seed = ?, 
+                        email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?,
+                        last_name = ?, first_name = ?, middle_name = ?,
+                        postal_code = ?, country = ?, city = ?, street = ?, house = ?, building = ?, apartment = ?
                     WHERE user_id = ?
-                ''', (bio, contact_info, avatar_style, avatar_seed, email, phone, telegram, whatsapp, viber, session['user_id']))
+                ''', (bio, contact_info, avatar_style, avatar_seed, email, phone, telegram, whatsapp, viber,
+                      last_name, first_name, middle_name,
+                      postal_code, country, city, street, house, building, apartment, session['user_id']))
             else:
-                # Обновляем без изменения аватара, но с контактами
+                # Обновляем без изменения аватара, но со всеми остальными полями
                 conn.execute('''
                     UPDATE users 
-                    SET bio = ?, contact_info = ?, email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?
+                    SET bio = ?, contact_info = ?, 
+                        email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?,
+                        last_name = ?, first_name = ?, middle_name = ?,
+                        postal_code = ?, country = ?, city = ?, street = ?, house = ?, building = ?, apartment = ?
                     WHERE user_id = ?
-                ''', (bio, contact_info, email, phone, telegram, whatsapp, viber, session['user_id']))
+                ''', (bio, contact_info, email, phone, telegram, whatsapp, viber,
+                      last_name, first_name, middle_name,
+                      postal_code, country, city, street, house, building, apartment, session['user_id']))
             
             conn.commit()
             flash('Профиль успешно обновлен', 'success')
@@ -1991,6 +2040,38 @@ def edit_profile():
     
     conn.close()
     return render_template('edit_profile.html', user=user)
+
+@app.route('/profile/clear', methods=['POST'])
+@require_login
+@require_role('admin')
+def clear_profile():
+    """Очистка всех редактируемых полей профиля (только для администратора)"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Необходимо авторизоваться'}), 401
+    
+    conn = get_db_connection()
+    try:
+        # Очищаем все редактируемые поля, но сохраняем системные (user_id, username, level, synd и т.д.)
+        # Также сохраняем avatar_seed и avatar_style, так как они могут быть системными
+        conn.execute('''
+            UPDATE users 
+            SET bio = NULL, contact_info = NULL,
+                email = NULL, phone = NULL, telegram = NULL, whatsapp = NULL, viber = NULL,
+                last_name = NULL, first_name = NULL, middle_name = NULL,
+                postal_code = NULL, country = NULL, city = NULL, street = NULL, 
+                house = NULL, building = NULL, apartment = NULL
+            WHERE user_id = ?
+        ''', (user_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Все редактируемые поля профиля очищены'})
+    except Exception as e:
+        log_error(f"Error clearing profile: {e}")
+        conn.close()
+        return jsonify({'success': False, 'error': f'Ошибка очистки профиля: {str(e)}'}), 500
 
 @app.route('/api/avatar/candidates', methods=['GET'])
 @require_login
@@ -3829,23 +3910,169 @@ def event_view(event_id):
                          registrations=registrations,
                          stages_with_info=stages_with_info)
 
+def has_required_contacts(user_id):
+    """Проверяет, заполнены ли обязательные контактные данные пользователя"""
+    conn = get_db_connection()
+    try:
+        user = conn.execute('''
+            SELECT email, phone, telegram, whatsapp, viber,
+                   last_name, first_name, middle_name,
+                   postal_code, country, city, street, house, building, apartment
+            FROM users 
+            WHERE user_id = ?
+        ''', (user_id,)).fetchone()
+        conn.close()
+        
+        if not user:
+            return False
+        
+        # Проверяем обязательные поля:
+        # 1. Хотя бы одно контактное поле (email, phone, telegram, whatsapp, viber)
+        has_contact = bool(user['email'] or user['phone'] or user['telegram'] or user['whatsapp'] or user['viber'])
+        
+        # 2. Все личные данные (фамилия, имя, отчество)
+        has_personal_data = bool(user['last_name'] and user['first_name'] and user['middle_name'])
+        
+        # 3. Все поля адреса (индекс, страна, город, улица, дом, корпус/строение, квартира)
+        has_address = bool(user['postal_code'] and user['country'] and user['city'] and 
+                         user['street'] and user['house'] and user['building'] and user['apartment'])
+        
+        return has_contact and has_personal_data and has_address
+    except Exception as e:
+        log_error(f"Ошибка проверки контактов пользователя: {e}")
+        conn.close()
+        return False
+
+def get_missing_required_fields(user_id):
+    """Возвращает информацию о незаполненных обязательных полях"""
+    conn = get_db_connection()
+    try:
+        user = conn.execute('''
+            SELECT email, phone, telegram, whatsapp, viber,
+                   last_name, first_name, middle_name,
+                   postal_code, country, city, street, house, building, apartment
+            FROM users 
+            WHERE user_id = ?
+        ''', (user_id,)).fetchone()
+        conn.close()
+        
+        if not user:
+            return {
+                'has_personal_data': False,
+                'has_address': False,
+                'has_contact': False,
+                'missing_personal': ['last_name', 'first_name', 'middle_name'],
+                'missing_address': ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment'],
+                'missing_contacts': ['email', 'phone', 'telegram', 'whatsapp', 'viber']
+            }
+        
+        missing_personal = []
+        if not user['last_name']:
+            missing_personal.append('last_name')
+        if not user['first_name']:
+            missing_personal.append('first_name')
+        if not user['middle_name']:
+            missing_personal.append('middle_name')
+        
+        missing_address = []
+        if not user['postal_code']:
+            missing_address.append('postal_code')
+        if not user['country']:
+            missing_address.append('country')
+        if not user['city']:
+            missing_address.append('city')
+        if not user['street']:
+            missing_address.append('street')
+        if not user['house']:
+            missing_address.append('house')
+        if not user['building']:
+            missing_address.append('building')
+        if not user['apartment']:
+            missing_address.append('apartment')
+        
+        missing_contacts = []
+        if not user['email']:
+            missing_contacts.append('email')
+        if not user['phone']:
+            missing_contacts.append('phone')
+        if not user['telegram']:
+            missing_contacts.append('telegram')
+        if not user['whatsapp']:
+            missing_contacts.append('whatsapp')
+        if not user['viber']:
+            missing_contacts.append('viber')
+        
+        return {
+            'has_personal_data': len(missing_personal) == 0,
+            'has_address': len(missing_address) == 0,
+            'has_contact': bool(user['email'] or user['phone'] or user['telegram'] or user['whatsapp'] or user['viber']),
+            'missing_personal': missing_personal,
+            'missing_address': missing_address,
+            'missing_contacts': missing_contacts
+        }
+    except Exception as e:
+        log_error(f"Ошибка получения незаполненных полей: {e}")
+        conn.close()
+        return {
+            'has_personal_data': False,
+            'has_address': False,
+            'has_contact': False,
+            'missing_personal': ['last_name', 'first_name', 'middle_name'],
+            'missing_address': ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment'],
+            'missing_contacts': ['email', 'phone', 'telegram', 'whatsapp', 'viber']
+        }
+
 @app.route('/events/<int:event_id>/register', methods=['POST'])
 @require_login
 def event_register(event_id):
     """Регистрация пользователя на мероприятие"""
     user_id = session.get('user_id')
+    # Проверяем, является ли запрос AJAX/JSON запросом
+    is_json_request = (
+        request.headers.get('Content-Type') == 'application/json' or 
+        request.headers.get('Accept') == 'application/json' or
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
+        request.is_json
+    )
+    
     if not user_id:
+        if is_json_request:
+            return jsonify({'success': False, 'error': 'Необходимо авторизоваться'}), 401
         flash('Необходимо авторизоваться', 'error')
         return redirect(url_for('login'))
     
     # Проверяем, открыта ли регистрация
     if not is_registration_open(event_id):
+        if is_json_request:
+            return jsonify({'success': False, 'error': 'Регистрация на это мероприятие закрыта'}), 400
         flash('Регистрация на это мероприятие закрыта', 'error')
         return redirect(url_for('event_view', event_id=event_id))
     
     # Проверяем, не зарегистрирован ли уже
     if is_user_registered(event_id, user_id):
+        if is_json_request:
+            return jsonify({'success': False, 'error': 'Вы уже зарегистрированы на это мероприятие'}), 400
         flash('Вы уже зарегистрированы на это мероприятие', 'info')
+        return redirect(url_for('event_view', event_id=event_id))
+    
+    # Проверяем заполненность контактных данных
+    if not has_required_contacts(user_id):
+        missing_fields = get_missing_required_fields(user_id)
+        log_debug(f"Пользователь {user_id} пытается зарегистрироваться, но не заполнены обязательные поля. is_json_request={is_json_request}")
+        log_debug(f"Заголовки запроса: Content-Type={request.headers.get('Content-Type')}, Accept={request.headers.get('Accept')}, X-Requested-With={request.headers.get('X-Requested-With')}")
+        
+        # Всегда возвращаем JSON для AJAX запросов, даже если заголовки не идеальны
+        # Проверяем также по наличию заголовка X-Requested-With
+        if is_json_request or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            log_debug(f"Возвращаем JSON с информацией о незаполненных полях")
+            return jsonify({
+                'success': False,
+                'needs_filling': True,
+                'missing_fields': missing_fields
+            }), 200
+        
+        # Если это не AJAX запрос, показываем flash сообщение
+        flash('Для регистрации на мероприятие необходимо заполнить все обязательные поля в разделе "Контакты" вашего профиля. Пожалуйста, перейдите в <a href="' + url_for('dashboard') + '#contacts" style="text-decoration: underline;">профиль</a> и заполните:<br><br><strong>Личные данные:</strong> Фамилия, Имя, Отчество<br><strong>Адрес:</strong> Индекс, Страна, Город, Улица, Дом, Корпус/Строение, Квартира<br><strong>Контактные данные:</strong> хотя бы одно из полей (Email, Телефон, Telegram, WhatsApp или Viber)', 'error')
         return redirect(url_for('event_view', event_id=event_id))
     
     conn = get_db_connection()
@@ -3855,16 +4082,112 @@ def event_register(event_id):
             VALUES (?, ?)
         ''', (event_id, user_id))
         conn.commit()
+        if is_json_request:
+            return jsonify({'success': True, 'message': 'Вы успешно зарегистрированы на мероприятие!'}), 200
         flash('Вы успешно зарегистрированы на мероприятие!', 'success')
     except sqlite3.IntegrityError:
+        if is_json_request:
+            return jsonify({'success': False, 'error': 'Вы уже зарегистрированы на это мероприятие'}), 400
         flash('Вы уже зарегистрированы на это мероприятие', 'info')
     except Exception as e:
         log_error(f"Ошибка регистрации на мероприятие: {e}")
+        if is_json_request:
+            return jsonify({'success': False, 'error': 'Ошибка при регистрации'}), 500
         flash('Ошибка при регистрации', 'error')
     finally:
         conn.close()
     
     return redirect(url_for('event_view', event_id=event_id))
+
+@app.route('/api/profile/update', methods=['POST'])
+@require_login
+def api_profile_update():
+    """API endpoint для обновления профиля через AJAX"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Необходимо авторизоваться'}), 401
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Нет данных'}), 400
+    
+    conn = get_db_connection()
+    try:
+        # Обновляем только переданные поля
+        update_fields = []
+        update_values = []
+        
+        if 'last_name' in data:
+            update_fields.append('last_name = ?')
+            update_values.append(data['last_name'].strip())
+        if 'first_name' in data:
+            update_fields.append('first_name = ?')
+            update_values.append(data['first_name'].strip())
+        if 'middle_name' in data:
+            update_fields.append('middle_name = ?')
+            update_values.append(data['middle_name'].strip())
+        if 'postal_code' in data:
+            update_fields.append('postal_code = ?')
+            update_values.append(data['postal_code'].strip())
+        if 'country' in data:
+            update_fields.append('country = ?')
+            update_values.append(data['country'].strip())
+        if 'city' in data:
+            update_fields.append('city = ?')
+            update_values.append(data['city'].strip())
+        if 'street' in data:
+            update_fields.append('street = ?')
+            update_values.append(data['street'].strip())
+        if 'house' in data:
+            update_fields.append('house = ?')
+            update_values.append(data['house'].strip())
+        if 'building' in data:
+            update_fields.append('building = ?')
+            update_values.append(data['building'].strip())
+        if 'apartment' in data:
+            update_fields.append('apartment = ?')
+            update_values.append(data['apartment'].strip())
+        if 'email' in data:
+            update_fields.append('email = ?')
+            update_values.append(data['email'].strip())
+        if 'phone' in data:
+            update_fields.append('phone = ?')
+            update_values.append(data['phone'].strip())
+        if 'telegram' in data:
+            update_fields.append('telegram = ?')
+            update_values.append(data['telegram'].strip())
+        if 'whatsapp' in data:
+            update_fields.append('whatsapp = ?')
+            update_values.append(data['whatsapp'].strip())
+        if 'viber' in data:
+            update_fields.append('viber = ?')
+            update_values.append(data['viber'].strip())
+        
+        if not update_fields:
+            return jsonify({'success': False, 'error': 'Нет полей для обновления'}), 400
+        
+        update_values.append(user_id)
+        update_query = f'''
+            UPDATE users 
+            SET {', '.join(update_fields)}
+            WHERE user_id = ?
+        '''
+        conn.execute(update_query, update_values)
+        conn.commit()
+        
+        # Проверяем, все ли обязательные поля заполнены
+        missing_fields = get_missing_required_fields(user_id)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Данные успешно обновлены',
+            'missing_fields': missing_fields
+        }), 200
+    except Exception as e:
+        log_error(f"Ошибка обновления профиля через API: {e}")
+        return jsonify({'success': False, 'error': 'Ошибка при обновлении данных'}), 500
+    finally:
+        conn.close()
 
 @app.route('/events/<int:event_id>/unregister', methods=['POST'])
 @require_login
@@ -4279,16 +4602,34 @@ def admin_event_create():
                     start_str = request.form.get(f"stage_{stage['type']}_start", '').strip()
                     if start_str:
                         try:
-                            start_datetime = datetime.strptime(start_str, '%Y-%m-%dT%H:%M')
-                        except:
+                            # Пробуем разные форматы datetime-local
+                            if 'T' in start_str:
+                                if len(start_str) == 16:  # YYYY-MM-DDTHH:MM
+                                    start_datetime = datetime.strptime(start_str, '%Y-%m-%dT%H:%M')
+                                elif len(start_str) >= 19:  # YYYY-MM-DDTHH:MM:SS или больше
+                                    start_datetime = datetime.strptime(start_str[:19], '%Y-%m-%dT%H:%M:%S')
+                            else:
+                                # Если нет T, пробуем как обычную дату
+                                start_datetime = datetime.strptime(start_str, '%Y-%m-%d %H:%M:%S')
+                        except Exception as e:
+                            log_error(f"Ошибка парсинга даты начала этапа {stage['type']}: {e}, строка: {start_str}")
                             pass
                 
                 if stage['has_end']:
                     end_str = request.form.get(f"stage_{stage['type']}_end", '').strip()
                     if end_str:
                         try:
-                            end_datetime = datetime.strptime(end_str, '%Y-%m-%dT%H:%M')
-                        except:
+                            # Пробуем разные форматы datetime-local
+                            if 'T' in end_str:
+                                if len(end_str) == 16:  # YYYY-MM-DDTHH:MM
+                                    end_datetime = datetime.strptime(end_str, '%Y-%m-%dT%H:%M')
+                                elif len(end_str) >= 19:  # YYYY-MM-DDTHH:MM:SS или больше
+                                    end_datetime = datetime.strptime(end_str[:19], '%Y-%m-%dT%H:%M:%S')
+                            else:
+                                # Если нет T, пробуем как обычную дату
+                                end_datetime = datetime.strptime(end_str, '%Y-%m-%d %H:%M:%S')
+                        except Exception as e:
+                            log_error(f"Ошибка парсинга даты окончания этапа {stage['type']}: {e}, строка: {end_str}")
                             pass
                 
                 # Проверяем обязательность
@@ -4303,11 +4644,17 @@ def admin_event_create():
                     conn.close()
                     return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES, awards=awards)
                 
+                # Форматируем datetime для сохранения в БД
+                start_datetime_str = start_datetime.strftime('%Y-%m-%d %H:%M:%S') if start_datetime else None
+                end_datetime_str = end_datetime.strftime('%Y-%m-%d %H:%M:%S') if end_datetime else None
+                
+                log_debug(f"Создание этапа {stage['type']}: start={start_datetime_str}, end={end_datetime_str}")
+                
                 conn.execute('''
                     INSERT INTO event_stages 
                     (event_id, stage_type, stage_order, start_datetime, end_datetime, is_required, is_optional)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (event_id, stage['type'], stage_order, start_datetime, end_datetime, is_required, is_optional))
+                ''', (event_id, stage['type'], stage_order, start_datetime_str, end_datetime_str, is_required, is_optional))
                 stage_order += 1
             
             conn.commit()
@@ -4407,16 +4754,34 @@ def admin_event_edit(event_id):
                     start_str = request.form.get(f"stage_{stage['type']}_start", '').strip()
                     if start_str:
                         try:
-                            start_datetime = datetime.strptime(start_str, '%Y-%m-%dT%H:%M')
-                        except:
+                            # Пробуем разные форматы datetime-local
+                            if 'T' in start_str:
+                                if len(start_str) == 16:  # YYYY-MM-DDTHH:MM
+                                    start_datetime = datetime.strptime(start_str, '%Y-%m-%dT%H:%M')
+                                elif len(start_str) >= 19:  # YYYY-MM-DDTHH:MM:SS или больше
+                                    start_datetime = datetime.strptime(start_str[:19], '%Y-%m-%dT%H:%M:%S')
+                            else:
+                                # Если нет T, пробуем как обычную дату
+                                start_datetime = datetime.strptime(start_str, '%Y-%m-%d %H:%M:%S')
+                        except Exception as e:
+                            log_error(f"Ошибка парсинга даты начала этапа {stage['type']}: {e}, строка: {start_str}")
                             pass
                 
                 if stage['has_end']:
                     end_str = request.form.get(f"stage_{stage['type']}_end", '').strip()
                     if end_str:
                         try:
-                            end_datetime = datetime.strptime(end_str, '%Y-%m-%dT%H:%M')
-                        except:
+                            # Пробуем разные форматы datetime-local
+                            if 'T' in end_str:
+                                if len(end_str) == 16:  # YYYY-MM-DDTHH:MM
+                                    end_datetime = datetime.strptime(end_str, '%Y-%m-%dT%H:%M')
+                                elif len(end_str) >= 19:  # YYYY-MM-DDTHH:MM:SS или больше
+                                    end_datetime = datetime.strptime(end_str[:19], '%Y-%m-%dT%H:%M:%S')
+                            else:
+                                # Если нет T, пробуем как обычную дату
+                                end_datetime = datetime.strptime(end_str, '%Y-%m-%d %H:%M:%S')
+                        except Exception as e:
+                            log_error(f"Ошибка парсинга даты окончания этапа {stage['type']}: {e}, строка: {end_str}")
                             pass
                 
                 # Проверяем обязательность
@@ -4429,18 +4794,30 @@ def admin_event_edit(event_id):
                 
                 # Обновляем или создаем этап
                 if stage['type'] in stages_dict:
+                    # Форматируем datetime для сохранения в БД
+                    start_datetime_str = start_datetime.strftime('%Y-%m-%d %H:%M:%S') if start_datetime else None
+                    end_datetime_str = end_datetime.strftime('%Y-%m-%d %H:%M:%S') if end_datetime else None
+                    
+                    log_debug(f"Обновление этапа {stage['type']}: start={start_datetime_str}, end={end_datetime_str}")
+                    
                     conn.execute('''
                         UPDATE event_stages 
                         SET start_datetime = ?, end_datetime = ?
                         WHERE event_id = ? AND stage_type = ?
-                    ''', (start_datetime, end_datetime, event_id, stage['type']))
+                    ''', (start_datetime_str, end_datetime_str, event_id, stage['type']))
                 else:
                     stage_order = len(stages_dict) + 1
+                    # Форматируем datetime для сохранения в БД
+                    start_datetime_str = start_datetime.strftime('%Y-%m-%d %H:%M:%S') if start_datetime else None
+                    end_datetime_str = end_datetime.strftime('%Y-%m-%d %H:%M:%S') if end_datetime else None
+                    
+                    log_debug(f"Создание этапа {stage['type']}: start={start_datetime_str}, end={end_datetime_str}")
+                    
                     conn.execute('''
                         INSERT INTO event_stages 
                         (event_id, stage_type, stage_order, start_datetime, end_datetime, is_required, is_optional)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (event_id, stage['type'], stage_order, start_datetime, end_datetime, 
+                    ''', (event_id, stage['type'], stage_order, start_datetime_str, end_datetime_str,
                           1 if stage['required'] else 0, 1 if not stage['required'] else 0))
             
             conn.commit()
