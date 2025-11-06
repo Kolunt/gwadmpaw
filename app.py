@@ -1752,11 +1752,20 @@ def login():
                 # Новый пользователь - создаем запись
                 avatar_seed = generate_unique_avatar_seed(user_id)
                 avatar_style = 'avataaars'  # Стиль по умолчанию
+                # Явно устанавливаем все поля контактов в NULL для нового пользователя
                 conn.execute('''
                     INSERT INTO users 
                     (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, 
-                     avatar_seed, avatar_style, last_login)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     avatar_seed, avatar_style, last_login,
+                     email, phone, telegram, whatsapp, viber,
+                     last_name, first_name, middle_name,
+                     postal_code, country, city, street, house, building, apartment,
+                     bio, contact_info)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+                            NULL, NULL, NULL, NULL, NULL,
+                            NULL, NULL, NULL,
+                            NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                            NULL, NULL)
                 ''', (user_id, name, level_int, synd_int, has_passport_int, has_mobile_int, 
                       old_passport_int, usersex, avatar_seed, avatar_style, datetime.now()))
                 log_debug(f"New user created: user_id={user_id}, username={name}")
@@ -4229,6 +4238,9 @@ def api_profile_data():
     
     conn = get_db_connection()
     try:
+        # Логируем для отладки
+        log_debug(f"api_profile_data: Fetching data for user_id={user_id}")
+        
         user = conn.execute('''
             SELECT email, phone, telegram, whatsapp, viber,
                    last_name, first_name, middle_name,
@@ -4236,10 +4248,16 @@ def api_profile_data():
             FROM users 
             WHERE user_id = ?
         ''', (user_id,)).fetchone()
-        conn.close()
         
         if not user:
+            conn.close()
+            log_error(f"api_profile_data: User {user_id} not found in database")
             return jsonify({'error': 'Пользователь не найден'}), 404
+        
+        # Логируем полученные данные для отладки
+        log_debug(f"api_profile_data: User {user_id} data: email={user['email']}, phone={user['phone']}, telegram={user['telegram']}")
+        
+        conn.close()
         
         return jsonify({
             'success': True,
@@ -4262,7 +4280,9 @@ def api_profile_data():
             }
         })
     except Exception as e:
-        log_error(f"Error getting profile data: {e}")
+        log_error(f"Error getting profile data for user_id={user_id}: {e}")
+        import traceback
+        log_error(traceback.format_exc())
         conn.close()
         return jsonify({'error': f'Ошибка получения данных: {str(e)}'}), 500
 
