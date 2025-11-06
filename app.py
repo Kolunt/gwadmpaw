@@ -3499,6 +3499,50 @@ def admin_faq_category_delete(category_id):
     conn.close()
     return redirect(url_for('admin_faq') + '#categories')
 
+@app.route('/admin/rules')
+@require_role('admin')
+def admin_rules():
+    """Управление правилами"""
+    rules_content = get_setting('rules_content', '')
+    return render_template('admin/rules.html', rules_content=rules_content)
+
+@app.route('/admin/rules/edit', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_rules_edit():
+    """Редактирование правил"""
+    if request.method == 'POST':
+        rules_content = request.form.get('rules_content', '').strip()
+        
+        # Сохраняем правила в настройках
+        conn = get_db_connection()
+        user_id = session.get('user_id')
+        
+        # Проверяем, существует ли настройка
+        existing = conn.execute('SELECT * FROM settings WHERE key = ?', ('rules_content',)).fetchone()
+        
+        if existing:
+            # Обновляем существующую настройку
+            conn.execute('''
+                UPDATE settings 
+                SET value = ?, updated_at = ?, updated_by = ?
+                WHERE key = ?
+            ''', (rules_content, datetime.now(), user_id, 'rules_content'))
+        else:
+            # Создаем новую настройку
+            conn.execute('''
+                INSERT INTO settings (key, value, category, created_at, created_by, updated_at, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', ('rules_content', rules_content, 'general', datetime.now(), user_id, datetime.now(), user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        flash('Правила успешно сохранены', 'success')
+        return redirect(url_for('admin_rules'))
+    
+    rules_content = get_setting('rules_content', '')
+    return render_template('admin/rules_edit.html', rules_content=rules_content)
+
 def get_faq_categories():
     """Получает список активных категорий FAQ"""
     conn = get_db_connection()
@@ -4055,21 +4099,44 @@ def event_register(event_id):
         flash('Вы уже зарегистрированы на это мероприятие', 'info')
         return redirect(url_for('event_view', event_id=event_id))
     
-    # Проверяем заполненность контактных данных
-    if not has_required_contacts(user_id):
-        missing_fields = get_missing_required_fields(user_id)
-        log_debug(f"Пользователь {user_id} пытается зарегистрироваться, но не заполнены обязательные поля. is_json_request={is_json_request}")
-        log_debug(f"Заголовки запроса: Content-Type={request.headers.get('Content-Type')}, Accept={request.headers.get('Accept')}, X-Requested-With={request.headers.get('X-Requested-With')}")
-        
-        # Всегда возвращаем JSON для AJAX запросов, даже если заголовки не идеальны
-        # Проверяем также по наличию заголовка X-Requested-With
-        if is_json_request or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            log_debug(f"Возвращаем JSON с информацией о незаполненных полях")
+    # Проверяем заполненность обязательных полей
+    missing_fields = get_missing_required_fields(user_id)
+    has_all_required = (
+        missing_fields['has_personal_data'] and 
+        missing_fields['has_address'] and 
+        missing_fields['has_contact']
+    )
+    
+    # Проверяем, является ли это финальным запросом после подтверждения в модальном окне
+    is_final_registration = False
+    if request.is_json and request.json:
+        is_final_registration = request.json.get('final_registration', False)
+    
+    # Для AJAX запросов: показываем модальное окно для проверки данных
+    # Исключение: если это финальный запрос после подтверждения в модальном окне - регистрируем сразу
+    if is_json_request or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if not is_final_registration:
+            # Это первый запрос - показываем модальное окно для проверки/заполнения данных
+            log_debug(f"AJAX запрос на регистрацию от пользователя {user_id}. Показываем модальное окно для проверки данных")
             return jsonify({
                 'success': False,
                 'needs_filling': True,
                 'missing_fields': missing_fields
             }), 200
+        # Это финальный запрос после подтверждения - проверяем, все ли заполнено
+        if not has_all_required:
+            log_debug(f"Финальный AJAX запрос от пользователя {user_id}, но данные не заполнены")
+            return jsonify({
+                'success': False,
+                'error': 'Пожалуйста, заполните все обязательные поля',
+                'missing_fields': missing_fields
+            }), 400
+        # Все данные заполнены - продолжаем регистрацию ниже
+    
+    # Для обычных запросов проверяем заполненность контактных данных
+    if not has_required_contacts(user_id):
+        missing_fields = get_missing_required_fields(user_id)
+        log_debug(f"Пользователь {user_id} пытается зарегистрироваться, но не заполнены обязательные поля")
         
         # Если это не AJAX запрос, показываем flash сообщение
         flash('Для регистрации на мероприятие необходимо заполнить все обязательные поля в разделе "Контакты" вашего профиля. Пожалуйста, перейдите в <a href="' + url_for('dashboard') + '#contacts" style="text-decoration: underline;">профиль</a> и заполните:<br><br><strong>Личные данные:</strong> Фамилия, Имя, Отчество<br><strong>Адрес:</strong> Индекс, Страна, Город, Улица, Дом, Корпус/Строение, Квартира<br><strong>Контактные данные:</strong> хотя бы одно из полей (Email, Телефон, Telegram, WhatsApp или Viber)', 'error')
@@ -4098,6 +4165,53 @@ def event_register(event_id):
         conn.close()
     
     return redirect(url_for('event_view', event_id=event_id))
+
+@app.route('/api/profile/data', methods=['GET'])
+@require_login
+def api_profile_data():
+    """API endpoint для получения текущих данных профиля пользователя"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Необходимо авторизоваться'}), 401
+    
+    conn = get_db_connection()
+    try:
+        user = conn.execute('''
+            SELECT email, phone, telegram, whatsapp, viber,
+                   last_name, first_name, middle_name,
+                   postal_code, country, city, street, house, building, apartment
+            FROM users 
+            WHERE user_id = ?
+        ''', (user_id,)).fetchone()
+        conn.close()
+        
+        if not user:
+            return jsonify({'error': 'Пользователь не найден'}), 404
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'email': user['email'] or '',
+                'phone': user['phone'] or '',
+                'telegram': user['telegram'] or '',
+                'whatsapp': user['whatsapp'] or '',
+                'viber': user['viber'] or '',
+                'last_name': user['last_name'] or '',
+                'first_name': user['first_name'] or '',
+                'middle_name': user['middle_name'] or '',
+                'postal_code': user['postal_code'] or '',
+                'country': user['country'] or '',
+                'city': user['city'] or '',
+                'street': user['street'] or '',
+                'house': user['house'] or '',
+                'building': user['building'] or '',
+                'apartment': user['apartment'] or ''
+            }
+        })
+    except Exception as e:
+        log_error(f"Error getting profile data: {e}")
+        conn.close()
+        return jsonify({'error': f'Ошибка получения данных: {str(e)}'}), 500
 
 @app.route('/api/profile/update', methods=['POST'])
 @require_login
@@ -4233,6 +4347,13 @@ def faq():
     """Страница с часто задаваемыми вопросами (всегда показывает статический контент)"""
     # Всегда используем статический контент (дефолтный)
     return render_template('faq.html', faq_by_category=None)
+
+@app.route('/rules')
+def rules():
+    """Страница с правилами"""
+    # Получаем правила из настроек, если они есть
+    rules_content = get_setting('rules_content', '')
+    return render_template('rules.html', rules_content=rules_content)
 
 @app.route('/contacts')
 def contacts():

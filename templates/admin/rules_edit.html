@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование правил - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>Редактирование правил</h1>
+            <a href="{{ url_for('admin_rules') }}" class="btn btn-secondary">← Назад к правилам</a>
+        </div>
+        
+        <div class="admin-card">
+            <form method="POST" action="{{ url_for('admin_rules_edit') }}">
+                <div class="form-group">
+                    <label for="rules_content" class="form-label">Содержание правил</label>
+                    <p class="form-hint">Вы можете использовать HTML для форматирования текста. Например: &lt;h2&gt;Заголовок&lt;/h2&gt;, &lt;p&gt;Абзац&lt;/p&gt;, &lt;ul&gt;&lt;li&gt;Список&lt;/li&gt;&lt;/ul&gt;</p>
+                    <textarea id="rules_content" name="rules_content" class="form-input" rows="20" style="font-family: monospace;">{{ rules_content or '' }}</textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Сохранить правила</button>
+                    <a href="{{ url_for('admin_rules') }}" class="btn btn-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

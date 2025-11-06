@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Управление правилами - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>Управление правилами</h1>
+            <a href="{{ url_for('admin_rules_edit') }}" class="btn btn-primary">Редактировать правила</a>
+        </div>
+        
+        <div class="admin-card">
+            <h2>Текущие правила</h2>
+            {% if rules_content %}
+            <div class="rules-preview">
+                {{ rules_content|safe }}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <p>Правила пока не установлены. Нажмите "Редактировать правила" для их создания.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.rules-preview {
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.rules-preview h2 {
+    color: var(--accent-color);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+}
+
+.rules-preview h2:first-child {
+    margin-top: 0;
+}
+
+.rules-preview h3 {
+    color: var(--text-primary);
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.rules-preview p {
+    margin-bottom: 0.75rem;
+}
+
+.rules-preview ul, .rules-preview ol {
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+}
+
+.rules-preview li {
+    margin-bottom: 0.25rem;
+}
+</style>
+{% endblock %}
+
