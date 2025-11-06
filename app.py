@@ -4353,6 +4353,9 @@ def api_profile_update():
         if not update_fields:
             return jsonify({'success': False, 'error': 'Нет полей для обновления'}), 400
         
+        # Логируем для отладки
+        log_debug(f"api_profile_update: Updating user_id={user_id}, fields: {', '.join(update_fields)}")
+        
         update_values.append(user_id)
         update_query = f'''
             UPDATE users 
@@ -4361,6 +4364,11 @@ def api_profile_update():
         '''
         conn.execute(update_query, update_values)
         conn.commit()
+        
+        # Проверяем, что обновление прошло успешно
+        verify_user = conn.execute('SELECT email, phone, telegram FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        if verify_user:
+            log_debug(f"api_profile_update: Verified update for user_id={user_id}: email={verify_user['email']}, phone={verify_user['phone']}, telegram={verify_user['telegram']}")
         
         # Проверяем, все ли обязательные поля заполнены
         missing_fields = get_missing_required_fields(user_id)
