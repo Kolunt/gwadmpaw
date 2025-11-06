@@ -7,12 +7,32 @@
     <div class="admin-container">
         <div class="admin-header">
             <h1>Управление правилами</h1>
-            <a href="{{ url_for('admin_rules_edit') }}" class="btn btn-primary">Редактировать правила</a>
+            <div style="display: flex; gap: 0.5rem;">
+                {% if not has_rules %}
+                <form method="POST" action="{{ url_for('admin_rules_init_defaults') }}" style="display: inline;">
+                    <button type="submit" class="btn btn-secondary" onclick="return confirm('Инициализировать дефолтные правила? Существующие правила будут перезаписаны.');">
+                        Инициализировать дефолтные правила
+                    </button>
+                </form>
+                {% endif %}
+                <a href="{{ url_for('admin_rules_edit') }}" class="btn btn-primary">Редактировать правила</a>
+            </div>
         </div>
         
         <div class="admin-card">
             <h2>Текущие правила</h2>
-            {% if rules_content %}
+            {% if rules_items %}
+            <div class="rules-preview">
+                <ol class="rules-list">
+                    {% for item in rules_items %}
+                    <li class="rule-item">
+                        <span class="rule-point">{{ item.point }}</span>
+                        <span class="rule-text">{{ item.text|safe }}</span>
+                    </li>
+                    {% endfor %}
+                </ol>
+            </div>
+            {% elif rules_content %}
             <div class="rules-preview">
                 {{ rules_content|safe }}
             </div>
@@ -37,6 +57,32 @@
     overflow-y: auto;
 }
 
+.rules-list {
+    list-style: none;
+    counter-reset: rule-counter;
+    padding-left: 0;
+    margin: 0;
+}
+
+.rule-item {
+    counter-increment: rule-counter;
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+    position: relative;
+}
+
+.rule-point {
+    font-weight: 600;
+    color: var(--accent-color);
+    margin-right: 0.5rem;
+    font-family: monospace;
+}
+
+.rule-text {
+    color: var(--text-primary);
+}
+
+/* Для старых HTML правил */
 .rules-preview h2 {
     color: var(--accent-color);
     margin-top: 1.5rem;
@@ -69,4 +115,3 @@
 }
 </style>
 {% endblock %}
-
