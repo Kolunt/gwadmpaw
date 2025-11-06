@@ -1459,7 +1459,6 @@ def login():
             name_encoded = request.args.get('name', '')
             # Если получили через args, значит оно уже декодировано, нужно закодировать обратно для проверки
             if name_encoded:
-                from urllib.parse import quote
                 name_encoded_for_comparison = quote(name_encoded, safe='')
             else:
                 name_encoded_for_comparison = ''
