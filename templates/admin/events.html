@@ -50,6 +50,14 @@
                             <a href="{{ url_for('admin_event_edit', event_id=event.id) }}" class="btn btn-sm btn-primary" title="Редактировать">
                                 <span style="font-size: 1.2em;">✏️</span>
                             </a>
+                            {% if event.needs_review %}
+                            <a href="{{ url_for('admin_event_review', event_id=event.id) }}" class="btn btn-sm btn-success" title="Ревью участников">
+                                <span style="font-size: 1.2em;">📋</span>
+                                {% if event.review_pending_count %}
+                                <span class="badge badge-warning" style="margin-left: 0.25rem;">{{ event.review_pending_count }}</span>
+                                {% endif %}
+                            </a>
+                            {% endif %}
                             <form method="POST" action="{{ url_for('admin_event_delete', event_id=event.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это мероприятие?');">
                                 <button type="submit" class="btn btn-sm btn-danger" title="Удалить">
                                     <span style="font-size: 1.2em;">🗑️</span>

@@ -93,6 +93,13 @@
                 <button id="theme-toggle" class="navbar-icon-btn" title="{{ _('Toggle theme') }}" aria-label="{{ _('Toggle theme') }}">
                     <span class="navbar-icon theme-icon">🌙</span>
                 </button>
+                {% if session.get('impersonation_original') %}
+                <form method="POST" action="{{ url_for('stop_impersonation') }}" class="impersonation-navbar-form">
+                    <button type="submit" class="navbar-icon-btn" title="Вернуться к своей учетной записи" aria-label="Вернуться к своей учетной записи">
+                        🔙
+                    </button>
+                </form>
+                {% endif %}
                 {% if session.user_id %}
                 <a href="{{ url_for('dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="{{ _('Profile') }}">
                     {% if current_user_avatar_seed %}
@@ -142,6 +149,12 @@
                     <span class="sidebar-icon">📜</span>
                     <span>Правила</span>
                 </a>
+                {% if session.user_id %}
+                <a href="{{ url_for('assignments') }}" class="sidebar-link">
+                    <span class="sidebar-icon">📋</span>
+                    <span>Задания</span>
+                </a>
+                {% endif %}
             </div>
             
             <!-- Админ-панель (только для администраторов) -->

@@ -446,6 +446,58 @@ def init_db():
             )
         ''')
         
+        # Таблица утверждений участников (для ревью администратором)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS event_participant_approvals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                approved INTEGER DEFAULT 0,
+                approved_at TIMESTAMP,
+                approved_by INTEGER,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (approved_by) REFERENCES users(user_id),
+                UNIQUE(event_id, user_id)
+            )
+        ''')
+        
+        # Таблица заданий (распределение Деда Мороза и Внучки)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS event_assignments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id INTEGER NOT NULL,
+                santa_user_id INTEGER NOT NULL,
+                recipient_user_id INTEGER NOT NULL,
+                assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                assigned_by INTEGER,
+                santa_sent_at TIMESTAMP,
+                santa_send_info TEXT,
+                recipient_received_at TIMESTAMP,
+                FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                FOREIGN KEY (santa_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (recipient_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (assigned_by) REFERENCES users(user_id),
+                UNIQUE(event_id, santa_user_id, recipient_user_id)
+            )
+        ''')
+
+        # Миграция: добавляем поля для статусов отправки/получения подарков
+        try:
+            c.execute('ALTER TABLE event_assignments ADD COLUMN santa_sent_at TIMESTAMP')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE event_assignments ADD COLUMN santa_send_info TEXT')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE event_assignments ADD COLUMN recipient_received_at TIMESTAMP')
+        except sqlite3.OperationalError:
+            pass
+        
         # Таблица категорий FAQ
         c.execute('''
             CREATE TABLE IF NOT EXISTS faq_categories (
@@ -2170,8 +2222,20 @@ def view_profile(user_id):
     
     # Проверяем, является ли это профилем текущего пользователя (если авторизован)
     is_own_profile = session.get('user_id') == user_id if 'user_id' in session else False
+    is_admin = 'admin' in session.get('roles', []) if 'roles' in session else False
+    impersonation_active = bool(session.get('impersonation_original'))
+    can_impersonate = is_admin and not is_own_profile and not impersonation_active
     
-    return render_template('view_profile.html', user=user, user_roles=user_roles, user_titles=user_titles, user_awards=user_awards, is_own_profile=is_own_profile)
+    return render_template(
+        'view_profile.html',
+        user=user,
+        user_roles=user_roles,
+        user_titles=user_titles,
+        user_awards=user_awards,
+        is_own_profile=is_own_profile,
+        can_impersonate=can_impersonate,
+        impersonation_active=impersonation_active
+    )
 
 @app.route('/participants')
 def participants():
@@ -2385,6 +2449,106 @@ def admin_users():
     conn.close()
     
     return render_template('admin/users.html', users=users)
+
+@app.route('/admin/users/<int:user_id>/impersonate', methods=['POST'])
+@require_role('admin')
+def admin_user_impersonate(user_id):
+    """Позволяет администратору управлять выбранным пользователем"""
+    # Проверяем, не активна ли уже импровизированная сессия
+    if session.get('impersonation_original'):
+        flash('Вы уже управляете другим пользователем. Завершите текущую сессию управления сначала.', 'warning')
+        next_url = request.form.get('next')
+        if not next_url or not next_url.startswith('/'):
+            next_url = url_for('view_profile', user_id=user_id)
+        return redirect(next_url)
+    
+    # Если администратор пытается управлять собой
+    if session.get('user_id') == user_id:
+        flash('Вы уже авторизованы под этим пользователем.', 'info')
+        next_url = request.form.get('next')
+        if not next_url or not next_url.startswith('/'):
+            next_url = url_for('view_profile', user_id=user_id)
+        return redirect(next_url)
+    
+    conn = get_db_connection()
+    user = conn.execute('SELECT user_id, username, level, synd FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    
+    if not user:
+        conn.close()
+        flash('Пользователь не найден', 'error')
+        next_url = request.form.get('next')
+        if not next_url or not next_url.startswith('/'):
+            next_url = url_for('admin_users')
+        return redirect(next_url)
+    
+    # Сохраняем данные исходной сессии администратора
+    original_info = {
+        'user_id': session.get('user_id'),
+        'username': session.get('username'),
+        'roles': list(session.get('roles', [])) if session.get('roles') else [],
+        'level': session.get('level'),
+        'synd': session.get('synd')
+    }
+    session['impersonation_original'] = original_info
+    session['impersonation_target'] = {
+        'user_id': user['user_id'],
+        'username': user['username']
+    }
+    session['impersonation_started_at'] = datetime.now().isoformat()
+    
+    return_url = request.form.get('return_url')
+    if return_url and return_url.startswith('/'):
+        session['impersonation_return_url'] = return_url
+    else:
+        session['impersonation_return_url'] = url_for('admin_users')
+    
+    # Обновляем сессию под выбранного пользователя
+    session['user_id'] = user['user_id']
+    session['username'] = user['username']
+    session['level'] = user['level']
+    session['synd'] = user['synd']
+    session['roles'] = get_user_role_names(user['user_id'])
+    
+    conn.close()
+    
+    next_url = request.form.get('next')
+    if not next_url or not next_url.startswith('/'):
+        next_url = url_for('view_profile', user_id=user['user_id'])
+    
+    flash(f'Вы управляете пользователем {user["username"]}', 'info')
+    return redirect(next_url)
+
+@app.route('/impersonation/stop', methods=['POST'])
+@require_login
+def stop_impersonation():
+    """Завершает режим управления пользователем"""
+    original_info = session.get('impersonation_original')
+    if not original_info:
+        flash('Режим управления не активен.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    # Восстанавливаем исходные данные администратора
+    session['user_id'] = original_info.get('user_id')
+    session['username'] = original_info.get('username')
+    session['roles'] = original_info.get('roles', [])
+    session['level'] = original_info.get('level')
+    session['synd'] = original_info.get('synd')
+    
+    # Очищаем данные импровизированной сессии
+    session.pop('impersonation_original', None)
+    session.pop('impersonation_target', None)
+    impersonation_started = session.pop('impersonation_started_at', None)
+    return_url = session.pop('impersonation_return_url', None)
+    
+    flash('Вы вернулись к своей учетной записи.', 'success')
+    
+    if return_url and return_url.startswith('/'):
+        return redirect(return_url)
+    
+    # Если исходная ссылка недоступна, возвращаем на страницу управления пользователями
+    if 'admin' in session.get('roles', []):
+        return redirect(url_for('admin_users'))
+    return redirect(url_for('dashboard'))
 
 @app.route('/admin/users/create', methods=['GET', 'POST'])
 @require_role('admin')
@@ -3019,6 +3183,9 @@ def admin_user_titles(user_id):
 @require_role('admin')
 def admin_settings():
     """Страница настроек"""
+    # Инициализируем дефолтные тексты модальных окон, если их еще нет
+    init_default_modal_texts()
+    
     conn = get_db_connection()
     
     if request.method == 'POST':
@@ -3254,6 +3421,60 @@ def verify_dadata():
         conn.close()
     
     return jsonify({'success': success, 'message': message})
+
+def init_default_modal_texts():
+    """Инициализирует дефолтные тексты модальных окон для регистрации на мероприятия"""
+    conn = get_db_connection()
+    try:
+        # Дефолтные тексты модальных окон
+        default_modal_texts = {
+            'modal_title': ('Заполнение обязательных данных', 'Заголовок модального окна регистрации'),
+            'modal_intro_title_new': ('Для регистрации на мероприятие необходимо заполнить обязательную информацию.', 'Заголовок вступительного сообщения (новый пользователь)'),
+            'modal_intro_text_new': ('Это необходимо для организации мероприятия и связи с участниками.', 'Текст вступительного сообщения (новый пользователь)'),
+            'modal_intro_description_new': ('Мы поможем вам заполнить все необходимые данные пошагово.', 'Описание вступительного сообщения (новый пользователь)'),
+            'modal_intro_title_existing': ('Ваши данные уже заполнены в системе.', 'Заголовок вступительного сообщения (существующий пользователь)'),
+            'modal_intro_text_existing': ('Мы просто хотим убедиться, что все данные актуальны.', 'Текст вступительного сообщения (существующий пользователь)'),
+            'modal_intro_description_existing': ('Пожалуйста, проверьте и подтвердите ваши данные.', 'Описание вступительного сообщения (существующий пользователь)'),
+            'modal_step_personal_title': ('Шаг 1: Личные данные', 'Заголовок шага личных данных'),
+            'modal_step_address_title': ('Шаг 2: Адрес', 'Заголовок шага адреса'),
+            'modal_step_contact_title_prefix': ('Шаг', 'Префикс заголовка шага контактов'),
+            'modal_step_contact_description_required': ('Для связи с вами необходимо указать хотя бы один способ связи.', 'Описание шага контактов (обязательное поле)'),
+            'modal_step_contact_description_optional': ('Вы можете добавить еще один способ связи или пропустить этот шаг.', 'Описание шага контактов (необязательное поле)'),
+            'modal_step_contact_description_review': ('Проверьте ваш контакт. Вы можете изменить его или подтвердить.', 'Описание шага контактов (проверка)'),
+            'modal_final_title': ('🎉 Все данные собраны, вы готовы стать Анонимным Дедом Морозом!', 'Заголовок финального шага'),
+            'modal_final_text': ('Теперь вы можете принять участие в мероприятии и подарить радость другим участникам!', 'Текст финального шага'),
+            'modal_btn_back': ('Назад', 'Кнопка "Назад"'),
+            'modal_btn_next': ('Далее', 'Кнопка "Далее"'),
+            'modal_btn_skip': ('Пропустить', 'Кнопка "Пропустить"'),
+            'modal_btn_not_using': ('Не использую', 'Кнопка "Не использую"'),
+            'modal_btn_confirm': ('Без сомнений, участвую!', 'Кнопка подтверждения участия'),
+            'modal_btn_cancel': ('Я ещё подумаю...', 'Кнопка отмены'),
+            'modal_btn_save_continue': ('Сохранить и продолжить', 'Кнопка "Сохранить и продолжить"'),
+            'modal_btn_finish_register': ('Завершить и зарегистрироваться', 'Кнопка "Завершить и зарегистрироваться"'),
+            'modal_error_email_invalid': ('Это не email', 'Сообщение об ошибке: неверный email'),
+        }
+        
+        # Проверяем, есть ли уже настройки модальных окон
+        existing = conn.execute('SELECT key FROM settings WHERE category = ?', ('modals',)).fetchone()
+        if existing:
+            # Если уже есть настройки, не добавляем дефолтные
+            conn.close()
+            return
+        
+        # Получаем первого администратора для created_by
+        admin_user = conn.execute('SELECT user_id FROM users WHERE user_id IN (SELECT user_id FROM user_roles WHERE role_id = (SELECT id FROM roles WHERE name = "admin")) LIMIT 1').fetchone()
+        created_by = admin_user['user_id'] if admin_user else None
+        
+        # Добавляем настройки
+        for key, (value, description) in default_modal_texts.items():
+            set_setting(key, value, description, 'modals')
+        
+        conn.commit()
+        log_debug("Default modal texts initialized")
+    except Exception as e:
+        log_error(f"Error initializing default modal texts: {e}")
+    finally:
+        conn.close()
 
 def init_default_faq_items():
     """Инициализирует дефолтные FAQ элементы из статического контента"""
@@ -4069,6 +4290,25 @@ def get_current_event_stage(event_id):
     
     now = datetime.now()
     
+    # Проверяем, начался ли этап "Закрытие регистрации" - если да, создаем записи для ревью
+    registration_closed_stage = None
+    for stage in stages:
+        if stage['stage_type'] == 'registration_closed' and stage['start_datetime']:
+            try:
+                start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
+            except:
+                try:
+                    start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%dT%H:%M')
+                except:
+                    continue
+            if now >= start_dt:
+                registration_closed_stage = stage
+                break
+    
+    # Если регистрация закрылась, создаем записи для ревью
+    if registration_closed_stage:
+        create_participant_approvals_for_event(event_id)
+    
     # Создаем словарь этапов с их информацией
     stages_dict = {stage['stage_type']: stage for stage in stages}
     stages_info_dict = {stage['type']: stage for stage in EVENT_STAGES}
@@ -4194,6 +4434,280 @@ def get_event_registrations(event_id):
     conn.close()
     return registrations
 
+def create_participant_approvals_for_event(event_id):
+    """Создает записи для ревью участников при закрытии регистрации"""
+    conn = get_db_connection()
+    try:
+        # Получаем всех зарегистрированных участников
+        registrations = conn.execute('''
+            SELECT user_id FROM event_registrations WHERE event_id = ?
+        ''', (event_id,)).fetchall()
+        
+        # Создаем записи для ревью (если их еще нет)
+        for reg in registrations:
+            conn.execute('''
+                INSERT OR IGNORE INTO event_participant_approvals 
+                (event_id, user_id, approved) 
+                VALUES (?, ?, 0)
+            ''', (event_id, reg['user_id']))
+        
+        conn.commit()
+        log_debug(f"Created participant approvals for event {event_id}")
+    except Exception as e:
+        log_error(f"Error creating participant approvals: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
+def get_participants_for_review(event_id):
+    """Получает список участников для ревью с полной информацией"""
+    conn = get_db_connection()
+    participants = conn.execute('''
+        SELECT 
+            u.user_id,
+            u.username,
+            u.level,
+            u.synd,
+            u.last_name,
+            u.first_name,
+            u.middle_name,
+            u.postal_code,
+            u.country,
+            u.city,
+            u.street,
+            u.house,
+            u.building,
+            u.apartment,
+            u.email,
+            u.phone,
+            u.telegram,
+            u.whatsapp,
+            u.viber,
+            epa.approved,
+            epa.approved_at,
+            epa.notes,
+            epa.approved_by,
+            er.registered_at
+        FROM event_registrations er
+        JOIN users u ON er.user_id = u.user_id
+        LEFT JOIN event_participant_approvals epa ON er.event_id = epa.event_id AND er.user_id = epa.user_id
+        WHERE er.event_id = ?
+        ORDER BY er.registered_at ASC
+    ''', (event_id,)).fetchall()
+    conn.close()
+    return participants
+
+def approve_participant(event_id, user_id, approved_by, approved=True, notes=None):
+    """Утверждает или отклоняет участника"""
+    conn = get_db_connection()
+    try:
+        if approved:
+            conn.execute('''
+                UPDATE event_participant_approvals 
+                SET approved = 1, approved_at = CURRENT_TIMESTAMP, approved_by = ?, notes = ?
+                WHERE event_id = ? AND user_id = ?
+            ''', (approved_by, notes, event_id, user_id))
+        else:
+            conn.execute('''
+                UPDATE event_participant_approvals 
+                SET approved = 0, approved_at = NULL, approved_by = ?, notes = ?
+                WHERE event_id = ? AND user_id = ?
+            ''', (approved_by, notes, event_id, user_id))
+        conn.commit()
+        return True
+    except Exception as e:
+        log_error(f"Error approving participant: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+def get_approved_participants(event_id):
+    """Получает список утвержденных участников"""
+    conn = get_db_connection()
+    participants = conn.execute('''
+        SELECT 
+            u.user_id,
+            u.username,
+            u.level,
+            u.synd,
+            u.last_name,
+            u.first_name,
+            u.middle_name
+        FROM event_participant_approvals epa
+        JOIN users u ON epa.user_id = u.user_id
+        WHERE epa.event_id = ? AND epa.approved = 1
+        ORDER BY epa.approved_at ASC
+    ''', (event_id,)).fetchall()
+    conn.close()
+    return participants
+
+def create_random_assignments(event_id, assigned_by):
+    """Создает случайное распределение Деда Мороза и Внучки"""
+    import random
+    conn = get_db_connection()
+    try:
+        # Получаем утвержденных участников
+        participants = get_approved_participants(event_id)
+        
+        if len(participants) < 2:
+            return False, "Недостаточно утвержденных участников (нужно минимум 2)"
+        
+        # Удаляем существующие задания
+        conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
+        
+        # Создаем список ID участников
+        participant_ids = [p['user_id'] for p in participants]
+        
+        # Перемешиваем список
+        random.shuffle(participant_ids)
+        
+        # Создаем циклическое распределение (каждый дарит следующему)
+        assignments = []
+        for i in range(len(participant_ids)):
+            santa_id = participant_ids[i]
+            recipient_id = participant_ids[(i + 1) % len(participant_ids)]  # Циклическое распределение
+            assignments.append((event_id, santa_id, recipient_id, assigned_by))
+        
+        # Вставляем все задания
+        conn.executemany('''
+            INSERT INTO event_assignments (event_id, santa_user_id, recipient_user_id, assigned_by)
+            VALUES (?, ?, ?, ?)
+        ''', assignments)
+        
+        conn.commit()
+        return True, f"Создано {len(assignments)} заданий"
+    except Exception as e:
+        log_error(f"Error creating random assignments: {e}")
+        conn.rollback()
+        return False, str(e)
+    finally:
+        conn.close()
+
+def get_user_assignments(user_id):
+    """Получает задания пользователя (где он Дед Мороз и где Внучка)"""
+    conn = get_db_connection()
+    # Получаем задания, где пользователь Дед Мороз
+    as_santa = conn.execute('''
+        SELECT 
+            ea.*,
+            e.name as event_name,
+            e.id as event_id,
+            recipient.username as recipient_username,
+            recipient.level as recipient_level,
+            recipient.synd as recipient_synd,
+            recipient.last_name as recipient_last_name,
+            recipient.first_name as recipient_first_name,
+            recipient.middle_name as recipient_middle_name,
+            recipient.postal_code as recipient_postal_code,
+            recipient.country as recipient_country,
+            recipient.city as recipient_city,
+            recipient.street as recipient_street,
+            recipient.house as recipient_house,
+            recipient.building as recipient_building,
+            recipient.apartment as recipient_apartment
+        FROM event_assignments ea
+        JOIN events e ON ea.event_id = e.id
+        JOIN users recipient ON ea.recipient_user_id = recipient.user_id
+        WHERE ea.santa_user_id = ?
+        ORDER BY ea.assigned_at DESC
+    ''', (user_id,)).fetchall()
+    
+    # Получаем задания, где пользователь Внучка
+    as_recipient = conn.execute('''
+        SELECT 
+            ea.*,
+            e.name as event_name,
+            e.id as event_id,
+            santa.username as santa_username,
+            santa.level as santa_level,
+            santa.synd as santa_synd
+        FROM event_assignments ea
+        JOIN events e ON ea.event_id = e.id
+        JOIN users santa ON ea.santa_user_id = santa.user_id
+        WHERE ea.recipient_user_id = ?
+        ORDER BY ea.assigned_at DESC
+    ''', (user_id,)).fetchall()
+    
+    conn.close()
+    
+    # Объединяем оба списка
+    assignments = []
+    for assignment in as_santa:
+        assignments.append(dict(assignment))
+    for assignment in as_recipient:
+        assignments.append(dict(assignment))
+    
+    return assignments
+
+def mark_assignment_sent(assignment_id, user_id, send_info):
+    """Отмечает, что подарок отправлен"""
+    if not send_info or not send_info.strip():
+        return False, 'Введите данные об отправке'
+    
+    send_info = send_info.strip()
+    if len(send_info) > 500:
+        send_info = send_info[:500]
+    
+    conn = get_db_connection()
+    assignment = conn.execute('SELECT * FROM event_assignments WHERE id = ?', (assignment_id,)).fetchone()
+    
+    if not assignment:
+        conn.close()
+        return False, 'Задание не найдено'
+    
+    if assignment['santa_user_id'] != user_id:
+        conn.close()
+        return False, 'Вы не можете обновить это задание'
+    
+    try:
+        conn.execute('''
+            UPDATE event_assignments
+            SET santa_sent_at = CURRENT_TIMESTAMP,
+                santa_send_info = ?
+            WHERE id = ?
+        ''', (send_info, assignment_id))
+        conn.commit()
+        return True, 'Информация об отправке сохранена'
+    except Exception as e:
+        log_error(f"Error marking assignment sent (id={assignment_id}): {e}")
+        conn.rollback()
+        return False, 'Не удалось сохранить информацию об отправке'
+    finally:
+        conn.close()
+
+def mark_assignment_received(assignment_id, user_id):
+    """Отмечает, что подарок получен"""
+    conn = get_db_connection()
+    assignment = conn.execute('SELECT * FROM event_assignments WHERE id = ?', (assignment_id,)).fetchone()
+    
+    if not assignment:
+        conn.close()
+        return False, 'Задание не найдено'
+    
+    if assignment['recipient_user_id'] != user_id:
+        conn.close()
+        return False, 'Вы не можете обновить это задание'
+    
+    if not assignment['santa_sent_at']:
+        conn.close()
+        return False, 'Даритель еще не отметил отправку подарка'
+    
+    try:
+        conn.execute('''
+            UPDATE event_assignments
+            SET recipient_received_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (assignment_id,))
+        conn.commit()
+        return True, 'Получение подарка подтверждено'
+    except Exception as e:
+        log_error(f"Error marking assignment received (id={assignment_id}): {e}")
+        conn.rollback()
+        return False, 'Не удалось подтвердить получение подарка'
+    finally:
+        conn.close()
+
 @app.route('/events')
 def events():
     """Публичная страница со списком всех мероприятий"""
@@ -4223,7 +4737,15 @@ def events():
         item['registrations_count'] = get_event_registrations_count(event['id'])
         item['registration_open'] = is_registration_open(event['id'])
     
-    return render_template('events.html', events_with_stages=events_with_stages)
+    # Получаем тексты модальных окон
+    modal_texts = {}
+    conn = get_db_connection()
+    modal_settings = conn.execute('SELECT key, value FROM settings WHERE category = ?', ('modals',)).fetchall()
+    conn.close()
+    for setting in modal_settings:
+        modal_texts[setting['key']] = setting['value']
+    
+    return render_template('events.html', events_with_stages=events_with_stages, modal_texts=modal_texts)
 
 @app.route('/events/<int:event_id>')
 def event_view(event_id):
@@ -4323,9 +4845,18 @@ def event_view(event_id):
             'status': stage_status
         })
     
+    # Получаем тексты модальных окон
+    modal_texts = {}
+    conn = get_db_connection()
+    modal_settings = conn.execute('SELECT key, value FROM settings WHERE category = ?', ('modals',)).fetchall()
+    conn.close()
+    for setting in modal_settings:
+        modal_texts[setting['key']] = setting['value']
+    
     return render_template('event_view.html', 
                          event=event,
                          current_stage=current_stage,
+                         modal_texts=modal_texts,
                          registration_open=registration_open,
                          is_registered=is_registered,
                          registrations_count=registrations_count,
@@ -5083,6 +5614,29 @@ def admin_award_delete(award_id):
     conn.close()
     return redirect(url_for('admin_awards'))
 
+def get_events_requiring_review():
+    """Получает список мероприятий, требующих модерации участников"""
+    conn = get_db_connection()
+    now = datetime.now()
+    
+    # Получаем мероприятия, где регистрация закрыта, но есть неутвержденные участники
+    events = conn.execute('''
+        SELECT DISTINCT e.*, u.username as creator_name
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
+        INNER JOIN event_stages es ON e.id = es.event_id
+        INNER JOIN event_registrations er ON e.id = er.event_id
+        LEFT JOIN event_participant_approvals epa ON e.id = epa.event_id AND er.user_id = epa.user_id
+        WHERE es.stage_type = 'registration_closed'
+        AND es.start_datetime IS NOT NULL
+        AND datetime(es.start_datetime) <= datetime(?)
+        AND (epa.approved IS NULL OR epa.approved = 0)
+        ORDER BY es.start_datetime DESC
+    ''', (now,)).fetchall()
+    
+    conn.close()
+    return events
+
 @app.route('/admin/events')
 @require_role('admin')
 def admin_events():
@@ -5098,7 +5652,39 @@ def admin_events():
         ORDER BY e.created_at DESC
     ''').fetchall()
     conn.close()
-    return render_template('admin/events.html', events=events)
+    
+    events_with_info = []
+    for event in events:
+        event_dict = dict(event)
+        current_stage = get_current_event_stage(event_dict['id'])
+        event_dict['current_stage'] = current_stage
+        event_dict['needs_review'] = False
+        event_dict['review_pending_count'] = 0
+        event_dict['review_approved_count'] = 0
+        
+        if current_stage and current_stage.get('info', {}).get('type') == 'registration_closed':
+            event_id = event_dict['id']
+            create_participant_approvals_for_event(event_id)
+            conn_counts = get_db_connection()
+            counts = conn_counts.execute('''
+                SELECT 
+                    SUM(CASE WHEN approved = 1 THEN 1 ELSE 0 END) as approved_count,
+                    SUM(CASE WHEN approved IS NULL OR approved = 0 THEN 1 ELSE 0 END) as pending_count
+                FROM event_participant_approvals
+                WHERE event_id = ?
+            ''', (event_id,)).fetchone()
+            conn_counts.close()
+            
+            approved_count = counts['approved_count'] if counts and counts['approved_count'] else 0
+            pending_count = counts['pending_count'] if counts and counts['pending_count'] else 0
+            
+            event_dict['needs_review'] = True
+            event_dict['review_pending_count'] = pending_count
+            event_dict['review_approved_count'] = approved_count
+        
+        events_with_info.append(event_dict)
+    
+    return render_template('admin/events.html', events=events_with_info)
 
 @app.route('/admin/events/create', methods=['GET', 'POST'])
 @require_role('admin')
@@ -5237,7 +5823,10 @@ def admin_event_view(event_id):
             'data': stage_data
         })
     
-    return render_template('admin/event_view.html', event=event, stages_with_info=stages_with_info)
+    # Определяем текущий этап для отображения кнопки ревью
+    current_stage = get_current_event_stage(event_id)
+    
+    return render_template('admin/event_view.html', event=event, stages_with_info=stages_with_info, current_stage=current_stage)
 
 @app.route('/admin/events/<int:event_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
@@ -5391,6 +5980,152 @@ def admin_event_delete(event_id):
     
     conn.close()
     return redirect(url_for('admin_events'))
+
+@app.route('/assignments')
+@require_login
+def assignments():
+    """Страница заданий для пользователя"""
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Необходимо авторизоваться', 'error')
+        return redirect(url_for('login'))
+    
+    user_assignments = get_user_assignments(user_id)
+    
+    # Группируем задания по мероприятиям
+    assignments_by_event = {}
+    for assignment in user_assignments:
+        event_id = assignment.get('event_id')
+        if not event_id:
+            continue
+            
+        if event_id not in assignments_by_event:
+            assignments_by_event[event_id] = {
+                'event_name': assignment.get('event_name', 'Мероприятие'),
+                'as_santa': None,  # Где пользователь Дед Мороз
+                'as_recipient': None  # Где пользователь Внучка
+            }
+        
+        # Проверяем, является ли пользователь Дедом Морозом в этом задании
+        if assignment.get('santa_user_id') == user_id:
+            assignments_by_event[event_id]['as_santa'] = assignment
+        # Проверяем, является ли пользователь Внучкой в этом задании
+        elif assignment.get('recipient_user_id') == user_id:
+            assignments_by_event[event_id]['as_recipient'] = assignment
+    
+    return render_template('assignments.html', assignments_by_event=assignments_by_event)
+
+@app.route('/assignments/<int:assignment_id>/send', methods=['POST'])
+@require_login
+def assignment_mark_sent(assignment_id):
+    """Обработчик отметки отправки подарка"""
+    user_id = session.get('user_id')
+    send_info = request.form.get('send_info', '').strip()
+    
+    success, message = mark_assignment_sent(assignment_id, user_id, send_info)
+    flash(message, 'success' if success else 'error')
+    
+    return redirect(url_for('assignments'))
+
+@app.route('/assignments/<int:assignment_id>/receive', methods=['POST'])
+@require_login
+def assignment_mark_received(assignment_id):
+    """Обработчик подтверждения получения подарка"""
+    user_id = session.get('user_id')
+    
+    success, message = mark_assignment_received(assignment_id, user_id)
+    flash(message, 'success' if success else 'error')
+    
+    return redirect(url_for('assignments'))
+
+@app.route('/admin/events/<int:event_id>/review')
+@require_role('admin')
+def admin_event_review(event_id):
+    """Страница ревью участников для администратора"""
+    conn = get_db_connection()
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
+    conn.close()
+    
+    if not event:
+        flash('Мероприятие не найдено', 'error')
+        return redirect(url_for('admin_events'))
+    
+    # Создаем записи для ревью, если их еще нет
+    create_participant_approvals_for_event(event_id)
+    
+    participants = get_participants_for_review(event_id)
+    
+    return render_template('admin/event_review.html', event=event, participants=participants)
+
+@app.route('/admin/events/<int:event_id>/approve', methods=['POST'])
+@require_role('admin')
+def admin_event_approve(event_id):
+    """Утверждение/отклонение участника"""
+    user_id = request.form.get('user_id', type=int)
+    approved = request.form.get('approved') == '1'
+    notes = request.form.get('notes', '').strip()
+    
+    if not user_id:
+        flash('Не указан участник', 'error')
+        return redirect(url_for('admin_event_review', event_id=event_id))
+    
+    approved_by = session.get('user_id')
+    success = approve_participant(event_id, user_id, approved_by, approved, notes)
+    
+    if success:
+        flash('Статус участника обновлен', 'success')
+    else:
+        flash('Ошибка при обновлении статуса', 'error')
+    
+    return redirect(url_for('admin_event_review', event_id=event_id))
+
+@app.route('/admin/events/<int:event_id>/distribution')
+@require_role('admin')
+def admin_event_distribution(event_id):
+    """Страница распределения Деда Мороза и Внучки"""
+    conn = get_db_connection()
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
+    conn.close()
+    
+    if not event:
+        flash('Мероприятие не найдено', 'error')
+        return redirect(url_for('admin_events'))
+    
+    approved_participants = get_approved_participants(event_id)
+    
+    # Получаем существующие задания
+    conn = get_db_connection()
+    existing_assignments = conn.execute('''
+        SELECT 
+            ea.*,
+            santa.username as santa_username,
+            recipient.username as recipient_username
+        FROM event_assignments ea
+        JOIN users santa ON ea.santa_user_id = santa.user_id
+        JOIN users recipient ON ea.recipient_user_id = recipient.user_id
+        WHERE ea.event_id = ?
+        ORDER BY ea.assigned_at ASC
+    ''', (event_id,)).fetchall()
+    conn.close()
+    
+    return render_template('admin/event_distribution.html', 
+                       event=event, 
+                       approved_participants=approved_participants,
+                       existing_assignments=existing_assignments)
+
+@app.route('/admin/events/<int:event_id>/distribution/random', methods=['POST'])
+@require_role('admin')
+def admin_event_distribution_random(event_id):
+    """Создание случайного распределения"""
+    assigned_by = session.get('user_id')
+    success, message = create_random_assignments(event_id, assigned_by)
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    
+    return redirect(url_for('admin_event_distribution', event_id=event_id))
 
 # Инициализируем БД при импорте модуля (для WSGI)
 try:

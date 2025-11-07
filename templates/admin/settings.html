@@ -13,7 +13,7 @@
         <!-- Табы -->
         <div class="settings-tabs">
             {% for category, settings in settings_by_category.items() %}
-            {% if category != 'design' %}
+            {% if category != 'design' and category != 'modals' %}
             <a 
                 href="{{ url_for('admin_settings') }}#{{ category }}"
                 class="settings-tab {% if loop.first %}active{% endif %}"
@@ -45,11 +45,18 @@
             >
                 🌐 Локализация
             </a>
+            <a 
+                href="{{ url_for('admin_settings') }}#modals"
+                class="settings-tab"
+                data-tab="modals"
+            >
+                💬 Модальные окна
+            </a>
         </div>
         
         <!-- Содержимое табов -->
         {% for category, settings in settings_by_category.items() %}
-        {% if category != 'design' %}
+        {% if category != 'design' and category != 'modals' %}
         <div class="settings-tab-content {% if loop.first %}active{% endif %}" data-tab="{{ category }}">
             {% if category == 'integrations' %}
             <!-- Специальная обработка для интеграций -->
@@ -833,6 +840,42 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Вкладка Модальные окна -->
+        <div class="settings-tab-content" data-tab="modals">
+            <div class="settings-section">
+                <h2 class="settings-section-title">💬 Тексты модальных окон регистрации</h2>
+                <p class="setting-hint" style="margin-bottom: 2rem;">Настройте тексты, которые отображаются в модальных окнах при регистрации пользователей на мероприятия.</p>
+                
+                {% set modals_settings = settings_by_category.get('modals', []) %}
+                {% if modals_settings %}
+                <div class="settings-grid">
+                    {% for setting in modals_settings %}
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <label for="setting_{{ setting.key }}" class="setting-label">
+                                {{ setting.description or setting.key }}
+                            </label>
+                        </div>
+                        <div class="setting-card-body">
+                            <textarea 
+                                id="setting_{{ setting.key }}"
+                                name="setting_{{ setting.key }}"
+                                class="setting-input"
+                                rows="3"
+                                placeholder="Введите текст..."
+                            >{{ setting.value or '' }}</textarea>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <p>Настройки модальных окон будут автоматически созданы при первом сохранении.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
         

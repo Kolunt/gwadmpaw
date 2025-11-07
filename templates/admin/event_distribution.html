@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Распределение: {{ event.name }} - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Распределение Деда Мороза и Внучки: {{ event.name }}</h1>
+        <div class="action-buttons">
+            <a href="{{ url_for('admin_event_review', event_id=event.id) }}" class="btn btn-secondary">← Назад к ревью</a>
+        </div>
+    </div>
+    
+    <div class="event-view-card">
+        <div class="settings-section">
+            <h2 class="settings-section-title">Утвержденные участники</h2>
+            <p class="setting-hint" style="margin-bottom: 1.5rem;">
+                Каждый участник выступает в роли "Деда Мороза" (даритель) и "Внучки" (получатель).
+                Используйте кнопку ниже для случайного распределения.
+            </p>
+            
+            {% if approved_participants %}
+            <div style="margin-bottom: 2rem;">
+                <form method="POST" action="{{ url_for('admin_event_distribution_random', event_id=event.id) }}" 
+                      onsubmit="return confirm('Создать случайное распределение? Существующие задания будут удалены.');">
+                    <button type="submit" class="btn btn-primary btn-large">
+                        🎲 Создать случайное распределение
+                    </button>
+                </form>
+            </div>
+            
+            {% if existing_assignments %}
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>🎅 Дед Мороз</th>
+                            <th>→</th>
+                            <th>🎁 Внучка</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in existing_assignments %}
+                        <tr>
+                            <td data-label="Дед Мороз">
+                                <strong>{{ assignment.santa_username }}</strong>
+                            </td>
+                            <td data-label="→" style="text-align: center; font-size: 1.5rem;">→</td>
+                            <td data-label="Внучка">
+                                <strong>{{ assignment.recipient_username }}</strong>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
+                <p style="margin: 0;">
+                    <strong>Распределено:</strong> {{ existing_assignments|length }} пар
+                </p>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <p>Распределение еще не создано. Нажмите кнопку "Создать случайное распределение" выше.</p>
+            </div>
+            {% endif %}
+            
+            <div style="margin-top: 2rem;">
+                <h3>Список утвержденных участников ({{ approved_participants|length }})</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    {% for participant in approved_participants %}
+                    <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <strong>{{ participant.username }}</strong><br>
+                        <small style="color: var(--text-secondary);">
+                            {% if participant.last_name or participant.first_name %}
+                                {{ participant.last_name or '' }} {{ participant.first_name or '' }}
+                            {% else %}
+                                ID: {{ participant.user_id }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <p>Нет утвержденных участников. Сначала утвердите участников на странице ревью.</p>
+                <a href="{{ url_for('admin_event_review', event_id=event.id) }}" class="btn btn-primary" style="margin-top: 1rem;">
+                    Перейти к ревью участников
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

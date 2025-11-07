@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Ревью участников: {{ event.name }} - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Ревью участников: {{ event.name }}</h1>
+        <div class="action-buttons">
+            <a href="{{ url_for('admin_event_view', event_id=event.id) }}" class="btn btn-secondary">← Назад к мероприятию</a>
+            {% set approved_count = 0 %}
+            {% for p in participants %}
+                {% if p.approved == 1 %}
+                    {% set approved_count = approved_count + 1 %}
+                {% endif %}
+            {% endfor %}
+            {% if approved_count >= 2 %}
+            <a href="{{ url_for('admin_event_distribution', event_id=event.id) }}" class="btn btn-primary">Перейти к распределению</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="event-view-card">
+        <div class="settings-section">
+            <h2 class="settings-section-title">Участники на утверждение</h2>
+            <p class="setting-hint" style="margin-bottom: 1.5rem;">
+                Проверьте данные участников и утвердите их для участия в мероприятии. 
+                После утверждения минимум 2 участников вы сможете перейти к распределению.
+            </p>
+            
+            {% if participants %}
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>ФИО</th>
+                            <th>Адрес</th>
+                            <th>Контакты</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for participant in participants %}
+                        <tr>
+                            <td data-label="ID">{{ participant.user_id }}</td>
+                            <td data-label="Имя">
+                                <strong>{{ participant.username }}</strong><br>
+                                <small style="color: var(--text-secondary);">Уровень: {{ participant.level or '—' }}</small>
+                            </td>
+                            <td data-label="ФИО">
+                                {% if participant.last_name or participant.first_name or participant.middle_name %}
+                                    {{ participant.last_name or '' }} {{ participant.first_name or '' }} {{ participant.middle_name or '' }}
+                                {% else %}
+                                    <span style="color: var(--text-secondary);">Не указано</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Адрес">
+                                {% if participant.postal_code %}
+                                    {{ participant.postal_code }}, 
+                                    {{ participant.country or '' }}, 
+                                    {{ participant.city or '' }}, 
+                                    {{ participant.street or '' }}, 
+                                    д. {{ participant.house or '' }}
+                                    {% if participant.building %}, корп. {{ participant.building }}{% endif %}
+                                    {% if participant.apartment %}, кв. {{ participant.apartment }}{% endif %}
+                                {% else %}
+                                    <span style="color: var(--text-secondary);">Не указано</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Контакты">
+                                {% if participant.email %}<div>📧 {{ participant.email }}</div>{% endif %}
+                                {% if participant.phone %}<div>📱 {{ participant.phone }}</div>{% endif %}
+                                {% if participant.telegram %}<div>💬 Telegram: {{ participant.telegram }}</div>{% endif %}
+                                {% if participant.whatsapp %}<div>📲 WhatsApp: {{ participant.whatsapp }}</div>{% endif %}
+                                {% if participant.viber %}<div>📱 Viber: {{ participant.viber }}</div>{% endif %}
+                                {% if not participant.email and not participant.phone and not participant.telegram and not participant.whatsapp and not participant.viber %}
+                                    <span style="color: var(--text-secondary);">Нет контактов</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Статус">
+                                {% if participant.approved %}
+                                    <span class="badge badge-success">✓ Утвержден</span>
+                                    {% if participant.approved_at %}
+                                    <br><small style="color: var(--text-secondary);">{{ participant.approved_at[:16] }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-warning">⏳ На проверке</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Действия">
+                                <form method="POST" action="{{ url_for('admin_event_approve', event_id=event.id) }}" style="display: inline;">
+                                    <input type="hidden" name="user_id" value="{{ participant.user_id }}">
+                                    {% if participant.approved %}
+                                    <button type="submit" name="approved" value="0" class="btn btn-sm btn-warning" 
+                                            onclick="return confirm('Отменить утверждение участника?');">
+                                        Отменить
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" name="approved" value="1" class="btn btn-sm btn-success">
+                                        Утвердить
+                                    </button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
+                <p style="margin: 0;">
+                    <strong>Утверждено:</strong> {{ approved_count }} из {{ participants|length }} участников
+                    {% if approved_count < 2 %}
+                    <br><small style="color: var(--text-secondary);">Для распределения необходимо утвердить минимум 2 участника</small>
+                    {% endif %}
+                </p>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>Нет зарегистрированных участников</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

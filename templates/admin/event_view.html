@@ -8,6 +8,9 @@
         <h1>{{ event.name }}</h1>
         <div class="action-buttons">
             <a href="{{ url_for('admin_event_edit', event_id=event.id) }}" class="btn btn-primary">Редактировать</a>
+            {% if current_stage and current_stage.info.type == 'registration_closed' %}
+            <a href="{{ url_for('admin_event_review', event_id=event.id) }}" class="btn btn-success">Ревью участников</a>
+            {% endif %}
             <a href="{{ url_for('admin_events') }}" class="btn btn-secondary">← Назад</a>
         </div>
     </div>

@@ -126,22 +126,22 @@
 <div id="registration-modal" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 600px;">
         <div class="modal-header">
-            <h2 id="modal-title">Заполнение обязательных данных</h2>
+            <h2 id="modal-title">{{ modal_texts.get('modal_title', 'Заполнение обязательных данных') }}</h2>
             <button type="button" class="modal-close" id="close-registration-modal">&times;</button>
         </div>
         <div class="modal-body">
             <div id="modal-error" class="alert alert-danger" style="display: none; margin-bottom: 1rem;"></div>
             <div id="step-intro" class="registration-step">
                 <div id="step-intro-content" class="alert alert-info">
-                    <p><strong>Для регистрации на мероприятие необходимо заполнить обязательную информацию.</strong></p>
-                    <p>Это необходимо для организации мероприятия и связи с участниками.</p>
+                    <p><strong id="step-intro-title-text">{{ modal_texts.get('modal_intro_title_new', 'Для регистрации на мероприятие необходимо заполнить обязательную информацию.') }}</strong></p>
+                    <p id="step-intro-text-text">{{ modal_texts.get('modal_intro_text_new', 'Это необходимо для организации мероприятия и связи с участниками.') }}</p>
                 </div>
-                <p id="step-intro-description">Мы поможем вам заполнить все необходимые данные пошагово.</p>
+                <p id="step-intro-description">{{ modal_texts.get('modal_intro_description_new', 'Мы поможем вам заполнить все необходимые данные пошагово.') }}</p>
             </div>
             
             <!-- Шаг 1: Личные данные -->
             <div id="step-personal" class="registration-step" style="display: none;">
-                <h3>Шаг 1: Личные данные</h3>
+                <h3>{{ modal_texts.get('modal_step_personal_title', 'Шаг 1: Личные данные') }}</h3>
                 <div class="form-group">
                     <label for="modal-last-name" class="form-label">Фамилия *</label>
                     <input type="text" id="modal-last-name" class="form-input" placeholder="Иванов" required>
@@ -158,7 +158,7 @@
             
             <!-- Шаг 2: Адрес -->
             <div id="step-address" class="registration-step" style="display: none;">
-                <h3>Шаг 2: Адрес</h3>
+                <h3>{{ modal_texts.get('modal_step_address_title', 'Шаг 2: Адрес') }}</h3>
                 <div class="form-group">
                     <label for="modal-postal-code" class="form-label">Индекс *</label>
                     <input type="text" id="modal-postal-code" class="form-input" placeholder="123456" required>
@@ -199,23 +199,51 @@
             <!-- Финальный шаг: Подтверждение участия -->
             <div id="step-final" class="registration-step" style="display: none;">
                 <div class="alert alert-success" style="text-align: center; padding: 2rem;">
-                    <h3 style="margin-bottom: 1rem;">🎉 Все данные собраны, вы готовы стать Анонимным Дедом Морозом!</h3>
-                    <p style="font-size: 1.1rem; margin-bottom: 0;">Теперь вы можете принять участие в мероприятии и подарить радость другим участникам!</p>
+                    <h3 id="step-final-title" style="margin-bottom: 1rem;">{{ modal_texts.get('modal_final_title', '🎉 Все данные собраны, вы готовы стать Анонимным Дедом Морозом!') }}</h3>
+                    <p id="step-final-text" style="font-size: 1.1rem; margin-bottom: 0;">{{ modal_texts.get('modal_final_text', 'Теперь вы можете принять участие в мероприятии и подарить радость другим участникам!') }}</p>
                 </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button type="button" id="modal-prev-btn" class="btn btn-secondary" style="display: none;">Назад</button>
-            <button type="button" id="modal-next-btn" class="btn btn-primary">Далее</button>
-            <button type="button" id="modal-skip-btn" class="btn btn-secondary" style="display: none;">Пропустить</button>
-            <button type="button" id="modal-not-using-btn" class="btn btn-secondary" style="display: none;">Не использую</button>
-            <button type="button" id="modal-confirm-btn" class="btn btn-primary" style="display: none;">Без сомнений, участвую!</button>
-            <button type="button" id="modal-cancel-btn" class="btn btn-secondary" style="display: none;">Я ещё подумаю...</button>
+            <button type="button" id="modal-prev-btn" class="btn btn-secondary" style="display: none;">{{ modal_texts.get('modal_btn_back', 'Назад') }}</button>
+            <button type="button" id="modal-next-btn" class="btn btn-primary">{{ modal_texts.get('modal_btn_next', 'Далее') }}</button>
+            <button type="button" id="modal-skip-btn" class="btn btn-secondary" style="display: none;">{{ modal_texts.get('modal_btn_skip', 'Пропустить') }}</button>
+            <button type="button" id="modal-not-using-btn" class="btn btn-secondary" style="display: none;">{{ modal_texts.get('modal_btn_not_using', 'Не использую') }}</button>
+            <button type="button" id="modal-confirm-btn" class="btn btn-primary" style="display: none;">{{ modal_texts.get('modal_btn_confirm', 'Без сомнений, участвую!') }}</button>
+            <button type="button" id="modal-cancel-btn" class="btn btn-secondary" style="display: none;">{{ modal_texts.get('modal_btn_cancel', 'Я ещё подумаю...') }}</button>
         </div>
     </div>
 </div>
 
 <script>
+// Тексты модальных окон из настроек
+const modalTexts = {
+    title: {{ modal_texts.get('modal_title', 'Заполнение обязательных данных')|tojson }},
+    intro_title_new: {{ modal_texts.get('modal_intro_title_new', 'Для регистрации на мероприятие необходимо заполнить обязательную информацию.')|tojson }},
+    intro_text_new: {{ modal_texts.get('modal_intro_text_new', 'Это необходимо для организации мероприятия и связи с участниками.')|tojson }},
+    intro_description_new: {{ modal_texts.get('modal_intro_description_new', 'Мы поможем вам заполнить все необходимые данные пошагово.')|tojson }},
+    intro_title_existing: {{ modal_texts.get('modal_intro_title_existing', 'Ваши данные уже заполнены в системе.')|tojson }},
+    intro_text_existing: {{ modal_texts.get('modal_intro_text_existing', 'Мы просто хотим убедиться, что все данные актуальны.')|tojson }},
+    intro_description_existing: {{ modal_texts.get('modal_intro_description_existing', 'Пожалуйста, проверьте и подтвердите ваши данные.')|tojson }},
+    step_personal_title: {{ modal_texts.get('modal_step_personal_title', 'Шаг 1: Личные данные')|tojson }},
+    step_address_title: {{ modal_texts.get('modal_step_address_title', 'Шаг 2: Адрес')|tojson }},
+    step_contact_title_prefix: {{ modal_texts.get('modal_step_contact_title_prefix', 'Шаг')|tojson }},
+    step_contact_description_required: {{ modal_texts.get('modal_step_contact_description_required', 'Для связи с вами необходимо указать хотя бы один способ связи.')|tojson }},
+    step_contact_description_optional: {{ modal_texts.get('modal_step_contact_description_optional', 'Вы можете добавить еще один способ связи или пропустить этот шаг.')|tojson }},
+    step_contact_description_review: {{ modal_texts.get('modal_step_contact_description_review', 'Проверьте ваш контакт. Вы можете изменить его или подтвердить.')|tojson }},
+    final_title: {{ modal_texts.get('modal_final_title', '🎉 Все данные собраны, вы готовы стать Анонимным Дедом Морозом!')|tojson }},
+    final_text: {{ modal_texts.get('modal_final_text', 'Теперь вы можете принять участие в мероприятии и подарить радость другим участникам!')|tojson }},
+    btn_back: {{ modal_texts.get('modal_btn_back', 'Назад')|tojson }},
+    btn_next: {{ modal_texts.get('modal_btn_next', 'Далее')|tojson }},
+    btn_skip: {{ modal_texts.get('modal_btn_skip', 'Пропустить')|tojson }},
+    btn_not_using: {{ modal_texts.get('modal_btn_not_using', 'Не использую')|tojson }},
+    btn_confirm: {{ modal_texts.get('modal_btn_confirm', 'Без сомнений, участвую!')|tojson }},
+    btn_cancel: {{ modal_texts.get('modal_btn_cancel', 'Я ещё подумаю...')|tojson }},
+    btn_save_continue: {{ modal_texts.get('modal_btn_save_continue', 'Сохранить и продолжить')|tojson }},
+    btn_finish_register: {{ modal_texts.get('modal_btn_finish_register', 'Завершить и зарегистрироваться')|tojson }},
+    error_email_invalid: {{ modal_texts.get('modal_error_email_invalid', 'Это не email')|tojson }}
+};
+
 // Ждем загрузки DOM
 document.addEventListener('DOMContentLoaded', function() {
     const registerForms = document.querySelectorAll('.register-form');
