@@ -15,20 +15,54 @@
                 <h3>Описание</h3>
                 <p>{{ event.description or 'Описание не указано' }}</p>
             </div>
+
+            {% if next_stage %}
+            <div class="event-info-section countdown-section" data-start="{{ next_stage.start_iso }}">
+                <h3>До следующего этапа: <span class="countdown-stage-name">{{ next_stage.name }}</span></h3>
+                <div class="countdown-timer">
+                    <div class="countdown-item">
+                        <span class="countdown-value" data-unit="days">0</span>
+                        <span class="countdown-label">дней</span>
+                    </div>
+                    <div class="countdown-separator">:</div>
+                    <div class="countdown-item">
+                        <span class="countdown-value" data-unit="hours">00</span>
+                        <span class="countdown-label">часов</span>
+                    </div>
+                    <div class="countdown-separator">:</div>
+                    <div class="countdown-item">
+                        <span class="countdown-value" data-unit="minutes">00</span>
+                        <span class="countdown-label">минут</span>
+                    </div>
+                    <div class="countdown-separator">:</div>
+                    <div class="countdown-item">
+                        <span class="countdown-value" data-unit="seconds">00</span>
+                        <span class="countdown-label">секунд</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             
-            <div class="event-info-section">
-                <h3>Информация</h3>
-                <div class="info-row">
-                    <span class="info-label">Организатор:</span>
-                    <span class="info-value">{{ event.creator_name or 'Не указан' }}</span>
+            <div class="event-info-section collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsibleSection(this)">
+                    <h3>
+                        <span class="section-toggle-icon">▶</span>
+                        Информация
+                    </h3>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Создано:</span>
-                    <span class="info-value">{{ event.created_at }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Зарегистрировано:</span>
-                    <span class="info-value">{{ registrations_count }} участник(ов)</span>
+                <div class="collapsible-content" style="margin-top: 1rem; display: none;">
+                    <div class="info-row">
+                        <span class="info-label">Организатор:</span>
+                        <span class="info-value">{{ event.creator_name or 'Не указан' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Создано:</span>
+                        <span class="info-value">{{ event.created_at }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Зарегистрировано:</span>
+                        <span class="info-value">{{ registrations_count }} участник(ов)</span>
+                    </div>
                 </div>
             </div>
             
@@ -177,6 +211,23 @@
             </div>
             
             <script>
+                function toggleCollapsibleSection(header) {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('.section-toggle-icon');
+
+                    if (!content || !icon) {
+                        return;
+                    }
+
+                    if (content.style.display === 'none') {
+                        content.style.display = 'block';
+                        icon.textContent = '▼';
+                    } else {
+                        content.style.display = 'none';
+                        icon.textContent = '▶';
+                    }
+                }
+
                 function toggleStage(header) {
                     const card = header.closest('.collapsible-stage');
                     const content = card.querySelector('.collapsible-content');
@@ -190,6 +241,58 @@
                         icon.textContent = '▶';
                     }
                 }
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    const countdownSection = document.querySelector('.countdown-section');
+                    if (!countdownSection) {
+                        return;
+                    }
+
+                    const targetIso = countdownSection.getAttribute('data-start');
+                    if (!targetIso) {
+                        return;
+                    }
+
+                    const targetDate = new Date(targetIso.replace(' ', 'T'));
+                    if (isNaN(targetDate.getTime())) {
+                        return;
+                    }
+
+                    const values = {
+                        days: countdownSection.querySelector('[data-unit="days"]'),
+                        hours: countdownSection.querySelector('[data-unit="hours"]'),
+                        minutes: countdownSection.querySelector('[data-unit="minutes"]'),
+                        seconds: countdownSection.querySelector('[data-unit="seconds"]')
+                    };
+
+                    function updateCountdown() {
+                        const now = new Date();
+                        let diff = Math.max(0, targetDate - now);
+
+                        if (diff <= 0) {
+                            countdownSection.classList.add('countdown-complete');
+                            values.days.textContent = '0';
+                            values.hours.textContent = '00';
+                            values.minutes.textContent = '00';
+                            values.seconds.textContent = '00';
+                            clearInterval(intervalId);
+                            return;
+                        }
+
+                        const seconds = Math.floor(diff / 1000) % 60;
+                        const minutes = Math.floor(diff / (1000 * 60)) % 60;
+                        const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
+                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+                        values.days.textContent = String(days);
+                        values.hours.textContent = String(hours).padStart(2, '0');
+                        values.minutes.textContent = String(minutes).padStart(2, '0');
+                        values.seconds.textContent = String(seconds).padStart(2, '0');
+                    }
+
+                    updateCountdown();
+                    const intervalId = setInterval(updateCountdown, 1000);
+                });
             </script>
         </div>
     </div>

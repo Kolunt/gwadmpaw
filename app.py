@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify, send_from_directory, has_request_context
 from urllib.parse import unquote, unquote_to_bytes, quote
 import hashlib
 import sqlite3
@@ -8,6 +8,7 @@ import logging
 from functools import wraps
 from version import __version__
 import secrets
+import json
 try:
     import requests
 except ImportError:
@@ -31,6 +32,52 @@ def log_debug(msg):
     """Логирует отладочную информацию через logger и print"""
     logger.debug(msg)
     print(msg, flush=True)
+
+
+def log_activity(action, details=None, metadata=None, user_id=None, username=None):
+    """Сохраняет информацию о действии пользователя в таблицу activity_logs"""
+    if not action:
+        return
+    
+    conn = None
+    try:
+        meta_dict = {}
+        if metadata:
+            if isinstance(metadata, dict):
+                meta_dict.update(metadata)
+            else:
+                meta_dict['data'] = metadata
+        
+        ip_address = None
+        if has_request_context():
+            if user_id is None:
+                user_id = session.get('user_id')
+            if username is None:
+                username = session.get('username')
+            ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+            if ip_address and ',' in str(ip_address):
+                ip_address = ip_address.split(',')[0].strip()
+            meta_dict.setdefault('endpoint', request.endpoint)
+            meta_dict.setdefault('path', request.path)
+            meta_dict.setdefault('method', request.method)
+            impersonation_original = session.get('impersonation_original')
+            if impersonation_original:
+                meta_dict.setdefault('impersonator_id', impersonation_original.get('user_id'))
+                meta_dict.setdefault('impersonator_username', impersonation_original.get('username'))
+        
+        metadata_json = json.dumps(meta_dict, ensure_ascii=False) if meta_dict else None
+        
+        conn = get_db_connection()
+        conn.execute('''
+            INSERT INTO activity_logs (user_id, username, action, details, metadata, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (user_id, username, action, details, metadata_json, ip_address))
+        conn.commit()
+    except Exception as e:
+        log_error(f"Error logging activity '{action}': {e}")
+    finally:
+        if conn:
+            conn.close()
 
 # Настройка локализации
 app.config['LANGUAGES'] = {
@@ -395,6 +442,21 @@ def init_db():
             )
         ''')
         
+        # Таблица логов действий пользователей
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                username TEXT,
+                action TEXT NOT NULL,
+                details TEXT,
+                metadata TEXT,
+                ip_address TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id)
+            )
+        ''')
+        
         # Таблица мероприятий
         c.execute('''
             CREATE TABLE IF NOT EXISTS events (
@@ -652,7 +714,7 @@ def init_db():
 
 def generate_unique_avatar_seed(user_id):
     """Генерирует уникальный seed для аватара пользователя"""
-    # Используем комбинацию user_id + случайную строку для уникальности
+    # Используем комбинацию user_id + случайная строка для уникальности
     random_part = secrets.token_hex(8)
     seed = f"{user_id}_{random_part}"
     return seed
@@ -767,6 +829,12 @@ def assign_role(user_id, role_name, assigned_by=None):
             VALUES (?, ?, ?)
         ''', (user_id, role['id'], assigned_by))
         conn.commit()
+        log_activity(
+            'role_assign',
+            details=f'Назначена роль {role_name} пользователю {user_id}',
+            metadata={'target_user_id': user_id, 'role': role_name, 'assigned_by': assigned_by},
+            user_id=assigned_by
+        )
         conn.close()
         return True
     except Exception as e:
@@ -788,15 +856,18 @@ def remove_role(user_id, role_name):
             WHERE user_id = ? AND role_id = ?
         ''', (user_id, role['id']))
         conn.commit()
+        log_activity(
+            'role_remove',
+            details=f'Удалена роль {role_name} у пользователя {user_id}',
+            metadata={'target_user_id': user_id, 'role': role_name}
+        )
         conn.close()
         return True
     except Exception as e:
         log_error(f"Error removing role: {e}")
         conn.close()
         return False
-
 # ========== Система прав (permissions) ==========
-
 def get_all_permissions():
     """Получает список всех прав"""
     conn = get_db_connection()
@@ -924,6 +995,12 @@ def assign_title(user_id, title_id, assigned_by=None):
             VALUES (?, ?, ?)
         ''', (user_id, title_id, assigned_by))
         conn.commit()
+        log_activity(
+            'title_assign',
+            details=f'Назначено звание {title_id} пользователю {user_id}',
+            metadata={'target_user_id': user_id, 'title_id': title_id, 'assigned_by': assigned_by},
+            user_id=assigned_by
+        )
         conn.close()
         return True
     except Exception as e:
@@ -942,6 +1019,11 @@ def remove_title(user_id, title_id):
             WHERE user_id = ? AND title_id = ?
         ''', (user_id, title_id))
         conn.commit()
+        log_activity(
+            'title_remove',
+            details=f'Удалено звание {title_id} у пользователя {user_id}',
+            metadata={'target_user_id': user_id, 'title_id': title_id}
+        )
         conn.close()
         return True
     except Exception as e:
@@ -974,6 +1056,12 @@ def assign_award(user_id, award_id, assigned_by=None):
             VALUES (?, ?, ?)
         ''', (user_id, award_id, assigned_by))
         conn.commit()
+        log_activity(
+            'award_assign',
+            details=f'Назначена награда {award_id} пользователю {user_id}',
+            metadata={'target_user_id': user_id, 'award_id': award_id, 'assigned_by': assigned_by},
+            user_id=assigned_by
+        )
         conn.close()
         return True
     except Exception as e:
@@ -992,6 +1080,11 @@ def remove_award(user_id, award_id):
             WHERE user_id = ? AND award_id = ?
         ''', (user_id, award_id))
         conn.commit()
+        log_activity(
+            'award_remove',
+            details=f'Удалена награда {award_id} у пользователя {user_id}',
+            metadata={'target_user_id': user_id, 'award_id': award_id}
+        )
         conn.close()
         return True
     except Exception as e:
@@ -1280,15 +1373,57 @@ def index():
         LIMIT 6
     ''').fetchall()
     
-    # Определяем текущий этап для каждого мероприятия
+    # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
     events_with_stages = []
+    now = datetime.now()
+    stage_info_map = {stage['type']: stage for stage in EVENT_STAGES}
+
+    def parse_dt(value):
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(str(value))
+        except ValueError:
+            return None
+
     for event in events_list:
         current_stage = get_current_event_stage(event['id'])
+        display_stage_name = None
+        next_stage = None
+        if current_stage:
+            display_stage_name = current_stage['info']['name']
+            if current_stage['info']['type'] == 'registration_closed':
+                lottery_stage = next((stage for stage in EVENT_STAGES if stage['type'] == 'lottery'), None)
+                display_stage_name = lottery_stage['name'] if lottery_stage else 'Жеребьёвка'
+        
+        # Определяем следующий этап для таймера
+        stages = get_event_stages(event['id'])
+        for stage in stages:
+            start_dt = parse_dt(stage['start_datetime'])
+            if not start_dt or start_dt <= now:
+                continue
+
+            stage_info = stage_info_map.get(stage['stage_type'])
+            stage_name = stage_info['name'] if stage_info else stage['stage_type']
+
+            if (not next_stage) or start_dt < next_stage['start_dt']:
+                next_stage = {
+                    'name': stage_name,
+                    'start_dt': start_dt,
+                    'start_iso': start_dt.isoformat()
+                }
+
         events_with_stages.append({
             'event': event,
-            'current_stage': current_stage
+            'current_stage': current_stage,
+            'display_stage_name': display_stage_name,
+            'next_stage': next_stage
         })
-    
+
+    for item in events_with_stages:
+        event = item['event']
+        item['registrations_count'] = get_event_registrations_count(event['id'])
+
     # Название проекта
     project_name = get_setting('project_name', 'Анонимные Деды Морозы')
     
@@ -1480,9 +1615,14 @@ def login_dev():
     # Очищаем флаг попытки авторизации через GWars (если был установлен)
     session.pop('gwars_auth_attempt', None)
     
+    log_activity(
+        'login',
+        details='Тестовый вход через login_dev',
+        metadata={'source': 'dev', 'user_id': user_id, 'username': name}
+    )
+    
     flash('Тестовая авторизация выполнена успешно!', 'success')
     return redirect(url_for('dashboard'))
-
 @app.route('/login')
 def login():
     try:
@@ -1973,6 +2113,12 @@ def login():
         # Очищаем флаг попытки авторизации через GWars (если был установлен)
         session.pop('gwars_auth_attempt', None)
         
+        log_activity(
+            'login',
+            details='Вход через GWars',
+            metadata={'source': 'gwars', 'user_id': user_id, 'username': name}
+        )
+        
         return redirect(url_for('dashboard'))
     except Exception as e:
         log_error(f"Error in login route: {e}")
@@ -2236,7 +2382,6 @@ def view_profile(user_id):
         can_impersonate=can_impersonate,
         impersonation_active=impersonation_active
     )
-
 @app.route('/participants')
 def participants():
     """Страница со списком участников"""
@@ -2321,6 +2466,12 @@ def participants():
 
 @app.route('/logout')
 def logout():
+    if session.get('user_id'):
+        log_activity(
+            'logout',
+            details='Пользователь вышел из системы',
+            metadata={'username': session.get('username')}
+        )
     session.clear()
     flash('Вы успешно вышли из системы', 'success')
     return redirect(url_for('index'))
@@ -2514,6 +2665,15 @@ def admin_user_impersonate(user_id):
     else:
         session['impersonation_return_url'] = url_for('admin_users')
     
+    log_activity(
+        'impersonation_start',
+        details=f"Начат режим управления пользователем {user['username']} ({user['user_id']})",
+        metadata={
+            'target_user_id': user['user_id'],
+            'target_username': user['username']
+        }
+    )
+    
     # Обновляем сессию под выбранного пользователя
     session['user_id'] = user['user_id']
     session['username'] = user['username']
@@ -2535,6 +2695,7 @@ def admin_user_impersonate(user_id):
 def stop_impersonation():
     """Завершает режим управления пользователем"""
     original_info = session.get('impersonation_original')
+    target_info = session.get('impersonation_target') or {}
     if not original_info:
         flash('Режим управления не активен.', 'error')
         return redirect(url_for('dashboard'))
@@ -2546,11 +2707,32 @@ def stop_impersonation():
     session['level'] = original_info.get('level')
     session['synd'] = original_info.get('synd')
     
+    impersonation_started = session.get('impersonation_started_at')
+    return_url = session.get('impersonation_return_url')
+    
+    duration_seconds = None
+    if impersonation_started:
+        try:
+            start_dt = datetime.fromisoformat(impersonation_started)
+            duration_seconds = max(0, int((datetime.now() - start_dt).total_seconds()))
+        except (ValueError, TypeError):
+            duration_seconds = None
+    
+    log_activity(
+        'impersonation_stop',
+        details=f"Завершен режим управления пользователем {target_info.get('username', '') or target_info.get('user_id', 'неизвестно')}",
+        metadata={
+            'target_user_id': target_info.get('user_id'),
+            'target_username': target_info.get('username'),
+            'duration_seconds': duration_seconds
+        }
+    )
+    
     # Очищаем данные импровизированной сессии
     session.pop('impersonation_original', None)
     session.pop('impersonation_target', None)
-    impersonation_started = session.pop('impersonation_started_at', None)
-    return_url = session.pop('impersonation_return_url', None)
+    session.pop('impersonation_started_at', None)
+    session.pop('impersonation_return_url', None)
     
     flash('Вы вернулись к своей учетной записи.', 'success')
     
@@ -2635,13 +2817,18 @@ def admin_user_create():
                  bio, contact_info, email, phone, telegram, whatsapp, viber,
                  last_name, first_name, middle_name,
                  postal_code, country, city, street, house, building, apartment)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (user_id_int, username, level_int, synd_int, has_passport_int, has_mobile_int, old_passport_int,
                   usersex, avatar_seed, avatar_style, language,
                   bio, contact_info, email, phone, telegram, whatsapp, viber,
                   last_name, first_name, middle_name,
                   postal_code, country, city, street, house, building, apartment))
             conn.commit()
+            log_activity(
+                'admin_user_create',
+                details=f'Создан пользователь {username} (ID {user_id_int})',
+                metadata={'target_user_id': user_id_int, 'username': username}
+            )
             flash('Пользователь успешно создан', 'success')
             conn.close()
             return redirect(url_for('admin_users'))
@@ -2806,6 +2993,11 @@ def admin_user_edit(user_id):
                   avatar_seed, avatar_style, language,
                   user_id))
             conn.commit()
+            log_activity(
+                'admin_user_update',
+                details=f'Обновлены данные пользователя {user_id}',
+                metadata={'target_user_id': user_id, 'username': username}
+            )
             if not role_action and not title_action:
                 flash('Пользователь успешно обновлен', 'success')
             conn.close()
@@ -3016,7 +3208,6 @@ def admin_role_edit(role_id):
     role_permissions_list = [p['id'] for p in role_perms]
     conn.close()
     return render_template('admin/role_form.html', role=role, permissions=permissions, role_permissions=role_permissions_list)
-
 @app.route('/admin/roles/<int:role_id>/delete', methods=['POST'])
 @require_role('admin')
 def admin_role_delete(role_id):
@@ -3812,7 +4003,6 @@ def admin_faq_category_create():
             conn.close()
     
     return render_template('admin/faq_category_form.html')
-
 @app.route('/admin/faq/categories/<int:category_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_faq_category_edit(category_id):
@@ -4491,6 +4681,20 @@ def get_event_registrations(event_id):
     conn.close()
     return registrations
 
+def get_event_stages(event_id):
+    """Возвращает список этапов мероприятия в порядке их следования"""
+    conn = get_db_connection()
+    try:
+        stages = conn.execute('''
+            SELECT stage_type, stage_order, start_datetime, end_datetime
+            FROM event_stages
+            WHERE event_id = ?
+            ORDER BY stage_order
+        ''', (event_id,)).fetchall()
+    finally:
+        conn.close()
+    return stages
+
 def create_participant_approvals_for_event(event_id):
     """Создает записи для ревью участников при закрытии регистрации"""
     conn = get_db_connection()
@@ -4598,7 +4802,6 @@ def get_approved_participants(event_id):
     ''', (event_id,)).fetchall()
     conn.close()
     return [dict(row) for row in participants]
-
 def create_random_assignments(event_id, assigned_by):
     """Создает случайное распределение Деда Мороза и Внучки"""
     import random
@@ -4645,6 +4848,16 @@ def save_event_assignments(event_id, assignments, assigned_by, connection=None):
             VALUES (?, ?, ?, ?)
         ''', data)
         conn.commit()
+        log_activity(
+            'assignments_saved',
+            details=f'Сохранено распределение для мероприятия #{event_id}',
+            metadata={
+                'event_id': event_id,
+                'pairs_count': len(assignments),
+                'assigned_by': assigned_by,
+            },
+            user_id=assigned_by
+        )
         return True, len(assignments)
     except Exception as e:
         log_error(f"Error saving assignments for event {event_id}: {e}")
@@ -4738,6 +4951,11 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
             WHERE id = ?
         ''', (send_info, assignment_id))
         conn.commit()
+        log_activity(
+            'assignment_sent',
+            details=f'Подарок отправлен по назначению #{assignment_id}',
+            metadata={'assignment_id': assignment_id, 'event_id': assignment['event_id']}
+        )
         return True, 'Информация об отправке сохранена'
     except Exception as e:
         log_error(f"Error marking assignment sent (id={assignment_id}): {e}")
@@ -4770,6 +4988,11 @@ def mark_assignment_received(assignment_id, user_id):
             WHERE id = ?
         ''', (assignment_id,))
         conn.commit()
+        log_activity(
+            'assignment_received',
+            details=f'Получение подарка подтверждено по заданию #{assignment_id}',
+            metadata={'assignment_id': assignment_id, 'event_id': assignment['event_id']}
+        )
         return True, 'Получение подарка подтверждено'
     except Exception as e:
         log_error(f"Error marking assignment received (id={assignment_id}): {e}")
@@ -4790,29 +5013,59 @@ def events():
     ''').fetchall()
     conn.close()
     
-    # Определяем текущий этап для каждого мероприятия
+    # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
     events_with_stages = []
+    now = datetime.now()
+    stage_info_map = {stage['type']: stage for stage in EVENT_STAGES}
+
+    def parse_dt(value):
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(str(value))
+        except ValueError:
+            return None
+
     for event in events_list:
         current_stage = get_current_event_stage(event['id'])
         display_stage_name = None
+        next_stage = None
         if current_stage:
             display_stage_name = current_stage['info']['name']
             if current_stage['info']['type'] == 'registration_closed':
                 lottery_stage = next((stage for stage in EVENT_STAGES if stage['type'] == 'lottery'), None)
                 display_stage_name = lottery_stage['name'] if lottery_stage else 'Жеребьёвка'
+        
+        # Определяем следующий этап для таймера
+        stages = get_event_stages(event['id'])
+        for stage in stages:
+            start_dt = parse_dt(stage['start_datetime'])
+            if not start_dt or start_dt <= now:
+                continue
+
+            stage_info = stage_info_map.get(stage['stage_type'])
+            stage_name = stage_info['name'] if stage_info else stage['stage_type']
+
+            if (not next_stage) or start_dt < next_stage['start_dt']:
+                next_stage = {
+                    'name': stage_name,
+                    'start_dt': start_dt,
+                    'start_iso': start_dt.isoformat()
+                }
+
         events_with_stages.append({
             'event': event,
             'current_stage': current_stage,
-            'display_stage_name': display_stage_name
+            'display_stage_name': display_stage_name,
+            'next_stage': next_stage
         })
-    
-    # Добавляем информацию о регистрации для каждого мероприятия
-    user_id = session.get('user_id')
+
     for item in events_with_stages:
         event = item['event']
-        item['is_registered'] = is_user_registered(event['id'], user_id) if user_id else False
         item['registrations_count'] = get_event_registrations_count(event['id'])
-        item['registration_open'] = is_registration_open(event['id'])
+
+    # Название проекта
+    project_name = get_setting('project_name', 'Анонимные Деды Морозы')
     
     # Получаем тексты модальных окон
     modal_texts = {}
@@ -4867,60 +5120,61 @@ def event_view(event_id):
     stages_with_info = []
     stages_dict = {stage['stage_type']: stage for stage in stages}
     
+    next_stage = None
     for stage_info in EVENT_STAGES:
         stage_type = stage_info['type']
         stage_data = stages_dict.get(stage_type, None)
         
         # Определяем статус этапа
         stage_status = 'future'  # по умолчанию будущий
+        start_dt = None
+        end_dt = None
         if stage_data:
+            stage_keys = stage_data.keys()
+            start_value = stage_data['start_datetime'] if 'start_datetime' in stage_keys else None
+            end_value = stage_data['end_datetime'] if 'end_datetime' in stage_keys else None
+
+            if start_value:
+                try:
+                    start_dt = datetime.fromisoformat(str(start_value))
+                except ValueError:
+                    start_dt = None
+
+            if end_value:
+                try:
+                    end_dt = datetime.fromisoformat(str(end_value))
+                except ValueError:
+                    end_dt = None
+
             # Проверяем, является ли это текущим этапом
             if current_stage_type == stage_type:
                 stage_status = 'current'
             else:
-                # Проверяем, прошел ли этап
-                if stage_data['start_datetime']:
-                    try:
-                        start_dt = datetime.strptime(stage_data['start_datetime'], '%Y-%m-%d %H:%M:%S')
-                    except:
-                        try:
-                            start_dt = datetime.strptime(stage_data['start_datetime'], '%Y-%m-%dT%H:%M')
-                        except:
-                            start_dt = None
-                    
-                    if start_dt:
-                        # Проверяем, не начался ли следующий этап
-                        stage_order = stage_data['stage_order']
-                        next_stage_started = False
-                        for next_stage in stages:
-                            if next_stage['stage_order'] > stage_order and next_stage['start_datetime']:
-                                try:
-                                    next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
-                                except:
-                                    try:
-                                        next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%dT%H:%M')
-                                    except:
-                                        continue
-                                if now >= next_start_dt:
-                                    next_stage_started = True
-                                    break
-                        
-                        if next_stage_started or (now < start_dt):
-                            # Этап еще не начался или уже закончился
-                            if now < start_dt:
-                                stage_status = 'future'
-                            else:
-                                stage_status = 'past'
+                if start_dt:
+                    if now < start_dt:
+                        stage_status = 'future'
+                    else:
+                        # Этап уже начался или завершился
+                        if end_dt and now < end_dt:
+                            stage_status = 'past'
                         else:
-                            # Этап должен быть текущим, но не определен как текущий
-                            # Это может быть ошибка в логике, но оставим как есть
-                            pass
+                            stage_status = 'past'
+                else:
+                    stage_status = 'future'
         
         stages_with_info.append({
             'info': stage_info,
             'data': stage_data,
             'status': stage_status
         })
+
+        if start_dt and start_dt > now:
+            if (not next_stage) or start_dt < next_stage['start_dt']:
+                next_stage = {
+                    'name': stage_info['name'],
+                    'start_datetime': stage_data['start_datetime'],
+                    'start_dt': start_dt
+                }
     
     # Получаем тексты модальных окон
     modal_texts = {}
@@ -4930,6 +5184,15 @@ def event_view(event_id):
     for setting in modal_settings:
         modal_texts[setting['key']] = setting['value']
     
+    if next_stage:
+        next_stage_payload = {
+            'name': next_stage['name'],
+            'start_datetime': next_stage['start_datetime'],
+            'start_iso': next_stage['start_dt'].isoformat()
+        }
+    else:
+        next_stage_payload = None
+
     return render_template('event_view.html', 
                          event=event,
                          current_stage=current_stage,
@@ -4938,7 +5201,8 @@ def event_view(event_id):
                          is_registered=is_registered,
                          registrations_count=registrations_count,
                          registrations=registrations,
-                         stages_with_info=stages_with_info)
+                         stages_with_info=stages_with_info,
+                         next_stage=next_stage_payload)
 
 def has_required_contacts(user_id):
     """Проверяет, заполнены ли обязательные контактные данные пользователя"""
@@ -5135,6 +5399,11 @@ def event_register(event_id):
             VALUES (?, ?)
         ''', (event_id, user_id))
         conn.commit()
+        log_activity(
+            'event_register',
+            details=f'Регистрация на мероприятие #{event_id}',
+            metadata={'event_id': event_id}
+        )
         if is_json_request:
             return jsonify({'success': True, 'message': 'Вы успешно зарегистрированы на мероприятие!'}), 200
         flash('Вы успешно зарегистрированы на мероприятие!', 'success')
@@ -5331,6 +5600,11 @@ def event_unregister(event_id):
         conn.commit()
         
         if cursor.rowcount > 0:
+            log_activity(
+                'event_unregister',
+                details=f'Отмена регистрации на мероприятие #{event_id}',
+                metadata={'event_id': event_id}
+            )
             flash('Регистрация отменена', 'success')
         else:
             flash('Вы не были зарегистрированы на это мероприятие', 'info')
@@ -5352,6 +5626,7 @@ def faq():
     """Страница с часто задаваемыми вопросами (всегда показывает статический контент)"""
     # Всегда используем статический контент (дефолтный)
     return render_template('faq.html', faq_by_category=None)
+
 
 @app.route('/rules')
 def rules():
@@ -5432,6 +5707,59 @@ def contacts():
     return render_template('contacts.html', 
                          admins_moderators=admins_moderators_data,
                          users_with_titles=users_with_titles_data)
+
+# ========== Логи ==========
+
+@app.route('/admin/logs')
+@require_role('admin')
+def admin_logs():
+    """Отображение действий пользователей."""
+    limit = request.args.get('limit', type=int)
+    user_filter = request.args.get('user_id', type=int)
+    action_filter = request.args.get('action', '').strip()
+    
+    if not limit or limit <= 0:
+        limit = 200
+    limit = max(50, min(limit, 1000))
+    
+    conn = get_db_connection()
+    params = []
+    where_clauses = []
+    
+    if user_filter:
+        where_clauses.append('user_id = ?')
+        params.append(user_filter)
+    
+    if action_filter:
+        where_clauses.append('action LIKE ?')
+        params.append(f'%{action_filter}%')
+    
+    query = '''
+        SELECT id, user_id, username, action, details, metadata, ip_address, created_at
+        FROM activity_logs
+    '''
+    if where_clauses:
+        query += ' WHERE ' + ' AND '.join(where_clauses)
+    query += ' ORDER BY created_at DESC LIMIT ?'
+    params.append(limit)
+    
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    
+    logs = []
+    for row in rows:
+        item = dict(row)
+        metadata_value = item.get('metadata')
+        if metadata_value:
+            try:
+                item['metadata'] = json.loads(metadata_value)
+            except (json.JSONDecodeError, TypeError):
+                item['metadata'] = metadata_value
+        else:
+            item['metadata'] = None
+        logs.append(item)
+    
+    return render_template('admin/logs.html', logs=logs, limit=limit, user_filter=user_filter, action_filter=action_filter)
 
 # ========== Управление наградами ==========
 
@@ -5938,6 +6266,7 @@ def admin_event_edit(event_id):
             return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
         
         try:
+            previous_end = None
             # Обновляем мероприятие
             conn.execute('''
                 UPDATE events 
@@ -5992,6 +6321,14 @@ def admin_event_edit(event_id):
                     conn.close()
                     return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
                 
+                # Проверяем последовательность дат
+                if start_datetime and previous_end and start_datetime < previous_end:
+                    flash(f'Дата начала этапа "{stage["name"]}" не может быть раньше окончания предыдущего этапа', 'error')
+                    awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
+                    conn.rollback()
+                    conn.close()
+                    return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
+                
                 # Обновляем или создаем этап
                 if stage['type'] in stages_dict:
                     # Форматируем datetime для сохранения в БД
@@ -6019,6 +6356,8 @@ def admin_event_edit(event_id):
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                     ''', (event_id, stage['type'], stage_order, start_datetime_str, end_datetime_str,
                           1 if stage['required'] else 0, 1 if not stage['required'] else 0))
+                
+                previous_end = end_datetime or previous_end
             
             conn.commit()
             flash('Мероприятие успешно обновлено', 'success')
@@ -6134,7 +6473,6 @@ def admin_event_review(event_id):
     approved_count = sum(1 for p in participants if p['approved'] == 1)
     
     return render_template('admin/event_review.html', event=event, participants=participants, approved_count=approved_count)
-
 @app.route('/admin/events/<int:event_id>/approve', methods=['POST'])
 @require_role('admin')
 def admin_event_approve(event_id):
@@ -6151,6 +6489,16 @@ def admin_event_approve(event_id):
     success = approve_participant(event_id, user_id, approved_by, approved, notes)
     
     if success:
+        log_activity(
+            'participant_review',
+            details=f"Статус участника {user_id} обновлен на {'approved' if approved else 'rejected'}",
+            metadata={
+                'event_id': event_id,
+                'participant_user_id': user_id,
+                'approved': approved,
+                'notes': notes or ''
+            }
+        )
         flash('Статус участника обновлен', 'success')
     else:
         flash('Ошибка при обновлении статуса', 'error')
@@ -6270,4 +6618,3 @@ except Exception as e:
 
 if __name__ == '__main__':
     app.run(debug=True)
-

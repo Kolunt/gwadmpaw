@@ -471,6 +471,26 @@ body {
     background: rgba(255, 255, 255, 0.1);
 }
 
+.contact-link {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.contact-link:hover,
+.contact-link:focus {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+[data-theme="dark"] .contact-link {
+    color: var(--accent-color);
+}
+
+[data-theme="dark"] .contact-link:hover,
+[data-theme="dark"] .contact-link:focus {
+    color: var(--accent-hover);
+}
+
 .admin-tabs {
     display: flex;
     gap: 0.75rem;
@@ -721,6 +741,39 @@ body {
     align-items: center;
     gap: 1rem;
 }
+
++.event-card-footer-home.simplified-footer {
++    justify-content: space-between;
++}
++
++.event-countdown-home {
++    padding: 1.5rem;
++    background-color: var(--bg-secondary);
++    border-top: 1px solid var(--border-color);
++    border-bottom: 1px solid var(--border-color);
++}
++
++.participant-count-icon {
++    display: flex;
++    flex-direction: column;
++    align-items: center;
++    justify-content: center;
++    min-width: 80px;
++}
++
++.participant-count {
++    font-size: 2.5rem;
++    font-weight: 700;
++    color: var(--accent-color);
++    line-height: 1;
++}
++
++.participant-label {
++    font-size: 0.8rem;
++    text-transform: uppercase;
++    letter-spacing: 0.08em;
++    color: var(--text-secondary);
++}
 
 .event-meta {
     display: flex;
@@ -2688,6 +2741,7 @@ body {
     margin: -0.5rem;
 }
 
+.collapsible-header h3,
 .collapsible-header h4 {
     margin-bottom: 0;
     display: flex;
@@ -2701,6 +2755,71 @@ body {
     transition: transform 0.2s ease;
     display: inline-block;
     min-width: 1em;
+}
+
+.section-toggle-icon {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+    display: inline-block;
+    min-width: 1em;
+}
+
+.countdown-section {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--bg-secondary);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.countdown-timer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.countdown-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+}
+
+.countdown-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    line-height: 1;
+}
+
+.countdown-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+}
+
+.countdown-separator {
+    font-size: 2rem;
+    color: var(--text-secondary);
+    line-height: 1;
+    margin-top: -0.3rem;
+}
+
+[data-theme="dark"] .countdown-section {
+    background-color: var(--bg-card);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .countdown-value {
+    color: var(--accent-color);
+}
+
+[data-theme="dark"] .countdown-label {
+    color: var(--text-secondary);
 }
 
 .collapsible-content {
@@ -3992,5 +4111,114 @@ html.dark .avatar-candidate-img {
     .participant-card {
         padding: 0.75rem;
     }
+}
+
+.participant-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+}
+
+.events-actions-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.events-actions-group form {
+    margin: 0;
+}
+
+.events-table td[data-label="Действия"] {
+    text-align: right;
+}
+
+.events-table .event-name-link {
+    color: var(--success-color);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.events-table .event-name-link:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+.logs-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.logs-filter .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 180px;
+}
+
+.logs-filter .form-group input {
+    min-width: 180px;
+}
+
+.logs-table .details-cell {
+    max-width: 280px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.logs-table td {
+    vertical-align: top;
+}
+
+.log-user {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.log-username {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.log-user-id {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.log-action {
+    font-weight: 600;
+}
+
+.log-meta-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.log-meta-list li {
+    margin-bottom: 0.25rem;
+    word-break: break-word;
+}
+
+.log-meta-list li:last-child {
+    margin-bottom: 0;
+}
+
+.log-meta-key {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.log-meta-value {
+    color: var(--text-secondary);
+    word-break: break-word;
 }
 

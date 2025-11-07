@@ -165,10 +165,6 @@
                     <span class="sidebar-icon">👥</span>
                     <span>Участники</span>
                 </a>
-                <a href="{{ url_for('admin_users') }}" class="sidebar-link">
-                    <span class="sidebar-icon">👥</span>
-                    <span>{{ _('Users') }}</span>
-                </a>
                 <a href="{{ url_for('admin_settings') }}" class="sidebar-link">
                     <span class="sidebar-icon">⚙️</span>
                     <span>{{ _('Settings') }}</span>
@@ -184,6 +180,10 @@
                 <a href="{{ url_for('admin_awards') }}" class="sidebar-link">
                     <span class="sidebar-icon">🏆</span>
                     <span>Награды</span>
+                </a>
+                <a href="{{ url_for('admin_logs') }}" class="sidebar-link">
+                    <span class="sidebar-icon">📝</span>
+                    <span>Логи</span>
                 </a>
                 <a href="{{ url_for('admin_rules') }}" class="sidebar-link">
                     <span class="sidebar-icon">📜</span>

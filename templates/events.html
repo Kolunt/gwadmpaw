@@ -14,16 +14,14 @@
         
         {% if events_with_stages %}
         <div class="table-container">
-            <table class="admin-table">
+            <table class="admin-table events-table">
                 <thead>
                     <tr>
                         <th>Название</th>
+                        <th>Участники</th>
                         <th>Текущий этап</th>
-                        <th>Начало</th>
-                        <th>👥</th>
-                        <th>Статус</th>
-                        <th>Регистрация</th>
-                        <th>Действия</th>
+                        <th>Мой статус</th>
+                        <th style="width: 160px;">Действия</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -32,78 +30,45 @@
                     {% set current_stage = item.current_stage %}
                     <tr>
                         <td data-label="Название">
-                            <strong>
-                                <a href="{{ url_for('event_view', event_id=event.id) }}" style="color: var(--accent-color); text-decoration: none;">
-                                    {{ event.name }}
-                                </a>
-                            </strong>
+                            <a href="{{ url_for('event_view', event_id=event.id) }}" class="event-name-link">{{ event.name }}</a>
+                        </td>
+                        <td data-label="Участники">
+                            {{ item.registrations_count }}
                         </td>
                         <td data-label="Текущий этап">
                             {% if current_stage %}
-                                <span class="event-stage-badge badge-active">
-                                    {{ item.display_stage_name or current_stage.info.name }}
-                                </span>
+                                {{ item.display_stage_name or current_stage.info.name }}
                             {% else %}
-                                <span class="event-stage-badge badge-upcoming">
-                                    Скоро
-                                </span>
+                                <span class="text-muted">Скоро</span>
                             {% endif %}
                         </td>
-                        <td data-label="Начало">
-                            {% if current_stage and current_stage.data.start_datetime %}
-                                {{ current_stage.data.start_datetime }}
-                            {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td data-label="👥">
-                            {{ item.registrations_count }}
-                        </td>
-                        <td data-label="Статус">
+                        <td data-label="Мой статус">
                             {% if session.user_id %}
-                                {% if item.is_registered %}
-                                    <span class="badge-active">Участвую</span>
-                                {% else %}
-                                    <span class="badge-upcoming">Не участвую</span>
-                                {% endif %}
+                                {{ 'участвую' if item.is_registered else 'не участвую' }}
                             {% else %}
-                                <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                        <td data-label="Регистрация">
-                            {% if item.registration_open %}
-                                <span class="badge-active">Открыта</span>
-                            {% else %}
-                                <span class="badge-upcoming">Закрыта</span>
+                                —
                             {% endif %}
                         </td>
                         <td data-label="Действия">
-                            <div class="action-buttons" style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start;">
-                                <a href="{{ url_for('event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Просмотр">
-                                    <span style="font-size: 1.2em;">👁️</span>
-                                </a>
-                                
+                            <div class="events-actions-group">
                                 {% if session.user_id %}
                                     {% if item.registration_open %}
                                         {% if item.is_registered %}
-                                            <form method="POST" action="{{ url_for('event_unregister', event_id=event.id) }}" 
-                                                  onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');" 
-                                                  style="margin: 0;">
-                                                <button type="submit" class="btn btn-sm btn-danger">Отменить регистрацию</button>
+                                            <form method="POST" action="{{ url_for('event_unregister', event_id=event.id) }}"
+                                                  onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');">
+                                                <button type="submit" class="btn btn-sm btn-danger">Отменить</button>
                                             </form>
                                         {% else %}
-                                            <form class="register-form" method="POST" action="{{ url_for('event_register', event_id=event.id) }}" 
-                                                  data-event-id="{{ event.id }}"
-                                                  style="margin: 0;">
+                                            <form class="register-form" method="POST" action="{{ url_for('event_register', event_id=event.id) }}"
+                                                  data-event-id="{{ event.id }}">
                                                 <button type="submit" class="btn btn-sm btn-primary">Записаться</button>
                                             </form>
                                         {% endif %}
                                     {% endif %}
                                 {% endif %}
-                                
-                                {% if session.user_id and 'admin' in session.get('roles', []) %}
-                                    <a href="{{ url_for('admin_event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary">Админ</a>
-                                {% endif %}
+                                <a href="{{ url_for('event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Просмотр">
+                                    <span aria-hidden="true">👁️</span>
+                                </a>
                             </div>
                         </td>
                     </tr>
@@ -216,6 +181,60 @@
 </div>
 
 <script>
+function initCountdownTimers(selector) {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(element => {
+        const targetIso = element.getAttribute('data-start');
+        if (!targetIso) {
+            return;
+        }
+
+        const targetDate = new Date(targetIso.replace(' ', 'T'));
+        if (isNaN(targetDate.getTime())) {
+            return;
+        }
+
+        const values = {
+            days: element.querySelector('[data-unit="days"]'),
+            hours: element.querySelector('[data-unit="hours"]'),
+            minutes: element.querySelector('[data-unit="minutes"]'),
+            seconds: element.querySelector('[data-unit="seconds"]')
+        };
+
+        let intervalId = null;
+
+        function updateCountdown() {
+            const now = new Date();
+            const diff = targetDate - now;
+
+            if (diff <= 0) {
+                values.days.textContent = '0';
+                values.hours.textContent = '00';
+                values.minutes.textContent = '00';
+                values.seconds.textContent = '00';
+                element.classList.add('countdown-complete');
+                if (intervalId !== null) {
+                    clearInterval(intervalId);
+                }
+                return;
+            }
+
+            const seconds = Math.floor(diff / 1000) % 60;
+            const minutes = Math.floor(diff / (1000 * 60)) % 60;
+            const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+            values.days.textContent = String(days);
+            values.hours.textContent = String(hours).padStart(2, '0');
+            values.minutes.textContent = String(minutes).padStart(2, '0');
+            values.seconds.textContent = String(seconds).padStart(2, '0');
+        }
+
+        updateCountdown();
+        intervalId = setInterval(updateCountdown, 1000);
+    });
+}
+
 // Тексты модальных окон из настроек
 const modalTexts = {
     title: {{ modal_texts.get('modal_title', 'Заполнение обязательных данных')|tojson }},
@@ -246,14 +265,13 @@ const modalTexts = {
 
 // Ждем загрузки DOM
 document.addEventListener('DOMContentLoaded', function() {
+    initCountdownTimers('.event-countdown, .event-countdown-home');
+ 
     const registerForms = document.querySelectorAll('.register-form');
     if (registerForms.length === 0) {
-        console.log('Формы регистрации не найдены');
         return;
     }
-    
-    console.log('Найдено форм регистрации:', registerForms.length);
-    
+
     const modal = document.getElementById('registration-modal');
     const closeBtn = document.getElementById('close-registration-modal');
     const prevBtn = document.getElementById('modal-prev-btn');
@@ -309,8 +327,6 @@ document.addEventListener('DOMContentLoaded', function() {
         currentForm = this;
         currentEventId = this.getAttribute('data-event-id');
         
-        console.log('Форма регистрации отправлена через AJAX для мероприятия:', currentEventId);
-        
         try {
             const response = await fetch(this.action, {
                 method: 'POST',
@@ -323,30 +339,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({}) // Пустое тело для первого запроса
             });
             
-            console.log('Статус ответа:', response.status);
-            
-            // Проверяем тип ответа
             const contentType = response.headers.get('content-type') || '';
-            console.log('Content-Type ответа:', contentType);
             
             if (!contentType.includes('application/json')) {
                 // Сервер вернул не JSON (возможно HTML редирект)
-                console.log('Сервер вернул не JSON, тип:', contentType);
-                // Позволяем форме отправиться обычным способом
                 this.removeEventListener('submit', formSubmitHandler);
                 this.submit();
                 return;
             }
             
             const data = await response.json();
-            console.log('Ответ сервера:', data);
             
             if (data.success) {
                 // Регистрация успешна
                 location.reload();
             } else if (data.needs_filling) {
                 // Нужно заполнить данные
-                console.log('Нужно заполнить данные:', data.missing_fields);
                 missingFields = data.missing_fields;
                 showModal();
             } else {
@@ -356,8 +364,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Ошибка:', error);
             // Если ошибка парсинга JSON, возможно сервер вернул HTML (редирект)
             if (error instanceof SyntaxError || error.name === 'SyntaxError') {
-                console.log('Сервер вернул не JSON, отправляем форму обычным способом');
-                // Удаляем обработчик и отправляем форму обычным способом
                 this.removeEventListener('submit', formSubmitHandler);
                 this.submit();
                 return;
@@ -371,8 +377,6 @@ document.addEventListener('DOMContentLoaded', function() {
     registerForms.forEach(function(form) {
         form.addEventListener('submit', formSubmitHandler);
     });
-    
-    console.log('Обработчики форм регистрации установлены');
     
     async function showModal() {
         modal.style.display = 'block';
@@ -577,8 +581,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // Если currentContactField не установлен, берем первый из списка
-            if (!currentContactField && contactsToShow.length > 0) {
-                currentContactField = contactsToShow[0].key;
+            if (!currentContactField || !contactsToShow.some(c => c.key === currentContactField)) {
+                currentContactField = contactsToShow.length > 0 ? contactsToShow[0].key : null;
             }
             
             // Находим текущий контакт в списке
@@ -755,21 +759,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const input = document.getElementById('modal-contact-' + fieldKey);
             if (input && input.value.trim()) {
                 data[fieldKey] = input.value.trim();
-                console.log('Подготовка данных для сохранения контакта:', fieldKey, data[fieldKey]);
             } else {
                 // Если поле пустое, не отправляем его
-                console.log('Поле контакта пустое, пропускаем сохранение');
                 return true;
             }
         }
         
         if (Object.keys(data).length === 0) {
-            console.log('Нет данных для сохранения');
             return true;
         }
         
         try {
-            console.log('Отправка данных на сервер:', data);
             const response = await fetch('/api/profile/update', {
                 method: 'POST',
                 headers: {
@@ -780,8 +780,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(data)
             });
             
-            console.log('Ответ сервера, статус:', response.status);
-            
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Ошибка сервера:', response.status, errorText);
@@ -790,13 +788,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const result = await response.json();
-            console.log('Результат сохранения:', result);
             
             if (result.success) {
                 // Обновляем информацию о незаполненных полях
                 if (result.missing_fields) {
                     missingFields = result.missing_fields;
-                    console.log('Обновлены missing_fields:', missingFields);
                 }
                 return true;
             } else {
@@ -967,18 +963,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         const dataChanged = newValue !== oldValue;
                         
                         // Сохраняем данные (даже если не изменились, чтобы обновить missing_fields)
-                        console.log('Проверка/сохранение контакта:', currentContactField, newValue, 'изменилось:', dataChanged);
                         const saved = await saveStepData('contact');
                         if (!saved) {
                             console.error('Ошибка сохранения контакта');
                             return; // Ошибка сохранения
                         }
-                        console.log('Контакт сохранен, missing_fields:', missingFields);
                         
                         // Обновляем userData после сохранения
                         if (userData) {
                             userData[currentContactField] = newValue;
                         }
+                        missingFields.has_contact = true;
                         
                         // Удаляем из списка незаполненных, если было
                         const index = missingFields.missing_contacts.indexOf(currentContactField);
@@ -992,7 +987,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Переходим к следующему контакту или переходим к финальному шагу
                     if (isLast) {
-                        console.log('Все контакты проверены, переходим к финальному шагу');
                         currentStep = steps.indexOf('final');
                         showStep(currentStep);
                     } else {
@@ -1019,13 +1013,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         const dataChanged = newValue !== oldValue;
                         
                         // Сохраняем данные (даже если не изменились, чтобы обновить missing_fields)
-                        console.log('Подтверждение контакта (все заполнено):', currentContactField, newValue, 'изменилось:', dataChanged);
                         const saved = await saveStepData('contact');
                         if (!saved) {
                             console.error('Ошибка сохранения контакта при подтверждении');
                             return; // Ошибка сохранения
                         }
-                        console.log('Контакт сохранен при подтверждении, missing_fields:', missingFields);
                         
                         // Обновляем userData после сохранения
                         if (userData) {
@@ -1033,7 +1025,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                     // Переходим к финальному шагу
-                    console.log('Переходим к финальному шагу после подтверждения контакта');
                     currentStep = steps.indexOf('final');
                     showStep(currentStep);
                     return;
@@ -1053,19 +1044,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     const dataChanged = newValue !== oldValue;
                     
                     // Сохраняем данные (даже если не изменились, чтобы обновить missing_fields)
-                    console.log('Сохранение контакта:', currentContactField, newValue);
                     const saved = await saveStepData('contact');
                     if (!saved) {
                         console.error('Ошибка сохранения контакта');
                         return; // Ошибка сохранения
                     }
                     
-                    console.log('Контакт сохранен успешно, missing_fields:', missingFields);
-                    
                     // Обновляем userData после сохранения
                     if (userData) {
                         userData[currentContactField] = newValue;
                     }
+                    missingFields.has_contact = true;
                     
                     // Удаляем заполненное поле из списка
                     const index = missingFields.missing_contacts.indexOf(currentContactField);
@@ -1076,11 +1065,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Проверяем, есть ли еще незаполненные контакты
                     if (missingFields.missing_contacts.length > 0) {
                         // Показываем следующий контакт
+                        currentContactField = null;
                         contactStepIndex++;
                         showContactStep();
                     } else {
                         // Все заполнено, переходим к финальному шагу
-                        console.log('Все контакты заполнены, переходим к финальному шагу');
                         currentStep = steps.indexOf('final');
                         showStep(currentStep);
                     }
@@ -1090,6 +1079,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (missingFields.has_contact) {
                         // Контакт опциональный, поле пустое - переходим к следующему или завершаем
                         if (missingFields.missing_contacts.length > 0) {
+                            currentContactField = null;
                             contactStepIndex++;
                             showContactStep();
                         } else {
@@ -1111,11 +1101,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     async function finalizeRegistration() {
-        console.log('finalizeRegistration вызвана, missingFields:', missingFields);
-        
         // Проверяем, все ли заполнено
         if (!missingFields || !missingFields.has_personal_data || !missingFields.has_address || !missingFields.has_contact) {
-            console.error('Не все поля заполнены:', missingFields);
             showModalError('Пожалуйста, заполните все обязательные поля');
             return;
         }
@@ -1127,7 +1114,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            console.log('Отправка финального запроса на регистрацию:', currentForm.action);
             const response = await fetch(currentForm.action, {
                 method: 'POST',
                 headers: {
@@ -1139,8 +1125,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({ final_registration: true })
             });
             
-            console.log('Ответ сервера, статус:', response.status);
-            
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Ошибка сервера:', response.status, errorText);
@@ -1149,7 +1133,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const data = await response.json();
-            console.log('Ответ сервера (JSON):', data);
             
             if (data.success) {
                 hideModal();
@@ -1199,6 +1182,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Проверяем, есть ли еще незаполненные контакты
             if (missingFields.missing_contacts.length > 0) {
                 // Показываем следующий контакт
+                currentContactField = null;
                 contactStepIndex++;
                 showContactStep();
             } else {

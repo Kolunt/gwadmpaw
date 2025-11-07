@@ -80,14 +80,36 @@
                     </span>
                     {% endif %}
                 </div>
-                {% if item.event.description %}
-                <div class="event-card-body-home">
-                    <p>{{ item.event.description[:150] }}{% if item.event.description|length > 150 %}...{% endif %}</p>
+                {% if item.next_stage %}
+                <div class="event-countdown-home" data-start="{{ item.next_stage.start_iso }}">
+                    <div class="countdown-label">До следующего этапа</div>
+                    <div class="countdown-timer">
+                        <div class="countdown-item">
+                            <span class="countdown-value" data-unit="days">0</span>
+                            <span class="countdown-unit">дней</span>
+                        </div>
+                        <span class="countdown-separator">:</span>
+                        <div class="countdown-item">
+                            <span class="countdown-value" data-unit="hours">00</span>
+                            <span class="countdown-unit">часов</span>
+                        </div>
+                        <span class="countdown-separator">:</span>
+                        <div class="countdown-item">
+                            <span class="countdown-value" data-unit="minutes">00</span>
+                            <span class="countdown-unit">минут</span>
+                        </div>
+                        <span class="countdown-separator">:</span>
+                        <div class="countdown-item">
+                            <span class="countdown-value" data-unit="seconds">00</span>
+                            <span class="countdown-unit">секунд</span>
+                        </div>
+                    </div>
                 </div>
                 {% endif %}
-                <div class="event-card-footer-home">
-                    <div class="event-meta">
-                        <span class="event-creator">👤 {{ item.event.creator_name or 'Система' }}</span>
+                <div class="event-card-footer-home simplified-footer">
+                    <div class="participant-count-icon">
+                        <span class="participant-count">{{ item.registrations_count }}</span>
+                        <span class="participant-label">участников</span>
                     </div>
                     <a href="{{ url_for('events') }}" class="btn btn-sm btn-outline">Подробнее</a>
                 </div>
@@ -164,8 +186,64 @@
 
 {% block scripts %}
 <script>
+    function initCountdownTimers(selector) {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(element => {
+            const targetIso = element.getAttribute('data-start');
+            if (!targetIso) {
+                return;
+            }
+
+            const targetDate = new Date(targetIso.replace(' ', 'T'));
+            if (isNaN(targetDate.getTime())) {
+                return;
+            }
+
+            const values = {
+                days: element.querySelector('[data-unit="days"]'),
+                hours: element.querySelector('[data-unit="hours"]'),
+                minutes: element.querySelector('[data-unit="minutes"]'),
+                seconds: element.querySelector('[data-unit="seconds"]')
+            };
+
+            let intervalId = null;
+
+            function updateCountdown() {
+                const now = new Date();
+                const diff = targetDate - now;
+
+                if (diff <= 0) {
+                    values.days.textContent = '0';
+                    values.hours.textContent = '00';
+                    values.minutes.textContent = '00';
+                    values.seconds.textContent = '00';
+                    element.classList.add('countdown-complete');
+                    if (intervalId !== null) {
+                        clearInterval(intervalId);
+                    }
+                    return;
+                }
+
+                const seconds = Math.floor(diff / 1000) % 60;
+                const minutes = Math.floor(diff / (1000 * 60)) % 60;
+                const hours = Math.floor(diff / (1000 * 60 * 60)) % 24;
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+                values.days.textContent = String(days);
+                values.hours.textContent = String(hours).padStart(2, '0');
+                values.minutes.textContent = String(minutes).padStart(2, '0');
+                values.seconds.textContent = String(seconds).padStart(2, '0');
+            }
+
+            updateCountdown();
+            intervalId = setInterval(updateCountdown, 1000);
+        });
+    }
+
     // Анимация появления карточек при прокрутке
     document.addEventListener('DOMContentLoaded', function() {
+        initCountdownTimers('.event-countdown-home, .event-countdown');
+
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'

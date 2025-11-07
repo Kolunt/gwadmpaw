@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Логи действий - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>Логи действий</h1>
+        </div>
+
+        <form class="logs-filter" method="get">
+            <div class="form-group">
+                <label for="user_id">ID пользователя</label>
+                <input type="number" id="user_id" name="user_id" class="form-input" value="{{ user_filter or '' }}" placeholder="Например, 283494">
+            </div>
+            <div class="form-group">
+                <label for="action">Действие</label>
+                <input type="text" id="action" name="action" class="form-input" value="{{ action_filter or '' }}" placeholder="Часть названия действия">
+            </div>
+            <div class="form-group">
+                <label for="limit">Лимит</label>
+                <input type="number" id="limit" name="limit" class="form-input" value="{{ limit }}" min="50" max="1000">
+            </div>
+            <div class="form-group" style="align-self: flex-end;">
+                <button type="submit" class="btn btn-primary">Применить</button>
+            </div>
+        </form>
+
+        {% if logs %}
+        <div class="table-container">
+            <table class="admin-table logs-table">
+                <thead>
+                    <tr>
+                        <th>Время</th>
+                        <th>Пользователь</th>
+                        <th>Действие</th>
+                        <th>Описание</th>
+                        <th>IP</th>
+                        <th>Дополнительно</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td data-label="Время">
+                            <div class="log-timestamp">{{ log.created_at }}</div>
+                        </td>
+                        <td data-label="Пользователь">
+                            {% if log.user_id %}
+                            <div class="log-user">
+                                <span class="log-username">{{ log.username or '—' }}</span>
+                                <span class="log-user-id">ID: {{ log.user_id }}</span>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">Система</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Действие">
+                            <span class="log-action">{{ log.action }}</span>
+                        </td>
+                        <td data-label="Описание" class="details-cell">
+                            {{ log.details or '—' }}
+                        </td>
+                        <td data-label="IP">
+                            {{ log.ip_address or '—' }}
+                        </td>
+                        <td data-label="Дополнительно">
+                            {% if log.metadata is mapping %}
+                                <ul class="log-meta-list">
+                                    {% for key, value in log.metadata.items() %}
+                                    <li><span class="log-meta-key">{{ key }}:</span> <span class="log-meta-value">{{ value }}</span></li>
+                                    {% endfor %}
+                                </ul>
+                            {% elif log.metadata %}
+                                <span class="log-meta-value">{{ log.metadata }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>Логи пока отсутствуют.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+
