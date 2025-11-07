@@ -8,14 +8,8 @@
         <h1>Ревью участников: {{ event.name }}</h1>
         <div class="action-buttons">
             <a href="{{ url_for('admin_event_view', event_id=event.id) }}" class="btn btn-secondary">← Назад к мероприятию</a>
-            {% set approved_count = 0 %}
-            {% for p in participants %}
-                {% if p.approved == 1 %}
-                    {% set approved_count = approved_count + 1 %}
-                {% endif %}
-            {% endfor %}
             {% if approved_count >= 2 %}
-            <a href="{{ url_for('admin_event_distribution', event_id=event.id) }}" class="btn btn-primary">Перейти к распределению</a>
+            <a href="{{ url_for('admin_event_distribution', event_id=event.id) }}" class="btn btn-primary">Перейти к жеребьёвке</a>
             {% endif %}
         </div>
     </div>

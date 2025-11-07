@@ -41,7 +41,7 @@
                         <td data-label="Текущий этап">
                             {% if current_stage %}
                                 <span class="event-stage-badge badge-active">
-                                    {{ current_stage.info.name }}
+                                    {{ item.display_stage_name or current_stage.info.name }}
                                 </span>
                             {% else %}
                                 <span class="event-stage-badge badge-upcoming">

@@ -2566,6 +2566,7 @@ def stop_impersonation():
 @require_role('admin')
 def admin_user_create():
     """Создание нового пользователя"""
+    available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
     if request.method == 'POST':
         user_id = request.form.get('user_id', '').strip()
         username = request.form.get('username', '').strip()
@@ -2582,10 +2583,23 @@ def admin_user_create():
         telegram = request.form.get('telegram', '').strip()
         whatsapp = request.form.get('whatsapp', '').strip()
         viber = request.form.get('viber', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        first_name = request.form.get('first_name', '').strip()
+        middle_name = request.form.get('middle_name', '').strip()
+        postal_code = request.form.get('postal_code', '').strip()
+        country = request.form.get('country', '').strip()
+        city = request.form.get('city', '').strip()
+        street = request.form.get('street', '').strip()
+        house = request.form.get('house', '').strip()
+        building = request.form.get('building', '').strip()
+        apartment = request.form.get('apartment', '').strip()
+        language = request.form.get('language', 'ru').strip()
+        avatar_seed_form = request.form.get('avatar_seed', '').strip()
+        avatar_style = request.form.get('avatar_style', '').strip()
         
         if not user_id or not username:
             flash('ID и имя пользователя обязательны', 'error')
-            return render_template('admin/user_form.html')
+            return render_template('admin/user_form.html', user=None, avatar_styles=AVATAR_STYLES, available_languages=available_languages)
         
         try:
             user_id_int = int(user_id)
@@ -2593,9 +2607,10 @@ def admin_user_create():
             synd_int = int(synd) if synd else 0
             has_passport_int = int(has_passport)
             has_mobile_int = int(has_mobile)
+            old_passport_int = int(old_passport)
         except ValueError:
             flash('Неверный формат числовых полей', 'error')
-            return render_template('admin/user_form.html')
+            return render_template('admin/user_form.html', user=None, avatar_styles=AVATAR_STYLES, available_languages=available_languages)
         
         conn = get_db_connection()
         
@@ -2604,21 +2619,28 @@ def admin_user_create():
         if existing:
             flash('Пользователь с таким ID уже существует', 'error')
             conn.close()
-            return render_template('admin/user_form.html')
+            return render_template('admin/user_form.html', user=None, avatar_styles=AVATAR_STYLES, available_languages=available_languages)
         
         try:
-            # Генерируем уникальный avatar_seed для нового пользователя
-            avatar_seed = generate_unique_avatar_seed(user_id_int)
-            avatar_style = 'avataaars'
+            if language not in available_languages:
+                language = 'ru'
+            avatar_seed = avatar_seed_form or generate_unique_avatar_seed(user_id_int)
+            if not avatar_style or avatar_style not in AVATAR_STYLES:
+                avatar_style = 'avataaars'
             
             conn.execute('''
                 INSERT INTO users 
-                (user_id, username, level, synd, has_passport, has_mobile, usersex, 
-                 avatar_seed, avatar_style, bio, contact_info, email, phone, telegram, whatsapp, viber)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id_int, username, level_int, synd_int, has_passport_int, has_mobile_int, 
-                  usersex, avatar_seed, avatar_style, bio, contact_info, 
-                  email, phone, telegram, whatsapp, viber))
+                (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, 
+                 avatar_seed, avatar_style, language,
+                 bio, contact_info, email, phone, telegram, whatsapp, viber,
+                 last_name, first_name, middle_name,
+                 postal_code, country, city, street, house, building, apartment)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id_int, username, level_int, synd_int, has_passport_int, has_mobile_int, old_passport_int,
+                  usersex, avatar_seed, avatar_style, language,
+                  bio, contact_info, email, phone, telegram, whatsapp, viber,
+                  last_name, first_name, middle_name,
+                  postal_code, country, city, street, house, building, apartment))
             conn.commit()
             flash('Пользователь успешно создан', 'success')
             conn.close()
@@ -2627,9 +2649,9 @@ def admin_user_create():
             log_error(f"Error creating user: {e}")
             flash(f'Ошибка создания пользователя: {str(e)}', 'error')
             conn.close()
-            return render_template('admin/user_form.html')
+            return render_template('admin/user_form.html', user=None, avatar_styles=AVATAR_STYLES, available_languages=available_languages)
     
-    return render_template('admin/user_form.html')
+    return render_template('admin/user_form.html', user=None, avatar_styles=AVATAR_STYLES, available_languages=available_languages)
 
 @app.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
@@ -2637,6 +2659,7 @@ def admin_user_edit(user_id):
     """Редактирование пользователя"""
     conn = get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
     
     if not user:
         flash('Пользователь не найден', 'error')
@@ -2696,6 +2719,20 @@ def admin_user_edit(user_id):
         telegram = request.form.get('telegram', '').strip()
         whatsapp = request.form.get('whatsapp', '').strip()
         viber = request.form.get('viber', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        first_name = request.form.get('first_name', '').strip()
+        middle_name = request.form.get('middle_name', '').strip()
+        postal_code = request.form.get('postal_code', '').strip()
+        country = request.form.get('country', '').strip()
+        city = request.form.get('city', '').strip()
+        street = request.form.get('street', '').strip()
+        house = request.form.get('house', '').strip()
+        building = request.form.get('building', '').strip()
+        apartment = request.form.get('apartment', '').strip()
+        language = request.form.get('language', (user['language'] or 'ru')).strip()
+        avatar_seed = request.form.get('avatar_seed', '').strip()
+        avatar_style = request.form.get('avatar_style', '').strip()
+        old_passport = request.form.get('old_passport', str(user['old_passport'] or 0))
         
         if not username:
             flash('Имя пользователя обязательно', 'error')
@@ -2714,13 +2751,16 @@ def admin_user_edit(user_id):
                                  user_role_names=user_role_names,
                                  all_titles=all_titles,
                                  user_titles=user_titles,
-                                 user_title_ids=user_title_ids)
+                                 user_title_ids=user_title_ids,
+                                 avatar_styles=AVATAR_STYLES,
+                                 available_languages=available_languages)
         
         try:
             level_int = int(level) if level else 0
             synd_int = int(synd) if synd else 0
             has_passport_int = int(has_passport)
             has_mobile_int = int(has_mobile)
+            old_passport_int = int(old_passport)
         except ValueError:
             flash('Неверный формат числовых полей', 'error')
             # Получаем данные для отображения ДО закрытия соединения
@@ -2738,18 +2778,33 @@ def admin_user_edit(user_id):
                                  user_role_names=user_role_names,
                                  all_titles=all_titles,
                                  user_titles=user_titles,
-                                 user_title_ids=user_title_ids)
+                                 user_title_ids=user_title_ids,
+                                 avatar_styles=AVATAR_STYLES,
+                                 available_languages=available_languages)
         
         try:
+            if language not in available_languages:
+                language = 'ru'
+            if not avatar_seed:
+                avatar_seed = user['avatar_seed']
+            if not avatar_style or avatar_style not in AVATAR_STYLES:
+                avatar_style = user['avatar_style'] or 'avataaars'
             conn.execute('''
                 UPDATE users SET
-                    username = ?, level = ?, synd = ?, has_passport = ?, has_mobile = ?,
+                    username = ?, level = ?, synd = ?, has_passport = ?, has_mobile = ?, old_passport = ?,
                     usersex = ?, bio = ?, contact_info = ?,
-                    email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?
+                    email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?,
+                    last_name = ?, first_name = ?, middle_name = ?,
+                    postal_code = ?, country = ?, city = ?, street = ?, house = ?, building = ?, apartment = ?,
+                    avatar_seed = ?, avatar_style = ?, language = ?
                 WHERE user_id = ?
-            ''', (username, level_int, synd_int, has_passport_int, has_mobile_int,
+            ''', (username, level_int, synd_int, has_passport_int, has_mobile_int, old_passport_int,
                   usersex, bio, contact_info, email, phone, 
-                  telegram, whatsapp, viber, user_id))
+                  telegram, whatsapp, viber,
+                  last_name, first_name, middle_name,
+                  postal_code, country, city, street, house, building, apartment,
+                  avatar_seed, avatar_style, language,
+                  user_id))
             conn.commit()
             if not role_action and not title_action:
                 flash('Пользователь успешно обновлен', 'success')
@@ -2773,7 +2828,9 @@ def admin_user_edit(user_id):
                                  user_role_names=user_role_names,
                                  all_titles=all_titles,
                                  user_titles=user_titles,
-                                 user_title_ids=user_title_ids)
+                                 user_title_ids=user_title_ids,
+                                 avatar_styles=AVATAR_STYLES,
+                                 available_languages=available_languages)
     
     # GET запрос - получаем данные для отображения
     all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
@@ -2791,7 +2848,9 @@ def admin_user_edit(user_id):
                          user_role_names=user_role_names,
                          all_titles=all_titles,
                          user_titles=user_titles,
-                         user_title_ids=user_title_ids)
+                         user_title_ids=user_title_ids,
+                         avatar_styles=AVATAR_STYLES,
+                         available_languages=available_languages)
 
 @app.route('/admin/users/<int:user_id>/roles', methods=['GET', 'POST'])
 @require_role('admin')
@@ -4185,6 +4244,8 @@ EVENT_STAGES = [
     {'type': 'after_party', 'name': 'Послепраздничное настроение', 'required': True, 'has_start': False, 'has_end': True},
 ]
 
+AVATAR_STYLES = ['avataaars', 'bottts', 'identicon', 'initials', 'micah']
+
 def is_event_finished(event_id):
     """Проверяет, закончилось ли мероприятие полностью"""
     conn = get_db_connection()
@@ -4536,7 +4597,7 @@ def get_approved_participants(event_id):
         ORDER BY epa.approved_at ASC
     ''', (event_id,)).fetchall()
     conn.close()
-    return participants
+    return [dict(row) for row in participants]
 
 def create_random_assignments(event_id, assigned_by):
     """Создает случайное распределение Деда Мороза и Внучки"""
@@ -4549,9 +4610,6 @@ def create_random_assignments(event_id, assigned_by):
         if len(participants) < 2:
             return False, "Недостаточно утвержденных участников (нужно минимум 2)"
         
-        # Удаляем существующие задания
-        conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
-        
         # Создаем список ID участников
         participant_ids = [p['user_id'] for p in participants]
         
@@ -4563,22 +4621,38 @@ def create_random_assignments(event_id, assigned_by):
         for i in range(len(participant_ids)):
             santa_id = participant_ids[i]
             recipient_id = participant_ids[(i + 1) % len(participant_ids)]  # Циклическое распределение
-            assignments.append((event_id, santa_id, recipient_id, assigned_by))
+            assignments.append((santa_id, recipient_id))
         
-        # Вставляем все задания
-        conn.executemany('''
-            INSERT INTO event_assignments (event_id, santa_user_id, recipient_user_id, assigned_by)
-            VALUES (?, ?, ?, ?)
-        ''', assignments)
-        
-        conn.commit()
-        return True, f"Создано {len(assignments)} заданий"
+        success, result = save_event_assignments(event_id, assignments, assigned_by, connection=conn)
+        if success:
+            return True, f"Создано {result} заданий"
+        return False, result
     except Exception as e:
         log_error(f"Error creating random assignments: {e}")
         conn.rollback()
         return False, str(e)
     finally:
         conn.close()
+
+def save_event_assignments(event_id, assignments, assigned_by, connection=None):
+    """Сохраняет распределение пар"""
+    conn = connection or get_db_connection()
+    try:
+        conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
+        data = [(event_id, santa, recipient, assigned_by) for santa, recipient in assignments]
+        conn.executemany('''
+            INSERT INTO event_assignments (event_id, santa_user_id, recipient_user_id, assigned_by)
+            VALUES (?, ?, ?, ?)
+        ''', data)
+        conn.commit()
+        return True, len(assignments)
+    except Exception as e:
+        log_error(f"Error saving assignments for event {event_id}: {e}")
+        conn.rollback()
+        return False, str(e)
+    finally:
+        if connection is None:
+            conn.close()
 
 def get_user_assignments(user_id):
     """Получает задания пользователя (где он Дед Мороз и где Внучка)"""
@@ -4720,9 +4794,16 @@ def events():
     events_with_stages = []
     for event in events_list:
         current_stage = get_current_event_stage(event['id'])
+        display_stage_name = None
+        if current_stage:
+            display_stage_name = current_stage['info']['name']
+            if current_stage['info']['type'] == 'registration_closed':
+                lottery_stage = next((stage for stage in EVENT_STAGES if stage['type'] == 'lottery'), None)
+                display_stage_name = lottery_stage['name'] if lottery_stage else 'Жеребьёвка'
         events_with_stages.append({
             'event': event,
-            'current_stage': current_stage
+            'current_stage': current_stage,
+            'display_stage_name': display_stage_name
         })
     
     # Добавляем информацию о регистрации для каждого мероприятия
@@ -6050,8 +6131,9 @@ def admin_event_review(event_id):
     create_participant_approvals_for_event(event_id)
     
     participants = get_participants_for_review(event_id)
+    approved_count = sum(1 for p in participants if p['approved'] == 1)
     
-    return render_template('admin/event_review.html', event=event, participants=participants)
+    return render_template('admin/event_review.html', event=event, participants=participants, approved_count=approved_count)
 
 @app.route('/admin/events/<int:event_id>/approve', methods=['POST'])
 @require_role('admin')
@@ -6091,7 +6173,7 @@ def admin_event_distribution(event_id):
     
     # Получаем существующие задания
     conn = get_db_connection()
-    existing_assignments = conn.execute('''
+    existing_assignments_rows = conn.execute('''
         SELECT 
             ea.*,
             santa.username as santa_username,
@@ -6104,24 +6186,81 @@ def admin_event_distribution(event_id):
     ''', (event_id,)).fetchall()
     conn.close()
     
+    existing_assignments = [dict(row) for row in existing_assignments_rows]
+    assignments_map = {row['santa_user_id']: row['recipient_user_id'] for row in existing_assignments}
+    
     return render_template('admin/event_distribution.html', 
                        event=event, 
                        approved_participants=approved_participants,
-                       existing_assignments=existing_assignments)
+                       existing_assignments=existing_assignments,
+                       assignments_map=assignments_map)
 
 @app.route('/admin/events/<int:event_id>/distribution/random', methods=['POST'])
 @require_role('admin')
 def admin_event_distribution_random(event_id):
-    """Создание случайного распределения"""
+    """Возвращает случайное распределение без сохранения"""
+    participants = get_approved_participants(event_id)
+    if len(participants) < 2:
+        return jsonify(success=False, error='Недостаточно утвержденных участников (нужно минимум 2)'), 400
+    participant_ids = [p['user_id'] for p in participants]
+    import random
+    random.shuffle(participant_ids)
+    assignments = []
+    id_to_participant = {p['user_id']: dict(p) for p in participants}
+    for i, santa_id in enumerate(participant_ids):
+        recipient_id = participant_ids[(i + 1) % len(participant_ids)]
+        assignments.append({
+            'santa_user_id': santa_id,
+            'recipient_user_id': recipient_id,
+            'santa_username': id_to_participant[santa_id]['username'],
+            'recipient_username': id_to_participant[recipient_id]['username']
+        })
+    return jsonify(success=True, assignments=assignments)
+
+
+@app.route('/admin/events/<int:event_id>/distribution/save', methods=['POST'])
+@require_role('admin')
+def admin_event_distribution_save(event_id):
+    """Сохраняет распределение после подтверждения администратором"""
+    data = request.get_json(silent=True) or {}
+    assignments_data = data.get('assignments')
+    if not assignments_data or not isinstance(assignments_data, list):
+        return jsonify(success=False, error='Некорректные данные распределения'), 400
+    approved_participants = get_approved_participants(event_id)
+    approved_ids = {p['user_id'] for p in approved_participants}
+    if len(approved_ids) < 2:
+        return jsonify(success=False, error='Недостаточно утвержденных участников для распределения'), 400
+    santas_seen = set()
+    recipients_seen = set()
+    assignments_pairs = []
+    for item in assignments_data:
+        try:
+            santa_id = int(item.get('santa_user_id'))
+            recipient_id = int(item.get('recipient_user_id'))
+        except (TypeError, ValueError):
+            return jsonify(success=False, error='Некорректные идентификаторы участников'), 400
+        if santa_id not in approved_ids:
+            return jsonify(success=False, error=f'Участник {santa_id} не входит в список утвержденных'), 400
+        if recipient_id not in approved_ids:
+            return jsonify(success=False, error=f'Получатель {recipient_id} не входит в список утвержденных'), 400
+        if santa_id == recipient_id:
+            return jsonify(success=False, error='Участник не может дарить подарок себе'), 400
+        if santa_id in santas_seen:
+            return jsonify(success=False, error='Каждый участник должен быть Дедом Морозом ровно один раз'), 400
+        if recipient_id in recipients_seen:
+            return jsonify(success=False, error='Каждый участник должен быть получателем ровно один раз'), 400
+        santas_seen.add(santa_id)
+        recipients_seen.add(recipient_id)
+        assignments_pairs.append((santa_id, recipient_id))
+    if santas_seen != approved_ids or recipients_seen != approved_ids:
+        return jsonify(success=False, error='Распределение должно охватывать всех участников'), 400
     assigned_by = session.get('user_id')
-    success, message = create_random_assignments(event_id, assigned_by)
-    
+    if not assigned_by:
+        return jsonify(success=False, error='Необходима авторизация'), 403
+    success, result = save_event_assignments(event_id, assignments_pairs, assigned_by)
     if success:
-        flash(message, 'success')
-    else:
-        flash(message, 'error')
-    
-    return redirect(url_for('admin_event_distribution', event_id=event_id))
+        return jsonify(success=True, message=f'Сохранено {result} заданий')
+    return jsonify(success=False, error=result), 500
 
 # Инициализируем БД при импорте модуля (для WSGI)
 try:

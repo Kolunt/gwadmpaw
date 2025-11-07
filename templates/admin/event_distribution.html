@@ -10,89 +10,332 @@
             <a href="{{ url_for('admin_event_review', event_id=event.id) }}" class="btn btn-secondary">← Назад к ревью</a>
         </div>
     </div>
-    
+
+    {% if approved_participants %}
     <div class="event-view-card">
         <div class="settings-section">
-            <h2 class="settings-section-title">Утвержденные участники</h2>
+            <h2 class="settings-section-title">Сформируйте пары участников</h2>
             <p class="setting-hint" style="margin-bottom: 1.5rem;">
-                Каждый участник выступает в роли "Деда Мороза" (даритель) и "Внучки" (получатель).
-                Используйте кнопку ниже для случайного распределения.
+                Каждый участник должен выступать в роли «Деда Мороза» и «Внучки» ровно один раз. Сначала сформируйте пары автоматически или вручную, затем утвердите распределение.
             </p>
-            
-            {% if approved_participants %}
-            <div style="margin-bottom: 2rem;">
-                <form method="POST" action="{{ url_for('admin_event_distribution_random', event_id=event.id) }}" 
-                      onsubmit="return confirm('Создать случайное распределение? Существующие задания будут удалены.');">
-                    <button type="submit" class="btn btn-primary btn-large">
-                        🎲 Создать случайное распределение
-                    </button>
-                </form>
+
+            <div class="distribution-actions" style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary" id="generate-random-btn">🎲 Сформировать случайно</button>
+                <button type="button" class="btn btn-secondary" id="clear-assignment-btn">Очистить</button>
             </div>
-            
-            {% if existing_assignments %}
-            <div class="table-container">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>🎅 Дед Мороз</th>
-                            <th>→</th>
-                            <th>🎁 Внучка</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for assignment in existing_assignments %}
-                        <tr>
-                            <td data-label="Дед Мороз">
-                                <strong>{{ assignment.santa_username }}</strong>
-                            </td>
-                            <td data-label="→" style="text-align: center; font-size: 1.5rem;">→</td>
-                            <td data-label="Внучка">
-                                <strong>{{ assignment.recipient_username }}</strong>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            
-            <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
-                <p style="margin: 0;">
-                    <strong>Распределено:</strong> {{ existing_assignments|length }} пар
-                </p>
-            </div>
-            {% else %}
-            <div class="alert alert-info">
-                <p>Распределение еще не создано. Нажмите кнопку "Создать случайное распределение" выше.</p>
-            </div>
-            {% endif %}
-            
-            <div style="margin-top: 2rem;">
-                <h3>Список утвержденных участников ({{ approved_participants|length }})</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                    {% for participant in approved_participants %}
-                    <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
-                        <strong>{{ participant.username }}</strong><br>
-                        <small style="color: var(--text-secondary);">
-                            {% if participant.last_name or participant.first_name %}
-                                {{ participant.last_name or '' }} {{ participant.first_name or '' }}
-                            {% else %}
-                                ID: {{ participant.user_id }}
-                            {% endif %}
-                        </small>
-                    </div>
-                    {% endfor %}
+
+            <div id="distribution-alert" class="alert" style="display: none; margin-bottom: 1rem;"></div>
+
+            <form id="distribution-form">
+                <div class="table-container">
+                    <table class="admin-table" id="distribution-table">
+                        <thead>
+                            <tr>
+                                <th>🎅 Дед Мороз</th>
+                                <th>🎁 Внучка</th>
+                                <th style="width: 160px;">Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for participant in approved_participants %}
+                            {% set current_recipient = assignments_map.get(participant.user_id) %}
+                            <tr data-santa-id="{{ participant.user_id }}">
+                                <td data-label="Дед Мороз">
+                                    <strong>{{ participant.username }}</strong><br>
+                                    <small style="color: var(--text-secondary);">
+                                        {% if participant.last_name or participant.first_name %}
+                                            {{ participant.last_name or '' }} {{ participant.first_name or '' }} {{ participant.middle_name or '' }}
+                                        {% else %}
+                                            ID: {{ participant.user_id }}
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td data-label="Внучка">
+                                    <select class="recipient-select" name="recipient_{{ participant.user_id }}">
+                                        <option value="">— Выберите участника —</option>
+                                        {% for option in approved_participants %}
+                                            {% if option.user_id != participant.user_id %}
+                                            <option value="{{ option.user_id }}" {% if current_recipient == option.user_id %}selected{% endif %}>
+                                                {{ option.username }}
+                                                {% if option.last_name or option.first_name %}
+                                                    ({{ option.last_name or '' }} {{ option.first_name or '' }})
+                                                {% endif %}
+                                            </option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="assignment-status" data-label="Статус">
+                                    {% if current_recipient %}
+                                        <span class="badge badge-success">Готово</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">Не выбрано</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-            {% else %}
-            <div class="alert alert-warning">
-                <p>Нет утвержденных участников. Сначала утвердите участников на странице ревью.</p>
-                <a href="{{ url_for('admin_event_review', event_id=event.id) }}" class="btn btn-primary" style="margin-top: 1rem;">
-                    Перейти к ревью участников
-                </a>
+
+                <div class="form-actions" style="margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-primary btn-large" id="save-assignment-btn">Утвердить распределение</button>
+                </div>
+            </form>
+
+            {% if existing_assignments %}
+            <div class="alert alert-info" style="margin-top: 1.5rem;">
+                <p style="margin: 0;">Последнее сохраненное распределение содержит {{ existing_assignments|length }} пар. Вы можете обновить его выше и сохранить заново.</p>
             </div>
             {% endif %}
         </div>
     </div>
+
+    <div class="event-view-card" style="margin-top: 1.5rem;">
+        <div class="settings-section">
+            <h2 class="settings-section-title">Утвержденные участники ({{ approved_participants|length }})</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                {% for participant in approved_participants %}
+                <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                    <strong>{{ participant.username }}</strong>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                        {% if participant.last_name or participant.first_name %}
+                            {{ participant.last_name or '' }} {{ participant.first_name or '' }} {{ participant.middle_name or '' }}
+                        {% else %}
+                            ID: {{ participant.user_id }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="event-view-card">
+        <div class="alert alert-warning">
+            <p>Нет утвержденных участников. Сначала утвердите участников на странице ревью.</p>
+            <a href="{{ url_for('admin_event_review', event_id=event.id) }}" class="btn btn-primary" style="margin-top: 1rem;">
+                Перейти к ревью участников
+            </a>
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+{% if approved_participants %}
+<script>
+const eventId = {{ event.id }};
+const randomUrl = {{ url_for('admin_event_distribution_random', event_id=event.id)|tojson }};
+const saveUrl = {{ url_for('admin_event_distribution_save', event_id=event.id)|tojson }};
+const approvedParticipants = {{ approved_participants|tojson }};
+const existingAssignments = {{ existing_assignments|tojson }};
+
+const distributionForm = document.getElementById('distribution-form');
+const randomBtn = document.getElementById('generate-random-btn');
+const clearBtn = document.getElementById('clear-assignment-btn');
+const saveBtn = document.getElementById('save-assignment-btn');
+const alertBox = document.getElementById('distribution-alert');
+const rows = Array.from(document.querySelectorAll('#distribution-table tbody tr'));
+
+function showAlert(message, type = 'info') {
+    if (!alertBox) return;
+    alertBox.className = 'alert alert-' + type;
+    alertBox.textContent = message;
+    alertBox.style.display = 'block';
+}
+
+function hideAlert() {
+    if (!alertBox) return;
+    alertBox.style.display = 'none';
+}
+
+function setRowStatus(row, text, type) {
+    const cell = row.querySelector('.assignment-status');
+    if (!cell) return;
+    if (type === 'success') {
+        cell.innerHTML = '<span class="badge badge-success">' + text + '</span>';
+    } else if (type === 'warning') {
+        cell.innerHTML = '<span class="badge badge-warning">' + text + '</span>';
+    } else {
+        cell.innerHTML = '<span class="badge">' + text + '</span>';
+    }
+}
+
+function applyAssignments(assignments) {
+    const map = new Map();
+    assignments.forEach(item => {
+        map.set(String(item.santa_user_id), String(item.recipient_user_id));
+    });
+    rows.forEach(row => {
+        const santaId = row.dataset.santaId;
+        const select = row.querySelector('.recipient-select');
+        if (!select) return;
+        const value = map.get(santaId) || '';
+        select.value = value;
+        if (value) {
+            setRowStatus(row, 'Готово', 'success');
+        } else {
+            setRowStatus(row, 'Не выбрано', 'warning');
+        }
+        select.style.borderColor = '';
+    });
+    hideAlert();
+}
+
+function clearAssignments() {
+    rows.forEach(row => {
+        const select = row.querySelector('.recipient-select');
+        if (select) {
+            select.value = '';
+            select.style.borderColor = '';
+        }
+        setRowStatus(row, 'Не выбрано', 'warning');
+    });
+    showAlert('Распределение очищено. Выберите участников вручную или сформируйте пары заново.', 'info');
+}
+
+function gatherAssignments() {
+    const assignments = [];
+    let valid = true;
+    const recipients = new Set();
+    const errors = [];
+
+    rows.forEach(row => {
+        const santaId = parseInt(row.dataset.santaId, 10);
+        const select = row.querySelector('.recipient-select');
+        const value = select.value ? parseInt(select.value, 10) : null;
+        select.style.borderColor = '';
+
+        if (!value) {
+            valid = false;
+            errors.push('Не выбраны все получатели');
+            select.style.borderColor = 'var(--error-color)';
+            setRowStatus(row, 'Не выбрано', 'warning');
+        } else if (value === santaId) {
+            valid = false;
+            errors.push('Участник не может дарить подарок себе');
+            select.style.borderColor = 'var(--error-color)';
+            setRowStatus(row, 'Недопустимо', 'warning');
+        } else if (recipients.has(value)) {
+            valid = false;
+            errors.push('Получатель не может повторяться');
+            select.style.borderColor = 'var(--error-color)';
+            setRowStatus(row, 'Дубликат', 'warning');
+        } else {
+            recipients.add(value);
+            setRowStatus(row, 'Готово', 'success');
+        }
+
+        assignments.push({
+            santa_user_id: santaId,
+            recipient_user_id: value
+        });
+    });
+
+    if (!valid) {
+        showAlert(errors[0], 'warning');
+        return null;
+    }
+
+    if (recipients.size !== approvedParticipants.length) {
+        showAlert('Каждый участник должен быть назначен получателем ровно один раз.', 'warning');
+        return null;
+    }
+
+    return assignments;
+}
+
+async function handleRandomGeneration() {
+    hideAlert();
+    try {
+        const response = await fetch(randomUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({})
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            applyAssignments(data.assignments);
+            showAlert('Случайное распределение сформировано. Проверьте пары и утвердите распределение.', 'info');
+        } else {
+            showAlert(data.error || 'Не удалось сформировать распределение', 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showAlert('Ошибка при формировании распределения. Попробуйте еще раз.', 'error');
+    }
+}
+
+async function handleSave() {
+    hideAlert();
+    const assignments = gatherAssignments();
+    if (!assignments) {
+        return;
+    }
+    try {
+        const response = await fetch(saveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ assignments })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showAlert(data.message || 'Распределение сохранено', 'success');
+        } else {
+            showAlert(data.error || 'Не удалось сохранить распределение', 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showAlert('Ошибка при сохранении распределения. Попробуйте еще раз.', 'error');
+    }
+}
+
+function initExistingAssignments() {
+    if (!existingAssignments || !existingAssignments.length) {
+        rows.forEach(row => setRowStatus(row, 'Не выбрано', 'warning'));
+        return;
+    }
+    const normalized = existingAssignments.map(item => ({
+        santa_user_id: item.santa_user_id,
+        recipient_user_id: item.recipient_user_id
+    }));
+    applyAssignments(normalized);
+}
+
+if (randomBtn) {
+    randomBtn.addEventListener('click', handleRandomGeneration);
+}
+if (clearBtn) {
+    clearBtn.addEventListener('click', clearAssignments);
+}
+if (saveBtn) {
+    saveBtn.addEventListener('click', handleSave);
+}
+
+rows.forEach(row => {
+    const select = row.querySelector('.recipient-select');
+    if (!select) return;
+    select.addEventListener('change', () => {
+        if (select.value) {
+            select.style.borderColor = '';
+            setRowStatus(row, 'Готово', 'success');
+        } else {
+            setRowStatus(row, 'Не выбрано', 'warning');
+        }
+        hideAlert();
+    });
+});
+
+initExistingAssignments();
+</script>
+{% endif %}
 {% endblock %}
 

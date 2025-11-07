@@ -31,6 +31,16 @@
                                value="{{ user.username if user else request.form.get('username', '') }}"
                                placeholder="_Колунт_">
                     </div>
+                
+                <div class="form-group-compact">
+                    <label for="language">Язык интерфейса:</label>
+                    {% set current_language = (user.language if user else request.form.get('language', 'ru')) or 'ru' %}
+                    <select id="language" name="language">
+                        {% for code, name in available_languages.items() %}
+                        <option value="{{ code }}" {% if code == current_language %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                     
                     <div class="form-group-compact">
                         <label for="level">Уровень:</label>
@@ -75,9 +85,92 @@
                             <option value="1" {% if user and user.usersex == '1' %}selected{% endif %}>Женский</option>
                         </select>
                     </div>
+                
+                <div class="form-group-compact">
+                    <label for="old_passport">Старый паспорт:</label>
+                    <select id="old_passport" name="old_passport">
+                        {% set current_old_passport = (user.old_passport if user is not none else request.form.get('old_passport', '0')) or 0 %}
+                        <option value="0" {% if current_old_passport|int == 0 %}selected{% endif %}>Нет</option>
+                        <option value="1" {% if current_old_passport|int == 1 %}selected{% endif %}>Да</option>
+                    </select>
+                </div>
                 </div>
             </div>
             
+        <!-- Персональные данные -->
+        <div class="form-section-compact">
+            <h3 class="form-section-title">👤 Персональные данные</h3>
+            <div class="form-grid-compact">
+                <div class="form-group-compact">
+                    <label for="last_name">Фамилия:</label>
+                    <input type="text" id="last_name" name="last_name"
+                           value="{{ user.last_name if user else request.form.get('last_name', '') }}"
+                           placeholder="Иванов">
+                </div>
+                <div class="form-group-compact">
+                    <label for="first_name">Имя:</label>
+                    <input type="text" id="first_name" name="first_name"
+                           value="{{ user.first_name if user else request.form.get('first_name', '') }}"
+                           placeholder="Иван">
+                </div>
+                <div class="form-group-compact">
+                    <label for="middle_name">Отчество:</label>
+                    <input type="text" id="middle_name" name="middle_name"
+                           value="{{ user.middle_name if user else request.form.get('middle_name', '') }}"
+                           placeholder="Иванович">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Адрес -->
+        <div class="form-section-compact">
+            <h3 class="form-section-title">🏠 Адрес</h3>
+            <div class="form-grid-compact">
+                <div class="form-group-compact">
+                    <label for="postal_code">Индекс:</label>
+                    <input type="text" id="postal_code" name="postal_code"
+                           value="{{ user.postal_code if user else request.form.get('postal_code', '') }}"
+                           placeholder="123456">
+                </div>
+                <div class="form-group-compact">
+                    <label for="country">Страна:</label>
+                    <input type="text" id="country" name="country"
+                           value="{{ user.country if user else request.form.get('country', '') }}"
+                           placeholder="Россия">
+                </div>
+                <div class="form-group-compact">
+                    <label for="city">Город:</label>
+                    <input type="text" id="city" name="city"
+                           value="{{ user.city if user else request.form.get('city', '') }}"
+                           placeholder="Москва">
+                </div>
+                <div class="form-group-compact">
+                    <label for="street">Улица:</label>
+                    <input type="text" id="street" name="street"
+                           value="{{ user.street if user else request.form.get('street', '') }}"
+                           placeholder="Ленина">
+                </div>
+                <div class="form-group-compact">
+                    <label for="house">Дом:</label>
+                    <input type="text" id="house" name="house"
+                           value="{{ user.house if user else request.form.get('house', '') }}"
+                           placeholder="10">
+                </div>
+                <div class="form-group-compact">
+                    <label for="building">Корпус:</label>
+                    <input type="text" id="building" name="building"
+                           value="{{ user.building if user else request.form.get('building', '') }}"
+                           placeholder="1">
+                </div>
+                <div class="form-group-compact">
+                    <label for="apartment">Квартира:</label>
+                    <input type="text" id="apartment" name="apartment"
+                           value="{{ user.apartment if user else request.form.get('apartment', '') }}"
+                           placeholder="25">
+                </div>
+            </div>
+        </div>
+        
             <!-- Дополнительная информация -->
             <div class="form-section-compact">
                 <h3 class="form-section-title">ℹ️ Дополнительная информация</h3>
@@ -134,6 +227,28 @@
                     </div>
                 </div>
             </div>
+        
+        <!-- Аватар -->
+        <div class="form-section-compact">
+            <h3 class="form-section-title">🎨 Аватар</h3>
+            <div class="form-grid-compact">
+                <div class="form-group-compact">
+                    <label for="avatar_seed">Avatar seed:</label>
+                    <input type="text" id="avatar_seed" name="avatar_seed"
+                           value="{{ user.avatar_seed if user else request.form.get('avatar_seed', '') }}"
+                           placeholder="Оставьте пустым для автоматической генерации">
+                </div>
+                <div class="form-group-compact">
+                    <label for="avatar_style">Стиль аватара:</label>
+                    {% set current_avatar_style = (user.avatar_style if user else request.form.get('avatar_style', 'avataaars')) or 'avataaars' %}
+                    <select id="avatar_style" name="avatar_style">
+                        {% for style in avatar_styles %}
+                        <option value="{{ style }}" {% if style == current_avatar_style %}selected{% endif %}>{{ style }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
             
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
