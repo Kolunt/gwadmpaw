@@ -2446,9 +2446,21 @@ def admin_users():
         GROUP BY u.user_id
         ORDER BY u.created_at DESC
     ''').fetchall()
+    
+    roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
+    roles_with_counts = []
+    for role in roles:
+        count = conn.execute('''
+            SELECT COUNT(*) as count FROM user_roles WHERE role_id = ?
+        ''', (role['id'],)).fetchone()
+        roles_with_counts.append({
+            **dict(role),
+            'user_count': count['count']
+        })
+    
     conn.close()
     
-    return render_template('admin/users.html', users=users)
+    return render_template('admin/users.html', users=users, roles=roles_with_counts)
 
 @app.route('/admin/users/<int:user_id>/impersonate', methods=['POST'])
 @require_role('admin')
@@ -2825,24 +2837,8 @@ def admin_user_roles(user_id):
 @app.route('/admin/roles')
 @require_role('admin')
 def admin_roles():
-    """Управление ролями"""
-    conn = get_db_connection()
-    roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
-    
-    # Для каждой роли получаем количество пользователей
-    roles_with_counts = []
-    for role in roles:
-        count = conn.execute('''
-            SELECT COUNT(*) as count FROM user_roles WHERE role_id = ?
-        ''', (role['id'],)).fetchone()
-        roles_with_counts.append({
-            **dict(role),
-            'user_count': count['count']
-        })
-    
-    conn.close()
-    
-    return render_template('admin/roles.html', roles=roles_with_counts)
+    """Редирект на вкладку ролей в управлении пользователями"""
+    return redirect(url_for('admin_users') + '#roles')
 
 @app.route('/admin/roles/create', methods=['GET', 'POST'])
 @require_role('admin')

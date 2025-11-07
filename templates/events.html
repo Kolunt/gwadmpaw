@@ -19,7 +19,7 @@
                     <tr>
                         <th>Название</th>
                         <th>Текущий этап</th>
-                        <th>Дата начала этапа</th>
+                        <th>Начало</th>
                         <th>👥</th>
                         <th>Статус</th>
                         <th>Регистрация</th>
@@ -49,7 +49,7 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td data-label="Дата начала этапа">
+                        <td data-label="Начало">
                             {% if current_stage and current_stage.data.start_datetime %}
                                 {{ current_stage.data.start_datetime }}
                             {% else %}
