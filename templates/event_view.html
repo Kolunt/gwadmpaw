@@ -135,6 +135,13 @@
             {% if registrations %}
             <div class="event-info-section">
                 <h3>Участники ({{ registrations_count }})</h3>
+                {% if is_admin %}
+                <div style="margin-bottom: 1rem;">
+                    <a href="{{ url_for('admin_event_participants', event_id=event.id) }}" class="btn btn-secondary">
+                        Просмотреть участников (админ)
+                    </a>
+                </div>
+                {% endif %}
                 <div class="participants-grid">
                     {% for reg in registrations %}
                     <div class="participant-card">

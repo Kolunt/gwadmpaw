@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Участники {{ event.name }} - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <div>
+            <h1>Участники мероприятия</h1>
+            <p class="text-muted" style="margin: 0;">{{ event.name }}</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{{ url_for('admin_event_view', event_id=event.id) }}" class="btn btn-secondary">← Назад к мероприятию</a>
+            <a href="{{ url_for('admin_events') }}" class="btn btn-secondary">Список мероприятий</a>
+        </div>
+    </div>
+
+    <div class="event-meta-card">
+        <div class="event-meta-item">
+            <span class="event-meta-label">ID мероприятия</span>
+            <span class="event-meta-value">#{{ event.id }}</span>
+        </div>
+        <div class="event-meta-item">
+            <span class="event-meta-label">Создатель</span>
+            <span class="event-meta-value">{{ event.creator_name or 'Не указан' }}</span>
+        </div>
+        <div class="event-meta-item">
+            <span class="event-meta-label">Всего участников</span>
+            <span class="event-meta-value">{{ participants_count }}</span>
+        </div>
+        <div class="event-meta-item">
+            <span class="event-meta-label">Описание</span>
+            <span class="event-meta-value">{{ event.description or '—' }}</span>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <h2 style="margin-top: 0;">Добавить участника вручную</h2>
+        <form method="POST" action="{{ url_for('admin_event_participant_add', event_id=event.id) }}" class="manual-add-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="user_identifier" class="form-label">ID или имя пользователя</label>
+                    <input type="text" id="user_identifier" name="user_identifier" class="form-input" placeholder="Например: 12345 или username" required>
+                </div>
+                <div class="form-group">
+                    <label for="notes" class="form-label">Комментарий (опционально)</label>
+                    <input type="text" id="notes" name="notes" class="form-input" placeholder="Например: добавлен вручную">
+                </div>
+                <div class="form-group">
+                    <label for="stage" class="form-label">Этап регистрации</label>
+                    <select id="stage" name="stage" class="form-select" required>
+                        <option value="pre" selected>Предварительная регистрация</option>
+                        <option value="main">Основная регистрация</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Добавить участника</button>
+                <p class="text-muted" style="margin: 0;">Пользователь будет добавлен в список участников и сразу одобрен.</p>
+            </div>
+        </form>
+    </div>
+
+{% macro participants_table(participants, show_actions=False) %}
+    <div class="table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Пользователь</th>
+                    <th>ФИО</th>
+                    <th>Адрес</th>
+                    <th>Контакты</th>
+                    <th>Дата регистрации</th>
+                    <th>Статус</th>
+                    {% if show_actions %}
+                    <th>Действия</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for participant in participants %}
+                <tr>
+                    <td data-label="ID">{{ participant.user_id }}</td>
+                    <td data-label="Пользователь">
+                        <a href="{{ url_for('view_profile', user_id=participant.user_id) }}" class="contact-link">{{ participant.username }}</a>
+                    </td>
+                    <td data-label="ФИО">
+                        {% if participant.last_name or participant.first_name or participant.middle_name %}
+                            {{ participant.last_name or '' }} {{ participant.first_name or '' }} {{ participant.middle_name or '' }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Адрес">
+                        {% if participant.postal_code or participant.country or participant.city or participant.street %}
+                            <div class="address-text">
+                                {% if participant.postal_code %}{{ participant.postal_code }},{% endif %}
+                                {% if participant.country %} {{ participant.country }},{% endif %}
+                                {% if participant.city %} {{ participant.city }},{% endif %}
+                                {% if participant.street %} {{ participant.street }}{% endif %}
+                                {% if participant.house %}, д. {{ participant.house }}{% endif %}
+                                {% if participant.building %}, корп. {{ participant.building }}{% endif %}
+                                {% if participant.apartment %}, кв. {{ participant.apartment }}{% endif %}
+                            </div>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Контакты">
+                        <div class="contacts-list">
+                            {% if participant.email %}
+                            <div><strong>Email:</strong> <a href="mailto:{{ participant.email }}" class="contact-link">{{ participant.email }}</a></div>
+                            {% endif %}
+                            {% if participant.phone %}
+                            <div><strong>Телефон:</strong> <a href="tel:{{ participant.phone|replace(' ', '') }}" class="contact-link">{{ participant.phone }}</a></div>
+                            {% endif %}
+                            {% if participant.telegram %}
+                            <div><strong>Telegram:</strong>
+                                <a href="https://t.me/{{ participant.telegram.lstrip('@') }}" class="contact-link">
+                                    {{ participant.telegram if participant.telegram.startswith('@') else '@' ~ participant.telegram }}
+                                </a>
+                            </div>
+                            {% endif %}
+                            {% if participant.whatsapp %}
+                            <div><strong>WhatsApp:</strong> <a href="https://wa.me/{{ participant.whatsapp|replace(' ', '') }}" class="contact-link">{{ participant.whatsapp }}</a></div>
+                            {% endif %}
+                            {% if participant.viber %}
+                            <div><strong>Viber:</strong> <a href="viber://chat?number={{ participant.viber|replace(' ', '') }}" class="contact-link">{{ participant.viber }}</a></div>
+                            {% endif %}
+                            {% if not (participant.email or participant.phone or participant.telegram or participant.whatsapp or participant.viber) %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td data-label="Дата регистрации">
+                        {% if participant.registered_at %}
+                            {{ participant.registered_at }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Статус">
+                        {% if participant.approval_status == 'approved' %}
+                            <span class="badge badge-success">Подтвержден</span>
+                        {% elif participant.approval_status == 'rejected' %}
+                            <span class="badge badge-danger">Отклонен</span>
+                        {% else %}
+                            <span class="badge badge-warning">Ожидает решения</span>
+                        {% endif %}
+                        {% if participant.approval_notes %}
+                        <div class="text-muted small" style="margin-top: 0.25rem;">{{ participant.approval_notes }}</div>
+                        {% endif %}
+                    </td>
+                    {% if show_actions %}
+                    <td data-label="Действия">
+                        <div class="table-action-group">
+                            {% if participant.can_confirm_participant and participant.stage == 'main' %}
+                            <form method="POST" action="{{ url_for('admin_event_participant_confirm', event_id=event.id) }}">
+                                <input type="hidden" name="user_id" value="{{ participant.user_id }}">
+                                <button type="submit" class="btn-icon" title="Подтвердить участие">✅</button>
+                            </form>
+                            {% endif %}
+                            {% if participant.can_reject_participant and participant.stage == 'main' %}
+                            <form method="POST" action="{{ url_for('admin_event_participant_reject', event_id=event.id) }}" class="participant-reject-form">
+                                <input type="hidden" name="user_id" value="{{ participant.user_id }}">
+                                <input type="hidden" name="reason" class="reject-reason-input">
+                                <button type="button" class="btn-icon btn-icon-danger participant-reject-btn" data-username="{{ participant.username }}">🚫</button>
+                            </form>
+                            {% endif %}
+                            {% if participant.can_upgrade_to_main %}
+                            <form method="POST" action="{{ url_for('admin_event_participant_upgrade', event_id=event.id) }}">
+                                <input type="hidden" name="user_id" value="{{ participant.user_id }}">
+                                <button type="submit" class="btn-icon" title="Перевести в основную регистрацию">⬆️</button>
+                            </form>
+                            {% endif %}
+                            {% if participant.can_downgrade_to_pre %}
+                            <form method="POST" action="{{ url_for('admin_event_participant_downgrade', event_id=event.id) }}">
+                                <input type="hidden" name="user_id" value="{{ participant.user_id }}">
+                                <button type="submit" class="btn-icon" title="Перевести в предварительную регистрацию">⬇️</button>
+                            </form>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('admin_event_participant_remove', event_id=event.id) }}" onsubmit="return confirm('Удалить участника {{ participant.username }} из мероприятия?');">
+                                <input type="hidden" name="user_id" value="{{ participant.user_id }}">
+                                <button type="submit" class="btn-icon btn-icon-danger" title="Удалить участника">🗑️</button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+
+                {% if not participants %}
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        Участники не найдены.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% endmacro %}
+
+    <div class="admin-tabs">
+        <a class="admin-tab-btn active" data-tab="all" href="#all">Все ({{ participants_count }})</a>
+        <a class="admin-tab-btn" data-tab="pre" href="#pre">Предварительная регистрация ({{ participants_pre_count }})</a>
+        <a class="admin-tab-btn" data-tab="main" href="#main">Основная регистрация ({{ participants_main_count }})</a>
+        <a class="admin-tab-btn" data-tab="positive" href="#positive">Позитив ({{ participants_positive_count }})</a>
+        <a class="admin-tab-btn" data-tab="negative" href="#negative">Негатив ({{ participants_negative_count }})</a>
+        <a class="admin-tab-btn" data-tab="na" href="#na">N/A ({{ participants_na_count }})</a>
+    </div>
+
+    <div class="admin-tab-content active" data-tab="all">
+        {{ participants_table(participants_all, show_actions=True) }}
+    </div>
+    <div class="admin-tab-content" data-tab="pre">
+        {{ participants_table(participants_pre, show_actions=True) }}
+    </div>
+    <div class="admin-tab-content" data-tab="main">
+        {{ participants_table(participants_main, show_actions=True) }}
+    </div>
+    <div class="admin-tab-content" data-tab="positive">
+        {{ participants_table(participants_positive, show_actions=True) }}
+    </div>
+    <div class="admin-tab-content" data-tab="negative">
+        {{ participants_table(participants_negative, show_actions=True) }}
+    </div>
+    <div class="admin-tab-content" data-tab="na">
+        {{ participants_table(participants_na, show_actions=True) }}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.admin-tab-btn');
+    const contents = document.querySelectorAll('.admin-tab-content');
+
+    function activateTab(tabName, updateHash = true) {
+        tabs.forEach(btn => {
+            if (btn.dataset.tab === tabName) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        contents.forEach(content => {
+            if (content.dataset.tab === tabName) {
+                content.classList.add('active');
+            } else {
+                content.classList.remove('active');
+            }
+        });
+
+        if (updateHash) {
+            const targetHash = '#' + tabName;
+            if (window.location.hash !== targetHash) {
+                history.replaceState(null, '', targetHash);
+            }
+        }
+    }
+
+    tabs.forEach(btn => {
+        btn.addEventListener('click', function(event) {
+            event.preventDefault();
+            activateTab(this.dataset.tab);
+        });
+    });
+
+    const initialHash = window.location.hash ? window.location.hash.substring(1) : '';
+    if (initialHash) {
+        const exists = Array.from(tabs).some(btn => btn.dataset.tab === initialHash);
+        if (exists) {
+            activateTab(initialHash, false);
+        }
+    }
+
+    window.addEventListener('hashchange', function() {
+        const newHash = window.location.hash ? window.location.hash.substring(1) : '';
+        if (newHash) {
+            const exists = Array.from(tabs).some(btn => btn.dataset.tab === newHash);
+            if (exists) {
+                activateTab(newHash, false);
+            }
+        }
+    });
+
+    const rejectButtons = document.querySelectorAll('.participant-reject-btn');
+    rejectButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const form = this.closest('form');
+            const reasonInput = form.querySelector('.reject-reason-input');
+            const username = this.dataset.username || '';
+            const promptText = username ? `Причина отказа для ${username} (опционально):` : 'Причина отказа (опционально):';
+            const reason = window.prompt(promptText, '');
+            if (reason === null) {
+                return;
+            }
+            reasonInput.value = reason || '';
+            form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}
+

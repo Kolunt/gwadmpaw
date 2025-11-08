@@ -472,23 +472,23 @@ body {
 }
 
 .contact-link {
-    color: var(--accent-color);
+    color: var(--success-color);
     text-decoration: none;
 }
 
 .contact-link:hover,
 .contact-link:focus {
-    color: var(--accent-hover);
+    color: #1e7e34;
     text-decoration: underline;
 }
 
 [data-theme="dark"] .contact-link {
-    color: var(--accent-color);
+    color: var(--success-color);
 }
 
 [data-theme="dark"] .contact-link:hover,
 [data-theme="dark"] .contact-link:focus {
-    color: var(--accent-hover);
+    color: #34c759;
 }
 
 .admin-tabs {
@@ -506,6 +506,72 @@ body {
     cursor: pointer;
     font-weight: 600;
     transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.table-action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-icon:hover,
+.btn-icon:focus {
+    background-color: var(--accent-color);
+    color: var(--bg-primary);
+    transform: scale(1.05);
+}
+
+.btn-icon-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #dc3545;
+}
+
+.btn-icon-danger:hover,
+.btn-icon-danger:focus {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+
+[data-theme="dark"] .btn-icon {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-icon:hover,
+[data-theme="dark"] .btn-icon:focus {
+    background-color: var(--accent-color);
+    color: #0f172a;
+}
+
+[data-theme="dark"] .btn-icon-danger {
+    background-color: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #ff6b81;
+}
+
+[data-theme="dark"] .btn-icon-danger:hover,
+[data-theme="dark"] .btn-icon-danger:focus {
+    background-color: #ff6b81;
+    border-color: #ff6b81;
+    color: #0f172a;
 }
 
 .admin-tab-btn:hover {
@@ -1280,6 +1346,29 @@ body {
 .admin-card p {
     color: var(--text-secondary);
     margin-bottom: 1.5rem;
+}
+
+.manual-add-form .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.manual-add-form .form-group {
+    flex: 1 1 220px;
+}
+
+.manual-add-form .form-actions {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.manual-add-form .form-input,
+.manual-add-form .form-select {
+    width: 100%;
 }
 
 /* Participants Page */

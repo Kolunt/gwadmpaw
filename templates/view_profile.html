@@ -46,16 +46,18 @@
                data-tab="main">
                 📋 Основное
             </a>
-            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#titles" 
-               class="dashboard-tab" 
-               data-tab="titles">
-                🏆 Звания
-            </a>
             {% if user_awards %}
             <a href="{{ url_for('view_profile', user_id=user.user_id) }}#awards" 
                class="dashboard-tab" 
                data-tab="awards">
                 🎖️ Награды
+            </a>
+            {% endif %}
+            {% if is_admin %}
+            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#contacts" 
+               class="dashboard-tab" 
+               data-tab="contacts">
+                📞 Контакты
             </a>
             {% endif %}
             {% if user.bio or user.contact_info %}
@@ -162,8 +164,8 @@
         </div>
 
         <!-- Содержимое таба "Звания" -->
+        {% if user_titles %}
         <div class="dashboard-tab-content" data-tab="titles">
-            {% if user_titles %}
             <div class="profile-info">
                 <table class="titles-table">
                     <thead>
@@ -198,12 +200,8 @@
                     </tbody>
                 </table>
             </div>
-            {% else %}
-            <div class="profile-info">
-                <p class="text-muted">У пользователя нет званий</p>
-            </div>
-            {% endif %}
         </div>
+        {% endif %}
 
         <!-- Содержимое таба "Награды" -->
         {% if user_awards %}
@@ -226,6 +224,112 @@
                         </h3>
                     </div>
                     {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if is_admin %}
+        <div class="dashboard-tab-content" data-tab="contacts">
+            <div class="profile-info">
+                <h3 class="section-subtitle">Личные данные</h3>
+                <div class="info-row">
+                    <span class="info-label">Фамилия:</span>
+                    <span class="info-value">{{ user.last_name or '—' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Имя:</span>
+                    <span class="info-value">{{ user.first_name or '—' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Отчество:</span>
+                    <span class="info-value">{{ user.middle_name or '—' }}</span>
+                </div>
+
+                <h3 class="section-subtitle">Почтовый адрес</h3>
+                <div class="info-row">
+                    <span class="info-label">Индекс:</span>
+                    <span class="info-value">{{ user.postal_code or '—' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Страна:</span>
+                    <span class="info-value">{{ user.country or '—' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Город:</span>
+                    <span class="info-value">{{ user.city or '—' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Улица:</span>
+                    <span class="info-value">{{ user.street or '—' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Дом:</span>
+                    <span class="info-value">{{ user.house or '—' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Корпус / строение:</span>
+                    <span class="info-value">{{ user.building or '—' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Квартира:</span>
+                    <span class="info-value">{{ user.apartment or '—' }}</span>
+                </div>
+
+                <h3 class="section-subtitle">Контакты</h3>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">
+                        {% if user.email %}
+                            <a href="mailto:{{ user.email }}" class="contact-link">{{ user.email }}</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Телефон:</span>
+                    <span class="info-value">
+                        {% if user.phone %}
+                            <a href="tel:{{ user.phone|replace(' ', '') }}" class="contact-link">{{ user.phone }}</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Telegram:</span>
+                    <span class="info-value">
+                        {% if user.telegram %}
+                            {% if user.telegram.startswith('@') %}
+                                <a href="https://t.me/{{ user.telegram[1:] }}" class="contact-link">{{ user.telegram }}</a>
+                            {% else %}
+                                <a href="https://t.me/{{ user.telegram }}" class="contact-link">{{ '@' + user.telegram }}</a>
+                            {% endif %}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">WhatsApp:</span>
+                    <span class="info-value">
+                        {% if user.whatsapp %}
+                            <a href="https://wa.me/{{ user.whatsapp|replace(' ', '') }}" class="contact-link">{{ user.whatsapp }}</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Viber:</span>
+                    <span class="info-value">
+                        {% if user.viber %}
+                            <a href="viber://chat?number={{ user.viber|replace(' ', '') }}" class="contact-link">{{ user.viber }}</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
                 </div>
             </div>
         </div>

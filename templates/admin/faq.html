@@ -71,10 +71,12 @@
                             <small class="text-muted">{% if item.updater_name %}{{ item.updater_name }}{% endif %}</small>
                         </td>
                         <td data-label="Действия">
-                            <a href="{{ url_for('admin_faq_edit', faq_id=item.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
-                            <form method="POST" action="{{ url_for('admin_faq_delete', faq_id=item.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот вопрос?');">
-                                <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
-                            </form>
+                            <div class="table-action-group">
+                                <a href="{{ url_for('admin_faq_edit', faq_id=item.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                <form method="POST" action="{{ url_for('admin_faq_delete', faq_id=item.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить этот вопрос?');">
+                                    <button type="submit" class="btn-icon btn-icon-danger" title="Удалить">🗑️</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -146,10 +148,12 @@
                             <small class="text-muted">{% if category.updater_name %}{{ category.updater_name }}{% endif %}</small>
                         </td>
                         <td data-label="Действия">
-                            <a href="{{ url_for('admin_faq_category_edit', category_id=category.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
-                            <form method="POST" action="{{ url_for('admin_faq_category_delete', category_id=category.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');">
-                                <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
-                            </form>
+                            <div class="table-action-group">
+                                <a href="{{ url_for('admin_faq_category_edit', category_id=category.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                <form method="POST" action="{{ url_for('admin_faq_category_delete', category_id=category.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');">
+                                    <button type="submit" class="btn-icon btn-icon-danger" title="Удалить">🗑️</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

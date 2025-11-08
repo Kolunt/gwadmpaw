@@ -2407,6 +2407,7 @@ def view_profile(user_id):
         user_titles=user_titles,
         user_awards=user_awards,
         is_own_profile=is_own_profile,
+        is_admin=is_admin,
         can_impersonate=can_impersonate,
         impersonation_active=impersonation_active
     )
@@ -5184,6 +5185,7 @@ def event_view(event_id):
     is_registered = is_user_registered(event_id, user_id)
     registrations_count = get_event_registrations_count(event_id)
     registrations = get_event_registrations(event_id)
+    is_admin = 'admin' in session.get('roles', []) if session.get('roles') else False
     
     # Проверяем, закончилось ли мероприятие, и выдаем награды если нужно
     if is_event_finished(event_id):
@@ -5287,6 +5289,7 @@ def event_view(event_id):
                          registrations_count=registrations_count,
                          registrations=registrations,
                          stages_with_info=stages_with_info,
+                         is_admin=is_admin,
                          next_stage=next_stage_payload)
 
 def has_required_contacts(user_id):
@@ -6409,6 +6412,656 @@ def admin_event_view(event_id):
     current_stage = get_current_event_stage(event_id)
     
     return render_template('admin/event_view.html', event=event, stages_with_info=stages_with_info, current_stage=current_stage)
+
+
+@app.route('/admin/events/<int:event_id>/participants')
+@require_role('admin')
+def admin_event_participants(event_id):
+    """Детальный список участников мероприятия для администраторов"""
+    conn = get_db_connection()
+    event = conn.execute('''
+        SELECT e.*, u.username as creator_name
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
+        WHERE e.id = ?
+    ''', (event_id,)).fetchone()
+
+    if not event:
+        conn.close()
+        flash('Мероприятие не найдено', 'error')
+        return redirect(url_for('admin_events'))
+
+    stages = conn.execute('''
+        SELECT stage_type, start_datetime
+        FROM event_stages
+        WHERE event_id = ?
+    ''', (event_id,)).fetchall()
+
+    participants = conn.execute('''
+        SELECT 
+            er.user_id,
+            er.registered_at,
+            COALESCE(d.last_name, u.last_name) AS last_name,
+            COALESCE(d.first_name, u.first_name) AS first_name,
+            COALESCE(d.middle_name, u.middle_name) AS middle_name,
+            COALESCE(d.postal_code, u.postal_code) AS postal_code,
+            COALESCE(d.country, u.country) AS country,
+            COALESCE(d.city, u.city) AS city,
+            COALESCE(d.street, u.street) AS street,
+            COALESCE(d.house, u.house) AS house,
+            COALESCE(d.building, u.building) AS building,
+            COALESCE(d.apartment, u.apartment) AS apartment,
+            COALESCE(d.phone, u.phone) AS phone,
+            COALESCE(d.telegram, u.telegram) AS telegram,
+            COALESCE(d.whatsapp, u.whatsapp) AS whatsapp,
+            COALESCE(d.viber, u.viber) AS viber,
+            u.username,
+            u.avatar_seed,
+            u.avatar_style,
+            u.email,
+            epa.approved AS approval_flag,
+            epa.notes AS approval_notes,
+            epa.approved_at AS approval_timestamp,
+            epa.approved_by AS approval_by
+        FROM event_registrations er
+        LEFT JOIN users u ON er.user_id = u.user_id
+        LEFT JOIN event_registration_details d ON d.event_id = er.event_id AND d.user_id = er.user_id
+        LEFT JOIN event_participant_approvals epa ON epa.event_id = er.event_id AND epa.user_id = er.user_id
+        WHERE er.event_id = ?
+        ORDER BY u.username COLLATE NOCASE
+    ''', (event_id,)).fetchall()
+    conn.close()
+
+    stage_times = {row['stage_type']: row['start_datetime'] for row in stages}
+
+    def parse_dt(value):
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(str(value))
+        except ValueError:
+            try:
+                return datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                return None
+
+    pre_start = parse_dt(stage_times.get('pre_registration'))
+    main_start = parse_dt(stage_times.get('main_registration'))
+    registration_closed_start = parse_dt(stage_times.get('registration_closed'))
+
+    participants_data = []
+    for row in participants:
+        registered_at_dt = parse_dt(row['registered_at'])
+
+        stage_label = 'main'
+        if pre_start and main_start and registered_at_dt:
+            if registered_at_dt < main_start:
+                stage_label = 'pre'
+            else:
+                stage_label = 'main'
+        elif pre_start and registered_at_dt and not main_start:
+            if registered_at_dt < pre_start:
+                stage_label = 'pre'
+        elif main_start and registered_at_dt:
+            stage_label = 'pre' if registered_at_dt < main_start else 'main'
+
+        if registration_closed_start and registered_at_dt and registered_at_dt >= registration_closed_start:
+            stage_label = 'main'
+
+        approval_flag = row['approval_flag']
+        approval_timestamp = row['approval_timestamp']
+        approval_status = 'pending'
+        if approval_flag == 1:
+            approval_status = 'approved'
+        elif approval_flag == 0 and approval_timestamp:
+            approval_status = 'rejected'
+
+        approval_notes = row['approval_notes']
+
+        participants_data.append({
+            'user_id': row['user_id'],
+            'username': row['username'] or f'ID {row["user_id"]}',
+            'registered_at': row['registered_at'],
+            'last_name': row['last_name'],
+            'first_name': row['first_name'],
+            'middle_name': row['middle_name'],
+            'postal_code': row['postal_code'],
+            'country': row['country'],
+            'city': row['city'],
+            'street': row['street'],
+            'house': row['house'],
+            'building': row['building'],
+            'apartment': row['apartment'],
+            'phone': row['phone'],
+            'telegram': row['telegram'],
+            'whatsapp': row['whatsapp'],
+            'viber': row['viber'],
+            'email': row['email'],
+            'stage': stage_label,
+            'can_upgrade_to_main': stage_label == 'pre',
+            'can_downgrade_to_pre': stage_label == 'main',
+            'approval_status': approval_status,
+            'approval_notes': approval_notes,
+            'can_confirm_participant': stage_label == 'main' and approval_status != 'approved',
+            'can_reject_participant': stage_label == 'main' and approval_status != 'rejected'
+        })
+
+    pre_participants = [p for p in participants_data if p['stage'] == 'pre']
+    main_participants = [p for p in participants_data if p['stage'] == 'main']
+    positive_participants = [p for p in participants_data if p['approval_status'] == 'approved']
+    negative_participants = [p for p in participants_data if p['approval_status'] == 'rejected']
+    na_participants = [p for p in participants_data if p['stage'] == 'main' and p['approval_status'] == 'pending']
+
+    return render_template(
+        'admin/event_participants.html',
+        event=event,
+        participants_all=participants_data,
+        participants_pre=pre_participants,
+        participants_main=main_participants,
+        participants_positive=positive_participants,
+        participants_negative=negative_participants,
+        participants_na=na_participants,
+        participants_count=len(participants_data),
+        participants_pre_count=len(pre_participants),
+        participants_main_count=len(main_participants),
+        participants_positive_count=len(positive_participants),
+        participants_negative_count=len(negative_participants),
+        participants_na_count=len(na_participants)
+    )
+
+
+@app.route('/admin/events/<int:event_id>/participants/add', methods=['POST'])
+@require_role('admin')
+def admin_event_participant_add(event_id):
+    """Позволяет администратору добавить участника вручную"""
+    identifier = request.form.get('user_identifier', '').strip()
+    note = request.form.get('notes', '').strip()
+    stage_choice = request.form.get('stage', 'main')
+
+    if not identifier:
+        flash('Укажите ID или имя пользователя', 'error')
+        return redirect(url_for('admin_event_participants', event_id=event_id))
+
+    conn = get_db_connection()
+    try:
+        event = conn.execute('SELECT id, name FROM events WHERE id = ?', (event_id,)).fetchone()
+        if not event:
+            conn.close()
+            flash('Мероприятие не найдено', 'error')
+            return redirect(url_for('admin_events'))
+
+        user = None
+        if identifier.isdigit():
+            user = conn.execute('SELECT * FROM users WHERE user_id = ?', (int(identifier),)).fetchone()
+        if not user:
+            user = conn.execute('SELECT * FROM users WHERE LOWER(username) = ?', (identifier.lower(),)).fetchone()
+
+        if not user:
+            conn.close()
+            flash('Пользователь не найден', 'error')
+            return redirect(url_for('admin_event_participants', event_id=event_id))
+
+        existing = conn.execute('''
+            SELECT 1 FROM event_registrations WHERE event_id = ? AND user_id = ?
+        ''', (event_id, user['user_id'])).fetchone()
+        if existing:
+            conn.close()
+            flash('Этот пользователь уже участвует в мероприятии', 'info')
+            return redirect(url_for('admin_event_participants', event_id=event_id))
+
+        pre_stage = conn.execute('''
+            SELECT start_datetime
+            FROM event_stages
+            WHERE event_id = ? AND stage_type = 'pre_registration'
+        ''', (event_id,)).fetchone()
+        main_stage = conn.execute('''
+            SELECT start_datetime
+            FROM event_stages
+            WHERE event_id = ? AND stage_type = 'main_registration'
+        ''', (event_id,)).fetchone()
+
+        stage_choice = stage_choice if stage_choice in ('pre', 'main') else 'main'
+
+        target_datetime = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        if stage_choice == 'pre':
+            if pre_stage and pre_stage['start_datetime']:
+                target_datetime = pre_stage['start_datetime']
+        else:
+            if main_stage and main_stage['start_datetime']:
+                target_datetime = main_stage['start_datetime']
+
+        conn.execute('''
+            INSERT INTO event_registrations (event_id, user_id)
+            VALUES (?, ?)
+        ''', (event_id, user['user_id']))
+
+        profile = {key: (user[key] or '').strip() if isinstance(user[key], str) else user[key]
+                   for key in user.keys()}
+
+        conn.execute('''
+            INSERT INTO event_registration_details (
+                event_id, user_id, last_name, first_name, middle_name,
+                postal_code, country, city, street, house, building, apartment,
+                phone, telegram, whatsapp, viber
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(event_id, user_id) DO UPDATE SET
+                last_name = excluded.last_name,
+                first_name = excluded.first_name,
+                middle_name = excluded.middle_name,
+                postal_code = excluded.postal_code,
+                country = excluded.country,
+                city = excluded.city,
+                street = excluded.street,
+                house = excluded.house,
+                building = excluded.building,
+                apartment = excluded.apartment,
+                phone = excluded.phone,
+                telegram = excluded.telegram,
+                whatsapp = excluded.whatsapp,
+                viber = excluded.viber,
+                updated_at = CURRENT_TIMESTAMP
+        ''', (
+            event_id,
+            user['user_id'],
+            profile.get('last_name'),
+            profile.get('first_name'),
+            profile.get('middle_name'),
+            profile.get('postal_code'),
+            profile.get('country'),
+            profile.get('city'),
+            profile.get('street'),
+            profile.get('house'),
+            profile.get('building'),
+            profile.get('apartment'),
+            profile.get('phone'),
+            profile.get('telegram'),
+            profile.get('whatsapp'),
+            profile.get('viber')
+        ))
+
+        conn.execute('''
+            UPDATE event_registrations
+            SET registered_at = ?
+            WHERE event_id = ? AND user_id = ?
+        ''', (target_datetime, event_id, user['user_id']))
+
+        approval_note = note or 'Добавлен администратором вручную'
+        conn.execute('''
+            INSERT INTO event_participant_approvals (event_id, user_id, approved, approved_at, approved_by, notes)
+            VALUES (?, ?, 1, CURRENT_TIMESTAMP, ?, ?)
+            ON CONFLICT(event_id, user_id) DO UPDATE SET
+                approved = 1,
+                approved_at = CURRENT_TIMESTAMP,
+                approved_by = excluded.approved_by,
+                notes = excluded.notes
+        ''', (event_id, user['user_id'], session.get('user_id'), approval_note))
+
+        conn.commit()
+        conn.close()
+
+        log_activity(
+            'admin_event_add_participant',
+            details=f'Пользователь {user["username"]} (ID {user["user_id"]}) добавлен в мероприятие {event["name"]}',
+            metadata={'event_id': event_id, 'target_user_id': user['user_id'], 'notes': approval_note}
+        )
+        flash('Участник успешно добавлен', 'success')
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        conn.close()
+        flash('Не удалось добавить участника: данные противоречат существующим записям', 'error')
+    except Exception as exc:
+        conn.rollback()
+        conn.close()
+        log_error(f"Ошибка ручного добавления участника: {exc}")
+        flash('Не удалось добавить участника', 'error')
+
+    return redirect(url_for('admin_event_participants', event_id=event_id))
+
+
+@app.route('/admin/events/<int:event_id>/participants/upgrade', methods=['POST'])
+@require_role('admin')
+def admin_event_participant_upgrade(event_id):
+    """Переводит участника из предварительной регистрации в основную"""
+    user_id = request.form.get('user_id')
+    if not user_id:
+        flash('Не указан участник', 'error')
+        return redirect(url_for('admin_event_participants', event_id=event_id))
+
+    conn = get_db_connection()
+    try:
+        registration = conn.execute('''
+            SELECT registered_at FROM event_registrations
+            WHERE event_id = ? AND user_id = ?
+        ''', (event_id, user_id)).fetchone()
+
+        if not registration:
+            conn.close()
+            flash('Участник не найден в списке зарегистрированных', 'error')
+            return redirect(url_for('admin_event_participants', event_id=event_id))
+
+        main_stage = conn.execute('''
+            SELECT start_datetime
+            FROM event_stages
+            WHERE event_id = ? AND stage_type = 'main_registration'
+        ''', (event_id,)).fetchone()
+
+        if not main_stage or not main_stage['start_datetime']:
+            conn.close()
+            flash('Этап основной регистрации не настроен', 'error')
+            return redirect(url_for('admin_event_participants', event_id=event_id))
+
+        conn.execute('''
+            UPDATE event_registrations
+            SET registered_at = ?
+            WHERE event_id = ? AND user_id = ?
+        ''', (main_stage['start_datetime'], event_id, user_id))
+        conn.commit()
+        conn.close()
+
+        log_activity(
+            'admin_event_upgrade_participant',
+            details=f'Пользователь #{user_id} переведён в основную регистрацию мероприятия #{event_id}',
+            metadata={'event_id': event_id, 'target_user_id': user_id}
+        )
+        flash('Участник переведён в основную регистрацию', 'success')
+    except Exception as exc:
+        conn.rollback()
+        conn.close()
+        log_error(f"Ошибка перевода участника в основную регистрацию: {exc}")
+        flash('Не удалось обновить участника', 'error')
+
+    return redirect(url_for('admin_event_participants', event_id=event_id))
+
+
+@app.route('/admin/events/<int:event_id>/participants/downgrade', methods=['POST'])
+@require_role('admin')
+def admin_event_participant_downgrade(event_id):
+    """Переводит участника из основной регистрации в предварительную"""
+    user_id = request.form.get('user_id')
+    if not user_id:
+        flash('Не указан участник', 'error')
+        return redirect(url_for('admin_event_participants', event_id=event_id))
+
+    conn = get_db_connection()
+    try:
+        registration = conn.execute('''
+            SELECT registered_at FROM event_registrations
+            WHERE event_id = ? AND user_id = ?
+        ''', (event_id, user_id)).fetchone()
+
+        if not registration:
+            conn.close()
+            flash('Участник не найден в списке зарегистрированных', 'error')
+            return redirect(url_for('admin_event_participants', event_id=event_id))
+
+        pre_stage = conn.execute('''
+            SELECT start_datetime
+            FROM event_stages
+            WHERE event_id = ? AND stage_type = 'pre_registration'
+        ''', (event_id,)).fetchone()
+
+        target_datetime = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        if pre_stage and pre_stage['start_datetime']:
+            target_datetime = pre_stage['start_datetime']
+
+        conn.execute('''
+            UPDATE event_registrations
+            SET registered_at = ?
+            WHERE event_id = ? AND user_id = ?
+        ''', (target_datetime, event_id, user_id))
+        conn.commit()
+        conn.close()
+
+        log_activity(
+            'admin_event_downgrade_participant',
+            details=f'Пользователь #{user_id} переведён в предварительную регистрацию мероприятия #{event_id}',
+            metadata={'event_id': event_id, 'target_user_id': user_id}
+        )
+        flash('Участник переведён в предварительную регистрацию', 'success')
+    except Exception as exc:
+        conn.rollback()
+        conn.close()
+        log_error(f"Ошибка перевода участника в предварительную регистрацию: {exc}")
+        flash('Не удалось обновить участника', 'error')
+
+    return redirect(url_for('admin_event_participants', event_id=event_id))
+
+
+@app.route('/admin/events/<int:event_id>/participants/remove', methods=['POST'])
+@require_role('admin')
+def admin_event_participant_remove(event_id):
+    """Удаление участника из мероприятия"""
+    user_id = request.form.get('user_id')
+    if not user_id:
+        flash('Не указан участник', 'error')
+        return redirect(url_for('admin_event_participants', event_id=event_id))
+
+    conn = get_db_connection()
+    try:
+        conn.execute('BEGIN')
+
+        conn.execute('DELETE FROM event_registrations WHERE event_id = ? AND user_id = ?', (event_id, user_id))
+        conn.execute('DELETE FROM event_registration_details WHERE event_id = ? AND user_id = ?', (event_id, user_id))
+        conn.execute('DELETE FROM event_participant_approvals WHERE event_id = ? AND user_id = ?', (event_id, user_id))
+        conn.execute('DELETE FROM event_assignments WHERE event_id = ? AND (santa_user_id = ? OR recipient_user_id = ?)', (event_id, user_id, user_id))
+
+        conn.commit()
+        conn.close()
+
+        log_activity(
+            'admin_event_remove_participant',
+            details=f'Пользователь #{user_id} удалён из мероприятия #{event_id}',
+            metadata={'event_id': event_id, 'target_user_id': user_id}
+        )
+        flash('Участник удалён из мероприятия', 'success')
+    except Exception as exc:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+        log_error(f"Ошибка удаления участника из мероприятия: {exc}")
+        flash('Не удалось удалить участника', 'error')
+
+    return redirect(url_for('admin_event_participants', event_id=event_id))
+
+
+@app.route('/admin/events/<int:event_id>/participants/confirm', methods=['POST'])
+@require_role('admin')
+def admin_event_participant_confirm(event_id):
+    """Подтверждение участия"""
+    user_id = request.form.get('user_id')
+    if not user_id:
+        flash('Не указан участник', 'error')
+        return redirect(url_for('admin_event_participants', event_id=event_id))
+
+    conn = get_db_connection()
+    try:
+        registration = conn.execute('''
+            SELECT registered_at FROM event_registrations
+            WHERE event_id = ? AND user_id = ?
+        ''', (event_id, user_id)).fetchone()
+
+        if not registration:
+            conn.close()
+            flash('Участник не найден в списке зарегистрированных', 'error')
+            return redirect(url_for('admin_event_participants', event_id=event_id))
+
+        stages = conn.execute('''
+            SELECT stage_type, start_datetime
+            FROM event_stages
+            WHERE event_id = ?
+        ''', (event_id,)).fetchall()
+
+        def parse_dt(value):
+            if not value:
+                return None
+            try:
+                return datetime.fromisoformat(str(value))
+            except ValueError:
+                try:
+                    return datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    return None
+
+        pre_start = None
+        main_start = None
+        registration_closed_start = None
+        for stage in stages:
+            if stage['stage_type'] == 'pre_registration':
+                pre_start = parse_dt(stage['start_datetime'])
+            elif stage['stage_type'] == 'main_registration':
+                main_start = parse_dt(stage['start_datetime'])
+            elif stage['stage_type'] == 'registration_closed':
+                registration_closed_start = parse_dt(stage['start_datetime'])
+
+        registered_at_dt = parse_dt(registration['registered_at'])
+
+        stage_label = 'main'
+        if pre_start and main_start and registered_at_dt:
+            if registered_at_dt < main_start:
+                stage_label = 'pre'
+        elif pre_start and registered_at_dt and not main_start:
+            if registered_at_dt < pre_start:
+                stage_label = 'pre'
+        elif main_start and registered_at_dt:
+            stage_label = 'pre' if registered_at_dt < main_start else 'main'
+
+        if registration_closed_start and registered_at_dt and registered_at_dt >= registration_closed_start:
+            stage_label = 'main'
+
+        if stage_label != 'main':
+            conn.close()
+            flash('Подтверждение доступно только для основной регистрации', 'error')
+            return redirect(url_for('admin_event_participants', event_id=event_id))
+
+        conn.execute('''
+            INSERT INTO event_participant_approvals (event_id, user_id, approved, approved_at, approved_by, notes)
+            VALUES (?, ?, 1, CURRENT_TIMESTAMP, ?, NULL)
+            ON CONFLICT(event_id, user_id) DO UPDATE SET
+                approved = 1,
+                approved_at = CURRENT_TIMESTAMP,
+                approved_by = excluded.approved_by,
+                notes = NULL
+        ''', (event_id, user_id, session.get('user_id')))
+        conn.commit()
+        conn.close()
+
+        log_activity(
+            'admin_event_confirm_participant',
+            details=f'Пользователь #{user_id} подтвержден для мероприятия #{event_id}',
+            metadata={'event_id': event_id, 'target_user_id': user_id}
+        )
+        flash('Участник подтвержден', 'success')
+    except Exception as exc:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+        log_error(f"Ошибка подтверждения участника: {exc}")
+        flash('Не удалось подтвердить участника', 'error')
+
+    return redirect(url_for('admin_event_participants', event_id=event_id))
+
+
+@app.route('/admin/events/<int:event_id>/participants/reject', methods=['POST'])
+@require_role('admin')
+def admin_event_participant_reject(event_id):
+    """Отказ в участии"""
+    user_id = request.form.get('user_id')
+    if not user_id:
+        flash('Не указан участник', 'error')
+        return redirect(url_for('admin_event_participants', event_id=event_id))
+
+    reason = request.form.get('reason', '').strip()
+
+    conn = get_db_connection()
+    try:
+        registration = conn.execute('''
+            SELECT registered_at FROM event_registrations
+            WHERE event_id = ? AND user_id = ?
+        ''', (event_id, user_id)).fetchone()
+
+        if not registration:
+            conn.close()
+            flash('Участник не найден в списке зарегистрированных', 'error')
+            return redirect(url_for('admin_event_participants', event_id=event_id))
+
+        stages = conn.execute('''
+            SELECT stage_type, start_datetime
+            FROM event_stages
+            WHERE event_id = ?
+        ''', (event_id,)).fetchall()
+
+        def parse_dt(value):
+            if not value:
+                return None
+            try:
+                return datetime.fromisoformat(str(value))
+            except ValueError:
+                try:
+                    return datetime.strptime(str(value), '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    return None
+
+        pre_start = None
+        main_start = None
+        registration_closed_start = None
+        for stage in stages:
+            if stage['stage_type'] == 'pre_registration':
+                pre_start = parse_dt(stage['start_datetime'])
+            elif stage['stage_type'] == 'main_registration':
+                main_start = parse_dt(stage['start_datetime'])
+            elif stage['stage_type'] == 'registration_closed':
+                registration_closed_start = parse_dt(stage['start_datetime'])
+
+        registered_at_dt = parse_dt(registration['registered_at'])
+
+        stage_label = 'main'
+        if pre_start and main_start and registered_at_dt:
+            if registered_at_dt < main_start:
+                stage_label = 'pre'
+        elif pre_start and registered_at_dt and not main_start:
+            if registered_at_dt < pre_start:
+                stage_label = 'pre'
+        elif main_start and registered_at_dt:
+            stage_label = 'pre' if registered_at_dt < main_start else 'main'
+
+        if registration_closed_start and registered_at_dt and registered_at_dt >= registration_closed_start:
+            stage_label = 'main'
+
+        if stage_label != 'main':
+            conn.close()
+            flash('Отказ возможен только для основной регистрации', 'error')
+            return redirect(url_for('admin_event_participants', event_id=event_id))
+
+        conn.execute('''
+            INSERT INTO event_participant_approvals (event_id, user_id, approved, approved_at, approved_by, notes)
+            VALUES (?, ?, 0, CURRENT_TIMESTAMP, ?, ?)
+            ON CONFLICT(event_id, user_id) DO UPDATE SET
+                approved = 0,
+                approved_at = CURRENT_TIMESTAMP,
+                approved_by = excluded.approved_by,
+                notes = excluded.notes
+        ''', (event_id, user_id, session.get('user_id'), reason or None))
+        conn.commit()
+        conn.close()
+
+        log_activity(
+            'admin_event_reject_participant',
+            details=f'Пользователь #{user_id} отклонен для мероприятия #{event_id}',
+            metadata={'event_id': event_id, 'target_user_id': user_id, 'reason': reason}
+        )
+        flash('Участнику отказано в участии', 'success')
+    except Exception as exc:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+        log_error(f"Ошибка отклонения участника: {exc}")
+        flash('Не удалось отказать участнику', 'error')
+
+    return redirect(url_for('admin_event_participants', event_id=event_id))
 
 @app.route('/admin/events/<int:event_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
