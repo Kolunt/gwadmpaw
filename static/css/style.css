@@ -1312,6 +1312,13 @@ body {
     gap: 1rem;
 }
 
+.event-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 .admin-header h1 {
     color: var(--text-primary);
     margin: 0;
@@ -4362,5 +4369,47 @@ html.dark .avatar-candidate-img {
 .log-meta-value {
     color: var(--text-secondary);
     word-break: break-word;
+}
+
+/* Error pages */
+.error-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 2rem 1rem;
+}
+
+.error-card {
+    background: var(--surface-color);
+    border-radius: 16px;
+    padding: 2.5rem 3rem;
+    max-width: 540px;
+    width: 100%;
+    text-align: center;
+    box-shadow: var(--card-shadow);
+}
+
+.error-code {
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.error-card h1 {
+    margin-bottom: 1rem;
+}
+
+.error-card p {
+    margin-bottom: 2rem;
+    color: var(--text-muted);
+}
+
+.error-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 

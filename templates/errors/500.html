@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Внутренняя ошибка сервера (500){% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-card">
+        <div class="error-code">500</div>
+        <h1>Что-то пошло не так</h1>
+        <p>Мы уже знаем о проблеме и постараемся исправить её как можно быстрее. Попробуйте обновить страницу позже.</p>
+        <div class="error-actions">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

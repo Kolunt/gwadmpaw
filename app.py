@@ -1,4 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify, send_from_directory, has_request_context
+from flask import(
+    Flask, render_template, redirect, url_for, request, session,
+    flash, jsonify, send_file, Response, abort
+)
 from urllib.parse import unquote, unquote_to_bytes, quote
 import hashlib
 import sqlite3
@@ -9,10 +12,13 @@ from functools import wraps
 from version import __version__
 import secrets
 import json
+import random
 try:
     import requests
 except ImportError:
     requests = None
+from werkzeug.exceptions import HTTPException
+import traceback
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -643,7 +649,6 @@ def init_db():
                 FOREIGN KEY (updated_by) REFERENCES users(user_id)
             )
         ''')
-        
         # Инициализация дефолтных категорий, если их нет
         default_categories = [
             ('general', 'Общие вопросы', 'Общие вопросы о проекте', 10),
@@ -791,12 +796,10 @@ def get_user_avatar_url(user, size=128):
         return None
     style = user.get('avatar_style') or 'avataaars'
     return get_avatar_url(user['avatar_seed'], style, size)
-
 def ensure_db():
     """Убеждается, что база данных инициализирована"""
     if not _db_initialized:
         init_db()
-
 def get_db_connection():
     """Получает соединение с базой данных"""
     ensure_db()  # Убеждаемся, что БД инициализирована
@@ -1276,7 +1279,6 @@ def verify_sign3(username, user_id, has_passport, has_mobile, old_passport, sign
     
     log_error(f"verify_sign3: ALL VARIANTS FAILED! Received sign3={sign3}")
     return False
-
 # Проверка подписи sign4 (дата)
 def verify_sign4(sign3, sign4):
     """
@@ -2150,7 +2152,6 @@ def login():
         return redirect(url_for('dashboard'))
     except Exception as e:
         log_error(f"Error in login route: {e}")
-        import traceback
         log_error(f"Traceback: {traceback.format_exc()}")
         flash(f'Ошибка при входе: {str(e)}', 'error')
         return redirect(url_for('index'))
@@ -2221,7 +2222,6 @@ def api_generate_avatar_options():
         'options': options,
         'count': len(options)
     })
-
 @app.route('/profile/edit', methods=['GET', 'POST'])
 @require_login
 def edit_profile():
@@ -2485,7 +2485,6 @@ def participants():
                              get_avatar_url=get_avatar_url)
     except Exception as e:
         log_error(f"Error in participants route: {e}")
-        import traceback
         log_error(traceback.format_exc())
         try:
             conn.close()
@@ -2868,7 +2867,6 @@ def admin_user_create():
             return render_template('admin/user_form.html', user=None, avatar_styles=AVATAR_STYLES, available_languages=available_languages)
     
     return render_template('admin/user_form.html', user=None, avatar_styles=AVATAR_STYLES, available_languages=available_languages)
-
 @app.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_user_edit(user_id):
@@ -3510,7 +3508,6 @@ def admin_user_titles(user_id):
                          all_titles=all_titles, 
                          user_titles=user_titles,
                          user_title_ids=user_title_ids)
-
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_settings():
@@ -4152,7 +4149,6 @@ def admin_faq_category_edit(category_id):
     
     conn.close()
     return render_template('admin/faq_category_form.html', category=category)
-
 @app.route('/admin/faq/categories/<int:category_id>/delete', methods=['POST'])
 @require_role('admin')
 def admin_faq_category_delete(category_id):
@@ -4272,11 +4268,9 @@ def init_default_rules():
         log_debug(f"Rules JSON length: {len(rules_json)}")
     except Exception as e:
         log_error(f"Error initializing default rules: {e}")
-        import traceback
         log_error(traceback.format_exc())
     finally:
         conn.close()
-
 @app.route('/admin/rules/init-defaults', methods=['POST'])
 @require_role('admin')
 def admin_rules_init_defaults():
@@ -4347,7 +4341,6 @@ def admin_rules_init_defaults():
         log_debug("Default rules initialized via admin panel")
     except Exception as e:
         log_error(f"Error initializing default rules: {e}")
-        import traceback
         log_error(traceback.format_exc())
         flash(f'Ошибка инициализации правил: {str(e)}', 'error')
     
@@ -4780,7 +4773,6 @@ def get_event_stages(event_id):
     finally:
         conn.close()
     return stages
-
 def create_participant_approvals_for_event(event_id):
     """Создает записи для ревью участников при закрытии регистрации"""
     conn = get_db_connection()
@@ -4805,7 +4797,6 @@ def create_participant_approvals_for_event(event_id):
         conn.rollback()
     finally:
         conn.close()
-
 def get_participants_for_review(event_id):
     """Получает список участников для ревью с полной информацией"""
     conn = get_db_connection()
@@ -4890,7 +4881,6 @@ def get_approved_participants(event_id):
     return [dict(row) for row in participants]
 def create_random_assignments(event_id, assigned_by):
     """Создает случайное распределение Деда Мороза и Внучки"""
-    import random
     conn = get_db_connection()
     try:
         # Получаем утвержденных участников
@@ -5049,7 +5039,6 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
         return False, 'Не удалось сохранить информацию об отправке'
     finally:
         conn.close()
-
 def mark_assignment_received(assignment_id, user_id):
     """Отмечает, что подарок получен"""
     conn = get_db_connection()
@@ -5403,7 +5392,6 @@ def get_missing_required_fields(user_id):
             'missing_address': ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment'],
             'missing_contacts': ['email', 'phone', 'telegram', 'whatsapp', 'viber']
         }
-
 @app.route('/events/<int:event_id>/register', methods=['POST'])
 @require_login
 def event_register(event_id):
@@ -5654,7 +5642,6 @@ def api_profile_data():
         })
     except Exception as e:
         log_error(f"Error getting profile data for user_id={user_id}: {e}")
-        import traceback
         log_error(traceback.format_exc())
         conn.close()
         return jsonify({'error': f'Ошибка получения данных: {str(e)}'}), 500
@@ -5830,8 +5817,6 @@ def rules():
     except Exception as e:
         log_error(f"Error in rules route: {e}")
         return render_template('rules.html', rules_content='', rules_items=[])
-
-@app.route('/contacts')
 def contacts():
     """Страница контактов - показывает администраторов/модераторов и пользователей со званиями"""
     conn = get_db_connection()
@@ -5885,8 +5870,8 @@ def contacts():
     conn.close()
     
     return render_template('contacts.html', 
-                         admins_moderators=admins_moderators_data,
-                         users_with_titles=users_with_titles_data)
+                           admins_moderators=admins_moderators_data,
+                           users_with_titles=users_with_titles_data)
 
 # ========== Логи ==========
 
@@ -6030,7 +6015,6 @@ def admin_award_create():
     users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
     conn.close()
     return render_template('admin/award_form.html', users=users)
-
 @app.route('/admin/awards/<int:award_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_award_edit(award_id):
@@ -6568,7 +6552,129 @@ def admin_event_participants(event_id):
         participants_negative_count=len(negative_participants),
         participants_na_count=len(na_participants)
     )
+@app.route('/admin/events/<int:event_id>/distribution/positive')
+@require_role('admin')
+def admin_event_distribution_positive_view(event_id):
+    """Отображает участников со статусом 'Позитив' для распределения"""
+    conn = get_db_connection()
+    event = conn.execute('''
+        SELECT e.*, u.username as creator_name
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.user_id
+        WHERE e.id = ?
+    ''', (event_id,)).fetchone()
 
+    if not event:
+        conn.close()
+        flash('Мероприятие не найдено', 'error')
+        return redirect(url_for('admin_events'))
+
+    participants = conn.execute('''
+        SELECT 
+            er.user_id,
+            u.username,
+            u.last_name,
+            u.first_name,
+            u.middle_name,
+            COALESCE(d.postal_code, u.postal_code) AS postal_code,
+            COALESCE(d.country, u.country) AS country,
+            COALESCE(d.city, u.city) AS city,
+            COALESCE(d.street, u.street) AS street,
+            COALESCE(d.house, u.house) AS house,
+            COALESCE(d.building, u.building) AS building,
+            COALESCE(d.apartment, u.apartment) AS apartment,
+            COALESCE(d.phone, u.phone) AS phone,
+            COALESCE(d.telegram, u.telegram) AS telegram,
+            COALESCE(d.whatsapp, u.whatsapp) AS whatsapp,
+            COALESCE(d.viber, u.viber) AS viber,
+            epa.notes as approval_notes,
+            er.registered_at
+        FROM event_registrations er
+        LEFT JOIN users u ON er.user_id = u.user_id
+        LEFT JOIN event_registration_details d ON d.event_id = er.event_id AND d.user_id = er.user_id
+        INNER JOIN event_participant_approvals epa ON epa.event_id = er.event_id AND epa.user_id = er.user_id
+        WHERE er.event_id = ?
+          AND epa.approved = 1
+        ORDER BY u.username COLLATE NOCASE
+    ''', (event_id,)).fetchall()
+    conn.close()
+
+    participants_data = []
+    for row in participants:
+        participants_data.append({
+            'user_id': row['user_id'],
+            'username': row['username'] or f'ID {row["user_id"]}',
+            'last_name': row['last_name'],
+            'first_name': row['first_name'],
+            'middle_name': row['middle_name'],
+            'address': {
+                'postal_code': row['postal_code'],
+                'country': row['country'],
+                'city': row['city'],
+                'street': row['street'],
+                'house': row['house'],
+                'building': row['building'],
+                'apartment': row['apartment'],
+            },
+            'contacts': {
+                'phone': row['phone'],
+                'telegram': row['telegram'],
+                'whatsapp': row['whatsapp'],
+                'viber': row['viber'],
+            },
+            'notes': row['approval_notes'],
+            'registered_at': row['registered_at'],
+        })
+
+    distribution_url = url_for('admin_event_distribution_positive_generate', event_id=event_id)
+
+    return render_template(
+        'admin/event_distribution.html',
+        event=event,
+        distribution_type='positive',
+        participants=participants_data,
+        participants_count=len(participants_data),
+        distribution_generate_url=distribution_url
+    )
+@app.route('/admin/events/<int:event_id>/distribution/positive/random', methods=['POST'])
+@require_role('admin')
+def admin_event_distribution_positive_generate(event_id):
+    conn = get_db_connection()
+    participants = conn.execute('''
+        SELECT 
+            er.user_id,
+            u.username
+        FROM event_registrations er
+        LEFT JOIN event_participant_approvals epa ON epa.event_id = er.event_id AND epa.user_id = er.user_id
+        LEFT JOIN users u ON er.user_id = u.user_id
+        WHERE er.event_id = ?
+          AND epa.approved = 1
+        ORDER BY u.username COLLATE NOCASE
+    ''', (event_id,)).fetchall()
+    conn.close()
+
+    if not participants or len(participants) < 2:
+        return jsonify({'success': False, 'error': 'Недостаточно участников для распределения'}), 400
+
+    user_ids = [row['user_id'] for row in participants]
+    names = {row['user_id']: (row['username'] or f'ID {row["user_id"]}') for row in participants}
+
+    base = user_ids[:]
+    for _ in range(500):
+        shuffled = base[:]
+        random.shuffle(shuffled)
+        if all(a != b for a, b in zip(base, shuffled)):
+            pairs = []
+            for santa_id, recipient_id in zip(base, shuffled):
+                pairs.append({
+                    'santa_id': santa_id,
+                    'santa_name': names[santa_id],
+                    'recipient_id': recipient_id,
+                    'recipient_name': names[recipient_id]
+                })
+            return jsonify({'success': True, 'pairs': pairs})
+
+    return jsonify({'success': False, 'error': 'Не удалось сформировать уникальные пары, попробуйте снова'}), 500
 
 @app.route('/admin/events/<int:event_id>/participants/add', methods=['POST'])
 @require_role('admin')
@@ -7203,7 +7309,6 @@ def admin_event_edit(event_id):
     awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
     conn.close()
     return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
-
 @app.route('/admin/events/<int:event_id>/delete', methods=['POST'])
 @require_role('admin')
 def admin_event_delete(event_id):
@@ -7226,7 +7331,6 @@ def admin_event_delete(event_id):
     
     conn.close()
     return redirect(url_for('admin_events'))
-
 @app.route('/assignments')
 @require_login
 def assignments():
@@ -7284,167 +7388,37 @@ def assignment_mark_received(assignment_id):
     
     return redirect(url_for('assignments'))
 
-@app.route('/admin/events/<int:event_id>/review')
-@require_role('admin')
-def admin_event_review(event_id):
-    """Страница ревью участников для администратора"""
-    conn = get_db_connection()
-    event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
-    conn.close()
-    
-    if not event:
-        flash('Мероприятие не найдено', 'error')
-        return redirect(url_for('admin_events'))
-    
-    # Создаем записи для ревью, если их еще нет
-    create_participant_approvals_for_event(event_id)
-    
-    participants = get_participants_for_review(event_id)
-    approved_count = sum(1 for p in participants if p['approved'] == 1)
-    
-    return render_template('admin/event_review.html', event=event, participants=participants, approved_count=approved_count)
-@app.route('/admin/events/<int:event_id>/approve', methods=['POST'])
-@require_role('admin')
-def admin_event_approve(event_id):
-    """Утверждение/отклонение участника"""
-    user_id = request.form.get('user_id', type=int)
-    approved = request.form.get('approved') == '1'
-    notes = request.form.get('notes', '').strip()
-    
-    if not user_id:
-        flash('Не указан участник', 'error')
-        return redirect(url_for('admin_event_review', event_id=event_id))
-    
-    approved_by = session.get('user_id')
-    success = approve_participant(event_id, user_id, approved_by, approved, notes)
-    
-    if success:
-        log_activity(
-            'participant_review',
-            details=f"Статус участника {user_id} обновлен на {'approved' if approved else 'rejected'}",
-            metadata={
-                'event_id': event_id,
-                'participant_user_id': user_id,
-                'approved': approved,
-                'notes': notes or ''
-            }
-        )
-        flash('Статус участника обновлен', 'success')
-    else:
-        flash('Ошибка при обновлении статуса', 'error')
-    
-    return redirect(url_for('admin_event_review', event_id=event_id))
-
-@app.route('/admin/events/<int:event_id>/distribution')
-@require_role('admin')
-def admin_event_distribution(event_id):
-    """Страница распределения Деда Мороза и Внучки"""
-    conn = get_db_connection()
-    event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
-    conn.close()
-    
-    if not event:
-        flash('Мероприятие не найдено', 'error')
-        return redirect(url_for('admin_events'))
-    
-    approved_participants = get_approved_participants(event_id)
-    
-    # Получаем существующие задания
-    conn = get_db_connection()
-    existing_assignments_rows = conn.execute('''
-        SELECT 
-            ea.*,
-            santa.username as santa_username,
-            recipient.username as recipient_username
-        FROM event_assignments ea
-        JOIN users santa ON ea.santa_user_id = santa.user_id
-        JOIN users recipient ON ea.recipient_user_id = recipient.user_id
-        WHERE ea.event_id = ?
-        ORDER BY ea.assigned_at ASC
-    ''', (event_id,)).fetchall()
-    conn.close()
-    
-    existing_assignments = [dict(row) for row in existing_assignments_rows]
-    assignments_map = {row['santa_user_id']: row['recipient_user_id'] for row in existing_assignments}
-    
-    return render_template('admin/event_distribution.html', 
-                       event=event, 
-                       approved_participants=approved_participants,
-                       existing_assignments=existing_assignments,
-                       assignments_map=assignments_map)
-
-@app.route('/admin/events/<int:event_id>/distribution/random', methods=['POST'])
-@require_role('admin')
-def admin_event_distribution_random(event_id):
-    """Возвращает случайное распределение без сохранения"""
-    participants = get_approved_participants(event_id)
-    if len(participants) < 2:
-        return jsonify(success=False, error='Недостаточно утвержденных участников (нужно минимум 2)'), 400
-    participant_ids = [p['user_id'] for p in participants]
-    import random
-    random.shuffle(participant_ids)
-    assignments = []
-    id_to_participant = {p['user_id']: dict(p) for p in participants}
-    for i, santa_id in enumerate(participant_ids):
-        recipient_id = participant_ids[(i + 1) % len(participant_ids)]
-        assignments.append({
-            'santa_user_id': santa_id,
-            'recipient_user_id': recipient_id,
-            'santa_username': id_to_participant[santa_id]['username'],
-            'recipient_username': id_to_participant[recipient_id]['username']
-        })
-    return jsonify(success=True, assignments=assignments)
-
-
-@app.route('/admin/events/<int:event_id>/distribution/save', methods=['POST'])
-@require_role('admin')
-def admin_event_distribution_save(event_id):
-    """Сохраняет распределение после подтверждения администратором"""
-    data = request.get_json(silent=True) or {}
-    assignments_data = data.get('assignments')
-    if not assignments_data or not isinstance(assignments_data, list):
-        return jsonify(success=False, error='Некорректные данные распределения'), 400
-    approved_participants = get_approved_participants(event_id)
-    approved_ids = {p['user_id'] for p in approved_participants}
-    if len(approved_ids) < 2:
-        return jsonify(success=False, error='Недостаточно утвержденных участников для распределения'), 400
-    santas_seen = set()
-    recipients_seen = set()
-    assignments_pairs = []
-    for item in assignments_data:
-        try:
-            santa_id = int(item.get('santa_user_id'))
-            recipient_id = int(item.get('recipient_user_id'))
-        except (TypeError, ValueError):
-            return jsonify(success=False, error='Некорректные идентификаторы участников'), 400
-        if santa_id not in approved_ids:
-            return jsonify(success=False, error=f'Участник {santa_id} не входит в список утвержденных'), 400
-        if recipient_id not in approved_ids:
-            return jsonify(success=False, error=f'Получатель {recipient_id} не входит в список утвержденных'), 400
-        if santa_id == recipient_id:
-            return jsonify(success=False, error='Участник не может дарить подарок себе'), 400
-        if santa_id in santas_seen:
-            return jsonify(success=False, error='Каждый участник должен быть Дедом Морозом ровно один раз'), 400
-        if recipient_id in recipients_seen:
-            return jsonify(success=False, error='Каждый участник должен быть получателем ровно один раз'), 400
-        santas_seen.add(santa_id)
-        recipients_seen.add(recipient_id)
-        assignments_pairs.append((santa_id, recipient_id))
-    if santas_seen != approved_ids or recipients_seen != approved_ids:
-        return jsonify(success=False, error='Распределение должно охватывать всех участников'), 400
-    assigned_by = session.get('user_id')
-    if not assigned_by:
-        return jsonify(success=False, error='Необходима авторизация'), 403
-    success, result = save_event_assignments(event_id, assignments_pairs, assigned_by)
-    if success:
-        return jsonify(success=True, message=f'Сохранено {result} заданий')
-    return jsonify(success=False, error=result), 500
-
 # Инициализируем БД при импорте модуля (для WSGI)
 try:
     init_db()
 except Exception as e:
     log_error(f"Failed to initialize database on startup: {e}")
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    return render_template('errors/404.html', error=error), 404
+
+
+@app.errorhandler(500)
+def handle_server_error(error):
+    log_error(f"Internal server error: {error}")
+    return render_template('errors/500.html', error=error), 500
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    if isinstance(error, HTTPException):
+        code = error.code or 500
+        if code == 404:
+            return handle_not_found(error)
+        if code == 500:
+            return handle_server_error(error)
+        return render_template('errors/generic.html', error=error, status_code=code), code
+
+    log_error(f"Unhandled exception: {error}\n{traceback.format_exc()}")
+    return render_template('errors/500.html', error=error), 500
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

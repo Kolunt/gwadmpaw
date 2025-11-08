@@ -57,8 +57,26 @@
             }
         })();
     </script>
+    {% if config.get('ENV') == 'production' %}
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a);
+        })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=105196567', 'ym');
+        ym(105196567, 'init', { ssr: true, webvisor: true, clickmap: true, ecommerce: "dataLayer", accurateTrackBounce: true, trackLinks: true });
+    </script>
+    <!-- /Yandex.Metrika counter -->
+    {% endif %}
 </head>
 <body>
+    {% if config.get('ENV') == 'production' %}
+    <noscript>
+        <div><img src="https://mc.yandex.ru/watch/105196567" style="position:absolute; left:-9999px;" alt="" /></div>
+    </noscript>
+    {% endif %}
     <!-- Верхняя шапка -->
     <nav class="navbar">
         <div class="navbar-content">
