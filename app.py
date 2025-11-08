@@ -507,6 +507,34 @@ def init_db():
                 UNIQUE(event_id, user_id)
             )
         ''')
+
+        # Снапшоты данных участника во время регистрации
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS event_registration_details (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                last_name TEXT,
+                first_name TEXT,
+                middle_name TEXT,
+                postal_code TEXT,
+                country TEXT,
+                city TEXT,
+                street TEXT,
+                house TEXT,
+                building TEXT,
+                apartment TEXT,
+                phone TEXT,
+                telegram TEXT,
+                whatsapp TEXT,
+                viber TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                UNIQUE(event_id, user_id)
+            )
+        ''')
         
         # Таблица утверждений участников (для ревью администратором)
         c.execute('''
@@ -5323,102 +5351,194 @@ def event_register(event_id):
     user_id = session.get('user_id')
     # Проверяем, является ли запрос AJAX/JSON запросом
     is_json_request = (
-        request.headers.get('Content-Type') == 'application/json' or 
-        request.headers.get('Accept') == 'application/json' or
-        request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
-        request.is_json
+        request.headers.get('Content-Type') == 'application/json'
+        or request.headers.get('Accept') == 'application/json'
+        or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        or request.is_json
     )
-    
+    payload = {}
+    if is_json_request:
+        payload = request.get_json(silent=True) or {}
+    start_flow = bool(payload.get('start_registration_flow'))
+    final_registration = bool(payload.get('final_registration'))
+
     if not user_id:
         if is_json_request:
             return jsonify({'success': False, 'error': 'Необходимо авторизоваться'}), 401
         flash('Необходимо авторизоваться', 'error')
         return redirect(url_for('login'))
-    
+
     # Проверяем, открыта ли регистрация
     if not is_registration_open(event_id):
         if is_json_request:
             return jsonify({'success': False, 'error': 'Регистрация на это мероприятие закрыта'}), 400
         flash('Регистрация на это мероприятие закрыта', 'error')
         return redirect(url_for('event_view', event_id=event_id))
-    
-    # Проверяем, не зарегистрирован ли уже
-    if is_user_registered(event_id, user_id):
-        if is_json_request:
+
+    # Запрос на начало модального сценария
+    if start_flow:
+        if is_user_registered(event_id, user_id):
             return jsonify({'success': False, 'error': 'Вы уже зарегистрированы на это мероприятие'}), 400
-        flash('Вы уже зарегистрированы на это мероприятие', 'info')
-        return redirect(url_for('event_view', event_id=event_id))
-    
-    # Проверяем заполненность обязательных полей
-    missing_fields = get_missing_required_fields(user_id)
-    has_all_required = (
-        missing_fields['has_personal_data'] and 
-        missing_fields['has_address'] and 
-        missing_fields['has_contact']
-    )
-    
-    # Проверяем, является ли это финальным запросом после подтверждения в модальном окне
-    is_final_registration = False
-    if request.is_json and request.json:
-        is_final_registration = request.json.get('final_registration', False)
-    
-    # Для AJAX запросов: показываем модальное окно для проверки данных
-    # Исключение: если это финальный запрос после подтверждения в модальном окне - регистрируем сразу
-    if is_json_request or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        if not is_final_registration:
-            # Это первый запрос - показываем модальное окно для проверки/заполнения данных
-            log_debug(f"AJAX запрос на регистрацию от пользователя {user_id}. Показываем модальное окно для проверки данных")
+        missing_fields = get_missing_required_fields(user_id)
+        return jsonify({
+            'success': True,
+            'missing_fields': missing_fields
+        }), 200
+
+    def complete_registration():
+        """Проводит регистрацию и сохраняет слепок данных пользователя."""
+        conn = get_db_connection()
+        try:
+            profile_row = conn.execute('''
+                SELECT last_name, first_name, middle_name,
+                       postal_code, country, city, street, house, building, apartment,
+                       phone, telegram, whatsapp, viber
+                FROM users
+                WHERE user_id = ?
+            ''', (user_id,)).fetchone()
+
+            if not profile_row:
+                return {'status': 'error', 'message': 'Пользователь не найден'}
+
+            profile = {key: (profile_row[key] or '').strip() for key in profile_row.keys()}
+            required_fields = [
+                ('last_name', 'Фамилия'),
+                ('first_name', 'Имя'),
+                ('middle_name', 'Отчество'),
+                ('postal_code', 'Индекс'),
+                ('country', 'Страна'),
+                ('city', 'Город'),
+                ('street', 'Улица'),
+                ('house', 'Дом'),
+                ('building', 'Корпус/строение'),
+                ('apartment', 'Квартира'),
+                ('phone', 'Номер телефона')
+            ]
+            missing_required = [label for field, label in required_fields if not profile.get(field)]
+            if missing_required:
+                return {
+                    'status': 'missing',
+                    'missing': missing_required
+                }
+
+            cursor = conn.execute('''
+                INSERT OR IGNORE INTO event_registrations (event_id, user_id)
+                VALUES (?, ?)
+            ''', (event_id, user_id))
+            already_registered = cursor.rowcount == 0
+
+            conn.execute('''
+                INSERT INTO event_registration_details (
+                    event_id, user_id, last_name, first_name, middle_name,
+                    postal_code, country, city, street, house, building, apartment,
+                    phone, telegram, whatsapp, viber
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(event_id, user_id) DO UPDATE SET
+                    last_name = excluded.last_name,
+                    first_name = excluded.first_name,
+                    middle_name = excluded.middle_name,
+                    postal_code = excluded.postal_code,
+                    country = excluded.country,
+                    city = excluded.city,
+                    street = excluded.street,
+                    house = excluded.house,
+                    building = excluded.building,
+                    apartment = excluded.apartment,
+                    phone = excluded.phone,
+                    telegram = excluded.telegram,
+                    whatsapp = excluded.whatsapp,
+                    viber = excluded.viber,
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (
+                event_id,
+                user_id,
+                profile.get('last_name'),
+                profile.get('first_name'),
+                profile.get('middle_name'),
+                profile.get('postal_code'),
+                profile.get('country'),
+                profile.get('city'),
+                profile.get('street'),
+                profile.get('house'),
+                profile.get('building'),
+                profile.get('apartment'),
+                profile.get('phone'),
+                profile.get('telegram'),
+                profile.get('whatsapp'),
+                profile.get('viber')
+            ))
+
+            conn.commit()
+            return {
+                'status': 'success',
+                'already_registered': already_registered
+            }
+        except Exception as exc:
+            try:
+                conn.rollback()
+            except sqlite3.Error:
+                pass
+            log_error(f"Ошибка регистрации на мероприятие #{event_id}: {exc}")
+            return {'status': 'error', 'message': 'Ошибка при регистрации'}
+        finally:
+            conn.close()
+
+    # Финальный запрос из модального окна
+    if final_registration:
+        result = complete_registration()
+        if result['status'] == 'success':
+            if not result.get('already_registered'):
+                log_activity(
+                    'event_register',
+                    details=f'Регистрация на мероприятие #{event_id}',
+                    metadata={'event_id': event_id}
+                )
+            message = 'Вы уже зарегистрированы на мероприятие' if result.get('already_registered') else 'Вы успешно зарегистрированы на мероприятие!'
             return jsonify({
-                'success': False,
-                'needs_filling': True,
-                'missing_fields': missing_fields
+                'success': True,
+                'message': message,
+                'already_registered': result.get('already_registered', False)
             }), 200
-        # Это финальный запрос после подтверждения - проверяем, все ли заполнено
-        if not has_all_required:
-            log_debug(f"Финальный AJAX запрос от пользователя {user_id}, но данные не заполнены")
+
+        if result['status'] == 'missing':
             return jsonify({
                 'success': False,
                 'error': 'Пожалуйста, заполните все обязательные поля',
-                'missing_fields': missing_fields
+                'missing': result.get('missing', [])
             }), 400
-        # Все данные заполнены - продолжаем регистрацию ниже
-    
-    # Для обычных запросов проверяем заполненность контактных данных
-    if not has_required_contacts(user_id):
-        missing_fields = get_missing_required_fields(user_id)
-        log_debug(f"Пользователь {user_id} пытается зарегистрироваться, но не заполнены обязательные поля")
-        
-        # Если это не AJAX запрос, показываем flash сообщение
-        flash('Для регистрации на мероприятие необходимо заполнить все обязательные поля в разделе "Контакты" вашего профиля. Пожалуйста, перейдите в <a href="' + url_for('dashboard') + '#contacts" style="text-decoration: underline;">профиль</a> и заполните:<br><br><strong>Личные данные:</strong> Фамилия, Имя, Отчество<br><strong>Адрес:</strong> Индекс, Страна, Город, Улица, Дом, Корпус/Строение, Квартира<br><strong>Контактные данные:</strong> хотя бы одно из полей (Email, Телефон, Telegram, WhatsApp или Viber)', 'error')
-        return redirect(url_for('event_view', event_id=event_id))
-    
-    conn = get_db_connection()
-    try:
-        conn.execute('''
-            INSERT INTO event_registrations (event_id, user_id)
-            VALUES (?, ?)
-        ''', (event_id, user_id))
-        conn.commit()
-        log_activity(
-            'event_register',
-            details=f'Регистрация на мероприятие #{event_id}',
-            metadata={'event_id': event_id}
-        )
-        if is_json_request:
-            return jsonify({'success': True, 'message': 'Вы успешно зарегистрированы на мероприятие!'}), 200
-        flash('Вы успешно зарегистрированы на мероприятие!', 'success')
-    except sqlite3.IntegrityError:
-        if is_json_request:
-            return jsonify({'success': False, 'error': 'Вы уже зарегистрированы на это мероприятие'}), 400
+
+        return jsonify({'success': False, 'error': result.get('message', 'Ошибка при регистрации')}), 500
+
+    # Если это JSON-запрос без уточнения, возвращаем ошибку
+    if is_json_request:
+        return jsonify({'success': False, 'error': 'Некорректный запрос'}), 400
+
+    # Обычный POST-запрос (без модальных окон) — пытаемся завершить регистрацию
+    if is_user_registered(event_id, user_id):
         flash('Вы уже зарегистрированы на это мероприятие', 'info')
-    except Exception as e:
-        log_error(f"Ошибка регистрации на мероприятие: {e}")
-        if is_json_request:
-            return jsonify({'success': False, 'error': 'Ошибка при регистрации'}), 500
+        return redirect(url_for('event_view', event_id=event_id))
+
+    result = complete_registration()
+    if result['status'] == 'success':
+        if not result.get('already_registered'):
+            log_activity(
+                'event_register',
+                details=f'Регистрация на мероприятие #{event_id}',
+                metadata={'event_id': event_id}
+            )
+            flash('Вы успешно зарегистрированы на мероприятие!', 'success')
+        else:
+            flash('Вы уже зарегистрированы на это мероприятие', 'info')
+    elif result['status'] == 'missing':
+        missing_list = result.get('missing', [])
+        flash(
+            'Для регистрации необходимо заполнить обязательные поля: ' + ', '.join(missing_list),
+            'error'
+        )
+    else:
         flash('Ошибка при регистрации', 'error')
-    finally:
-        conn.close()
-    
+
     return redirect(url_for('event_view', event_id=event_id))
 
 @app.route('/api/profile/data', methods=['GET'])

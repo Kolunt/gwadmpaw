@@ -59,7 +59,10 @@
                                                 <button type="submit" class="btn btn-sm btn-danger">Отменить</button>
                                             </form>
                                         {% else %}
-                                            <form method="POST" action="{{ url_for('event_register', event_id=event.id) }}">
+                                            <form method="POST"
+                                                  action="{{ url_for('event_register', event_id=event.id) }}"
+                                                  class="register-form"
+                                                  data-event-id="{{ event.id }}">
                                                 <button type="submit" class="btn btn-sm btn-primary">Записаться</button>
                                             </form>
                                         {% endif %}
@@ -85,6 +88,8 @@
         {% endif %}
     </div>
 </div>
+
+{% include 'partials/registration_modal.html' %}
 
 <script>
 function initCountdownTimers(selector) {
@@ -141,12 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-.modal {
-    display: none;
-}
-</style>
-
 {% endblock %}
+
 
 

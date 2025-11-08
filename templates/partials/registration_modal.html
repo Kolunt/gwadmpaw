@@ -1,0 +1,714 @@
+<div id="registration-modal" class="modal" aria-hidden="true">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2 id="registration-modal-title">Уточнение данных</h2>
+            <button type="button" class="modal-close" id="registration-modal-close" aria-label="Закрыть модальное окно">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="registration-modal-error" class="alert alert-danger" role="alert" style="display: none;"></div>
+
+            <div class="registration-step" data-step="step1">
+                <div class="registration-step-content">
+                    <h3>Почему нужны эти данные?</h3>
+                    <p>Мы просим подтвердить контактные и почтовые данные, чтобы вовремя отправить подарок по правильному адресу и иметь альтернативные способы связи с вами.</p>
+                    <p>Заполненная информация будет видна только администраторам мероприятия и не появится публично. Вы сможете отредактировать эти данные в профиле в любой момент.</p>
+                </div>
+            </div>
+
+            <div class="registration-step" data-step="step2">
+                <div class="registration-step-content">
+                    <h3>Фамилия, Имя, Отчество</h3>
+                    <div class="form-group">
+                        <label for="registration-last-name" class="form-label">Фамилия *</label>
+                        <input type="text" id="registration-last-name" class="form-input" placeholder="Иванов" autocomplete="family-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="registration-first-name" class="form-label">Имя *</label>
+                        <input type="text" id="registration-first-name" class="form-input" placeholder="Иван" autocomplete="given-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="registration-middle-name" class="form-label">Отчество *</label>
+                        <input type="text" id="registration-middle-name" class="form-input" placeholder="Иванович" autocomplete="additional-name">
+                    </div>
+                </div>
+            </div>
+
+            <div class="registration-step" data-step="step3">
+                <div class="registration-step-content">
+                    <h3>Адрес для отправки подарка</h3>
+                    <div class="form-grid-two">
+                        <div class="form-group">
+                            <label for="registration-postal-code" class="form-label">Индекс *</label>
+                            <input type="text" id="registration-postal-code" class="form-input" placeholder="123456" autocomplete="postal-code">
+                        </div>
+                        <div class="form-group">
+                            <label for="registration-country" class="form-label">Страна *</label>
+                            <input type="text" id="registration-country" class="form-input" placeholder="Россия" autocomplete="country-name">
+                        </div>
+                        <div class="form-group">
+                            <label for="registration-city" class="form-label">Город *</label>
+                            <input type="text" id="registration-city" class="form-input" placeholder="Москва" autocomplete="address-level2">
+                        </div>
+                        <div class="form-group">
+                            <label for="registration-street" class="form-label">Улица *</label>
+                            <input type="text" id="registration-street" class="form-input" placeholder="Ленина" autocomplete="address-line1">
+                        </div>
+                        <div class="form-group">
+                            <label for="registration-house" class="form-label">Дом *</label>
+                            <input type="text" id="registration-house" class="form-input" placeholder="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="registration-building" class="form-label">Корпус / строение *</label>
+                            <input type="text" id="registration-building" class="form-input" placeholder="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="registration-apartment" class="form-label">Квартира *</label>
+                            <input type="text" id="registration-apartment" class="form-input" placeholder="25">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="registration-step" data-step="step4">
+                <div class="registration-step-content">
+                    <h3>Номер телефона</h3>
+                    <p class="text-muted small-note">Укажите номер, по которому с вами можно связаться. Мы не будем рассылать спам.</p>
+                    <div class="form-group">
+                        <label for="registration-phone" class="form-label">Телефон *</label>
+                        <input type="tel" id="registration-phone" class="form-input" placeholder="+7 (999) 123-45-67" autocomplete="tel">
+                    </div>
+                </div>
+            </div>
+
+            <div class="registration-step" data-step="step5">
+                <div class="registration-step-content">
+                    <h3>Telegram</h3>
+                    <p class="text-muted small-note">Если используете Telegram, укажите ник или номер. Иначе нажмите «Не использую».</p>
+                    <div class="form-group">
+                        <label for="registration-telegram" class="form-label">Аккаунт в Telegram</label>
+                        <input type="text" id="registration-telegram" class="form-input" placeholder="@username">
+                    </div>
+                </div>
+            </div>
+
+            <div class="registration-step" data-step="step6">
+                <div class="registration-step-content">
+                    <h3>WhatsApp</h3>
+                    <p class="text-muted small-note">Дополнительный способ связи. Если не пользуетесь, просто отметьте это.</p>
+                    <div class="form-group">
+                        <label for="registration-whatsapp" class="form-label">Аккаунт в WhatsApp</label>
+                        <input type="text" id="registration-whatsapp" class="form-input" placeholder="+7 (999) 123-45-67">
+                    </div>
+                </div>
+            </div>
+
+            <div class="registration-step" data-step="step7">
+                <div class="registration-step-content">
+                    <h3>Viber</h3>
+                    <p class="text-muted small-note">Если не используете Viber, нажмите «Не использую» — поле останется пустым.</p>
+                    <div class="form-group">
+                        <label for="registration-viber" class="form-label">Аккаунт в Viber</label>
+                        <input type="text" id="registration-viber" class="form-input" placeholder="+7 (999) 123-45-67">
+                    </div>
+                </div>
+            </div>
+
+            <div class="registration-step" data-step="stepfinal">
+                <div class="registration-step-content">
+                    <h3>Проверьте данные перед регистрацией</h3>
+                    <p>Пожалуйста, убедитесь, что информация ниже актуальна. Она будет закреплена за этим мероприятием и доступна администраторам.</p>
+                    <dl class="registration-summary">
+                        <div class="summary-row">
+                            <dt>ФИО</dt>
+                            <dd data-summary-field="fio"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Индекс</dt>
+                            <dd data-summary-field="postal_code"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Страна</dt>
+                            <dd data-summary-field="country"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Город</dt>
+                            <dd data-summary-field="city"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Улица</dt>
+                            <dd data-summary-field="street"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Дом</dt>
+                            <dd data-summary-field="house"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Корпус / строение</dt>
+                            <dd data-summary-field="building"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Квартира</dt>
+                            <dd data-summary-field="apartment"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Телефон</dt>
+                            <dd data-summary-field="phone"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Telegram</dt>
+                            <dd data-summary-field="telegram"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>WhatsApp</dt>
+                            <dd data-summary-field="whatsapp"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>Viber</dt>
+                            <dd data-summary-field="viber"></dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="registration-secondary-btn" style="display: none;"></button>
+            <button type="button" class="btn btn-secondary" id="registration-tertiary-btn" style="display: none;"></button>
+            <button type="button" class="btn btn-primary" id="registration-primary-btn">Продолжить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    if (window.__registrationModalInitialized) {
+        return;
+    }
+    window.__registrationModalInitialized = true;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('registration-modal');
+        if (!modal) {
+            return;
+        }
+
+        const modalCloseBtn = document.getElementById('registration-modal-close');
+        const modalTitle = document.getElementById('registration-modal-title');
+        const errorBox = document.getElementById('registration-modal-error');
+        const primaryBtn = document.getElementById('registration-primary-btn');
+        const secondaryBtn = document.getElementById('registration-secondary-btn');
+        const tertiaryBtn = document.getElementById('registration-tertiary-btn');
+
+        const stepsOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'stepfinal'];
+        const stepElements = new Map();
+        modal.querySelectorAll('.registration-step').forEach(step => {
+            const key = step.getAttribute('data-step');
+            if (key) {
+                stepElements.set(key, step);
+            }
+        });
+
+        const titles = {
+            step1: 'Это обязательные данные',
+            step2: 'Личные данные',
+            step3: 'Адрес для подарка',
+            step4: 'Контакты',
+            step5: 'Дополнительный контакт: Telegram',
+            step6: 'Дополнительный контакт: WhatsApp',
+            step7: 'Дополнительный контакт: Viber',
+            stepfinal: 'Проверка данных'
+        };
+
+        const inputs = {
+            last_name: document.getElementById('registration-last-name'),
+            first_name: document.getElementById('registration-first-name'),
+            middle_name: document.getElementById('registration-middle-name'),
+            postal_code: document.getElementById('registration-postal-code'),
+            country: document.getElementById('registration-country'),
+            city: document.getElementById('registration-city'),
+            street: document.getElementById('registration-street'),
+            house: document.getElementById('registration-house'),
+            building: document.getElementById('registration-building'),
+            apartment: document.getElementById('registration-apartment'),
+            phone: document.getElementById('registration-phone'),
+            telegram: document.getElementById('registration-telegram'),
+            whatsapp: document.getElementById('registration-whatsapp'),
+            viber: document.getElementById('registration-viber')
+        };
+
+        const summaryFields = {};
+        modal.querySelectorAll('[data-summary-field]').forEach(node => {
+            summaryFields[node.getAttribute('data-summary-field')] = node;
+        });
+
+        const defaultProfile = {
+            last_name: '',
+            first_name: '',
+            middle_name: '',
+            postal_code: '',
+            country: '',
+            city: '',
+            street: '',
+            house: '',
+            building: '',
+            apartment: '',
+            phone: '',
+            telegram: '',
+            whatsapp: '',
+            viber: ''
+        };
+
+        let profileData = { ...defaultProfile };
+        let currentStepIndex = 0;
+        let activeForm = null;
+        let activeAction = '';
+        let previousHash = '';
+        let baseUrlWithoutHash = window.location.href.split('#')[0];
+        let isBusy = false;
+
+        function setHash(stepKey) {
+            if (!stepKey) {
+                return;
+            }
+            const targetUrl = `${baseUrlWithoutHash}#${stepKey}`;
+            if (history.replaceState) {
+                history.replaceState(null, '', targetUrl);
+            } else {
+                window.location.hash = stepKey;
+            }
+        }
+
+        function restoreHash() {
+            const targetUrl = previousHash ? `${baseUrlWithoutHash}${previousHash}` : baseUrlWithoutHash;
+            if (history.replaceState) {
+                history.replaceState(null, '', targetUrl);
+            } else if (previousHash) {
+                window.location.hash = previousHash;
+            } else {
+                window.location.hash = '';
+            }
+        }
+
+        function showError(message) {
+            if (!errorBox) return;
+            errorBox.textContent = message;
+            errorBox.style.display = 'block';
+        }
+
+        function clearError() {
+            if (!errorBox) return;
+            errorBox.style.display = 'none';
+            errorBox.textContent = '';
+        }
+
+        function setBusy(state) {
+            isBusy = state;
+            primaryBtn.disabled = state;
+            secondaryBtn.disabled = state;
+            tertiaryBtn.disabled = state;
+        }
+
+        function fillInputs() {
+            Object.keys(inputs).forEach(key => {
+                const input = inputs[key];
+                if (input) {
+                    input.value = profileData[key] || '';
+                }
+            });
+        }
+
+        function textOrDash(value) {
+            return value ? value : '—';
+        }
+
+        function updateSummary() {
+            if (!summaryFields) return;
+            const fio = [profileData.last_name, profileData.first_name, profileData.middle_name]
+                .map(part => part || '')
+                .filter(Boolean)
+                .join(' ');
+            if (summaryFields.fio) summaryFields.fio.textContent = fio || '—';
+            ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment', 'phone', 'telegram', 'whatsapp', 'viber']
+                .forEach(key => {
+                    if (summaryFields[key]) {
+                        summaryFields[key].textContent = textOrDash(profileData[key]);
+                    }
+                });
+        }
+
+        async function loadProfileData() {
+            try {
+                const response = await fetch('/api/profile/data', {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                });
+                if (!response.ok) {
+                    profileData = { ...defaultProfile };
+                    return;
+                }
+                const result = await response.json();
+                if (result && result.success && result.data) {
+                    profileData = { ...defaultProfile, ...result.data };
+                } else {
+                    profileData = { ...defaultProfile };
+                }
+            } catch (error) {
+                console.error('Не удалось загрузить данные профиля:', error);
+                profileData = { ...defaultProfile };
+            }
+        }
+
+        async function saveProfileData(fields) {
+            try {
+                const response = await fetch('/api/profile/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(fields)
+                });
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Ошибка профиля:', response.status, text);
+                    showError('Не удалось сохранить данные. Попробуйте ещё раз.');
+                    return false;
+                }
+                const result = await response.json();
+                if (!result.success) {
+                    showError(result.error || 'Не удалось сохранить данные.');
+                    return false;
+                }
+                profileData = { ...profileData, ...fields };
+                return true;
+            } catch (error) {
+                console.error('Ошибка сохранения профиля:', error);
+                showError('Не удалось сохранить данные. Попробуйте ещё раз.');
+                return false;
+            }
+        }
+
+        async function handleStep2() {
+            const data = {
+                last_name: inputs.last_name.value.trim(),
+                first_name: inputs.first_name.value.trim(),
+                middle_name: inputs.middle_name.value.trim()
+            };
+            if (!data.last_name || !data.first_name || !data.middle_name) {
+                showError('Пожалуйста, заполните фамилию, имя и отчество.');
+                return;
+            }
+            setBusy(true);
+            const saved = await saveProfileData(data);
+            setBusy(false);
+            if (saved) {
+                goToStep('step3');
+            }
+        }
+
+        async function handleStep3() {
+            const data = {
+                postal_code: inputs.postal_code.value.trim(),
+                country: inputs.country.value.trim(),
+                city: inputs.city.value.trim(),
+                street: inputs.street.value.trim(),
+                house: inputs.house.value.trim(),
+                building: inputs.building.value.trim(),
+                apartment: inputs.apartment.value.trim()
+            };
+            const missing = Object.entries(data).filter(([, value]) => !value);
+            if (missing.length > 0) {
+                showError('Пожалуйста, заполните адрес полностью.');
+                return;
+            }
+            setBusy(true);
+            const saved = await saveProfileData(data);
+            setBusy(false);
+            if (saved) {
+                goToStep('step4');
+            }
+        }
+
+        async function handleStep4() {
+            const phone = inputs.phone.value.trim();
+            if (!phone) {
+                showError('Укажите номер телефона.');
+                return;
+            }
+            setBusy(true);
+            const saved = await saveProfileData({ phone });
+            setBusy(false);
+            if (saved) {
+                goToStep('step5');
+            }
+        }
+
+        async function handleContactStep(fieldKey, requireValue) {
+            const input = inputs[fieldKey];
+            if (!input) {
+                goToNextStep();
+                return;
+            }
+            const value = input.value.trim();
+            if (requireValue && !value) {
+                showError('Заполните поле или нажмите «Не использую».');
+                return;
+            }
+            if (!value) {
+                goToNextStep();
+                return;
+            }
+            setBusy(true);
+            const saved = await saveProfileData({ [fieldKey]: value });
+            setBusy(false);
+            if (saved) {
+                goToNextStep();
+            }
+        }
+
+        async function handleNotUsing(fieldKey, storedValue) {
+            const valueToSave = storedValue !== undefined ? storedValue : 'не использую';
+            setBusy(true);
+            const saved = await saveProfileData({ [fieldKey]: valueToSave });
+            setBusy(false);
+            if (saved) {
+                const input = inputs[fieldKey];
+                if (input) {
+                    input.value = valueToSave;
+                }
+                goToNextStep();
+            }
+        }
+
+        async function finalizeRegistration() {
+            if (!activeForm || !activeAction) {
+                showError('Не удалось определить мероприятие.');
+                return;
+            }
+            setBusy(true);
+            try {
+                const response = await fetch(activeAction, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ final_registration: true })
+                });
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Ошибка регистрации:', response.status, text);
+                    showError('Не удалось завершить регистрацию. Попробуйте ещё раз.');
+                    setBusy(false);
+                    return;
+                }
+                const result = await response.json();
+                if (!result.success) {
+                    showError(result.error || 'Не удалось завершить регистрацию.');
+                    setBusy(false);
+                    return;
+                }
+                closeModal();
+                window.location.reload();
+            } catch (error) {
+                console.error('Ошибка финальной регистрации:', error);
+                showError('Не удалось завершить регистрацию. Попробуйте ещё раз.');
+                setBusy(false);
+            }
+        }
+
+        function goToStep(stepKey) {
+            const index = stepsOrder.indexOf(stepKey);
+            if (index === -1) {
+                return;
+            }
+            currentStepIndex = index;
+            renderStep();
+        }
+
+        function goToNextStep() {
+            if (currentStepIndex < stepsOrder.length - 1) {
+                currentStepIndex += 1;
+                renderStep();
+            }
+        }
+
+        function goToPreviousStep() {
+            if (currentStepIndex === 0) {
+                closeModal();
+                return;
+            }
+            currentStepIndex = Math.max(0, currentStepIndex - 1);
+            renderStep();
+        }
+
+        function resetToStart() {
+            currentStepIndex = 0;
+            renderStep();
+        }
+
+        function renderStep() {
+            clearError();
+            stepElements.forEach((element, key) => {
+                element.classList.toggle('active', key === stepsOrder[currentStepIndex]);
+            });
+            const activeKey = stepsOrder[currentStepIndex];
+            modalTitle.textContent = titles[activeKey] || 'Уточнение данных';
+            setHash(activeKey);
+
+            if (activeKey === 'stepfinal') {
+                updateSummary();
+            }
+
+            primaryBtn.style.display = 'inline-block';
+            primaryBtn.classList.remove('btn-secondary');
+            primaryBtn.classList.add('btn-primary');
+            primaryBtn.textContent = 'Далее';
+            primaryBtn.onclick = null;
+
+            secondaryBtn.style.display = 'none';
+            secondaryBtn.onclick = null;
+            secondaryBtn.classList.remove('btn-primary');
+            secondaryBtn.classList.add('btn-secondary');
+
+            tertiaryBtn.style.display = 'none';
+            tertiaryBtn.onclick = null;
+
+            switch (activeKey) {
+                case 'step1':
+                    primaryBtn.textContent = 'Далее';
+                    primaryBtn.onclick = () => goToStep('step2');
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.textContent = 'Не сейчас';
+                    secondaryBtn.onclick = closeModal;
+                    break;
+                case 'step2':
+                    fillInputs();
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = handleStep2;
+                    break;
+                case 'step3':
+                    fillInputs();
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = handleStep3;
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.textContent = 'Назад';
+                    secondaryBtn.onclick = () => goToStep('step2');
+                    break;
+                case 'step4':
+                    fillInputs();
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = handleStep4;
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.textContent = 'Назад';
+                    secondaryBtn.onclick = () => goToStep('step3');
+                    break;
+                case 'step5':
+                    fillInputs();
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = () => handleContactStep('telegram', true);
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.textContent = 'Назад';
+                    secondaryBtn.onclick = () => goToStep('step4');
+                    tertiaryBtn.style.display = 'inline-block';
+                    tertiaryBtn.textContent = 'Не использую';
+                    tertiaryBtn.onclick = () => handleNotUsing('telegram', 'не использую');
+                    break;
+                case 'step6':
+                    fillInputs();
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = () => handleContactStep('whatsapp', true);
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.textContent = 'Назад';
+                    secondaryBtn.onclick = () => goToStep('step5');
+                    tertiaryBtn.style.display = 'inline-block';
+                    tertiaryBtn.textContent = 'Не использую';
+                    tertiaryBtn.onclick = () => handleNotUsing('whatsapp', 'не использую');
+                    break;
+                case 'step7':
+                    fillInputs();
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = () => handleContactStep('viber', true);
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.textContent = 'Назад';
+                    secondaryBtn.onclick = () => goToStep('step6');
+                    tertiaryBtn.style.display = 'inline-block';
+                    tertiaryBtn.textContent = 'Не использую';
+                    tertiaryBtn.onclick = () => handleNotUsing('viber', '');
+                    break;
+                case 'stepfinal':
+                    fillInputs();
+                    updateSummary();
+                    primaryBtn.textContent = 'Данные корректны, записаться на мероприятие';
+                    primaryBtn.onclick = finalizeRegistration;
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.textContent = 'Заново';
+                    secondaryBtn.onclick = resetToStart;
+                    tertiaryBtn.style.display = 'inline-block';
+                    tertiaryBtn.textContent = 'Назад';
+                    tertiaryBtn.onclick = () => goToStep('step7');
+                    break;
+                default:
+                    primaryBtn.onclick = goToNextStep;
+            }
+        }
+
+        async function openModal(form) {
+            if (!form) return;
+            activeForm = form;
+            activeAction = form.getAttribute('action');
+            previousHash = window.location.hash;
+            baseUrlWithoutHash = window.location.href.split('#')[0];
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+            setBusy(true);
+            await loadProfileData();
+            fillInputs();
+            clearError();
+            currentStepIndex = 0;
+            renderStep();
+            setBusy(false);
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+            restoreHash();
+            clearError();
+            activeForm = null;
+            activeAction = '';
+            currentStepIndex = 0;
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (isBusy) {
+                return;
+            }
+            openModal(event.currentTarget);
+        }
+
+        modalCloseBtn.addEventListener('click', closeModal);
+        modal.addEventListener('mousedown', function(evt) {
+            if (evt.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(evt) {
+            if (evt.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
+                closeModal();
+            }
+        });
+
+        const registerForms = document.querySelectorAll('form.register-form');
+        registerForms.forEach(form => form.addEventListener('submit', handleFormSubmit));
+    });
+})();
+</script>
+
