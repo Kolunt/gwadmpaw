@@ -3072,6 +3072,63 @@ def admin_user_edit(user_id):
                          avatar_styles=AVATAR_STYLES,
                          available_languages=available_languages)
 
+@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@require_role('admin')
+def admin_user_delete(user_id):
+    """Удаление пользователя администратором"""
+    if session.get('user_id') == user_id:
+        flash('Нельзя удалить собственную учетную запись', 'error')
+        return redirect(url_for('admin_users'))
+
+    conn = get_db_connection()
+    try:
+        user = conn.execute('SELECT user_id, username FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        if not user:
+            conn.close()
+            flash('Пользователь не найден', 'error')
+            return redirect(url_for('admin_users'))
+
+        username = user['username']
+
+        conn.execute('BEGIN')
+        conn.execute('UPDATE user_roles SET assigned_by = NULL WHERE assigned_by = ?', (user_id,))
+        conn.execute('UPDATE user_titles SET assigned_by = NULL WHERE assigned_by = ?', (user_id,))
+        conn.execute('UPDATE user_awards SET assigned_by = NULL WHERE assigned_by = ?', (user_id,))
+        conn.execute('UPDATE awards SET created_by = NULL WHERE created_by = ?', (user_id,))
+        conn.execute('UPDATE events SET created_by = NULL WHERE created_by = ?', (user_id,))
+        conn.execute('UPDATE activity_logs SET user_id = NULL WHERE user_id = ?', (user_id,))
+        conn.execute('UPDATE event_participant_approvals SET approved_by = NULL WHERE approved_by = ?', (user_id,))
+        conn.execute('UPDATE event_assignments SET assigned_by = NULL WHERE assigned_by = ?', (user_id,))
+        conn.execute('UPDATE faq_categories SET created_by = NULL WHERE created_by = ?', (user_id,))
+        conn.execute('UPDATE faq_categories SET updated_by = NULL WHERE updated_by = ?', (user_id,))
+        conn.execute('UPDATE contacts SET created_by = NULL WHERE created_by = ?', (user_id,))
+        conn.execute('UPDATE contacts SET updated_by = NULL WHERE updated_by = ?', (user_id,))
+        conn.execute('UPDATE faq_items SET created_by = NULL WHERE created_by = ?', (user_id,))
+        conn.execute('UPDATE faq_items SET updated_by = NULL WHERE updated_by = ?', (user_id,))
+        conn.execute('UPDATE settings SET updated_by = NULL WHERE updated_by = ?', (user_id,))
+        conn.execute('DELETE FROM users WHERE user_id = ?', (user_id,))
+        conn.commit()
+    except Exception as e:
+        try:
+            conn.rollback()
+        except sqlite3.Error:
+            pass
+        conn.close()
+        log_error(f"Ошибка удаления пользователя {user_id}: {e}")
+        flash('Ошибка при удалении пользователя', 'error')
+        return redirect(url_for('admin_users'))
+
+    conn.close()
+
+    log_activity(
+        'admin_user_delete',
+        details=f'Удален пользователь {username} (ID {user_id})',
+        metadata={'target_user_id': user_id, 'target_username': username}
+    )
+    flash('Пользователь успешно удален', 'success')
+    return redirect(url_for('admin_users'))
+
+
 @app.route('/admin/users/<int:user_id>/roles', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_user_roles(user_id):

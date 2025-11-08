@@ -119,6 +119,19 @@
                                 <a href="{{ url_for('admin_user_edit', user_id=user.user_id) }}" class="btn-icon" title="Редактировать">✏️</a>
                                 <a href="{{ url_for('admin_user_roles', user_id=user.user_id) }}" class="btn-icon" title="Роли">🔐</a>
                                 <a href="{{ url_for('admin_user_titles', user_id=user.user_id) }}" class="btn-icon" title="Звания">🏆</a>
+                                {% if user.user_id != session.user_id %}
+                                <form method="POST"
+                                      action="{{ url_for('admin_user_delete', user_id=user.user_id) }}"
+                                      style="display: inline;"
+                                      onsubmit="return confirm('Удалить пользователя {{ user.username }} (ID {{ user.user_id }})? Действие необратимо.');">
+                                    <button type="submit"
+                                            class="btn-icon"
+                                            title="Удалить"
+                                            style="background-color: var(--error-color); border-color: var(--error-color); color: #fff;">
+                                        🗑️
+                                    </button>
+                                </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
