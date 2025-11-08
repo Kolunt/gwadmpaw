@@ -171,7 +171,7 @@
         </div>
         <div class="modal-footer">
             <button type="button" id="modal-prev-btn" class="btn btn-secondary" style="display: none;">{{ modal_texts.get('modal_btn_back', 'Назад') }}</button>
-            <button type="button" id="modal-next-btn" class="btn btn-primary">{{ modal_texts.get('modal_btn_next', 'Далее') }}</button>
+            <button type="button" id="modal-next-btn" class="btn btn-primary">{{ modal_texts.get('modal_btn_next', 'Подтверждаю') }}</button>
             <button type="button" id="modal-skip-btn" class="btn btn-secondary" style="display: none;">{{ modal_texts.get('modal_btn_skip', 'Пропустить') }}</button>
             <button type="button" id="modal-not-using-btn" class="btn btn-secondary" style="display: none;">{{ modal_texts.get('modal_btn_not_using', 'Не использую') }}</button>
             <button type="button" id="modal-confirm-btn" class="btn btn-primary" style="display: none;">{{ modal_texts.get('modal_btn_confirm', 'Без сомнений, участвую!') }}</button>
@@ -253,13 +253,13 @@ const modalTexts = {
     final_title: {{ modal_texts.get('modal_final_title', '🎉 Все данные собраны, вы готовы стать Анонимным Дедом Морозом!')|tojson }},
     final_text: {{ modal_texts.get('modal_final_text', 'Теперь вы можете принять участие в мероприятии и подарить радость другим участникам!')|tojson }},
     btn_back: {{ modal_texts.get('modal_btn_back', 'Назад')|tojson }},
-    btn_next: {{ modal_texts.get('modal_btn_next', 'Далее')|tojson }},
+    btn_next: {{ modal_texts.get('modal_btn_next', 'Подтверждаю')|tojson }},
     btn_skip: {{ modal_texts.get('modal_btn_skip', 'Пропустить')|tojson }},
     btn_not_using: {{ modal_texts.get('modal_btn_not_using', 'Не использую')|tojson }},
     btn_confirm: {{ modal_texts.get('modal_btn_confirm', 'Без сомнений, участвую!')|tojson }},
     btn_cancel: {{ modal_texts.get('modal_btn_cancel', 'Я ещё подумаю...')|tojson }},
     btn_save_continue: {{ modal_texts.get('modal_btn_save_continue', 'Сохранить и продолжить')|tojson }},
-    btn_finish_register: {{ modal_texts.get('modal_btn_finish_register', 'Завершить и зарегистрироваться')|tojson }},
+    btn_finish_register: {{ modal_texts.get('modal_btn_finish_register', 'Подтверждаю')|tojson }},
     error_email_invalid: {{ modal_texts.get('modal_error_email_invalid', 'Это не email')|tojson }}
 };
 
@@ -288,8 +288,28 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentEventId = null;
     let currentForm = null;
     let userData = null; // Текущие данные пользователя
+    const originalPathWithSearch = window.location.pathname + window.location.search;
+    const preservedHash = window.location.hash && !window.location.hash.startsWith('#step') ? window.location.hash : '';
+    let registrationHistoryActive = false;
     
     const steps = ['intro', 'personal', 'address', 'contact', 'final'];
+
+    function setRegistrationStepUrl(stepKey) {
+        if (!stepKey) {
+            return;
+        }
+        const newUrl = `${originalPathWithSearch}#${stepKey}`;
+        registrationHistoryActive = true;
+        window.history.replaceState({ registrationStep: stepKey }, '', newUrl);
+    }
+
+    function clearRegistrationStepUrl() {
+        const baseUrl = preservedHash ? `${originalPathWithSearch}${preservedHash}` : originalPathWithSearch;
+        if (registrationHistoryActive || window.location.hash.startsWith('#step')) {
+            window.history.replaceState({ registrationStep: null }, '', baseUrl);
+        }
+        registrationHistoryActive = false;
+    }
     
     // Функция для отображения ошибки в модальном окне
     function showModalError(message) {
@@ -382,6 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.style.display = 'block';
         currentStep = 0;
         hideModalError(); // Скрываем ошибки при открытии модального окна
+        setRegistrationStepUrl('step0');
         
         // Загружаем текущие данные пользователя для проверки
         try {
@@ -408,6 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function hideModal() {
         modal.style.display = 'none';
+        clearRegistrationStepUrl();
     }
     
     function showStep(stepIndex) {
@@ -422,16 +444,22 @@ document.addEventListener('DOMContentLoaded', function() {
         // Обновляем заголовок модального окна
         const modalTitle = document.getElementById('modal-title');
         const allRequiredFilled = missingFields && missingFields.has_personal_data && missingFields.has_address && missingFields.has_contact;
+        nextBtn.style.display = 'inline-block';
         
         // Показываем текущий шаг
         const stepName = steps[stepIndex];
+
+        if (prevBtn) {
+            prevBtn.textContent = modalTexts.btn_back || 'Назад';
+        }
         if (stepName === 'intro') {
+            setRegistrationStepUrl('step0');
             document.getElementById('step-intro').style.display = 'block';
             // Если все данные заполнены, показываем сообщение о подтверждении
             if (missingFields && missingFields.has_personal_data && missingFields.has_address && missingFields.has_contact) {
                 // Все обязательные данные заполнены - меняем заголовок
                 if (modalTitle) {
-                    modalTitle.textContent = 'Это необязательные данные, но очень важные';
+                    modalTitle.textContent = 'Это обязательные данные';
                 }
                 const introContent = document.getElementById('step-intro-content');
                 const introDescription = document.getElementById('step-intro-description');
@@ -457,10 +485,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         } else if (stepName === 'personal') {
+            setRegistrationStepUrl('step1');
             document.getElementById('step-personal').style.display = 'block';
             // Если все обязательные данные заполнены - меняем заголовок
             if (allRequiredFilled && modalTitle) {
-                modalTitle.textContent = 'Это необязательные данные, но очень важные';
+                modalTitle.textContent = 'Это обязательные данные';
             } else if (modalTitle) {
                 modalTitle.textContent = 'Заполнение обязательных данных';
             }
@@ -474,10 +503,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (middleNameInput && userData.middle_name) middleNameInput.value = userData.middle_name;
             }
         } else if (stepName === 'address') {
+            setRegistrationStepUrl('step2');
             document.getElementById('step-address').style.display = 'block';
             // Если все обязательные данные заполнены - меняем заголовок
             if (allRequiredFilled && modalTitle) {
-                modalTitle.textContent = 'Это необязательные данные, но очень важные';
+                modalTitle.textContent = 'Это обязательные данные';
             } else if (modalTitle) {
                 modalTitle.textContent = 'Заполнение обязательных данных';
             }
@@ -501,16 +531,18 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (stepName === 'contact') {
             // Если все обязательные данные заполнены - меняем заголовок
             if (allRequiredFilled && modalTitle) {
-                modalTitle.textContent = 'Это необязательные данные, но очень важные';
+                modalTitle.textContent = 'Это необязательные, но важные данные';
             } else if (modalTitle) {
                 modalTitle.textContent = 'Заполнение обязательных данных';
             }
             showContactStep();
         } else if (stepName === 'final') {
+            setRegistrationStepUrl('step-final');
             document.getElementById('step-final').style.display = 'block';
             modalTitle.textContent = 'Подтверждение участия';
-            nextBtn.style.display = 'none'; // Скрываем "Далее"
-            prevBtn.style.display = 'inline-block'; // Показываем "Назад"
+            nextBtn.style.display = 'none'; // Скрываем кнопку перехода
+            prevBtn.style.display = 'inline-block'; // Показываем "Заново"
+            prevBtn.textContent = 'Заново';
             skipBtn.style.display = 'none';
             notUsingBtn.style.display = 'none';
             if (confirmBtn) confirmBtn.style.display = 'inline-block';
@@ -540,15 +572,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 notUsingBtn.style.display = 'inline-block';
             } else {
                 // Все контакты заполнены или нет незаполненных
-                nextBtn.textContent = 'Завершить и зарегистрироваться';
+                nextBtn.textContent = 'Подтверждаю';
                 skipBtn.style.display = 'none';
                 notUsingBtn.style.display = 'none';
             }
         } else if (stepIndex === steps.length - 1) {
-            nextBtn.textContent = 'Завершить и зарегистрироваться';
+            nextBtn.textContent = 'Подтверждаю';
             skipBtn.style.display = 'none';
         } else {
-            nextBtn.textContent = 'Далее';
+            nextBtn.textContent = 'Подтверждаю';
             skipBtn.style.display = 'none';
         }
     }
@@ -559,6 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const description = document.getElementById('step-contact-description');
         
         container.innerHTML = '';
+        setRegistrationStepUrl('step' + contactStepIndex);
         
         // Если все обязательные данные заполнены, показываем все контакты для проверки/заполнения
         const allRequiredFilled = missingFields.has_personal_data && missingFields.has_address && missingFields.has_contact;
@@ -602,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         description.textContent = 'Вы можете добавить еще один способ связи или пропустить этот шаг.';
                     }
                     
-                    nextBtn.textContent = isLast ? 'Завершить и зарегистрироваться' : 'Сохранить и продолжить';
+                    nextBtn.textContent = isLast ? 'Подтверждаю' : 'Сохранить и продолжить';
                     skipBtn.style.display = 'none';
                     notUsingBtn.style.display = isFilled ? 'none' : 'inline-block';
                     
@@ -636,8 +669,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const field = contactFields.find(f => f.key === currentContactField);
             if (field) {
                 title.textContent = 'Шаг ' + contactStepIndex + ': ' + field.label;
-                description.textContent = 'Проверьте ваш контакт. Вы можете изменить его или подтвердить, нажав "Завершить и зарегистрироваться".';
-                nextBtn.textContent = 'Завершить и зарегистрироваться';
+                description.textContent = 'Проверьте ваш контакт. Вы можете изменить его или подтвердить, нажав "Подтверждаю".';
+                nextBtn.textContent = 'Подтверждаю';
                 skipBtn.style.display = 'none';
                 notUsingBtn.style.display = 'none';
                 
@@ -1148,12 +1181,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function prevStep() {
+        const finalIndex = steps.indexOf('final');
+
+        if (currentStep === finalIndex) {
+            currentStep = 0;
+            contactStepIndex = 3;
+            currentContactField = null;
+            showStep(currentStep);
+            return;
+        }
+
         if (currentStep > 0) {
             currentStep--;
             if (currentStep < 3) {
                 contactStepIndex = 3;
             } else {
-                contactStepIndex--;
+                contactStepIndex = Math.max(3, contactStepIndex - 1);
             }
             showStep(currentStep);
         }
