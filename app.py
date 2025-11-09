@@ -1,6 +1,6 @@
 from flask import(
     Flask, render_template, redirect, url_for, request, session,
-    flash, jsonify, send_file, Response, abort
+    flash, jsonify, send_file, Response, abort, has_request_context
 )
 from urllib.parse import unquote, unquote_to_bytes, quote
 import hashlib
@@ -1382,6 +1382,13 @@ def inject_default_theme():
             available_languages={'ru': 'Русский', 'en': 'English'}
         )
 
+@app.context_processor
+def inject_common_flags():
+    return {
+        'is_production': app.config.get('ENV') == 'production',
+        'app_config': app.config,
+    }
+
 @app.route('/')
 def index():
     # Собираем данные для лендинга (доступно всем)
@@ -1464,7 +1471,6 @@ def index():
                          online_users=online_users,
                          events_with_stages=events_with_stages,
                          project_name=project_name)
-
 @app.route('/login/dev')
 def login_dev():
     """Тестовый режим авторизации для локальной разработки"""
@@ -4917,6 +4923,11 @@ def save_event_assignments(event_id, assignments, assigned_by, connection=None):
     """Сохраняет распределение пар"""
     conn = connection or get_db_connection()
     try:
+        existing_rows = conn.execute('''
+            SELECT santa_user_id, recipient_user_id
+            FROM event_assignments
+            WHERE event_id = ?
+        ''', (event_id,)).fetchall()
         conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
         data = [(event_id, santa, recipient, assigned_by) for santa, recipient in assignments]
         conn.executemany('''
@@ -4938,10 +4949,16 @@ def save_event_assignments(event_id, assignments, assigned_by, connection=None):
     except Exception as e:
         log_error(f"Error saving assignments for event {event_id}: {e}")
         conn.rollback()
+        try:
+            conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
+            conn.executemany('''
+                INSERT INTO event_assignments (event_id, santa_user_id, recipient_user_id)
+                VALUES (?, ?, ?)
+            ''', [(event_id, row['santa_user_id'], row['recipient_user_id']) for row in existing_rows])
+            conn.commit()
+        except Exception as restore_error:
+            log_error(f"Failed to restore previous assignments for event {event_id}: {restore_error}")
         return False, str(e)
-    finally:
-        if connection is None:
-            conn.close()
 
 def get_user_assignments(user_id):
     """Получает задания пользователя (где он Дед Мороз и где Внучка)"""
@@ -6600,8 +6617,9 @@ def admin_event_distribution_positive_view(event_id):
     conn.close()
 
     participants_data = []
+    participants_lookup = {}
     for row in participants:
-        participants_data.append({
+        participant_dict = {
             'user_id': row['user_id'],
             'username': row['username'] or f'ID {row["user_id"]}',
             'last_name': row['last_name'],
@@ -6616,6 +6634,8 @@ def admin_event_distribution_positive_view(event_id):
                 'building': row['building'],
                 'apartment': row['apartment'],
             },
+            'country': row['country'],
+            'city': row['city'],
             'contacts': {
                 'phone': row['phone'],
                 'telegram': row['telegram'],
@@ -6624,9 +6644,38 @@ def admin_event_distribution_positive_view(event_id):
             },
             'notes': row['approval_notes'],
             'registered_at': row['registered_at'],
+        }
+        participants_data.append(participant_dict)
+        participants_lookup[row['user_id']] = participant_dict
+
+    conn_assignments = get_db_connection()
+    saved_rows = conn_assignments.execute('''
+        SELECT santa_user_id, recipient_user_id
+        FROM event_assignments
+        WHERE event_id = ?
+        ORDER BY assigned_at ASC, id ASC
+    ''', (event_id,)).fetchall()
+    conn_assignments.close()
+
+    saved_pairs = []
+    for record in saved_rows:
+        santa = participants_lookup.get(record['santa_user_id'])
+        recipient = participants_lookup.get(record['recipient_user_id'])
+        if not santa or not recipient:
+            continue
+        saved_pairs.append({
+            'santa_id': santa['user_id'],
+            'santa_name': santa['username'],
+            'santa_country': santa.get('country'),
+            'santa_city': santa.get('city'),
+            'recipient_id': recipient['user_id'],
+            'recipient_name': recipient['username'],
+            'recipient_country': recipient.get('country'),
+            'recipient_city': recipient.get('city')
         })
 
     distribution_url = url_for('admin_event_distribution_positive_generate', event_id=event_id)
+    distribution_save_url = url_for('admin_event_distribution_positive_save', event_id=event_id)
 
     return render_template(
         'admin/event_distribution.html',
@@ -6634,19 +6683,53 @@ def admin_event_distribution_positive_view(event_id):
         distribution_type='positive',
         participants=participants_data,
         participants_count=len(participants_data),
-        distribution_generate_url=distribution_url
+        distribution_generate_url=distribution_url,
+        distribution_save_url=distribution_save_url,
+        distribution_create_assignments_url=url_for('admin_event_distribution_positive_create_assignments', event_id=event_id),
+        saved_pairs=saved_pairs
     )
+
+@app.route('/admin/events/<int:event_id>/distribution/positive/assignments', methods=['POST'])
+@require_role('admin')
+def admin_event_distribution_positive_create_assignments(event_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Необходима авторизация'}), 403
+
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT santa_user_id, recipient_user_id
+        FROM event_assignments
+        WHERE event_id = ?
+        ORDER BY assigned_at ASC, id ASC
+    ''', (event_id,)).fetchall()
+    conn.close()
+
+    if not rows:
+        return jsonify({'success': False, 'error': 'Нет сохранённого распределения для создания заданий'}), 400
+
+    assignments = [(row['santa_user_id'], row['recipient_user_id']) for row in rows]
+    success, result = save_event_assignments(event_id, assignments, user_id)
+    if success:
+        return jsonify({'success': True, 'message': f'Создано {result} заданий для участников.'})
+    return jsonify({'success': False, 'error': result}), 500
 @app.route('/admin/events/<int:event_id>/distribution/positive/random', methods=['POST'])
 @require_role('admin')
 def admin_event_distribution_positive_generate(event_id):
+    request_data = request.get_json(silent=True) or {}
+    group_by_country = bool(request_data.get('group_by_country'))
+    locked_pairs_raw = request_data.get('locked_pairs') or []
     conn = get_db_connection()
     participants = conn.execute('''
         SELECT 
             er.user_id,
-            u.username
+            u.username,
+            COALESCE(d.country, u.country) AS country,
+            COALESCE(d.city, u.city) AS city
         FROM event_registrations er
         LEFT JOIN event_participant_approvals epa ON epa.event_id = er.event_id AND epa.user_id = er.user_id
         LEFT JOIN users u ON er.user_id = u.user_id
+        LEFT JOIN event_registration_details d ON d.event_id = er.event_id AND d.user_id = er.user_id
         WHERE er.event_id = ?
           AND epa.approved = 1
         ORDER BY u.username COLLATE NOCASE
@@ -6656,25 +6739,90 @@ def admin_event_distribution_positive_generate(event_id):
     if not participants or len(participants) < 2:
         return jsonify({'success': False, 'error': 'Недостаточно участников для распределения'}), 400
 
+    participants_map = {
+        row['user_id']: {
+            'name': row['username'] or f'ID {row["user_id"]}',
+            'country': row['country'],
+            'city': row['city'],
+        }
+        for row in participants
+    }
+
     user_ids = [row['user_id'] for row in participants]
-    names = {row['user_id']: (row['username'] or f'ID {row["user_id"]}') for row in participants}
 
-    base = user_ids[:]
-    for _ in range(500):
-        shuffled = base[:]
-        random.shuffle(shuffled)
-        if all(a != b for a, b in zip(base, shuffled)):
-            pairs = []
-            for santa_id, recipient_id in zip(base, shuffled):
-                pairs.append({
-                    'santa_id': santa_id,
-                    'santa_name': names[santa_id],
-                    'recipient_id': recipient_id,
-                    'recipient_name': names[recipient_id]
-                })
-            return jsonify({'success': True, 'pairs': pairs})
+    locked_assignments = {}
+    locked_recipient_ids = set()
+    try:
+        for entry in locked_pairs_raw:
+            santa_id = int(entry.get('santa_id'))
+            recipient_id = int(entry.get('recipient_id'))
+            if santa_id == recipient_id:
+                return jsonify({'success': False, 'error': 'Закреплённая пара не может совпадать с самим собой'}), 400
+            if santa_id not in participants_map or recipient_id not in participants_map:
+                return jsonify({'success': False, 'error': 'Закреплённая пара содержит неизвестного участника'}), 400
+            if santa_id in locked_assignments:
+                return jsonify({'success': False, 'error': 'Каждый Дед Мороз может быть закреплён только один раз'}), 400
+            if recipient_id in locked_recipient_ids:
+                return jsonify({'success': False, 'error': 'Получатель уже закреплён в другой паре'}), 400
+            locked_assignments[santa_id] = recipient_id
+            locked_recipient_ids.add(recipient_id)
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Некорректные данные закреплённых пар'}), 400
 
-    return jsonify({'success': False, 'error': 'Не удалось сформировать уникальные пары, попробуйте снова'}), 500
+    remaining_santas = [sid for sid in user_ids if sid not in locked_assignments]
+    available_recipients = [rid for rid in user_ids if rid not in locked_recipient_ids]
+
+    if len(remaining_santas) != len(available_recipients):
+        return jsonify({'success': False, 'error': 'Количество доступных Дедов Морозов и получателей не совпадает. Проверьте закреплённые пары.'}), 400
+
+    def is_valid_pair(santa_id, recipient_id):
+        if santa_id == recipient_id:
+            return False
+        if group_by_country:
+            santa_country = participants_map.get(santa_id, {}).get('country')
+            recipient_country = participants_map.get(recipient_id, {}).get('country')
+            if santa_country and recipient_country and santa_country == recipient_country:
+                return False
+        return True
+
+    assignment_pairs = []
+    if remaining_santas:
+        attempts = 2000
+        for _ in range(attempts):
+            shuffled = available_recipients[:]
+            random.shuffle(shuffled)
+            if all(is_valid_pair(santa_id, recipient_id) for santa_id, recipient_id in zip(remaining_santas, shuffled)):
+                assignment_pairs = list(locked_assignments.items()) + list(zip(remaining_santas, shuffled))
+                break
+        if not assignment_pairs:
+            error_message = 'Не удалось сформировать уникальные пары, попробуйте снова'
+            if group_by_country:
+                error_message = 'Не удалось сформировать пары с разделением по странам. Попробуйте отключить режим или скорректировать участников.'
+            if locked_assignments:
+                error_message += ' Убедитесь, что закреплённые пары не блокируют распределение.'
+            return jsonify({'success': False, 'error': error_message}), 500
+    else:
+        assignment_pairs = list(locked_assignments.items())
+
+    assignment_pairs.sort(key=lambda pair: participants_map[pair[0]]['name'] or '')
+
+    pairs = []
+    for santa_id, recipient_id in assignment_pairs:
+        santa_meta = participants_map.get(santa_id, {})
+        recipient_meta = participants_map.get(recipient_id, {})
+        pairs.append({
+            'santa_id': santa_id,
+            'santa_name': santa_meta.get('name'),
+            'santa_country': santa_meta.get('country'),
+            'santa_city': santa_meta.get('city'),
+            'recipient_id': recipient_id,
+            'recipient_name': recipient_meta.get('name'),
+            'recipient_country': recipient_meta.get('country'),
+            'recipient_city': recipient_meta.get('city'),
+            'locked': santa_id in locked_assignments
+        })
+
+    return jsonify({'success': True, 'pairs': pairs})
 
 @app.route('/admin/events/<int:event_id>/participants/add', methods=['POST'])
 @require_role('admin')
@@ -7068,8 +7216,6 @@ def admin_event_participant_confirm(event_id):
         flash('Не удалось подтвердить участника', 'error')
 
     return redirect(url_for('admin_event_participants', event_id=event_id))
-
-
 @app.route('/admin/events/<int:event_id>/participants/reject', methods=['POST'])
 @require_role('admin')
 def admin_event_participant_reject(event_id):
@@ -7169,8 +7315,70 @@ def admin_event_participant_reject(event_id):
 
     return redirect(url_for('admin_event_participants', event_id=event_id))
 
-@app.route('/admin/events/<int:event_id>/edit', methods=['GET', 'POST'])
+@app.route('/admin/events/<int:event_id>/distribution/positive/save', methods=['POST'])
 @require_role('admin')
+def admin_event_distribution_positive_save(event_id):
+    data = request.get_json(silent=True) or {}
+    pairs = data.get('pairs')
+    if not pairs or not isinstance(pairs, list):
+        return jsonify({'success': False, 'error': 'Некорректные данные распределения'}), 400
+
+    enforce_country = bool(data.get('enforce_country'))
+
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Необходима авторизация'}), 403
+
+    conn = get_db_connection()
+    approved_rows = conn.execute('''
+        SELECT epa.user_id, COALESCE(d.country, u.country) AS country
+        FROM event_participant_approvals epa
+        JOIN users u ON epa.user_id = u.user_id
+        LEFT JOIN event_registration_details d ON d.event_id = epa.event_id AND d.user_id = epa.user_id
+        WHERE epa.event_id = ? AND epa.approved = 1
+    ''', (event_id,)).fetchall()
+    approved_ids = {row['user_id'] for row in approved_rows}
+    country_lookup = {row['user_id']: row['country'] for row in approved_rows}
+    conn.close()
+
+    if len(approved_ids) < 2:
+        return jsonify({'success': False, 'error': 'Недостаточно утверждённых участников для сохранения распределения'}), 400
+
+    assignments = []
+    santas_seen = set()
+    recipients_seen = set()
+
+    try:
+        for entry in pairs:
+            santa_id = int(entry.get('santa_id'))
+            recipient_id = int(entry.get('recipient_id'))
+            if santa_id == recipient_id:
+                return jsonify({'success': False, 'error': 'Участник не может быть назначен самому себе'}), 400
+            if santa_id not in approved_ids:
+                return jsonify({'success': False, 'error': f'Пользователь {santa_id} не входит в список утверждённых участников'}), 400
+            if recipient_id not in approved_ids:
+                return jsonify({'success': False, 'error': f'Получатель {recipient_id} не входит в список утверждённых участников'}), 400
+            santa_country = country_lookup.get(santa_id)
+            recipient_country = country_lookup.get(recipient_id)
+            if enforce_country and santa_country and recipient_country and santa_country == recipient_country:
+                return jsonify({'success': False, 'error': 'Дед Мороз и Внучок не должны быть из одной страны'}), 400
+            if santa_id in santas_seen:
+                return jsonify({'success': False, 'error': 'Каждый Дед Мороз должен встречаться ровно один раз'}), 400
+            if recipient_id in recipients_seen:
+                return jsonify({'success': False, 'error': 'Каждый получатель должен встречаться ровно один раз'}), 400
+            santas_seen.add(santa_id)
+            recipients_seen.add(recipient_id)
+            assignments.append((santa_id, recipient_id))
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Некорректные идентификаторы участников'}), 400
+
+    if len(assignments) != len(approved_ids):
+        return jsonify({'success': False, 'error': 'Распределение должно охватывать всех утверждённых участников'}), 400
+
+    success, result = save_event_assignments(event_id, assignments, user_id)
+    if success:
+        return jsonify({'success': True, 'message': f'Распределение сохранено ({result} пар).'})
+    return jsonify({'success': False, 'error': result}), 500
 def admin_event_edit(event_id):
     """Редактирование мероприятия"""
     conn = get_db_connection()

@@ -34,11 +34,16 @@
                 Пока нет подтверждённых участников для распределения.
             </div>
             {% else %}
+            <div class="alert alert-info" style="margin-bottom: 1rem;">
+                Опция «По странам» пытается подобрать получателей из другой страны, если это возможно. При ручных исправлениях следите, чтобы Санта и получатель были из разных стран.
+            </div>
             <div class="table-container">
                 <table class="admin-table">
                     <thead>
                         <tr>
                             <th>Участник</th>
+                            <th>Страна</th>
+                            <th>Страна / Город</th>
                             <th>Адрес</th>
                             <th>Контакты</th>
                             <th>Заметки</th>
@@ -52,12 +57,29 @@
                                 <div class="table-primary-text">{{ p.last_name }} {{ p.first_name }} {{ p.middle_name }}</div>
                                 <div class="table-secondary-text">{{ p.username }}</div>
                             </td>
+                            <td data-label="Страна">
+                                {% set addr = p.address %}
+                                <div class="table-secondary-text">{{ addr.country or '—' }}</div>
+                            </td>
+                            <td data-label="Страна / Город">
+                                <div class="table-secondary-text">
+                                    {% if addr.country or addr.city %}
+                                        {{ addr.country or '—' }}{% if addr.city %} / {{ addr.city }}{% endif %}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </div>
+                            </td>
                             <td data-label="Адрес">
                                 {% set addr = p.address %}
-                                <div class="table-secondary-text">
-                                    {{ addr.postal_code or '—' }}, {{ addr.country or '—' }}, {{ addr.city or '—' }}<br>
-                                    {{ addr.street or '—' }}, {{ addr.house or '—' }}{% if addr.building %}, корп. {{ addr.building }}{% endif %}{% if addr.apartment %}, кв. {{ addr.apartment }}{% endif %}
-                                </div>
+                                {% if addr.postal_code or addr.country or addr.city or addr.street %}
+                                    <div class="table-secondary-text">
+                                        {{ addr.postal_code or '—' }}, {{ addr.country or '—' }}, {{ addr.city or '—' }}<br>
+                                        {{ addr.street or '—' }}, {{ addr.house or '—' }}{% if addr.building %}, корп. {{ addr.building }}{% endif %}{% if addr.apartment %}, кв. {{ addr.apartment }}{% endif %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
                             </td>
                             <td data-label="Контакты">
                                 {% set c = p.contacts %}
@@ -92,7 +114,11 @@
         <div class="settings-section">
             <div class="distribution-actions" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
                 <button id="generate-pairs-btn" class="btn btn-primary" {% if participants_count < 2 %}disabled{% endif %}>&#127922; Сформировать</button>
-                <span class="text-muted">Каждый участник должен быть Дедом Морозом и Внуком ровно один раз.</span>
+                <label class="checkbox-inline" style="display: flex; gap: 0.35rem; align-items: center;">
+                    <input type="checkbox" id="distribute-same-country">
+                    <span>По странам</span>
+                </label>
+                <span class="text-muted">Каждый участник должен быть Дедом Морозом и Внучком ровно один раз.</span>
             </div>
             {% if participants_count < 2 %}
             <div class="alert alert-warning" style="margin-top: 1rem;">
@@ -108,10 +134,18 @@
                         <tr>
                             <th>🎅 Дед Мороз</th>
                             <th>🎁 Внучок/Внучка</th>
+                            <th class="distribution-actions-col">Закрепить</th>
                         </tr>
                     </thead>
                     <tbody id="distribution-results-body"></tbody>
                 </table>
+                <p class="text-muted" style="margin-top: 0.75rem;">Можно перетащить получателей между строками, чтобы изменить распределение.</p>
+                <div id="save-pairs-container" style="display: none; margin-top: 1rem;">
+                    <button id="save-pairs-btn" class="btn btn-secondary" disabled>&#128190; Сохранить</button>
+                </div>
+            </div>
+            <div id="create-assignments-container" style="display: none; margin-top: 1.25rem;">
+                <button id="create-assignments-btn" class="btn btn-success">📦 Создать задания</button>
             </div>
         </div>
     </div>
@@ -119,10 +153,20 @@
 
 <script>
 const generateUrl = {{ distribution_generate_url|tojson }};
+const saveUrl = {{ distribution_save_url|tojson }};
+const existingPairs = {{ saved_pairs|tojson }};
 const generateBtn = document.getElementById('generate-pairs-btn');
+const saveContainer = document.getElementById('save-pairs-container');
+const saveBtn = document.getElementById('save-pairs-btn');
+const assignmentsContainer = document.getElementById('create-assignments-container');
+const assignmentsBtn = document.getElementById('create-assignments-btn');
+const sameCountryToggle = document.getElementById('distribute-same-country');
 const resultsSection = document.getElementById('distribution-results');
 const resultsBody = document.getElementById('distribution-results-body');
 const messageBox = document.getElementById('distribution-message');
+let draggedCell = null;
+let pendingChanges = false;
+let currentLocksMap = {};
 
 function showMessage(text, type = 'info') {
     if (!messageBox) return;
@@ -136,29 +180,425 @@ function hideMessage() {
     messageBox.style.display = 'none';
 }
 
-function renderPairs(pairs) {
-    if (!resultsBody || !resultsSection) return;
+function formatLocation(country, city) {
+    if (!country && !city) {
+        return '—';
+    }
+    if (country && city) {
+        return `${country} / ${city}`;
+    }
+    return country || city || '—';
+}
+
+function updateRecipientCellDisplay(cell) {
+    if (!cell) return;
+    const nameEl = cell.querySelector('.table-primary-text');
+    const locationEl = cell.querySelector('.table-secondary-text');
+    if (nameEl) {
+        nameEl.textContent = cell.dataset.recipientName || '—';
+    }
+    if (locationEl) {
+        locationEl.textContent = formatLocation(cell.dataset.recipientCountry, cell.dataset.recipientCity);
+    }
+}
+
+function markDirty() {
+    pendingChanges = true;
+    if (saveContainer) {
+        saveContainer.style.display = 'block';
+    }
+    if (saveBtn) {
+        saveBtn.disabled = false;
+    }
+    if (assignmentsContainer) {
+        assignmentsContainer.style.display = 'none';
+    }
+}
+
+function updateAssignmentsButtonVisibility() {
+    if (!assignmentsBtn) return;
+    const hasLocks = Object.keys(currentLocksMap).length > 0;
+    if (!assignmentsContainer || !assignmentsBtn) return;
+    if (hasLocks) {
+        assignmentsContainer.style.display = 'block';
+        assignmentsBtn.disabled = false;
+    } else {
+        assignmentsContainer.style.display = 'none';
+        assignmentsBtn.disabled = true;
+    }
+}
+
+function updateRowLockState(row, locked, { silent = false } = {}) {
+    if (!row) return;
+    const lockButton = row.querySelector('.lock-toggle');
+    const recipientCell = row.querySelector('.recipient-cell');
+    row.dataset.locked = locked ? 'true' : 'false';
+
+    if (locked) {
+        row.classList.add('distribution-row-locked');
+        if (lockButton) {
+            lockButton.innerHTML = '🔒';
+            lockButton.title = 'Открепить пару';
+            lockButton.classList.add('locked');
+        }
+        if (recipientCell) {
+            recipientCell.setAttribute('draggable', 'false');
+        }
+        currentLocksMap[row.dataset.santaId] = Number(row.dataset.recipientId);
+    } else {
+        row.classList.remove('distribution-row-locked');
+        if (lockButton) {
+            lockButton.innerHTML = '🔓';
+            lockButton.title = 'Закрепить пару';
+            lockButton.classList.remove('locked');
+        }
+        if (recipientCell) {
+            recipientCell.setAttribute('draggable', 'true');
+        }
+        delete currentLocksMap[row.dataset.santaId];
+    }
+
+    if (!silent) {
+        markDirty();
+        showMessage(locked ? 'Пара закреплена: при следующем формировании она останется неизменной.' : 'Пара откреплена: она будет участвовать в новом распределении.', 'info');
+    }
+    updateAssignmentsButtonVisibility();
+}
+
+function collectPairsFromTable() {
+    if (!resultsBody) return [];
+    return Array.from(resultsBody.querySelectorAll('tr')).map(row => ({
+        santa_id: Number(row.dataset.santaId),
+        recipient_id: Number(row.dataset.recipientId)
+    })).filter(pair => Number.isInteger(pair.santa_id) && Number.isInteger(pair.recipient_id));
+}
+
+function collectLockedPairs() {
+    return Object.entries(currentLocksMap).map(([santaId, recipientId]) => ({
+        santa_id: Number(santaId),
+        recipient_id: Number(recipientId)
+    }));
+}
+
+async function savePairs({ showSuccess = true } = {}) {
+    if (!saveUrl) {
+        return { ok: false, message: 'URL сохранения не настроен.' };
+    }
+
+    const pairs = collectPairsFromTable();
+    if (!pairs.length) {
+        return { ok: false, message: 'Нет данных для сохранения.' };
+    }
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+    }
+    if (saveContainer) {
+        saveContainer.style.display = 'block';
+    }
+
+    try {
+        const response = await fetch(saveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                pairs,
+                enforce_country: sameCountryToggle ? sameCountryToggle.checked : false
+            })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            pendingChanges = false;
+            if (saveBtn) {
+                saveBtn.disabled = true;
+            }
+            if (saveContainer) {
+                saveContainer.style.display = 'none';
+            }
+            const message = data.message || 'Распределение сохранено.';
+            if (showSuccess) {
+                showMessage(message, 'success');
+            }
+            return { ok: true, message };
+        }
+        if (saveBtn) {
+            saveBtn.disabled = !pendingChanges;
+        }
+        if (saveContainer && pendingChanges) {
+            saveContainer.style.display = 'block';
+        }
+        const errorMessage = data.error || 'Не удалось сохранить распределение.';
+        if (showSuccess) {
+            showMessage(errorMessage, 'error');
+        }
+        return { ok: false, message: errorMessage };
+    } catch (error) {
+        console.error(error);
+        if (saveBtn) {
+            saveBtn.disabled = !pendingChanges;
+        }
+        if (saveContainer && pendingChanges) {
+            saveContainer.style.display = 'block';
+        }
+        const errorMessage = 'Произошла ошибка при сохранении распределения.';
+        if (showSuccess) {
+            showMessage(errorMessage, 'error');
+        }
+        return { ok: false, message: errorMessage };
+    }
+}
+
+function swapRecipients(a, b) {
+    if (!a || !b) return;
+    const tempId = a.dataset.recipientId;
+    const tempName = a.dataset.recipientName;
+    const tempCountry = a.dataset.recipientCountry;
+    const tempCity = a.dataset.recipientCity;
+
+    a.dataset.recipientId = b.dataset.recipientId;
+    a.dataset.recipientName = b.dataset.recipientName;
+    a.dataset.recipientCountry = b.dataset.recipientCountry;
+    a.dataset.recipientCity = b.dataset.recipientCity;
+    updateRecipientCellDisplay(a);
+
+    b.dataset.recipientId = tempId;
+    b.dataset.recipientName = tempName;
+    b.dataset.recipientCountry = tempCountry;
+    b.dataset.recipientCity = tempCity;
+    updateRecipientCellDisplay(b);
+
+    const santaRowA = a.closest('tr');
+    const santaRowB = b.closest('tr');
+    if (santaRowA && santaRowB) {
+        santaRowA.dataset.recipientId = a.dataset.recipientId;
+        santaRowA.dataset.recipientName = a.dataset.recipientName || '';
+        santaRowA.dataset.recipientCountry = a.dataset.recipientCountry || '';
+        santaRowA.dataset.recipientCity = a.dataset.recipientCity || '';
+        santaRowB.dataset.recipientId = b.dataset.recipientId;
+        santaRowB.dataset.recipientName = b.dataset.recipientName || '';
+        santaRowB.dataset.recipientCountry = b.dataset.recipientCountry || '';
+        santaRowB.dataset.recipientCity = b.dataset.recipientCity || '';
+    }
+}
+
+function handleDragStart(event) {
+    const row = event.currentTarget.closest('tr');
+    if (row && row.dataset.locked === 'true') {
+        event.preventDefault();
+        return;
+    }
+    draggedCell = event.currentTarget;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', draggedCell.dataset.recipientId);
+    requestAnimationFrame(() => draggedCell.classList.add('is-dragging'));
+}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const target = event.currentTarget;
+    if (target !== draggedCell) {
+        target.classList.add('drop-target');
+    }
+}
+
+function handleDragEnter(event) {
+    const target = event.currentTarget;
+    if (target !== draggedCell) {
+        target.classList.add('drop-target');
+    }
+}
+
+function handleDragLeave(event) {
+    event.currentTarget.classList.remove('drop-target');
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    const target = event.currentTarget;
+    target.classList.remove('drop-target');
+    if (!draggedCell || target === draggedCell) {
+        return;
+    }
+
+    const draggedRow = draggedCell.closest('tr');
+    const targetRow = target.closest('tr');
+    if (!draggedRow || !targetRow) {
+        return;
+    }
+
+    if (draggedRow.dataset.locked === 'true' || targetRow.dataset.locked === 'true') {
+        showMessage('Закреплённые пары нельзя изменять вручную.', 'error');
+        return;
+    }
+
+    const draggedSantaId = draggedRow.dataset.santaId;
+    const draggedSantaCountry = draggedRow.dataset.santaCountry || '';
+    const targetSantaId = targetRow.dataset.santaId;
+    const targetSantaCountry = targetRow.dataset.santaCountry || '';
+    const draggedRecipientId = draggedCell.dataset.recipientId;
+    const draggedRecipientCountry = draggedCell.dataset.recipientCountry || '';
+    const targetRecipientId = target.dataset.recipientId;
+    const targetRecipientCountry = target.dataset.recipientCountry || '';
+
+    if (draggedSantaId === targetRecipientId || targetSantaId === draggedRecipientId) {
+        showMessage('Нельзя назначить участника самому себе. Выберите другого получателя.', 'error');
+        return;
+    }
+
+    if (sameCountryToggle && sameCountryToggle.checked) {
+        if (draggedSantaCountry && draggedSantaCountry === targetRecipientCountry) {
+            showMessage('Нельзя назначить получателя из той же страны, что и Дед Мороз при активном режиме распределения по странам.', 'error');
+            return;
+        }
+        if (targetSantaCountry && targetSantaCountry === draggedRecipientCountry) {
+            showMessage('Нельзя назначить получателя из той же страны, что и Дед Мороз при активном режиме распределения по странам.', 'error');
+            return;
+        }
+    }
+
+    swapRecipients(draggedCell, target);
+    markDirty();
+    showMessage('Распределение обновлено вручную. Не забудьте сохранить изменения.', 'info');
+}
+
+function handleDragEnd() {
+    if (draggedCell) {
+        draggedCell.classList.remove('is-dragging');
+    }
+    draggedCell = null;
+    const cells = resultsBody ? resultsBody.querySelectorAll('.recipient-cell') : [];
+    cells.forEach(cell => cell.classList.remove('drop-target'));
+}
+
+function attachDragHandlers() {
+    if (!resultsBody) return;
+    const cells = resultsBody.querySelectorAll('.recipient-cell');
+    cells.forEach(cell => {
+        cell.addEventListener('dragstart', handleDragStart);
+        cell.addEventListener('dragover', handleDragOver);
+        cell.addEventListener('dragenter', handleDragEnter);
+        cell.addEventListener('dragleave', handleDragLeave);
+        cell.addEventListener('drop', handleDrop);
+        cell.addEventListener('dragend', handleDragEnd);
+    });
+}
+
+function renderPairs(pairs, options = {}) {
+    if (!resultsBody || !Array.isArray(pairs)) return;
+    const initialLockMap = {};
+    if (Array.isArray(options.locks)) {
+        options.locks.forEach(lock => {
+            if (lock && lock.santa_id != null && lock.recipient_id != null) {
+                initialLockMap[Number(lock.santa_id)] = Number(lock.recipient_id);
+            }
+        });
+    } else {
+        pairs.forEach(pair => {
+            if (pair && pair.locked && pair.santa_id != null && pair.recipient_id != null) {
+                initialLockMap[Number(pair.santa_id)] = Number(pair.recipient_id);
+            }
+        });
+    }
+
+    currentLocksMap = {};
     resultsBody.innerHTML = '';
+
     pairs.forEach(pair => {
         const row = document.createElement('tr');
+        const santaId = Number(pair.santa_id);
+        const recipientId = Number(pair.recipient_id);
+        row.dataset.santaId = santaId;
+        row.dataset.santaCountry = pair.santa_country || '';
+        row.dataset.santaCity = pair.santa_city || '';
+        row.dataset.recipientId = recipientId;
+        row.dataset.recipientName = pair.recipient_name || '';
+        row.dataset.recipientCountry = pair.recipient_country || '';
+        row.dataset.recipientCity = pair.recipient_city || '';
+        row.dataset.locked = 'false';
+
         const santaCell = document.createElement('td');
         santaCell.dataset.label = 'Дед Мороз';
-        santaCell.textContent = pair.santa_name;
+        const santaName = document.createElement('div');
+        santaName.className = 'table-primary-text';
+        santaName.textContent = pair.santa_name;
+        const santaLocation = document.createElement('div');
+        santaLocation.className = 'table-secondary-text';
+        santaLocation.textContent = formatLocation(pair.santa_country, pair.santa_city);
+        santaCell.appendChild(santaName);
+        santaCell.appendChild(santaLocation);
+
         const recipientCell = document.createElement('td');
         recipientCell.dataset.label = 'Внучок/Внучка';
-        recipientCell.textContent = pair.recipient_name;
+        recipientCell.dataset.recipientId = String(recipientId);
+        recipientCell.dataset.recipientName = pair.recipient_name;
+        recipientCell.dataset.recipientCountry = pair.recipient_country || '';
+        recipientCell.dataset.recipientCity = pair.recipient_city || '';
+        recipientCell.classList.add('recipient-cell');
+        recipientCell.setAttribute('draggable', 'true');
+        const recipientName = document.createElement('div');
+        recipientName.className = 'table-primary-text';
+        recipientName.textContent = pair.recipient_name;
+        const recipientLocation = document.createElement('div');
+        recipientLocation.className = 'table-secondary-text';
+        recipientLocation.textContent = formatLocation(pair.recipient_country, pair.recipient_city);
+        recipientCell.appendChild(recipientName);
+        recipientCell.appendChild(recipientLocation);
+
+        const actionCell = document.createElement('td');
+        actionCell.dataset.label = 'Закрепить';
+        actionCell.classList.add('distribution-actions-cell');
+        const lockButton = document.createElement('button');
+        lockButton.type = 'button';
+        lockButton.className = 'btn-icon lock-toggle';
+        lockButton.innerHTML = '🔓';
+        lockButton.title = 'Закрепить пару';
+        lockButton.addEventListener('click', () => {
+            const isLocked = row.dataset.locked === 'true';
+            updateRowLockState(row, !isLocked);
+        });
+        actionCell.appendChild(lockButton);
+
         row.appendChild(santaCell);
         row.appendChild(recipientCell);
+        row.appendChild(actionCell);
         resultsBody.appendChild(row);
+
+        const shouldLock = initialLockMap[santaId] !== undefined && Number(initialLockMap[santaId]) === recipientId;
+        updateRowLockState(row, shouldLock, { silent: true });
     });
-    resultsSection.style.display = 'block';
+
+    resultsSection.style.display = pairs.length ? 'block' : 'none';
+    attachDragHandlers();
+    updateAssignmentsButtonVisibility();
+
+    if (options.markDirty === false) {
+        pendingChanges = false;
+        if (saveBtn) {
+            saveBtn.disabled = true;
+        }
+        if (saveContainer) {
+            saveContainer.style.display = 'none';
+        }
+    } else if (options.markDirty) {
+        markDirty();
+    }
 }
 
 async function handleGenerate() {
     hideMessage();
     if (!generateBtn) return;
+    const lockedPairs = collectLockedPairs();
     generateBtn.disabled = true;
-    generateBtn.textContent = '\u{1F3B2} Сформировать';
+    generateBtn.textContent = '\u{1F3B2} Формируем...';
+    if (saveBtn) {
+        saveBtn.disabled = true;
+    }
+
     try {
         const response = await fetch(generateUrl, {
             method: 'POST',
@@ -166,26 +606,95 @@ async function handleGenerate() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            credentials: 'same-origin'
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                group_by_country: sameCountryToggle ? sameCountryToggle.checked : false,
+                locked_pairs: lockedPairs
+            })
         });
         const data = await response.json();
         if (response.ok && data.success) {
-            renderPairs(data.pairs);
-            showMessage('Распределение сформировано. Проверьте пары и при необходимости сформируйте заново.', 'success');
+            renderPairs(data.pairs, { locks: lockedPairs, markDirty: false });
+            const saveResult = await savePairs({ showSuccess: false });
+            if (saveResult.ok) {
+                showMessage('Распределение сформировано и сохранено. Вы можете изменить получателей перетаскиванием.', 'success');
+            } else {
+                showMessage('Распределение сформировано, но сохранить не удалось: ' + saveResult.message, 'error');
+            }
         } else {
             showMessage(data.error || 'Не удалось сформировать распределение. Попробуйте снова.', 'error');
+            if (saveBtn) {
+                saveBtn.disabled = !pendingChanges;
+            }
         }
     } catch (error) {
         console.error(error);
         showMessage('Произошла ошибка при формировании распределения.', 'error');
+        if (saveBtn) {
+            saveBtn.disabled = !pendingChanges;
+        }
     } finally {
         generateBtn.disabled = false;
-        generateBtn.textContent = '🎲 Сформировать';
+        generateBtn.textContent = '\u{1F3B2} Сформировать';
     }
 }
 
 if (generateBtn) {
     generateBtn.addEventListener('click', handleGenerate);
+}
+
+if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+        const result = await savePairs();
+        showMessage(result.message, result.ok ? 'success' : 'error');
+    });
+}
+
+if (assignmentsBtn) {
+    assignmentsBtn.addEventListener('click', async () => {
+        const lockedPairs = collectLockedPairs();
+        if (!lockedPairs.length) {
+            showMessage('Закрепите хотя бы одну пару перед созданием заданий.', 'error');
+            return;
+        }
+
+        assignmentsBtn.disabled = true;
+        assignmentsBtn.textContent = '📦 Создаём...';
+        try {
+            const response = await fetch({{ distribution_create_assignments_url|tojson }}, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+            const data = await response.json();
+            if (response.ok && data.success) {
+                showMessage(data.message || 'Задания успешно созданы.', 'success');
+            } else {
+                showMessage(data.error || 'Не удалось создать задания.', 'error');
+            }
+        } catch (error) {
+            console.error(error);
+            showMessage('Произошла ошибка при создании заданий.', 'error');
+        } finally {
+            assignmentsBtn.disabled = false;
+            assignmentsBtn.textContent = '📦 Создать задания';
+        }
+    });
+}
+
+if (existingPairs && existingPairs.length) {
+    renderPairs(existingPairs, { markDirty: false });
+    const hasLockedPairs = existingPairs.some(pair => pair && pair.locked);
+    if (hasLockedPairs) {
+        showMessage('Загружено сохранённое распределение. Закреплённые пары выделены.', 'info');
+    } else {
+        showMessage('Загружено сохранённое распределение. При необходимости скорректируйте и сохраните заново.', 'info');
+    }
+} else {
+    showMessage('Сформируйте распределение, чтобы сохранить пары для мероприятия.', 'info');
 }
 </script>
 {% endblock %}

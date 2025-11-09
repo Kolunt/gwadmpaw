@@ -4413,3 +4413,45 @@ html.dark .avatar-candidate-img {
     flex-wrap: wrap;
 }
 
+.recipient-cell {
+    cursor: grab;
+    user-select: none;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.recipient-cell.is-dragging {
+    opacity: 0.6;
+    cursor: grabbing;
+}
+
+.recipient-cell.drop-target {
+    background-color: rgba(40, 167, 69, 0.1);
+    box-shadow: inset 0 0 0 2px var(--accent-color);
+}
+
+.distribution-actions-col {
+    width: 70px;
+    text-align: center;
+}
+
+.lock-toggle {
+    font-size: 1.1rem;
+    transition: transform 0.2s ease;
+}
+
+.lock-toggle:hover {
+    transform: scale(1.1);
+}
+
+.lock-toggle.locked {
+    color: var(--success-color);
+}
+
+.distribution-row-locked {
+    background-color: rgba(40, 167, 69, 0.08);
+}
+
+.distribution-row-locked .table-secondary-text {
+    color: var(--success-color);
+}
+
