@@ -1,3 +1,14 @@
+.assignments-event-link {
+    color: var(--success-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.assignments-event-link:hover,
+.assignments-event-link:focus {
+    color: var(--success-color);
+    text-decoration: underline;
+}
 /* CSS Variables for theming */
 :root {
     --bg-primary: #ffffff;
@@ -4430,7 +4441,12 @@ html.dark .avatar-candidate-img {
 }
 
 .distribution-actions-col {
-    width: 70px;
+    width: 90px;
+    text-align: center;
+}
+
+.distribution-status-col {
+    width: 120px;
     text-align: center;
 }
 
@@ -4447,11 +4463,44 @@ html.dark .avatar-candidate-img {
     color: var(--success-color);
 }
 
+.lock-fixed {
+    opacity: 0.7;
+}
+
 .distribution-row-locked {
     background-color: rgba(40, 167, 69, 0.08);
 }
 
 .distribution-row-locked .table-secondary-text {
     color: var(--success-color);
+}
+
+.distribution-actions-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.distribution-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    color: #fff;
+    width: fit-content;
+}
+
+.distribution-status.status-pending {
+    background-color: #dc3545;
+}
+
+.distribution-status.status-sent {
+    background-color: #ffc107;
+    color: #1f1f1f;
+}
+
+.distribution-status.status-complete {
+    background-color: #28a745;
 }
 

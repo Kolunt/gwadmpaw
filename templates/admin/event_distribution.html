@@ -35,7 +35,7 @@
             </div>
             {% else %}
             <div class="alert alert-info" style="margin-bottom: 1rem;">
-                Опция «По странам» пытается подобрать получателей из другой страны, если это возможно. При ручных исправлениях следите, чтобы Санта и получатель были из разных стран.
+                Опция «По странам» пытается сопоставить Деда Мороза и получателя из одной страны, если это возможно. При ручной корректировке можно изменять пары по своему усмотрению.
             </div>
             <div class="table-container">
                 <table class="admin-table">
@@ -134,6 +134,7 @@
                         <tr>
                             <th>🎅 Дед Мороз</th>
                             <th>🎁 Внучок/Внучка</th>
+                            <th class="distribution-status-col">Статус</th>
                             <th class="distribution-actions-col">Закрепить</th>
                         </tr>
                     </thead>
@@ -155,6 +156,8 @@
 const generateUrl = {{ distribution_generate_url|tojson }};
 const saveUrl = {{ distribution_save_url|tojson }};
 const existingPairs = {{ saved_pairs|tojson }};
+const lockedFromAssignments = {{ saved_locked_santas|tojson }};
+const unassignUrl = {{ distribution_unassign_url|tojson }};
 const generateBtn = document.getElementById('generate-pairs-btn');
 const saveContainer = document.getElementById('save-pairs-container');
 const saveBtn = document.getElementById('save-pairs-btn');
@@ -167,6 +170,8 @@ const messageBox = document.getElementById('distribution-message');
 let draggedCell = null;
 let pendingChanges = false;
 let currentLocksMap = {};
+let assignedLockedPairs = {};
+let removingAssignmentPromise = null;
 
 function showMessage(text, type = 'info') {
     if (!messageBox) return;
@@ -213,18 +218,44 @@ function markDirty() {
     if (assignmentsContainer) {
         assignmentsContainer.style.display = 'none';
     }
+    assignmentsBtn.disabled = true;
 }
 
 function updateAssignmentsButtonVisibility() {
-    if (!assignmentsBtn) return;
+    if (!assignmentsBtn || !assignmentsContainer) return;
     const hasLocks = Object.keys(currentLocksMap).length > 0;
-    if (!assignmentsContainer || !assignmentsBtn) return;
-    if (hasLocks) {
+    const hasAssigned = Object.keys(assignedLockedPairs).length > 0;
+    if (hasLocks || hasAssigned) {
         assignmentsContainer.style.display = 'block';
-        assignmentsBtn.disabled = false;
+        assignmentsBtn.disabled = !hasLocks;
     } else {
         assignmentsContainer.style.display = 'none';
         assignmentsBtn.disabled = true;
+    }
+}
+
+async function removeAssignmentForSanta(santaId) {
+    if (!unassignUrl) {
+        return { ok: false, message: 'URL отмены заданий не настроен.' };
+    }
+    try {
+        const response = await fetch(unassignUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ santa_id: santaId })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            return { ok: true, message: data.message || 'Задание отменено.' };
+        }
+        return { ok: false, message: data.error || 'Не удалось отменить задание.' };
+    } catch (error) {
+        console.error(error);
+        return { ok: false, message: 'Произошла ошибка при отмене задания.' };
     }
 }
 
@@ -234,12 +265,21 @@ function updateRowLockState(row, locked, { silent = false } = {}) {
     const recipientCell = row.querySelector('.recipient-cell');
     row.dataset.locked = locked ? 'true' : 'false';
 
+    const santaId = row.dataset.santaId;
+    const isAssignedLock = assignedLockedPairs[santaId] !== undefined;
+
     if (locked) {
         row.classList.add('distribution-row-locked');
         if (lockButton) {
             lockButton.innerHTML = '🔒';
-            lockButton.title = 'Открепить пару';
+            if (row.dataset.assigned === 'true') {
+                lockButton.title = 'Открепить пару (задание будет отменено)';
+            } else {
+                lockButton.title = 'Открепить пару';
+            }
             lockButton.classList.add('locked');
+            lockButton.classList.toggle('lock-fixed', row.dataset.assigned === 'true');
+            lockButton.disabled = false;
         }
         if (recipientCell) {
             recipientCell.setAttribute('draggable', 'false');
@@ -251,6 +291,8 @@ function updateRowLockState(row, locked, { silent = false } = {}) {
             lockButton.innerHTML = '🔓';
             lockButton.title = 'Закрепить пару';
             lockButton.classList.remove('locked');
+            lockButton.classList.remove('lock-fixed');
+            lockButton.disabled = false;
         }
         if (recipientCell) {
             recipientCell.setAttribute('draggable', 'true');
@@ -506,7 +548,17 @@ function renderPairs(pairs, options = {}) {
     }
 
     currentLocksMap = {};
+    assignedLockedPairs = {};
     resultsBody.innerHTML = '';
+    const assignedSet = new Set((options.assignedLocks || []).map(Number));
+
+    const formatLocation = (country, city) => {
+        if (!country && !city) return '—';
+        if (country && city) {
+            return `${country} / ${city}`;
+        }
+        return country || city || '—';
+    };
 
     pairs.forEach(pair => {
         const row = document.createElement('tr');
@@ -520,6 +572,8 @@ function renderPairs(pairs, options = {}) {
         row.dataset.recipientCountry = pair.recipient_country || '';
         row.dataset.recipientCity = pair.recipient_city || '';
         row.dataset.locked = 'false';
+
+        row.dataset.assigned = 'false';
 
         const santaCell = document.createElement('td');
         santaCell.dataset.label = 'Дед Мороз';
@@ -552,24 +606,75 @@ function renderPairs(pairs, options = {}) {
         const actionCell = document.createElement('td');
         actionCell.dataset.label = 'Закрепить';
         actionCell.classList.add('distribution-actions-cell');
+        const lockWrapper = document.createElement('div');
+        lockWrapper.classList.add('distribution-actions-group');
         const lockButton = document.createElement('button');
         lockButton.type = 'button';
         lockButton.className = 'btn-icon lock-toggle';
         lockButton.innerHTML = '🔓';
         lockButton.title = 'Закрепить пару';
-        lockButton.addEventListener('click', () => {
+        lockButton.addEventListener('click', async () => {
             const isLocked = row.dataset.locked === 'true';
+            const santaId = Number(row.dataset.santaId);
+            if (isLocked && row.dataset.assigned === 'true') {
+                const confirmed = confirm('Снять замок? Задание будет отменено.');
+                if (!confirmed) {
+                    return;
+                }
+                lockButton.disabled = true;
+                const result = await removeAssignmentForSanta(santaId);
+                if (!result.ok) {
+                    showMessage(result.message || 'Не удалось отменить задание.', 'error');
+                    lockButton.disabled = false;
+                    return;
+                }
+                showMessage(result.message || 'Задание отменено.', 'info');
+                delete assignedLockedPairs[santaId];
+                row.dataset.assigned = 'false';
+            }
             updateRowLockState(row, !isLocked);
+            lockButton.disabled = false;
         });
-        actionCell.appendChild(lockButton);
+        lockWrapper.appendChild(lockButton);
+        actionCell.appendChild(lockWrapper);
+
+        const statusCell = document.createElement('td');
+        statusCell.dataset.label = 'Статус';
+        const statusBadge = document.createElement('span');
+        statusBadge.classList.add('distribution-status');
+        const sentStamp = pair.santa_sent_at ? new Date(pair.santa_sent_at) : null;
+        const receivedStamp = pair.recipient_received_at ? new Date(pair.recipient_received_at) : null;
+        if (receivedStamp) {
+            statusBadge.textContent = 'Завершено';
+            statusBadge.classList.add('status-complete');
+        } else if (sentStamp) {
+            statusBadge.textContent = 'Отправил';
+            statusBadge.classList.add('status-sent');
+        } else {
+            statusBadge.textContent = 'Не отправил';
+            statusBadge.classList.add('status-pending');
+        }
+        statusCell.appendChild(statusBadge);
 
         row.appendChild(santaCell);
         row.appendChild(recipientCell);
+        row.appendChild(statusCell);
         row.appendChild(actionCell);
         resultsBody.appendChild(row);
 
+        const isAssignmentLocked = Boolean(pair.assignment_locked) || assignedSet.has(santaId);
+        row.dataset.assigned = isAssignmentLocked ? 'true' : 'false';
+        if (isAssignmentLocked) {
+            assignedLockedPairs[santaId] = recipientId;
+            initialLockMap[santaId] = recipientId;
+        }
+
         const shouldLock = initialLockMap[santaId] !== undefined && Number(initialLockMap[santaId]) === recipientId;
         updateRowLockState(row, shouldLock, { silent: true });
+        if (shouldLock && row.dataset.assigned === 'true') {
+            lockButton.classList.add('lock-fixed');
+            lockButton.title = 'Открепить пару (задание будет отменено)';
+        }
     });
 
     resultsSection.style.display = pairs.length ? 'block' : 'none';
@@ -609,12 +714,14 @@ async function handleGenerate() {
             credentials: 'same-origin',
             body: JSON.stringify({
                 group_by_country: sameCountryToggle ? sameCountryToggle.checked : false,
-                locked_pairs: lockedPairs
+                locked_pairs: lockedPairs,
+                assignment_locked_santas: Object.keys(assignedLockedPairs).map(Number)
             })
         });
         const data = await response.json();
         if (response.ok && data.success) {
-            renderPairs(data.pairs, { locks: lockedPairs, markDirty: false });
+            const assignedSantas = Object.keys(assignedLockedPairs).map(Number);
+            renderPairs(data.pairs, { markDirty: false, locks: lockedPairs, assignedLocks: assignedSantas });
             const saveResult = await savePairs({ showSuccess: false });
             if (saveResult.ok) {
                 showMessage('Распределение сформировано и сохранено. Вы можете изменить получателей перетаскиванием.', 'success');
@@ -660,6 +767,18 @@ if (assignmentsBtn) {
 
         assignmentsBtn.disabled = true;
         assignmentsBtn.textContent = '📦 Создаём...';
+        for (const [santaId, recipientId] of Object.entries(currentLocksMap)) {
+            const row = resultsBody.querySelector(`tr[data-santa-id="${santaId}"]`);
+            if (!row) continue;
+            const cell = row.querySelector('.recipient-cell');
+            if (!cell) continue;
+            if (Number(cell.dataset.recipientId) !== Number(recipientId)) {
+                showMessage('Закреплённая пара вручную изменена. Обновите распределение перед созданием заданий.', 'error');
+                assignmentsBtn.disabled = false;
+                assignmentsBtn.textContent = '📦 Создать задания';
+                return;
+            }
+        }
         try {
             const response = await fetch({{ distribution_create_assignments_url|tojson }}, {
                 method: 'POST',
@@ -686,7 +805,11 @@ if (assignmentsBtn) {
 }
 
 if (existingPairs && existingPairs.length) {
-    renderPairs(existingPairs, { markDirty: false });
+    const initialLocks = existingPairs.map(pair => ({
+        santa_id: pair.santa_id,
+        recipient_id: pair.recipient_id
+    }));
+    renderPairs(existingPairs, { markDirty: false, locks: initialLocks, assignedLocks: lockedFromAssignments || [] });
     const hasLockedPairs = existingPairs.some(pair => pair && pair.locked);
     if (hasLockedPairs) {
         showMessage('Загружено сохранённое распределение. Закреплённые пары выделены.', 'info');

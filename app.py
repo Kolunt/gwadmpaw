@@ -6650,7 +6650,7 @@ def admin_event_distribution_positive_view(event_id):
 
     conn_assignments = get_db_connection()
     saved_rows = conn_assignments.execute('''
-        SELECT santa_user_id, recipient_user_id
+        SELECT santa_user_id, recipient_user_id, santa_sent_at, recipient_received_at
         FROM event_assignments
         WHERE event_id = ?
         ORDER BY assigned_at ASC, id ASC
@@ -6658,11 +6658,13 @@ def admin_event_distribution_positive_view(event_id):
     conn_assignments.close()
 
     saved_pairs = []
+    locked_santas = set()
     for record in saved_rows:
         santa = participants_lookup.get(record['santa_user_id'])
         recipient = participants_lookup.get(record['recipient_user_id'])
         if not santa or not recipient:
             continue
+        locked_santas.add(record['santa_user_id'])
         saved_pairs.append({
             'santa_id': santa['user_id'],
             'santa_name': santa['username'],
@@ -6671,7 +6673,11 @@ def admin_event_distribution_positive_view(event_id):
             'recipient_id': recipient['user_id'],
             'recipient_name': recipient['username'],
             'recipient_country': recipient.get('country'),
-            'recipient_city': recipient.get('city')
+            'recipient_city': recipient.get('city'),
+            'santa_sent_at': record['santa_sent_at'],
+            'recipient_received_at': record['recipient_received_at'],
+            'locked': True,
+            'assignment_locked': True
         })
 
     distribution_url = url_for('admin_event_distribution_positive_generate', event_id=event_id)
@@ -6686,7 +6692,9 @@ def admin_event_distribution_positive_view(event_id):
         distribution_generate_url=distribution_url,
         distribution_save_url=distribution_save_url,
         distribution_create_assignments_url=url_for('admin_event_distribution_positive_create_assignments', event_id=event_id),
-        saved_pairs=saved_pairs
+        distribution_unassign_url=url_for('admin_event_distribution_positive_unassign', event_id=event_id),
+        saved_pairs=saved_pairs,
+        saved_locked_santas=list(locked_santas)
     )
 
 @app.route('/admin/events/<int:event_id>/distribution/positive/assignments', methods=['POST'])
@@ -6698,7 +6706,7 @@ def admin_event_distribution_positive_create_assignments(event_id):
 
     conn = get_db_connection()
     rows = conn.execute('''
-        SELECT santa_user_id, recipient_user_id
+        SELECT santa_user_id, recipient_user_id, santa_sent_at, recipient_received_at
         FROM event_assignments
         WHERE event_id = ?
         ORDER BY assigned_at ASC, id ASC
@@ -6713,12 +6721,46 @@ def admin_event_distribution_positive_create_assignments(event_id):
     if success:
         return jsonify({'success': True, 'message': f'Создано {result} заданий для участников.'})
     return jsonify({'success': False, 'error': result}), 500
+
+@app.route('/admin/events/<int:event_id>/distribution/positive/unassign', methods=['POST'])
+@require_role('admin')
+def admin_event_distribution_positive_unassign(event_id):
+    data = request.get_json(silent=True) or {}
+    santa_id = data.get('santa_id')
+    try:
+        santa_id = int(santa_id)
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Некорректный идентификатор Деда Мороза'}), 400
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.execute('''
+            DELETE FROM event_assignments
+            WHERE event_id = ? AND santa_user_id = ?
+        ''', (event_id, santa_id))
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Задание для выбранного участника не найдено'}), 404
+        conn.commit()
+        log_activity(
+            'assignment_removed',
+            details=f'Задание отменено для мероприятия #{event_id} (Дед Мороз #{santa_id})',
+            metadata={'event_id': event_id, 'santa_user_id': santa_id}
+        )
+        return jsonify({'success': True, 'message': 'Задание отменено. Пара снова доступна для редактирования.'})
+    except Exception as e:
+        conn.rollback()
+        log_error(f"Error removing assignment for event {event_id}, santa {santa_id}: {e}")
+        return jsonify({'success': False, 'error': 'Не удалось отменить задание'}), 500
+    finally:
+        conn.close()
 @app.route('/admin/events/<int:event_id>/distribution/positive/random', methods=['POST'])
 @require_role('admin')
 def admin_event_distribution_positive_generate(event_id):
     request_data = request.get_json(silent=True) or {}
     group_by_country = bool(request_data.get('group_by_country'))
     locked_pairs_raw = request_data.get('locked_pairs') or []
+    assignment_locked_santas_raw = request_data.get('assignment_locked_santas') or []
     conn = get_db_connection()
     participants = conn.execute('''
         SELECT 
@@ -6775,34 +6817,46 @@ def admin_event_distribution_positive_generate(event_id):
     if len(remaining_santas) != len(available_recipients):
         return jsonify({'success': False, 'error': 'Количество доступных Дедов Морозов и получателей не совпадает. Проверьте закреплённые пары.'}), 400
 
+    assignment_locked_santas = set()
+    try:
+        assignment_locked_santas = {int(santa_id) for santa_id in assignment_locked_santas_raw}
+    except (TypeError, ValueError):
+        assignment_locked_santas = set()
+
     def is_valid_pair(santa_id, recipient_id):
         if santa_id == recipient_id:
             return False
         if group_by_country:
             santa_country = participants_map.get(santa_id, {}).get('country')
             recipient_country = participants_map.get(recipient_id, {}).get('country')
-            if santa_country and recipient_country and santa_country == recipient_country:
+            if santa_country and recipient_country and santa_country != recipient_country:
                 return False
         return True
 
-    assignment_pairs = []
-    if remaining_santas:
-        attempts = 2000
+    assignment_pairs = list(locked_assignments.items())
+
+    def try_assignments(require_same_country: bool):
+        attempts = 3000
         for _ in range(attempts):
             shuffled = available_recipients[:]
             random.shuffle(shuffled)
             if all(is_valid_pair(santa_id, recipient_id) for santa_id, recipient_id in zip(remaining_santas, shuffled)):
-                assignment_pairs = list(locked_assignments.items()) + list(zip(remaining_santas, shuffled))
-                break
+                return list(locked_assignments.items()) + list(zip(remaining_santas, shuffled))
+        return None
+
+    if remaining_santas:
+        if group_by_country:
+            assignment_pairs = try_assignments(require_same_country=True)
+            if not assignment_pairs:
+                assignment_pairs = try_assignments(require_same_country=False)
+        else:
+            assignment_pairs = try_assignments(require_same_country=False)
+
         if not assignment_pairs:
             error_message = 'Не удалось сформировать уникальные пары, попробуйте снова'
-            if group_by_country:
-                error_message = 'Не удалось сформировать пары с разделением по странам. Попробуйте отключить режим или скорректировать участников.'
             if locked_assignments:
                 error_message += ' Убедитесь, что закреплённые пары не блокируют распределение.'
             return jsonify({'success': False, 'error': error_message}), 500
-    else:
-        assignment_pairs = list(locked_assignments.items())
 
     assignment_pairs.sort(key=lambda pair: participants_map[pair[0]]['name'] or '')
 
@@ -6819,7 +6873,8 @@ def admin_event_distribution_positive_generate(event_id):
             'recipient_name': recipient_meta.get('name'),
             'recipient_country': recipient_meta.get('country'),
             'recipient_city': recipient_meta.get('city'),
-            'locked': santa_id in locked_assignments
+            'locked': santa_id in locked_assignments,
+            'assignment_locked': santa_id in assignment_locked_santas
         })
 
     return jsonify({'success': True, 'pairs': pairs})
@@ -7379,6 +7434,8 @@ def admin_event_distribution_positive_save(event_id):
     if success:
         return jsonify({'success': True, 'message': f'Распределение сохранено ({result} пар).'})
     return jsonify({'success': False, 'error': result}), 500
+@app.route('/admin/events/<int:event_id>/edit', methods=['GET', 'POST'])
+@require_role('admin')
 def admin_event_edit(event_id):
     """Редактирование мероприятия"""
     conn = get_db_connection()

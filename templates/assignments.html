@@ -12,7 +12,9 @@
         {% if assignments_by_event %}
             {% for event_id, event_data in assignments_by_event.items() %}
             <div class="event-view-card" style="margin-bottom: 2rem;">
-                <h2 style="margin-bottom: 1.5rem;">{{ event_data.event_name }}</h2>
+                <h2 style="margin-bottom: 1.5rem;">
+                    <a href="{{ url_for('event_view', event_id=event_id) }}" class="assignments-event-link">{{ event_data.event_name }}</a>
+                </h2>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                     <!-- Где пользователь Дед Мороз -->
@@ -24,21 +26,20 @@
                         </div>
                         <p style="margin-bottom: 1rem; opacity: 0.9;">Вы должны отправить подарок:</p>
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                            <p style="margin: 0.5rem 0;"><strong>Получатель:</strong> {{ event_data.as_santa.get('recipient_username', '—') }}</p>
                             {% if event_data.as_santa.get('recipient_last_name') or event_data.as_santa.get('recipient_first_name') %}
                             <p style="margin: 0.5rem 0;">
-                                <strong>ФИО:</strong> 
+                                <strong>ФИО:</strong><br>
                                 {{ event_data.as_santa.get('recipient_last_name', '') }} 
                                 {{ event_data.as_santa.get('recipient_first_name', '') }} 
                                 {{ event_data.as_santa.get('recipient_middle_name', '') }}
                             </p>
                             {% endif %}
-                            {% if event_data.as_santa.get('recipient_postal_code') %}
+                            {% if event_data.as_santa.get('recipient_postal_code') or event_data.as_santa.get('recipient_country') or event_data.as_santa.get('recipient_city') %}
                             <p style="margin: 0.5rem 0;">
-                                <strong>Адрес:</strong><br>
+                                <strong>Адрес для отправки:</strong><br>
                                 {{ event_data.as_santa.get('recipient_postal_code', '') }}, 
-                                {{ event_data.as_santa.get('recipient_country', '') }}, 
-                                {{ event_data.as_santa.get('recipient_city', '') }}, 
+                                {{ event_data.as_santa.get('recipient_country', '') }},
+                                {{ event_data.as_santa.get('recipient_city', '') }}<br>
                                 {{ event_data.as_santa.get('recipient_street', '') }}, 
                                 д. {{ event_data.as_santa.get('recipient_house', '') }}
                                 {% if event_data.as_santa.get('recipient_building') %}, корп. {{ event_data.as_santa.get('recipient_building') }}{% endif %}
@@ -52,6 +53,11 @@
                             <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Подарок отправлен {{ event_data.as_santa.get('santa_sent_at') }}</p>
                             {% if event_data.as_santa.get('santa_send_info') %}
                             <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Информация об отправке:</strong><br>{{ event_data.as_santa.get('santa_send_info') }}</p>
+                            {% endif %}
+                            {% if event_data.as_santa.get('recipient_received_at') %}
+                            <p style="margin: 0.5rem 0;"><strong>Получатель подтвердил получение:</strong> {{ event_data.as_santa.get('recipient_received_at') }}</p>
+                            {% else %}
+                            <p style="margin: 0.5rem 0; opacity: 0.8;">Ожидание подтверждения получения.</p>
                             {% endif %}
                         </div>
                         {% else %}
@@ -85,27 +91,25 @@
                             <span style="font-size: 2rem; margin-right: 0.5rem;">🎁</span>
                             <h3 style="margin: 0; color: white;">Вы - Внучка</h3>
                         </div>
-                        <p style="margin-bottom: 1rem; opacity: 0.9;">Вам отправит подарок:</p>
+                        {% if event_data.as_recipient.get('santa_sent_at') %}
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
-                            <p style="margin: 0.5rem 0;"><strong>Дед Мороз:</strong> {{ event_data.as_recipient.get('santa_username', '—') }}</p>
-                            <p style="margin: 0.5rem 0; opacity: 0.8;">(имя скрыто до праздника)</p>
-                            {% if event_data.as_recipient.get('santa_sent_at') %}
-                            <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Вам отправлен подарок {{ event_data.as_recipient.get('santa_sent_at') }}</p>
+                            <p style="margin: 0.5rem 0;"><strong>Дед Мороз сообщил об отправке:</strong> {{ event_data.as_recipient.get('santa_sent_at') }}</p>
                             {% if event_data.as_recipient.get('santa_send_info') %}
                             <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Информация от Деда Мороза:</strong><br>{{ event_data.as_recipient.get('santa_send_info') }}</p>
                             {% endif %}
-                            
                             {% if event_data.as_recipient.get('recipient_received_at') %}
-                            <p style="margin: 0.5rem 0;"><strong>Вы подтвердили получение:</strong> {{ event_data.as_recipient.get('recipient_received_at') }}</p>
+                            <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Вы подтвердили получение {{ event_data.as_recipient.get('recipient_received_at') }}</p>
                             {% else %}
                             <form method="POST" action="{{ url_for('assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" style="margin-top: 0.75rem;">
                                 <button type="submit" class="btn btn-light">Получил</button>
                             </form>
                             {% endif %}
-                            {% else %}
-                            <p style="margin: 0.5rem 0; opacity: 0.8;">Даритель еще не отметил отправку подарка</p>
-                            {% endif %}
                         </div>
+                        {% else %}
+                        <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
+                            <p style="margin: 0.5rem 0; opacity: 0.9;">Дед Мороз еще не отметил отправку подарка.</p>
+                        </div>
+                        {% endif %}
                     </div>
                     {% else %}
                     <div class="assignment-card" style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 12px; border: 2px dashed var(--border-color); text-align: center; color: var(--text-secondary);">
