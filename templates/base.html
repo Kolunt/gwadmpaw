@@ -15,6 +15,10 @@
     <meta name="description" content="{{ site_description }}">
     {% endif %}
     {% set site_icon = get_setting('site_icon', '') %}
+    {% set site_logo = get_setting('site_logo', '') %}
+    {% if site_logo and (site_logo.startswith('/') or site_logo.startswith('http')) %}
+    <link rel="preload" as="image" href="{{ site_logo }}">
+    {% endif %}
     {% if site_icon %}
         {% if site_icon.startswith('/') or site_icon.startswith('http') %}
         <link rel="icon" type="image/x-icon" href="{{ site_icon }}">
@@ -86,11 +90,10 @@
                     <span></span>
                     <span></span>
                 </button>
-                {% set site_logo = get_setting('site_logo', '') %}
                 <a href="{{ url_for('index') }}" class="navbar-brand-link">
                     {% if site_logo %}
                         {% if site_logo.startswith('/') or site_logo.startswith('http') %}
-                        <img src="{{ site_logo }}" alt="Логотип" class="navbar-logo">
+                        <img src="{{ site_logo }}" alt="Логотип" class="navbar-logo" loading="eager" decoding="async">
                         {% else %}
                         <span class="navbar-logo-emoji">{{ site_logo }}</span>
                         {% endif %}
