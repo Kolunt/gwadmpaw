@@ -2241,6 +2241,26 @@ def edit_profile():
     user = conn.execute(
         'SELECT * FROM users WHERE user_id = ?', (session['user_id'],)
     ).fetchone()
+
+    registration_lock = conn.execute('''
+        SELECT er.event_id, e.name AS event_name
+        FROM event_registrations er
+        LEFT JOIN events e ON e.id = er.event_id
+        WHERE er.user_id = ?
+        ORDER BY er.registered_at DESC
+        LIMIT 1
+    ''', (session['user_id'],)).fetchone()
+    if registration_lock:
+        event_name = registration_lock['event_name']
+        if not event_name:
+            event_name = f"мероприятие №{registration_lock['event_id']}"
+        conn.close()
+        flash(
+            f'Профиль заблокирован для редактирования, так как вы уже записаны на "{event_name}". '
+            'Откажитесь от участия в мероприятии, чтобы внести изменения.',
+            'warning'
+        )
+        return redirect(url_for('dashboard'))
     
     if not user:
         flash('Пользователь не найден', 'error')
@@ -5694,6 +5714,26 @@ def api_profile_update():
         # Обновляем только переданные поля
         update_fields = []
         update_values = []
+
+        registration_lock = conn.execute('''
+            SELECT er.event_id, e.name AS event_name
+            FROM event_registrations er
+            LEFT JOIN events e ON e.id = er.event_id
+            WHERE er.user_id = ?
+            ORDER BY er.registered_at DESC
+            LIMIT 1
+        ''', (user_id,)).fetchone()
+        if registration_lock:
+            event_name = registration_lock['event_name']
+            if not event_name:
+                event_name = f"мероприятие №{registration_lock['event_id']}"
+            return jsonify({
+                'success': False,
+                'error': (
+                    f'Профиль заблокирован для редактирования, так как вы записаны на "{event_name}". '
+                    'Откажитесь от участия в мероприятии, чтобы изменить данные.'
+                )
+            }), 400
         
         if 'last_name' in data:
             update_fields.append('last_name = ?')
