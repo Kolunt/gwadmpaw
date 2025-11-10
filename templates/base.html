@@ -93,7 +93,7 @@
                 <a href="{{ url_for('index') }}" class="navbar-brand-link">
                     {% if site_logo %}
                         {% if site_logo.startswith('/') or site_logo.startswith('http') %}
-                        <img src="{{ site_logo }}" alt="Логотип" class="navbar-logo" loading="eager" decoding="async">
+                        <img src="{{ site_logo }}" alt="Логотип" class="navbar-logo" loading="eager" decoding="async" fetchpriority="high" width="40" height="40">
                         {% else %}
                         <span class="navbar-logo-emoji">{{ site_logo }}</span>
                         {% endif %}
