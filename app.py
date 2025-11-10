@@ -614,6 +614,18 @@ def init_db():
             c.execute('ALTER TABLE event_assignments ADD COLUMN assignment_locked INTEGER DEFAULT 0')
         except sqlite3.OperationalError:
             pass
+
+        # Таблица для хранения сообщений переписки
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS letter_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                assignment_id INTEGER NOT NULL,
+                sender TEXT NOT NULL CHECK(sender IN ('santa','grandchild')),
+                message TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (assignment_id) REFERENCES event_assignments(id) ON DELETE CASCADE
+            )
+        ''')
         
         # Таблица категорий FAQ
         c.execute('''
@@ -7996,7 +8008,7 @@ def _format_full_address(assignment):
     return ', '.join(parts)
 
 
-@app.route('/letter')
+@app.route('/letter', methods=['GET', 'POST'])
 @require_login
 def letter():
     """Страница с письмом получателя для Деда Мороза"""
@@ -8006,20 +8018,30 @@ def letter():
         return redirect(url_for('login'))
 
     assignment_id = request.args.get('assignment_id', type=int)
+    if assignment_id is None and request.method == 'POST':
+        assignment_id = request.form.get('assignment_id', type=int)
     user_assignments = get_user_assignments(user_id)
 
-    santa_assignments = [
-        a for a in user_assignments
-        if a.get('santa_user_id') == user_id
-    ]
+    accessible_assignments = []
+    for assignment in user_assignments:
+        role = None
+        if assignment.get('santa_user_id') == user_id:
+            role = 'santa'
+        elif assignment.get('recipient_user_id') == user_id:
+            role = 'grandchild'
+        if not role:
+            continue
+        assignment_copy = dict(assignment)
+        assignment_copy['chat_role'] = role
+        accessible_assignments.append(assignment_copy)
 
-    if not santa_assignments:
-        flash('У вас пока нет получателей для письма.', 'info')
+    if not accessible_assignments:
+        flash('У вас пока нет переписок для отображения.', 'info')
         return redirect(url_for('assignments'))
 
     selected_assignment = None
     if assignment_id:
-        for assignment in santa_assignments:
+        for assignment in accessible_assignments:
             if assignment.get('id') == assignment_id:
                 selected_assignment = assignment
                 break
@@ -8027,9 +8049,35 @@ def letter():
             flash('Выбранное задание не найдено. Показано первое доступное письмо.', 'warning')
 
     if not selected_assignment:
-        selected_assignment = santa_assignments[0]
+        selected_assignment = accessible_assignments[0]
 
-    user_role = 'santa' if selected_assignment.get('santa_user_id') == user_id else 'grandchild'
+    user_role = selected_assignment.get('chat_role', 'santa')
+
+    if request.method == 'POST':
+        message = request.form.get('message', '').strip()
+        if not message:
+            flash('Введите сообщение перед отправкой.', 'error')
+            return redirect(url_for('letter', assignment_id=selected_assignment.get('id')))
+
+        if len(message) > 2000:
+            message = message[:2000]
+
+        conn = get_db_connection()
+        try:
+            conn.execute('''
+                INSERT INTO letter_messages (assignment_id, sender, message)
+                VALUES (?, ?, ?)
+            ''', (selected_assignment.get('id'), user_role, message))
+            conn.commit()
+            flash('Сообщение отправлено.', 'success')
+        except Exception as exc:
+            conn.rollback()
+            log_error(f"Error saving letter message for assignment {selected_assignment.get('id')}: {exc}")
+            flash('Не удалось сохранить сообщение.', 'error')
+        finally:
+            conn.close()
+
+        return redirect(url_for('letter', assignment_id=selected_assignment.get('id')))
 
     first_name = (selected_assignment.get('recipient_first_name')
                   or selected_assignment.get('recipient_username')
@@ -8061,11 +8109,48 @@ def letter():
     }
 
     available_letters = []
-    for assignment in santa_assignments:
+    for assignment in accessible_assignments:
+        role = assignment.get('chat_role', 'santa')
+        if role == 'santa':
+            counterpart = assignment.get('recipient_first_name') or assignment.get('recipient_username') or assignment.get('recipient_last_name') or 'Получатель'
+            label = f"Получатель: {counterpart}"
+        else:
+            counterpart = assignment.get('santa_username') or 'Дед Мороз'
+            label = f"Дед Мороз: {counterpart}"
         available_letters.append({
             'assignment_id': assignment.get('id'),
             'event_name': assignment.get('event_name', 'Мероприятие'),
-            'recipient_name': assignment.get('recipient_first_name') or assignment.get('recipient_username') or assignment.get('recipient_last_name') or 'Получатель'
+            'label': label,
+            'role': role
+        })
+
+    conn = get_db_connection()
+    raw_messages = conn.execute('''
+        SELECT sender, message, created_at
+        FROM letter_messages
+        WHERE assignment_id = ?
+        ORDER BY created_at ASC, id ASC
+    ''', (selected_assignment.get('id'),)).fetchall()
+    conn.close()
+
+    chat_messages = []
+    for row in raw_messages:
+        created_raw = row['created_at']
+        created_display = ''
+        if created_raw:
+            try:
+                created_dt = datetime.fromisoformat(str(created_raw))
+            except ValueError:
+                try:
+                    created_dt = datetime.strptime(str(created_raw), '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    created_dt = None
+            if created_dt:
+                created_display = created_dt.strftime('%d.%m.%Y %H:%M')
+        chat_messages.append({
+            'sender': row['sender'],
+            'message': row['message'],
+            'created_display': created_display
         })
 
     return render_template(
@@ -8073,7 +8158,8 @@ def letter():
         letter=letter_context,
         assignment=selected_assignment,
         available_letters=available_letters,
-        user_role=user_role
+        user_role=user_role,
+        chat_messages=chat_messages
     )
 
 

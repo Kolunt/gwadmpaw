@@ -16,13 +16,13 @@
         {% if available_letters|length > 1 %}
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-body" style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                <span class="text-muted" style="align-self: center;">Другие письма:</span>
+                <span class="text-muted" style="align-self: center;">Другие чаты:</span>
                 {% for item in available_letters %}
                 <a 
                     href="{{ url_for('letter', assignment_id=item.assignment_id) }}"
                     class="btn btn-sm {% if assignment.id == item.assignment_id %}btn-primary{% else %}btn-outline-primary{% endif %}"
                 >
-                    {{ item.event_name }} · {{ item.recipient_name }}
+                    {{ item.event_name }} · {{ item.label }}
                 </a>
                 {% endfor %}
             </div>
@@ -67,13 +67,24 @@
                     border: 1px solid rgba(102, 126, 234, 0.18);
                     color: #364152;
                 }
-                .message-grandchild {
-                    right: 24px;
-                }
                 .message-santa::after {
                     right: 24px;
                     border-left: 1px solid rgba(102, 126, 234, 0.18);
                     border-bottom: 1px solid rgba(102, 126, 234, 0.18);
+                }
+                .chat-wrapper.role-grandchild .message-grandchild {
+                    align-self: flex-end;
+                }
+                .chat-wrapper.role-grandchild .message-grandchild::after {
+                    left: auto;
+                    right: 24px;
+                }
+                .chat-wrapper.role-grandchild .message-santa {
+                    align-self: flex-start;
+                }
+                .chat-wrapper.role-grandchild .message-santa::after {
+                    right: auto;
+                    left: 24px;
                 }
                 .chat-meta {
                     display: block;
@@ -83,7 +94,7 @@
                 }
             </style>
 
-            <div class="chat-wrapper" id="chat-thread">
+            <div class="chat-wrapper role-{{ user_role }}" id="chat-thread">
                 <div class="chat-message message-grandchild">
                     <strong>✨ {{ letter.first_name }}:</strong>
                     <div style="margin-top: 0.5rem;">
@@ -105,6 +116,22 @@
                     </p>
                     <span class="chat-meta">Россия, Великий Устюг · волшебная линия связи</span>
                 </div>
+                
+                {% for msg in chat_messages %}
+                <div class="chat-message message-{{ 'santa' if msg.sender == 'santa' else 'grandchild' }}">
+                    <strong>
+                        {% if msg.sender == 'santa' %}
+                            🎅 Дед Мороз:
+                        {% else %}
+                            ✨ {{ letter.first_name }}:
+                        {% endif %}
+                    </strong>
+                    <div style="margin-top: 0.5rem; white-space: pre-wrap;">{{ msg.message | e | replace('\n', '<br>') | safe }}</div>
+                    {% if msg.created_display %}
+                    <span class="chat-meta">{{ msg.created_display }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
             </div>
 
             <div class="card" style="margin-top: 2rem;">
@@ -115,9 +142,10 @@
                     {% else %}
                     <p class="text-muted" style="margin-bottom: 1rem;">Вы общаетесь как <strong>{{ letter.first_name }}</strong>. Сообщения от Деда Мороза добавляет ваш даритель.</p>
                     {% endif %}
-                    <form id="chat-form" class="space-y" style="display: grid; gap: 1rem;">
+                    <form method="POST" action="{{ url_for('letter', assignment_id=assignment.id) }}" style="display: grid; gap: 1rem;">
+                        <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
                         <textarea
-                            id="chat-message-input"
+                            name="message"
                             class="setting-input"
                             style="min-height: 120px; resize: vertical;"
                             placeholder="{% if user_role == 'santa' %}Напишите ответ Деда Мороза...{% else %}Напишите письмо Деду Морозу...{% endif %}"
@@ -131,59 +159,5 @@
     </div>
 </div>
 
-<script>
-(function() {
-    const form = document.getElementById('chat-form');
-    const textarea = document.getElementById('chat-message-input');
-    const thread = document.getElementById('chat-thread');
-    const userRole = "{{ user_role }}";
-
-    if (!form || !textarea || !thread) {
-        return;
-    }
-
-    form.addEventListener('submit', function(event) {
-        event.preventDefault();
-
-        const text = textarea.value.trim();
-        if (!text) {
-            return;
-        }
-
-        const isSanta = userRole === 'santa';
-
-        const messageWrapper = document.createElement('div');
-        messageWrapper.className = `chat-message ${isSanta ? 'message-santa' : 'message-grandchild'}`;
-
-        const author = document.createElement('strong');
-        author.textContent = isSanta ? '🎅 Дед Мороз:' : `✨ {{ letter.first_name }}:`;
-        messageWrapper.appendChild(author);
-
-        const messageBody = document.createElement('div');
-        messageBody.style.marginTop = '0.5rem';
-        messageBody.style.whiteSpace = 'pre-wrap';
-        messageBody.textContent = text;
-        messageWrapper.appendChild(messageBody);
-
-        const meta = document.createElement('span');
-        meta.className = 'chat-meta';
-        if (isSanta) {
-            meta.textContent = 'Россия, Великий Устюг · волшебная линия связи';
-        } else {
-            const now = new Date();
-            const formatted = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-                ' ' + now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            meta.textContent = formatted;
-        }
-        messageWrapper.appendChild(meta);
-
-        thread.appendChild(messageWrapper);
-        thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
-        textarea.value = '';
-        textarea.focus();
-    });
-})();
-</script>
 {% endblock %}
-
 
