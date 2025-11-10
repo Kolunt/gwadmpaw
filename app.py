@@ -5125,12 +5125,26 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
         return False, 'Вы не можете обновить это задание'
     
     try:
+        chat_message = None
+        if send_info:
+            chat_message = (
+                f"Дорогой внучок! Я всё отправил! {send_info}\n"
+                "Если будут вопросы — пиши!"
+            ).strip()
+
         conn.execute('''
             UPDATE event_assignments
             SET santa_sent_at = CURRENT_TIMESTAMP,
                 santa_send_info = ?
             WHERE id = ?
         ''', (send_info, assignment_id))
+
+        if chat_message:
+            conn.execute('''
+                INSERT INTO letter_messages (assignment_id, sender, message)
+                VALUES (?, 'santa', ?)
+            ''', (assignment_id, chat_message))
+
         conn.commit()
         log_activity(
             'assignment_sent',
