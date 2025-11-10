@@ -12,4 +12,5 @@ ENV/
 *.sqlite3
 .DS_Store
 *.log
+static/uploads/
 
