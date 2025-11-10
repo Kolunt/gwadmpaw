@@ -24,6 +24,9 @@
                             <span style="font-size: 2rem; margin-right: 0.5rem;">🎅</span>
                             <h3 style="margin: 0; color: white;">Вы - Дед Мороз</h3>
                         </div>
+                        <div style="margin-bottom: 1rem;">
+                            <a href="{{ url_for('letter', assignment_id=event_data.as_santa.get('id')) }}" class="btn btn-light btn-sm" style="color: #333;">📜 Сформировать письмо</a>
+                        </div>
                         <p style="margin-bottom: 1rem; opacity: 0.9;">Вы должны отправить подарок:</p>
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                             {% if event_data.as_santa.get('recipient_last_name') or event_data.as_santa.get('recipient_first_name') %}

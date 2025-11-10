@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Письмо - Анонимные Деды Морозы{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="admin-container">
+        <div class="admin-header">
+            <div>
+                <h1>✉️ Письмо Деду Морозу</h1>
+                <p class="text-muted" style="margin: 0;">Мероприятие: {{ letter.event_name }}</p>
+            </div>
+            <a href="{{ url_for('assignments') }}" class="btn btn-secondary">← Вернуться к заданиям</a>
+        </div>
+
+        {% if available_letters|length > 1 %}
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-body" style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                <span class="text-muted" style="align-self: center;">Другие письма:</span>
+                {% for item in available_letters %}
+                <a 
+                    href="{{ url_for('letter', assignment_id=item.assignment_id) }}"
+                    class="btn btn-sm {% if assignment.id == item.assignment_id %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                >
+                    {{ item.event_name }} · {{ item.recipient_name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="event-view-card">
+            <div class="letter-content">
+                <p>Здравствуй, Дедушка Мороз! Меня зовут <strong>{{ letter.first_name }}</strong>, а полностью <strong>{{ letter.full_name }}</strong>. Пишу тебе из <strong>{{ letter.address }}</strong>. Весь год я вёл себя хорошо, заботился о родных и друзьях, сделал много хорошего и с нетерпением жду волшебства и чудес, которые ты даришь всем детям.</p>
+
+                <p>Несколько слов о себе: <span style="white-space: pre-wrap;">{{ letter.bio }}</span></p>
+
+                <p>Спасибо тебе за всё, что ты делаешь! Желаю тебе крепкого здоровья и счастья. Надеюсь, что в следующем году я снова смогу написать тебе письмо и поделиться своими новыми достижениями!</p>
+
+                <p style="margin-top: 2rem;">Подпись: <strong>{{ letter.first_name }}</strong>, {{ letter.date }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

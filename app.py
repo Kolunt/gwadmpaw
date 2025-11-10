@@ -7958,6 +7958,122 @@ def admin_event_delete(event_id):
     
     conn.close()
     return redirect(url_for('admin_events'))
+
+
+def _format_full_address(assignment):
+    parts = []
+    postal = assignment.get('recipient_postal_code')
+    country = assignment.get('recipient_country')
+    city = assignment.get('recipient_city')
+    street = assignment.get('recipient_street')
+    house = assignment.get('recipient_house')
+    building = assignment.get('recipient_building')
+    apartment = assignment.get('recipient_apartment')
+
+    if postal:
+        parts.append(str(postal))
+    if country:
+        parts.append(country)
+    if city:
+        parts.append(city)
+
+    street_parts = []
+    if street:
+        street_parts.append(street)
+    if house:
+        street_parts.append(f"д. {house}")
+    if building:
+        street_parts.append(f"корп. {building}")
+    if apartment:
+        street_parts.append(f"кв. {apartment}")
+
+    if street_parts:
+        parts.append(', '.join(street_parts))
+
+    if not parts:
+        return 'адрес пока не указан'
+
+    return ', '.join(parts)
+
+
+@app.route('/letter')
+@require_login
+def letter():
+    """Страница с письмом получателя для Деда Мороза"""
+    user_id = session.get('user_id')
+    if not user_id:
+        flash('Необходимо авторизоваться', 'error')
+        return redirect(url_for('login'))
+
+    assignment_id = request.args.get('assignment_id', type=int)
+    user_assignments = get_user_assignments(user_id)
+
+    santa_assignments = [
+        a for a in user_assignments
+        if a.get('santa_user_id') == user_id
+    ]
+
+    if not santa_assignments:
+        flash('У вас пока нет получателей для письма.', 'info')
+        return redirect(url_for('assignments'))
+
+    selected_assignment = None
+    if assignment_id:
+        for assignment in santa_assignments:
+            if assignment.get('id') == assignment_id:
+                selected_assignment = assignment
+                break
+        if not selected_assignment:
+            flash('Выбранное задание не найдено. Показано первое доступное письмо.', 'warning')
+
+    if not selected_assignment:
+        selected_assignment = santa_assignments[0]
+
+    first_name = (selected_assignment.get('recipient_first_name')
+                  or selected_assignment.get('recipient_username')
+                  or '').strip()
+    middle_name = (selected_assignment.get('recipient_middle_name') or '').strip()
+    last_name = (selected_assignment.get('recipient_last_name') or '').strip()
+
+    full_name_parts = [part for part in [last_name, first_name, middle_name] if part]
+    default_signature = 'Твой внучок'
+    full_name = ' '.join(full_name_parts) if full_name_parts else (first_name or last_name or default_signature)
+
+    address_text = _format_full_address(selected_assignment)
+
+    bio_text = selected_assignment.get('recipient_bio')
+    if bio_text:
+        bio_text = bio_text.strip()
+    if not bio_text:
+        bio_text = 'Я пока не успел рассказать о себе, но обязательно сделаю это совсем скоро!'
+
+    event_name = selected_assignment.get('event_name', 'Мероприятие')
+
+    letter_context = {
+        'first_name': first_name or full_name or 'Твой внучок',
+        'full_name': full_name,
+        'address': address_text,
+        'bio': bio_text,
+        'date': datetime.now().strftime('%d.%m.%Y'),
+        'event_name': event_name,
+    }
+
+    available_letters = []
+    for assignment in santa_assignments:
+        available_letters.append({
+            'assignment_id': assignment.get('id'),
+            'event_name': assignment.get('event_name', 'Мероприятие'),
+            'recipient_name': assignment.get('recipient_first_name') or assignment.get('recipient_username') or assignment.get('recipient_last_name') or 'Получатель'
+        })
+
+    return render_template(
+        'letter.html',
+        letter=letter_context,
+        assignment=selected_assignment,
+        available_letters=available_letters
+    )
+
+
 @app.route('/assignments')
 @require_login
 def assignments():
