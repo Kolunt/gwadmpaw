@@ -370,6 +370,11 @@
                                 <span class="file-upload-text">Выбрать файл</span>
                                 <span class="file-upload-btn">📁</span>
                             </label>
+                            {% if setting.value %}
+                            <button type="submit" name="delete_site_icon" value="1" class="btn btn-danger btn-small file-remove-btn" onclick="return confirm('Удалить текущую иконку?');">
+                                Удалить
+                            </button>
+                            {% endif %}
                         </div>
                         {% elif setting.key == 'site_logo' %}
                         <div class="file-upload-group">
@@ -390,6 +395,11 @@
                                 <span class="file-upload-text">Выбрать файл</span>
                                 <span class="file-upload-btn">📁</span>
                             </label>
+                            {% if setting.value %}
+                            <button type="submit" name="delete_site_logo" value="1" class="btn btn-danger btn-small file-remove-btn" onclick="return confirm('Удалить текущий логотип?');">
+                                Удалить
+                            </button>
+                            {% endif %}
                         </div>
                         {% elif setting.key == 'site_description' %}
                         <textarea 

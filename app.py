@@ -3539,6 +3539,39 @@ def admin_settings():
         upload_dir = os.path.join(app.static_folder, 'uploads')
         os.makedirs(upload_dir, exist_ok=True)
         
+        # Обработка удаления файлов
+        existing_icon = conn.execute('SELECT value FROM settings WHERE key = ?', ('site_icon',)).fetchone()
+        existing_icon_path = existing_icon['value'] if existing_icon and existing_icon['value'] else ''
+        existing_logo = conn.execute('SELECT value FROM settings WHERE key = ?', ('site_logo',)).fetchone()
+        existing_logo_path = existing_logo['value'] if existing_logo and existing_logo['value'] else ''
+
+        def remove_uploaded_file(relative_path):
+            if not relative_path:
+                return
+            if relative_path.startswith('/static/uploads/'):
+                abs_path = os.path.join(app.root_path, relative_path.lstrip('/'))
+                try:
+                    if os.path.exists(abs_path):
+                        os.remove(abs_path)
+                except Exception as file_error:
+                    log_error(f"Error removing file {abs_path}: {file_error}")
+
+        if request.form.get('delete_site_icon') == '1':
+            remove_uploaded_file(existing_icon_path)
+            conn.execute('''
+                UPDATE settings SET value = '', updated_at = CURRENT_TIMESTAMP, updated_by = ?
+                WHERE key = 'site_icon'
+            ''', (session.get('user_id'),))
+            flash('Иконка сайта удалена', 'success')
+
+        if request.form.get('delete_site_logo') == '1':
+            remove_uploaded_file(existing_logo_path)
+            conn.execute('''
+                UPDATE settings SET value = '', updated_at = CURRENT_TIMESTAMP, updated_by = ?
+                WHERE key = 'site_logo'
+            ''', (session.get('user_id'),))
+            flash('Логотип сайта удалён', 'success')
+
         # Обработка загрузки файлов
         if 'site_icon' in request.files:
             icon_file = request.files['site_icon']
