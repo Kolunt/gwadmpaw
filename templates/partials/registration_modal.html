@@ -82,6 +82,17 @@
 
             <div class="registration-step" data-step="step5">
                 <div class="registration-step-content">
+                    <h3>О себе</h3>
+                    <p class="text-muted small-note">Расскажите немного о себе, интересах и предпочтениях. Это поможет вашему Деду Морозу подобрать максимально подходящий подарок.</p>
+                    <div class="form-group">
+                        <label for="registration-bio" class="form-label">О себе</label>
+                        <textarea id="registration-bio" class="form-input" rows="5" placeholder="Например: люблю настольные игры, коллекционирую открытки, предпочитаю тёплые шарфы, аллергия на цитрусовые."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="registration-step" data-step="step6">
+                <div class="registration-step-content">
                     <h3>Telegram</h3>
                     <p class="text-muted small-note">Если используете Telegram, укажите ник или номер. Иначе нажмите «Не использую».</p>
                     <div class="form-group">
@@ -91,7 +102,7 @@
                 </div>
             </div>
 
-            <div class="registration-step" data-step="step6">
+            <div class="registration-step" data-step="step7">
                 <div class="registration-step-content">
                     <h3>WhatsApp</h3>
                     <p class="text-muted small-note">Дополнительный способ связи. Если не пользуетесь, просто отметьте это.</p>
@@ -102,7 +113,7 @@
                 </div>
             </div>
 
-            <div class="registration-step" data-step="step7">
+            <div class="registration-step" data-step="step8">
                 <div class="registration-step-content">
                     <h3>Viber</h3>
                     <p class="text-muted small-note">Если не используете Viber, нажмите «Не использую» — поле останется пустым.</p>
@@ -166,6 +177,10 @@
                             <dt>Viber</dt>
                             <dd data-summary-field="viber"></dd>
                         </div>
+                        <div class="summary-row">
+                            <dt>О себе</dt>
+                            <dd data-summary-field="bio"></dd>
+                        </div>
                     </dl>
                 </div>
             </div>
@@ -198,7 +213,7 @@
         const secondaryBtn = document.getElementById('registration-secondary-btn');
         const tertiaryBtn = document.getElementById('registration-tertiary-btn');
 
-        const stepsOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'stepfinal'];
+        const stepsOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'step8', 'stepfinal'];
         const stepElements = new Map();
         modal.querySelectorAll('.registration-step').forEach(step => {
             const key = step.getAttribute('data-step');
@@ -212,9 +227,10 @@
             step2: 'Личные данные',
             step3: 'Адрес для подарка',
             step4: 'Контакты',
-            step5: 'Дополнительный контакт: Telegram',
-            step6: 'Дополнительный контакт: WhatsApp',
-            step7: 'Дополнительный контакт: Viber',
+            step5: 'О себе',
+            step6: 'Дополнительный контакт: Telegram',
+            step7: 'Дополнительный контакт: WhatsApp',
+            step8: 'Дополнительный контакт: Viber',
             stepfinal: 'Проверка данных'
         };
 
@@ -230,6 +246,7 @@
             building: document.getElementById('registration-building'),
             apartment: document.getElementById('registration-apartment'),
             phone: document.getElementById('registration-phone'),
+            bio: document.getElementById('registration-bio'),
             telegram: document.getElementById('registration-telegram'),
             whatsapp: document.getElementById('registration-whatsapp'),
             viber: document.getElementById('registration-viber')
@@ -252,6 +269,7 @@
             building: '',
             apartment: '',
             phone: '',
+            bio: '',
             telegram: '',
             whatsapp: '',
             viber: ''
@@ -327,7 +345,7 @@
                 .filter(Boolean)
                 .join(' ');
             if (summaryFields.fio) summaryFields.fio.textContent = fio || '—';
-            ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment', 'phone', 'telegram', 'whatsapp', 'viber']
+            ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment', 'phone', 'telegram', 'whatsapp', 'viber', 'bio']
                 .forEach(key => {
                     if (summaryFields[key]) {
                         summaryFields[key].textContent = textOrDash(profileData[key]);
@@ -441,6 +459,20 @@
             setBusy(false);
             if (saved) {
                 goToStep('step5');
+            }
+        }
+
+        async function handleStep5() {
+            if (!inputs.bio) {
+                goToStep('step6');
+                return;
+            }
+            const bio = inputs.bio.value.trim();
+            setBusy(true);
+            const saved = await saveProfileData({ bio });
+            setBusy(false);
+            if (saved) {
+                goToStep('step6');
             }
         }
 
@@ -608,32 +640,46 @@
                 case 'step5':
                     fillInputs();
                     primaryBtn.textContent = 'Подтверждаю';
-                    primaryBtn.onclick = () => handleContactStep('telegram', true);
+                    primaryBtn.onclick = handleStep5;
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step4');
                     tertiaryBtn.style.display = 'inline-block';
-                    tertiaryBtn.textContent = 'Не использую';
-                    tertiaryBtn.onclick = () => handleNotUsing('telegram', 'не использую');
+                    tertiaryBtn.textContent = 'Пропустить';
+                    tertiaryBtn.onclick = () => {
+                        inputs.bio.value = '';
+                        handleStep5();
+                    };
                     break;
                 case 'step6':
                     fillInputs();
                     primaryBtn.textContent = 'Подтверждаю';
-                    primaryBtn.onclick = () => handleContactStep('whatsapp', true);
+                    primaryBtn.onclick = () => handleContactStep('telegram', true);
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step5');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
-                    tertiaryBtn.onclick = () => handleNotUsing('whatsapp', 'не использую');
+                    tertiaryBtn.onclick = () => handleNotUsing('telegram', 'не использую');
                     break;
                 case 'step7':
+                    fillInputs();
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = () => handleContactStep('whatsapp', true);
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.textContent = 'Назад';
+                    secondaryBtn.onclick = () => goToStep('step6');
+                    tertiaryBtn.style.display = 'inline-block';
+                    tertiaryBtn.textContent = 'Не использую';
+                    tertiaryBtn.onclick = () => handleNotUsing('whatsapp', 'не использую');
+                    break;
+                case 'step8':
                     fillInputs();
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = () => handleContactStep('viber', true);
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step6');
+                    secondaryBtn.onclick = () => goToStep('step7');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
                     tertiaryBtn.onclick = () => handleNotUsing('viber', '');
@@ -648,7 +694,7 @@
                     secondaryBtn.onclick = resetToStart;
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Назад';
-                    tertiaryBtn.onclick = () => goToStep('step7');
+                    tertiaryBtn.onclick = () => goToStep('step8');
                     break;
                 default:
                     primaryBtn.onclick = goToNextStep;

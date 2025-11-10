@@ -46,6 +46,12 @@
                                 {% if event_data.as_santa.get('recipient_apartment') %}, кв. {{ event_data.as_santa.get('recipient_apartment') }}{% endif %}
                             </p>
                             {% endif %}
+                        {% if event_data.as_santa.get('recipient_bio') %}
+                        <p style="margin: 0.5rem 0;">
+                            <strong>О себе:</strong><br>
+                            {{ event_data.as_santa.get('recipient_bio') | e | replace('\n', '<br>') | safe }}
+                        </p>
+                        {% endif %}
                         </div>
                         
                         {% if event_data.as_santa.get('santa_sent_at') %}

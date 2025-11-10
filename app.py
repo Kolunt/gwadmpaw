@@ -534,6 +534,7 @@ def init_db():
                 telegram TEXT,
                 whatsapp TEXT,
                 viber TEXT,
+                bio TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
@@ -541,6 +542,10 @@ def init_db():
                 UNIQUE(event_id, user_id)
             )
         ''')
+        try:
+            c.execute('ALTER TABLE event_registration_details ADD COLUMN bio TEXT')
+        except sqlite3.OperationalError:
+            pass
         
         # Таблица утверждений участников (для ревью администратором)
         c.execute('''
@@ -4981,10 +4986,13 @@ def get_user_assignments(user_id):
             recipient.street as recipient_street,
             recipient.house as recipient_house,
             recipient.building as recipient_building,
-            recipient.apartment as recipient_apartment
+            recipient.apartment as recipient_apartment,
+            COALESCE(rd.bio, recipient.bio) as recipient_bio
         FROM event_assignments ea
         JOIN events e ON ea.event_id = e.id
         JOIN users recipient ON ea.recipient_user_id = recipient.user_id
+        LEFT JOIN event_registration_details rd
+            ON rd.event_id = ea.event_id AND rd.user_id = ea.recipient_user_id
         WHERE ea.santa_user_id = ?
         ORDER BY ea.assigned_at DESC
     ''', (user_id,)).fetchall()
@@ -5305,7 +5313,8 @@ def has_required_contacts(user_id):
         user = conn.execute('''
             SELECT email, phone, telegram, whatsapp, viber,
                    last_name, first_name, middle_name,
-                   postal_code, country, city, street, house, building, apartment
+                   postal_code, country, city, street, house, building, apartment,
+                   bio
             FROM users 
             WHERE user_id = ?
         ''', (user_id,)).fetchone()
@@ -5338,7 +5347,8 @@ def get_missing_required_fields(user_id):
         user = conn.execute('''
             SELECT email, phone, telegram, whatsapp, viber,
                    last_name, first_name, middle_name,
-                   postal_code, country, city, street, house, building, apartment
+                   postal_code, country, city, street, house, building, apartment,
+                   bio
             FROM users 
             WHERE user_id = ?
         ''', (user_id,)).fetchone()
@@ -5457,7 +5467,7 @@ def event_register(event_id):
             profile_row = conn.execute('''
                 SELECT last_name, first_name, middle_name,
                        postal_code, country, city, street, house, building, apartment,
-                       phone, telegram, whatsapp, viber
+                       phone, telegram, whatsapp, viber, bio
                 FROM users
                 WHERE user_id = ?
             ''', (user_id,)).fetchone()
@@ -5496,9 +5506,9 @@ def event_register(event_id):
                 INSERT INTO event_registration_details (
                     event_id, user_id, last_name, first_name, middle_name,
                     postal_code, country, city, street, house, building, apartment,
-                    phone, telegram, whatsapp, viber
+                    phone, telegram, whatsapp, viber, bio
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(event_id, user_id) DO UPDATE SET
                     last_name = excluded.last_name,
                     first_name = excluded.first_name,
@@ -5514,6 +5524,7 @@ def event_register(event_id):
                     telegram = excluded.telegram,
                     whatsapp = excluded.whatsapp,
                     viber = excluded.viber,
+                    bio = excluded.bio,
                     updated_at = CURRENT_TIMESTAMP
             ''', (
                 event_id,
@@ -5531,7 +5542,8 @@ def event_register(event_id):
                 profile.get('phone'),
                 profile.get('telegram'),
                 profile.get('whatsapp'),
-                profile.get('viber')
+                profile.get('viber'),
+                profile.get('bio')
             ))
 
             conn.commit()
@@ -5622,7 +5634,8 @@ def api_profile_data():
         user = conn.execute('''
             SELECT email, phone, telegram, whatsapp, viber,
                    last_name, first_name, middle_name,
-                   postal_code, country, city, street, house, building, apartment
+                   postal_code, country, city, street, house, building, apartment,
+                   bio
             FROM users 
             WHERE user_id = ?
         ''', (user_id,)).fetchone()
@@ -5654,7 +5667,8 @@ def api_profile_data():
                 'street': user['street'] or '',
                 'house': user['house'] or '',
                 'building': user['building'] or '',
-                'apartment': user['apartment'] or ''
+                'apartment': user['apartment'] or '',
+                'bio': user['bio'] or ''
             }
         })
     except Exception as e:
@@ -5726,6 +5740,9 @@ def api_profile_update():
         if 'viber' in data:
             update_fields.append('viber = ?')
             update_values.append(data['viber'].strip())
+        if 'bio' in data:
+            update_fields.append('bio = ?')
+            update_values.append(data['bio'].strip())
         
         if not update_fields:
             return jsonify({'success': False, 'error': 'Нет полей для обновления'}), 400
