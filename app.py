@@ -4972,22 +4972,26 @@ def get_user_assignments(user_id):
     as_santa = conn.execute('''
         SELECT 
             ea.*,
-            e.name as event_name,
-            e.id as event_id,
-            recipient.username as recipient_username,
-            recipient.level as recipient_level,
-            recipient.synd as recipient_synd,
-            recipient.last_name as recipient_last_name,
-            recipient.first_name as recipient_first_name,
-            recipient.middle_name as recipient_middle_name,
-            recipient.postal_code as recipient_postal_code,
-            recipient.country as recipient_country,
-            recipient.city as recipient_city,
-            recipient.street as recipient_street,
-            recipient.house as recipient_house,
-            recipient.building as recipient_building,
-            recipient.apartment as recipient_apartment,
-            COALESCE(rd.bio, recipient.bio) as recipient_bio
+            e.name AS event_name,
+            e.id AS event_id,
+            recipient.username AS recipient_username,
+            recipient.level AS recipient_level,
+            recipient.synd AS recipient_synd,
+            COALESCE(rd.last_name, recipient.last_name) AS recipient_last_name,
+            COALESCE(rd.first_name, recipient.first_name) AS recipient_first_name,
+            COALESCE(rd.middle_name, recipient.middle_name) AS recipient_middle_name,
+            COALESCE(rd.postal_code, recipient.postal_code) AS recipient_postal_code,
+            COALESCE(rd.country, recipient.country) AS recipient_country,
+            COALESCE(rd.city, recipient.city) AS recipient_city,
+            COALESCE(rd.street, recipient.street) AS recipient_street,
+            COALESCE(rd.house, recipient.house) AS recipient_house,
+            COALESCE(rd.building, recipient.building) AS recipient_building,
+            COALESCE(rd.apartment, recipient.apartment) AS recipient_apartment,
+            COALESCE(rd.phone, recipient.phone) AS recipient_phone,
+            COALESCE(rd.telegram, recipient.telegram) AS recipient_telegram,
+            COALESCE(rd.whatsapp, recipient.whatsapp) AS recipient_whatsapp,
+            COALESCE(rd.viber, recipient.viber) AS recipient_viber,
+            rd.bio AS recipient_bio
         FROM event_assignments ea
         JOIN events e ON ea.event_id = e.id
         JOIN users recipient ON ea.recipient_user_id = recipient.user_id
