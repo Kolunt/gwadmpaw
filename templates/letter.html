@@ -20,7 +20,7 @@
                 {% for item in available_letters %}
                 <a 
                     href="{{ url_for('letter', assignment_id=item.assignment_id) }}"
-                    class="btn btn-sm {% if assignment.id == item.assignment_id %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                    class="btn btn-sm {% if assignment.id == item.assignment_id %}btn-success{% else %}btn-outline-success{% endif %}"
                 >
                     {{ item.event_name }} · {{ item.label }}
                 </a>
