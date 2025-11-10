@@ -388,9 +388,17 @@
                     body: JSON.stringify(fields)
                 });
                 if (!response.ok) {
-                    const text = await response.text();
-                    console.error('Ошибка профиля:', response.status, text);
-                    showError('Не удалось сохранить данные. Попробуйте ещё раз.');
+                    let message = 'Не удалось сохранить данные. Попробуйте ещё раз.';
+                    try {
+                        const data = await response.json();
+                        if (data && data.error) {
+                            message = data.error;
+                        }
+                    } catch (nested) {
+                        const text = await response.text();
+                        console.error('Ошибка профиля:', response.status, text);
+                    }
+                    showError(message);
                     return false;
                 }
                 const result = await response.json();
