@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="telegramTitle telegramDesc">
+  <title id="telegramTitle">Telegram logo</title>
+  <desc id="telegramDesc">Official Telegram paper plane inside blue circle</desc>
+  <defs>
+    <linearGradient id="telegramGradient" x1="0.667" x2="0.417" y1="0.167" y2="0.75">
+      <stop offset="0" stop-color="#37aee2"/>
+      <stop offset="1" stop-color="#1e96c8"/>
+    </linearGradient>
+  </defs>
+  <circle cx="120" cy="120" r="120" fill="url(#telegramGradient)"/>
+  <path fill="#c8daea" d="M160.46 79.21c-2.1-1.68-4.84-1.86-7.45-.46l-75 40.53c-6.62 3.57-12.99 7.23-19.69 10.86-2.37 1.29-4.13 3.03-3.99 5.7.13 2.45 1.85 4 4.14 4.88l3.24 1.08 9.52 3.32a6.04 6.04 0 0 0 5.9-1.12l12.24-9.77c1.1-.88 2.06-.96 3.29-.33l29.36 14.67a18.14 18.14 0 0 0 9.1 4.02c4.43 1.19 7.73-.2 9.15-4.63l19.2-62.53c.98-3.21.4-5.66-2.08-7.68z"/>
+  <path fill="#a9c9dd" d="M86.6 133.46 160.68 88.6c2.52-1.5 5.52.68 4.33 3.35l-19.2 42.45c-1.28 2.83-4.58 3.85-7.19 2.22l-21.7-13.52c-2.02-1.26-4.6-1.12-6.47.33l-15.73 12.1c-2.7 2.07-6.59.78-7.44-2.31l-.68-2.45c-.53-1.9.26-3.92 2-4.96z"/>
+  <path fill="#fff" d="m97.55 128.53 54.19-34.13c1.69-1.06 3.56.87 2.62 2.61l-18.56 34.06c-1.08 1.97-3.66 2.56-5.48 1.24l-15.06-10.87c-1.69-1.22-4-1.17-5.63.12l-12.24 9.75c-1.61 1.28-3.95.5-4.45-1.47l-.74-2.93c-.42-1.64.25-3.37 1.75-4.38z"/>
+</svg>
