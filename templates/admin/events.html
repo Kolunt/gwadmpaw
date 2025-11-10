@@ -51,7 +51,7 @@
                                 <span style="font-size: 1.2em;">✏️</span>
                             </a>
                             {% if event.needs_review %}
-                            <a href="{{ url_for('admin_event_review', event_id=event.id) }}" class="btn btn-sm btn-success" title="Ревью участников">
+                            <a href="{{ url_for('admin_event_participants', event_id=event.id) }}" class="btn btn-sm btn-success" title="Ревью участников">
                                 <span style="font-size: 1.2em;">📋</span>
                                 {% if event.review_pending_count %}
                                 <span class="badge badge-warning" style="margin-left: 0.25rem;">{{ event.review_pending_count }}</span>
