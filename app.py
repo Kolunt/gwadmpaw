@@ -5063,10 +5063,32 @@ def get_user_assignments(user_id):
             e.id as event_id,
             santa.username as santa_username,
             santa.level as santa_level,
-            santa.synd as santa_synd
+            santa.synd as santa_synd,
+            recipient.username AS recipient_username,
+            recipient.level AS recipient_level,
+            recipient.synd AS recipient_synd,
+            COALESCE(rd.last_name, recipient.last_name) AS recipient_last_name,
+            COALESCE(rd.first_name, recipient.first_name) AS recipient_first_name,
+            COALESCE(rd.middle_name, recipient.middle_name) AS recipient_middle_name,
+            COALESCE(rd.postal_code, recipient.postal_code) AS recipient_postal_code,
+            COALESCE(rd.country, recipient.country) AS recipient_country,
+            COALESCE(rd.city, recipient.city) AS recipient_city,
+            COALESCE(rd.street, recipient.street) AS recipient_street,
+            COALESCE(rd.house, recipient.house) AS recipient_house,
+            COALESCE(rd.building, recipient.building) AS recipient_building,
+            COALESCE(rd.apartment, recipient.apartment) AS recipient_apartment,
+            COALESCE(rd.email, recipient.email) AS recipient_email,
+            COALESCE(rd.phone, recipient.phone) AS recipient_phone,
+            COALESCE(rd.telegram, recipient.telegram) AS recipient_telegram,
+            COALESCE(rd.whatsapp, recipient.whatsapp) AS recipient_whatsapp,
+            COALESCE(rd.viber, recipient.viber) AS recipient_viber,
+            rd.bio AS recipient_bio
         FROM event_assignments ea
         JOIN events e ON ea.event_id = e.id
         JOIN users santa ON ea.santa_user_id = santa.user_id
+        JOIN users recipient ON ea.recipient_user_id = recipient.user_id
+        LEFT JOIN event_registration_details rd
+            ON rd.event_id = ea.event_id AND rd.user_id = ea.recipient_user_id
         WHERE ea.recipient_user_id = ?
         ORDER BY ea.assigned_at DESC
     ''', (user_id,)).fetchall()
