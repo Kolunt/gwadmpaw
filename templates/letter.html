@@ -55,7 +55,7 @@
                 }
                 .message-grandchild {
                     align-self: flex-start;
-                    background: linear-gradient(135deg, #fbc2eb 0%, #a18cd1 100%);
+                    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
                     color: white;
                 }
                 .message-grandchild::after {
@@ -83,7 +83,7 @@
                 }
             </style>
 
-            <div class="chat-wrapper">
+            <div class="chat-wrapper" id="chat-thread">
                 <div class="chat-message message-grandchild">
                     <strong>✨ {{ letter.first_name }}:</strong>
                     <div style="margin-top: 0.5rem;">
@@ -103,12 +103,87 @@
                     <p style="margin-top: 0.5rem;">
                         Спасибо за письмо, {{ letter.first_name }}! Я обязательно загляну к тебе. Желаю тебе исполнения желаний и самых тёплых чудес!
                     </p>
-                    <span class="chat-meta">Северный полюс · волшебная линия связи</span>
+                    <span class="chat-meta">Россия, Великий Устюг · волшебная линия связи</span>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 2rem;">
+                <div class="card-body">
+                    <h3 style="margin-top: 0;">Продолжить переписку</h3>
+                    {% if user_role == 'santa' %}
+                    <p class="text-muted" style="margin-bottom: 1rem;">Вы общаетесь как <strong>Дед Мороз</strong>. Сообщения от внучка добавляет ваш получатель.</p>
+                    {% else %}
+                    <p class="text-muted" style="margin-bottom: 1rem;">Вы общаетесь как <strong>{{ letter.first_name }}</strong>. Сообщения от Деда Мороза добавляет ваш даритель.</p>
+                    {% endif %}
+                    <form id="chat-form" class="space-y" style="display: grid; gap: 1rem;">
+                        <textarea
+                            id="chat-message-input"
+                            class="setting-input"
+                            style="min-height: 120px; resize: vertical;"
+                            placeholder="{% if user_role == 'santa' %}Напишите ответ Деда Мороза...{% else %}Напишите письмо Деду Морозу...{% endif %}"
+                            required
+                        ></textarea>
+                        <button type="submit" class="btn btn-primary" style="justify-self: flex-start;">Отправить сообщение</button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    const form = document.getElementById('chat-form');
+    const textarea = document.getElementById('chat-message-input');
+    const thread = document.getElementById('chat-thread');
+    const userRole = "{{ user_role }}";
+
+    if (!form || !textarea || !thread) {
+        return;
+    }
+
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const text = textarea.value.trim();
+        if (!text) {
+            return;
+        }
+
+        const isSanta = userRole === 'santa';
+
+        const messageWrapper = document.createElement('div');
+        messageWrapper.className = `chat-message ${isSanta ? 'message-santa' : 'message-grandchild'}`;
+
+        const author = document.createElement('strong');
+        author.textContent = isSanta ? '🎅 Дед Мороз:' : `✨ {{ letter.first_name }}:`;
+        messageWrapper.appendChild(author);
+
+        const messageBody = document.createElement('div');
+        messageBody.style.marginTop = '0.5rem';
+        messageBody.style.whiteSpace = 'pre-wrap';
+        messageBody.textContent = text;
+        messageWrapper.appendChild(messageBody);
+
+        const meta = document.createElement('span');
+        meta.className = 'chat-meta';
+        if (isSanta) {
+            meta.textContent = 'Россия, Великий Устюг · волшебная линия связи';
+        } else {
+            const now = new Date();
+            const formatted = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+                ' ' + now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            meta.textContent = formatted;
+        }
+        messageWrapper.appendChild(meta);
+
+        thread.appendChild(messageWrapper);
+        thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' });
+        textarea.value = '';
+        textarea.focus();
+    });
+})();
+</script>
 {% endblock %}
 
 

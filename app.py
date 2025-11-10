@@ -8029,6 +8029,8 @@ def letter():
     if not selected_assignment:
         selected_assignment = santa_assignments[0]
 
+    user_role = 'santa' if selected_assignment.get('santa_user_id') == user_id else 'grandchild'
+
     first_name = (selected_assignment.get('recipient_first_name')
                   or selected_assignment.get('recipient_username')
                   or '').strip()
@@ -8070,7 +8072,8 @@ def letter():
         'letter.html',
         letter=letter_context,
         assignment=selected_assignment,
-        available_letters=available_letters
+        available_letters=available_letters,
+        user_role=user_role
     )
 
 
