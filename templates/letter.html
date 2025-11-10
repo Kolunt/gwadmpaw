@@ -22,7 +22,11 @@
                     href="{{ url_for('letter', assignment_id=item.assignment_id) }}"
                     class="btn btn-sm letter-switcher-btn {% if assignment.id == item.assignment_id %}is-active{% endif %}"
                 >
-                    {{ item.event_name }} · {{ item.label }}
+                    {% if item.role == 'santa' %}
+                        Я Дед Мороз
+                    {% else %}
+                        Я Внучок
+                    {% endif %}
                 </a>
                 {% endfor %}
             </div>
