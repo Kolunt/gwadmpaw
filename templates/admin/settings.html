@@ -356,12 +356,14 @@
                             {% if setting.value %}
                             <div class="current-file-preview">
                                 <img src="{{ setting.value }}" alt="Текущая иконка" class="file-preview-icon">
-                                <div class="current-file-actions">
+                                <div class="current-file-meta">
                                     <span class="current-file-label">Текущая иконка</span>
-                                    <button type="submit" name="delete_site_icon" value="1" class="btn btn-danger btn-small file-remove-btn" onclick="return confirm('Удалить текущую иконку?');">
-                                        Удалить
-                                    </button>
                                 </div>
+                            </div>
+                            <div class="file-remove-controls">
+                                <button type="submit" name="delete_site_icon" value="1" class="btn btn-danger btn-small" onclick="return confirm('Удалить текущую иконку?');">
+                                    ❌ Удалить иконку
+                                </button>
                             </div>
                             {% endif %}
                             <input 
@@ -381,12 +383,14 @@
                             {% if setting.value %}
                             <div class="current-file-preview">
                                 <img src="{{ setting.value }}" alt="Текущий логотип" class="file-preview-logo">
-                                <div class="current-file-actions">
+                                <div class="current-file-meta">
                                     <span class="current-file-label">Текущий логотип</span>
-                                    <button type="submit" name="delete_site_logo" value="1" class="btn btn-danger btn-small file-remove-btn" onclick="return confirm('Удалить текущий логотип?');">
-                                        Удалить
-                                    </button>
                                 </div>
+                            </div>
+                            <div class="file-remove-controls">
+                                <button type="submit" name="delete_site_logo" value="1" class="btn btn-danger btn-small" onclick="return confirm('Удалить текущий логотип?');">
+                                    ❌ Удалить логотип
+                                </button>
                             </div>
                             {% endif %}
                             <input 
