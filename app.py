@@ -676,8 +676,6 @@ def init_db():
         
         # Инициализация настроек по умолчанию
         default_settings = [
-            ('gwars_host', GWARS_HOST, 'Домен для GWars авторизации', 'gwars'),
-            ('gwars_site_id', str(GWARS_SITE_ID), 'ID сайта в GWars', 'gwars'),
             ('admin_user_ids', ','.join(map(str, ADMIN_USER_IDS)), 'ID администраторов по умолчанию (через запятую)', 'system'),
             ('project_name', 'Анонимные Деды Морозы', 'Название проекта', 'general'),
             ('site_title', 'Анонимные Деды Морозы', 'Заголовок сайта (title)', 'general'),
@@ -709,6 +707,9 @@ def init_db():
                     UPDATE settings SET value = ? WHERE key = ? AND (value = '' OR value IS NULL)
                 ''', (value, key))
         
+        # Удаляем устаревшие настройки GWars, если они присутствуют
+        c.execute('DELETE FROM settings WHERE key IN (?, ?)', ('gwars_host', 'gwars_site_id'))
+
         # Обновляем настройки для всех пользователей: темная тема и русский язык по умолчанию
         try:
             # Устанавливаем default_theme на 'dark', если она 'light'

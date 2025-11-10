@@ -19,9 +19,7 @@
                 class="settings-tab {% if loop.first %}active{% endif %}"
                 data-tab="{{ category }}"
             >
-                {% if category == 'gwars' %}
-                    ⚔️ GWars
-                {% elif category == 'system' %}
+                {% if category == 'system' %}
                     🔧 Блатные
                 {% elif category == 'integrations' %}
                     🔌 Интеграции
@@ -324,8 +322,6 @@
                             </label>
                             {% if setting.key == 'admin_user_ids' %}
                                 <span class="setting-badge">Система</span>
-                            {% elif setting.key in ['gwars_site_id', 'gwars_host'] %}
-                                <span class="setting-badge">GWars</span>
                             {% elif setting.key in ['default_theme', 'site_icon', 'site_logo', 'site_title', 'site_description', 'logo_text'] %}
                                 <span class="setting-badge">Внешний вид</span>
                             {% endif %}
@@ -333,10 +329,6 @@
                         <div class="setting-card-body">
                             {% if setting.key == 'admin_user_ids' %}
                                 <small class="setting-hint">ID через запятую (например: 283494, 240139)</small>
-                            {% elif setting.key == 'gwars_site_id' %}
-                                <small class="setting-hint">Числовой ID сайта в GWars</small>
-                            {% elif setting.key == 'gwars_host' %}
-                                <small class="setting-hint">Домен без http:// (например: gwadm.pythonanywhere.com)</small>
                             {% elif setting.key == 'default_theme' %}
                                 <small class="setting-hint">Тема по умолчанию для новых пользователей</small>
                             {% elif setting.key == 'site_icon' %}
@@ -414,7 +406,6 @@
                             name="setting_{{ setting.key }}" 
                             value="{{ setting.value or '' }}"
                             class="setting-input"
-                            {% if setting.key == 'gwars_site_id' %}pattern="[0-9]+"{% endif %}
                         >
                         {% endif %}
                         </div>
@@ -433,8 +424,6 @@
                         </label>
                         {% if setting.key == 'admin_user_ids' %}
                             <span class="setting-badge">Система</span>
-                        {% elif setting.key in ['gwars_site_id', 'gwars_host'] %}
-                            <span class="setting-badge">GWars</span>
                         {% elif setting.key in ['default_theme', 'site_icon', 'site_logo', 'site_title', 'site_description', 'logo_text'] %}
                             <span class="setting-badge">Внешний вид</span>
                         {% endif %}
@@ -442,10 +431,6 @@
                     <div class="setting-card-body">
                         {% if setting.key == 'admin_user_ids' %}
                             <small class="setting-hint">ID через запятую (например: 283494, 240139)</small>
-                        {% elif setting.key == 'gwars_site_id' %}
-                            <small class="setting-hint">Числовой ID сайта в GWars</small>
-                        {% elif setting.key == 'gwars_host' %}
-                            <small class="setting-hint">Домен без http:// (например: gwadm.pythonanywhere.com)</small>
                         {% elif setting.key == 'default_theme' %}
                             <small class="setting-hint">Тема по умолчанию для новых пользователей</small>
                         {% elif setting.key == 'site_icon' %}
@@ -523,7 +508,6 @@
                             name="setting_{{ setting.key }}" 
                             value="{{ setting.value or '' }}"
                             class="setting-input"
-                            {% if setting.key == 'gwars_site_id' %}pattern="[0-9]+"{% endif %}
                         >
                         {% endif %}
                     </div>
