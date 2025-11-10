@@ -94,6 +94,20 @@
             {% if session.user_id %}
                 {% if registration_open %}
                     {% if is_registered %}
+                        {% if needs_main_confirmation %}
+                        <div class="event-info-section">
+                            <div class="alert alert-warning">
+                                <strong>Требуется подтверждение участия</strong>
+                                <p>Этап основной регистрации начался. Пожалуйста, подтвердите актуальность своих данных.</p>
+                            </div>
+                            <form method="POST"
+                                  action="{{ url_for('event_register', event_id=event.id) }}"
+                                  class="register-form"
+                                  data-event-id="{{ event.id }}">
+                                <button type="submit" class="btn btn-primary btn-large">Подтвердить участие</button>
+                            </form>
+                        </div>
+                        {% else %}
                         <div class="event-info-section">
                             <div class="alert alert-success">
                                 <strong>✓ Вы зарегистрированы на это мероприятие!</strong>
@@ -103,6 +117,7 @@
                                 <button type="submit" class="btn btn-danger">Отменить регистрацию</button>
                             </form>
                         </div>
+                        {% endif %}
                     {% else %}
                         <div class="event-info-section">
                             <form method="POST"
@@ -114,12 +129,21 @@
                         </div>
                     {% endif %}
                 {% elif is_registered %}
+                    {% if needs_main_confirmation %}
+                    <div class="event-info-section">
+                        <div class="alert alert-warning">
+                            <strong>Требуется подтверждение участия</strong>
+                            <p>Основная регистрация закрыта. Свяжитесь с организатором, чтобы уточнить возможность участия.</p>
+                        </div>
+                    </div>
+                    {% else %}
                     <div class="event-info-section">
                         <div class="alert alert-info">
                             <strong>✓ Вы зарегистрированы на это мероприятие</strong>
                             <p>Регистрация закрыта, вы не можете отменить участие.</p>
                         </div>
                     </div>
+                    {% endif %}
                 {% else %}
                     <div class="event-info-section">
                         <div class="alert alert-warning">

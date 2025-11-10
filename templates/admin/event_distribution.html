@@ -349,7 +349,8 @@ async function savePairs({ showSuccess = true } = {}) {
             credentials: 'same-origin',
             body: JSON.stringify({
                 pairs,
-                enforce_country: sameCountryToggle ? sameCountryToggle.checked : false
+                enforce_country: sameCountryToggle ? sameCountryToggle.checked : false,
+                locked_pairs: collectLockedPairs()
             })
         });
         const data = await response.json();
@@ -493,12 +494,12 @@ function handleDrop(event) {
     }
 
     if (sameCountryToggle && sameCountryToggle.checked) {
-        if (draggedSantaCountry && draggedSantaCountry === targetRecipientCountry) {
-            showMessage('Нельзя назначить получателя из той же страны, что и Дед Мороз при активном режиме распределения по странам.', 'error');
+        if (draggedSantaCountry && targetRecipientCountry && draggedSantaCountry !== targetRecipientCountry) {
+            showMessage('При активном режиме «По странам» Дед Мороз и получатель должны быть из одной страны.', 'error');
             return;
         }
-        if (targetSantaCountry && targetSantaCountry === draggedRecipientCountry) {
-            showMessage('Нельзя назначить получателя из той же страны, что и Дед Мороз при активном режиме распределения по странам.', 'error');
+        if (targetSantaCountry && draggedRecipientCountry && targetSantaCountry !== draggedRecipientCountry) {
+            showMessage('При активном режиме «По странам» Дед Мороз и получатель должны быть из одной страны.', 'error');
             return;
         }
     }
@@ -535,14 +536,11 @@ function renderPairs(pairs, options = {}) {
     const initialLockMap = {};
     if (Array.isArray(options.locks)) {
         options.locks.forEach(lock => {
-            if (lock && lock.santa_id != null && lock.recipient_id != null) {
-                initialLockMap[Number(lock.santa_id)] = Number(lock.recipient_id);
-            }
-        });
-    } else {
-        pairs.forEach(pair => {
-            if (pair && pair.locked && pair.santa_id != null && pair.recipient_id != null) {
-                initialLockMap[Number(pair.santa_id)] = Number(pair.recipient_id);
+            if (!lock || lock.santa_id == null || lock.recipient_id == null) return;
+            const santaId = Number(lock.santa_id);
+            const recipientId = Number(lock.recipient_id);
+            if (!Number.isNaN(santaId) && !Number.isNaN(recipientId)) {
+                initialLockMap[santaId] = recipientId;
             }
         });
     }
@@ -720,11 +718,18 @@ async function handleGenerate() {
         });
         const data = await response.json();
         if (response.ok && data.success) {
+            if (sameCountryToggle && Object.prototype.hasOwnProperty.call(data, 'country_mode_applied')) {
+                sameCountryToggle.checked = Boolean(data.country_mode_applied);
+            }
+            const countryModeApplied = data.country_mode_applied !== false;
             const assignedSantas = Object.keys(assignedLockedPairs).map(Number);
             renderPairs(data.pairs, { markDirty: false, locks: lockedPairs, assignedLocks: assignedSantas });
             const saveResult = await savePairs({ showSuccess: false });
             if (saveResult.ok) {
-                showMessage('Распределение сформировано и сохранено. Вы можете изменить получателей перетаскиванием.', 'success');
+                const successMessage = countryModeApplied
+                    ? 'Распределение сформировано и сохранено. Вы можете изменить получателей перетаскиванием.'
+                    : 'Распределение сформировано и сохранено. Режим «По странам» отключён для части участников — проверьте пары перед сохранением.';
+                showMessage(successMessage, 'success');
             } else {
                 showMessage('Распределение сформировано, но сохранить не удалось: ' + saveResult.message, 'error');
             }
@@ -760,8 +765,8 @@ if (saveBtn) {
 if (assignmentsBtn) {
     assignmentsBtn.addEventListener('click', async () => {
         const lockedPairs = collectLockedPairs();
-        if (!lockedPairs.length) {
-            showMessage('Закрепите хотя бы одну пару перед созданием заданий.', 'error');
+        if (!lockedPairs.length || lockedPairs.length !== (resultsBody ? resultsBody.querySelectorAll('tr').length : 0)) {
+            showMessage('Для создания заданий необходимо закрепить каждую пару замком.', 'error');
             return;
         }
 
@@ -805,10 +810,12 @@ if (assignmentsBtn) {
 }
 
 if (existingPairs && existingPairs.length) {
-    const initialLocks = existingPairs.map(pair => ({
-        santa_id: pair.santa_id,
-        recipient_id: pair.recipient_id
-    }));
+    const initialLocks = existingPairs
+        .filter(pair => pair && pair.locked)
+        .map(pair => ({
+            santa_id: pair.santa_id,
+            recipient_id: pair.recipient_id
+        }));
     renderPairs(existingPairs, { markDirty: false, locks: initialLocks, assignedLocks: lockedFromAssignments || [] });
     const hasLockedPairs = existingPairs.some(pair => pair && pair.locked);
     if (hasLockedPairs) {

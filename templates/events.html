@@ -44,7 +44,15 @@
                         </td>
                         <td data-label="Мой статус">
                             {% if session.user_id %}
-                                {{ 'участвую' if item.is_registered else 'не участвую' }}
+                                {% if item.is_registered %}
+                                    {% if item.needs_confirmation %}
+                                        требуется подтверждение
+                                    {% else %}
+                                        участвую
+                                    {% endif %}
+                                {% else %}
+                                    не участвую
+                                {% endif %}
                             {% else %}
                                 —
                             {% endif %}
@@ -52,11 +60,18 @@
                         <td data-label="Действия">
                             <div class="events-actions-group">
                                 {% if session.user_id %}
-                                    {% if item.registration_open %}
+                                    {% if item.needs_confirmation and item.registration_open %}
+                                        <form method="POST"
+                                              action="{{ url_for('event_register', event_id=event.id) }}"
+                                              class="register-form"
+                                              data-event-id="{{ event.id }}">
+                                            <button type="submit" class="btn btn-sm btn-primary">Подтвердить</button>
+                                        </form>
+                                    {% elif item.registration_open %}
                                         {% if item.is_registered %}
                                             <form method="POST" action="{{ url_for('event_unregister', event_id=event.id) }}"
                                                   onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');">
-                                                <button type="submit" class="btn btn-sm btn-danger">Отменить</button>
+                                                <button type="submit" class="btn-icon btn-icon-danger" title="Отменить участие">&#10060;</button>
                                             </form>
                                         {% else %}
                                             <form method="POST"
@@ -66,6 +81,8 @@
                                                 <button type="submit" class="btn btn-sm btn-primary">Записаться</button>
                                             </form>
                                         {% endif %}
+                                    {% else %}
+                                        <span class="text-muted small">Регистрация закрыта</span>
                                     {% endif %}
                                 {% endif %}
                                 <a href="{{ url_for('event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Просмотр">

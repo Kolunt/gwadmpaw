@@ -13,6 +13,7 @@ from version import __version__
 import secrets
 import json
 import random
+from collections import defaultdict
 try:
     import requests
 except ImportError:
@@ -579,6 +580,8 @@ def init_db():
                 recipient_user_id INTEGER NOT NULL,
                 assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 assigned_by INTEGER,
+                locked INTEGER DEFAULT 0,
+                assignment_locked INTEGER DEFAULT 0,
                 santa_sent_at TIMESTAMP,
                 santa_send_info TEXT,
                 recipient_received_at TIMESTAMP,
@@ -601,6 +604,14 @@ def init_db():
             pass
         try:
             c.execute('ALTER TABLE event_assignments ADD COLUMN recipient_received_at TIMESTAMP')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE event_assignments ADD COLUMN locked INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE event_assignments ADD COLUMN assignment_locked INTEGER DEFAULT 0')
         except sqlite3.OperationalError:
             pass
         
@@ -4905,20 +4916,44 @@ def create_random_assignments(event_id, assigned_by):
     finally:
         conn.close()
 
-def save_event_assignments(event_id, assignments, assigned_by, connection=None):
+def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None, assignment_locked=False, connection=None):
     """Сохраняет распределение пар"""
     conn = connection or get_db_connection()
     try:
         existing_rows = conn.execute('''
-            SELECT santa_user_id, recipient_user_id
+            SELECT santa_user_id, recipient_user_id, locked, assignment_locked, santa_sent_at, santa_send_info, recipient_received_at, assigned_at, assigned_by
             FROM event_assignments
             WHERE event_id = ?
         ''', (event_id,)).fetchall()
         conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
-        data = [(event_id, santa, recipient, assigned_by) for santa, recipient in assignments]
+        locked_map = {}
+        if locked_pairs:
+            for entry in locked_pairs:
+                if isinstance(entry, dict):
+                    santa = entry.get('santa_id')
+                    recipient = entry.get('recipient_id')
+                else:
+                    try:
+                        santa, recipient = entry
+                    except Exception:
+                        continue
+                try:
+                    santa = int(santa)
+                    recipient = int(recipient)
+                except (TypeError, ValueError):
+                    continue
+                locked_map[santa] = recipient
+
+        data = []
+        for santa, recipient in assignments:
+            locked_flag = 0
+            if assignment_locked or locked_map.get(santa) == recipient:
+                locked_flag = 1
+            assignment_locked_flag = 1 if assignment_locked else 0
+            data.append((event_id, santa, recipient, assigned_by, locked_flag, assignment_locked_flag))
         conn.executemany('''
-            INSERT INTO event_assignments (event_id, santa_user_id, recipient_user_id, assigned_by)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO event_assignments (event_id, santa_user_id, recipient_user_id, assigned_by, locked, assignment_locked)
+            VALUES (?, ?, ?, ?, ?, ?)
         ''', data)
         conn.commit()
         log_activity(
@@ -4938,9 +4973,34 @@ def save_event_assignments(event_id, assignments, assigned_by, connection=None):
         try:
             conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
             conn.executemany('''
-                INSERT INTO event_assignments (event_id, santa_user_id, recipient_user_id)
-                VALUES (?, ?, ?)
-            ''', [(event_id, row['santa_user_id'], row['recipient_user_id']) for row in existing_rows])
+                INSERT INTO event_assignments (
+                    event_id,
+                    santa_user_id,
+                    recipient_user_id,
+                    locked,
+                    assignment_locked,
+                    santa_sent_at,
+                    santa_send_info,
+                    recipient_received_at,
+                    assigned_at,
+                    assigned_by
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', [
+                (
+                    event_id,
+                    row['santa_user_id'],
+                    row['recipient_user_id'],
+                    row['locked'] if 'locked' in row.keys() else 0,
+                    row['assignment_locked'] if 'assignment_locked' in row.keys() else 0,
+                    row['santa_sent_at'] if 'santa_sent_at' in row.keys() else None,
+                    row['santa_send_info'] if 'santa_send_info' in row.keys() else None,
+                    row['recipient_received_at'] if 'recipient_received_at' in row.keys() else None,
+                    row['assigned_at'] if 'assigned_at' in row.keys() else None,
+                    row['assigned_by'] if 'assigned_by' in row.keys() else None
+                )
+                for row in existing_rows
+            ])
             conn.commit()
         except Exception as restore_error:
             log_error(f"Failed to restore previous assignments for event {event_id}: {restore_error}")
@@ -5099,6 +5159,24 @@ def events():
     ''').fetchall()
     conn.close()
     
+    event_ids = [event['id'] for event in events_list]
+    user_id = session.get('user_id')
+    user_registrations = {}
+    if user_id and event_ids:
+        placeholders = ','.join(['?'] * len(event_ids))
+        conn = get_db_connection()
+        rows = conn.execute(
+            f'''
+            SELECT event_id, registered_at
+            FROM event_registrations
+            WHERE user_id = ? AND event_id IN ({placeholders})
+            ''',
+            (user_id, *event_ids)
+        ).fetchall()
+        conn.close()
+        for row in rows:
+            user_registrations[row['event_id']] = row['registered_at']
+    
     # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
     events_with_stages = []
     now = datetime.now()
@@ -5139,11 +5217,42 @@ def events():
                     'start_iso': start_dt.isoformat()
                 }
 
+        registered_at_str = user_registrations.get(event['id'])
+        registered_at = parse_dt(registered_at_str) if registered_at_str else None
+        is_registered = registered_at is not None
+        pre_stage_start_dt = None
+        main_stage_start_dt = None
+        for stage in stages:
+            stage_type = stage['stage_type']
+            stage_start = parse_dt(stage['start_datetime'])
+            if stage_type == 'pre_registration':
+                pre_stage_start_dt = stage_start
+            elif stage_type == 'main_registration':
+                main_stage_start_dt = stage_start
+
+        needs_confirmation = False
+        if (
+            is_registered
+            and pre_stage_start_dt
+            and main_stage_start_dt
+            and registered_at
+            and registered_at >= pre_stage_start_dt
+            and registered_at < main_stage_start_dt
+            and now >= main_stage_start_dt
+        ):
+            needs_confirmation = True
+
+        if not is_registration_open(event['id']):
+            needs_confirmation = False
+
         events_with_stages.append({
             'event': event,
             'current_stage': current_stage,
             'display_stage_name': display_stage_name,
-            'next_stage': next_stage
+            'next_stage': next_stage,
+            'is_registered': is_registered,
+            'needs_confirmation': needs_confirmation,
+            'registration_open': is_registration_open(event['id'])
         })
 
     for item in events_with_stages:
@@ -5182,7 +5291,21 @@ def event_view(event_id):
     user_id = session.get('user_id')
     current_stage = get_current_event_stage(event_id)
     registration_open = is_registration_open(event_id)
-    is_registered = is_user_registered(event_id, user_id)
+
+    registration_row = None
+    if user_id:
+        conn = get_db_connection()
+        registration_row = conn.execute(
+            '''
+            SELECT registered_at
+            FROM event_registrations
+            WHERE event_id = ? AND user_id = ?
+            ''',
+            (event_id, user_id)
+        ).fetchone()
+        conn.close()
+
+    is_registered = registration_row is not None
     registrations_count = get_event_registrations_count(event_id)
     registrations = get_event_registrations(event_id)
     is_admin = 'admin' in session.get('roles', []) if session.get('roles') else False
@@ -5208,6 +5331,46 @@ def event_view(event_id):
     stages_dict = {stage['stage_type']: stage for stage in stages}
     
     next_stage = None
+    main_stage_start_dt = None
+    pre_stage_start_dt = None
+    if 'main_registration' in stages_dict:
+        main_stage_row = stages_dict['main_registration']
+        main_keys = main_stage_row.keys()
+        main_start_val = main_stage_row['start_datetime'] if 'start_datetime' in main_keys else None
+        if main_start_val:
+            try:
+                main_stage_start_dt = datetime.fromisoformat(str(main_start_val))
+            except ValueError:
+                main_stage_start_dt = None
+    if 'pre_registration' in stages_dict:
+        pre_stage_row = stages_dict['pre_registration']
+        pre_keys = pre_stage_row.keys()
+        pre_start_val = pre_stage_row['start_datetime'] if 'start_datetime' in pre_keys else None
+        if pre_start_val:
+            try:
+                pre_stage_start_dt = datetime.fromisoformat(str(pre_start_val))
+            except ValueError:
+                pre_stage_start_dt = None
+
+    registration_dt = None
+    if registration_row and registration_row['registered_at']:
+        try:
+            registration_dt = datetime.fromisoformat(str(registration_row['registered_at']))
+        except ValueError:
+            registration_dt = None
+
+    needs_main_confirmation = False
+    if (
+        is_registered
+        and main_stage_start_dt
+        and pre_stage_start_dt
+        and registration_dt
+        and registration_dt >= pre_stage_start_dt
+        and registration_dt < main_stage_start_dt
+        and now >= main_stage_start_dt
+    ):
+        needs_main_confirmation = True
+
     for stage_info in EVENT_STAGES:
         stage_type = stage_info['type']
         stage_data = stages_dict.get(stage_type, None)
@@ -5286,6 +5449,7 @@ def event_view(event_id):
                          modal_texts=modal_texts,
                          registration_open=registration_open,
                          is_registered=is_registered,
+                         needs_main_confirmation=needs_main_confirmation,
                          registrations_count=registrations_count,
                          registrations=registrations,
                          stages_with_info=stages_with_info,
@@ -5429,7 +5593,73 @@ def event_register(event_id):
         flash('Необходимо авторизоваться', 'error')
         return redirect(url_for('login'))
 
-    # Проверяем, открыта ли регистрация
+    # Получаем информацию о регистрации пользователя
+    registration_row = None
+    main_stage_row = None
+    pre_stage_row = None
+    if user_id:
+        conn = get_db_connection()
+        registration_row = conn.execute(
+            '''
+            SELECT registered_at
+            FROM event_registrations
+            WHERE event_id = ? AND user_id = ?
+            ''',
+            (event_id, user_id)
+        ).fetchone()
+        main_stage_row = conn.execute(
+            '''
+            SELECT start_datetime
+            FROM event_stages
+            WHERE event_id = ? AND stage_type = 'main_registration'
+            ''',
+            (event_id,)
+        ).fetchone()
+        pre_stage_row = conn.execute(
+            '''
+            SELECT start_datetime
+            FROM event_stages
+            WHERE event_id = ? AND stage_type = 'pre_registration'
+            ''',
+            (event_id,)
+        ).fetchone()
+        conn.close()
+
+    is_registered = registration_row is not None
+
+    needs_confirmation = False
+    registration_dt = None
+    if registration_row and registration_row['registered_at']:
+        try:
+            registration_dt = datetime.fromisoformat(str(registration_row['registered_at']))
+        except ValueError:
+            registration_dt = None
+
+    main_stage_start_dt = None
+    pre_stage_start_dt = None
+    if main_stage_row and main_stage_row['start_datetime']:
+        try:
+            main_stage_start_dt = datetime.fromisoformat(str(main_stage_row['start_datetime']))
+        except ValueError:
+            main_stage_start_dt = None
+    if pre_stage_row and pre_stage_row['start_datetime']:
+        try:
+            pre_stage_start_dt = datetime.fromisoformat(str(pre_stage_row['start_datetime']))
+        except ValueError:
+            pre_stage_start_dt = None
+
+    if (
+        is_registered
+        and main_stage_start_dt
+        and pre_stage_start_dt
+        and registration_dt
+        and registration_dt >= pre_stage_start_dt
+        and registration_dt < main_stage_start_dt
+        and datetime.now() >= main_stage_start_dt
+    ):
+        needs_confirmation = True
+
+    # Проверяем, открыта ли регистрация (или доступно подтверждение)
     if not is_registration_open(event_id):
         if is_json_request:
             return jsonify({'success': False, 'error': 'Регистрация на это мероприятие закрыта'}), 400
@@ -5438,7 +5668,7 @@ def event_register(event_id):
 
     # Запрос на начало модального сценария
     if start_flow:
-        if is_user_registered(event_id, user_id):
+        if is_registered and not needs_confirmation:
             return jsonify({'success': False, 'error': 'Вы уже зарегистрированы на это мероприятие'}), 400
         missing_fields = get_missing_required_fields(user_id)
         return jsonify({
@@ -5534,10 +5764,18 @@ def event_register(event_id):
                 profile.get('bio')
             ))
 
+            if already_registered and needs_confirmation:
+                conn.execute('''
+                    UPDATE event_registrations
+                    SET registered_at = CURRENT_TIMESTAMP
+                    WHERE event_id = ? AND user_id = ?
+                ''', (event_id, user_id))
+
             conn.commit()
             return {
                 'status': 'success',
-                'already_registered': already_registered
+                'already_registered': already_registered,
+                'reconfirmed': already_registered and needs_confirmation
             }
         except Exception as exc:
             try:
@@ -5553,17 +5791,27 @@ def event_register(event_id):
     if final_registration:
         result = complete_registration()
         if result['status'] == 'success':
-            if not result.get('already_registered'):
+            if result.get('reconfirmed'):
+                log_activity(
+                    'event_confirm',
+                    details=f'Подтверждение участия в мероприятии #{event_id}',
+                    metadata={'event_id': event_id}
+                )
+                message = 'Ваше участие подтверждено!'
+            elif not result.get('already_registered'):
                 log_activity(
                     'event_register',
                     details=f'Регистрация на мероприятие #{event_id}',
                     metadata={'event_id': event_id}
                 )
-            message = 'Вы уже зарегистрированы на мероприятие' if result.get('already_registered') else 'Вы успешно зарегистрированы на мероприятие!'
+                message = 'Вы успешно зарегистрированы на мероприятие!'
+            else:
+                message = 'Вы уже зарегистрированы на это мероприятие'
             return jsonify({
                 'success': True,
                 'message': message,
-                'already_registered': result.get('already_registered', False)
+                'already_registered': result.get('already_registered', False),
+                'reconfirmed': result.get('reconfirmed', False)
             }), 200
 
         if result['status'] == 'missing':
@@ -5580,13 +5828,20 @@ def event_register(event_id):
         return jsonify({'success': False, 'error': 'Некорректный запрос'}), 400
 
     # Обычный POST-запрос (без модальных окон) — пытаемся завершить регистрацию
-    if is_user_registered(event_id, user_id):
+    if is_registered and not needs_confirmation:
         flash('Вы уже зарегистрированы на это мероприятие', 'info')
         return redirect(url_for('event_view', event_id=event_id))
 
     result = complete_registration()
     if result['status'] == 'success':
-        if not result.get('already_registered'):
+        if result.get('reconfirmed'):
+            log_activity(
+                'event_confirm',
+                details=f'Подтверждение участия в мероприятии #{event_id}',
+                metadata={'event_id': event_id}
+            )
+            flash('Ваше участие подтверждено!', 'success')
+        elif not result.get('already_registered'):
             log_activity(
                 'event_register',
                 details=f'Регистрация на мероприятие #{event_id}',
@@ -6501,7 +6756,7 @@ def admin_event_participants(event_id):
 
         stage_label = 'main'
         if pre_start and main_start and registered_at_dt:
-            if registered_at_dt < main_start:
+            if registered_at_dt >= pre_start and registered_at_dt < main_start:
                 stage_label = 'pre'
             else:
                 stage_label = 'main'
@@ -6655,7 +6910,7 @@ def admin_event_distribution_positive_view(event_id):
 
     conn_assignments = get_db_connection()
     saved_rows = conn_assignments.execute('''
-        SELECT santa_user_id, recipient_user_id, santa_sent_at, recipient_received_at
+        SELECT santa_user_id, recipient_user_id, santa_sent_at, recipient_received_at, locked, assignment_locked
         FROM event_assignments
         WHERE event_id = ?
         ORDER BY assigned_at ASC, id ASC
@@ -6669,7 +6924,10 @@ def admin_event_distribution_positive_view(event_id):
         recipient = participants_lookup.get(record['recipient_user_id'])
         if not santa or not recipient:
             continue
-        locked_santas.add(record['santa_user_id'])
+        locked_flag = bool(record['locked'])
+        assignment_locked_flag = bool(record['assignment_locked'])
+        if assignment_locked_flag:
+            locked_santas.add(record['santa_user_id'])
         saved_pairs.append({
             'santa_id': santa['user_id'],
             'santa_name': santa['username'],
@@ -6681,8 +6939,8 @@ def admin_event_distribution_positive_view(event_id):
             'recipient_city': recipient.get('city'),
             'santa_sent_at': record['santa_sent_at'],
             'recipient_received_at': record['recipient_received_at'],
-            'locked': True,
-            'assignment_locked': True
+            'locked': locked_flag,
+            'assignment_locked': assignment_locked_flag
         })
 
     distribution_url = url_for('admin_event_distribution_positive_generate', event_id=event_id)
@@ -6711,7 +6969,7 @@ def admin_event_distribution_positive_create_assignments(event_id):
 
     conn = get_db_connection()
     rows = conn.execute('''
-        SELECT santa_user_id, recipient_user_id, santa_sent_at, recipient_received_at
+        SELECT santa_user_id, recipient_user_id, santa_sent_at, recipient_received_at, locked
         FROM event_assignments
         WHERE event_id = ?
         ORDER BY assigned_at ASC, id ASC
@@ -6721,8 +6979,17 @@ def admin_event_distribution_positive_create_assignments(event_id):
     if not rows:
         return jsonify({'success': False, 'error': 'Нет сохранённого распределения для создания заданий'}), 400
 
+    if any(not row['locked'] for row in rows):
+        return jsonify({'success': False, 'error': 'Закрепите замком каждую пару перед созданием заданий.'}), 400
+
     assignments = [(row['santa_user_id'], row['recipient_user_id']) for row in rows]
-    success, result = save_event_assignments(event_id, assignments, user_id)
+    success, result = save_event_assignments(
+        event_id,
+        assignments,
+        user_id,
+        locked_pairs={(row['santa_user_id'], row['recipient_user_id']) for row in rows},
+        assignment_locked=True
+    )
     if success:
         return jsonify({'success': True, 'message': f'Создано {result} заданий для участников.'})
     return jsonify({'success': False, 'error': result}), 500
@@ -6801,12 +7068,19 @@ def admin_event_distribution_positive_generate(event_id):
     locked_recipient_ids = set()
     try:
         for entry in locked_pairs_raw:
-            santa_id = int(entry.get('santa_id'))
-            recipient_id = int(entry.get('recipient_id'))
+            santa_id_raw = entry.get('santa_id')
+            recipient_id_raw = entry.get('recipient_id')
+            santa_id = int(santa_id_raw)
+            recipient_id = int(recipient_id_raw)
             if santa_id == recipient_id:
                 return jsonify({'success': False, 'error': 'Закреплённая пара не может совпадать с самим собой'}), 400
             if santa_id not in participants_map or recipient_id not in participants_map:
                 return jsonify({'success': False, 'error': 'Закреплённая пара содержит неизвестного участника'}), 400
+            if group_by_country:
+                santa_country = participants_map[santa_id].get('country')
+                recipient_country = participants_map[recipient_id].get('country')
+                if santa_country and recipient_country and santa_country != recipient_country:
+                    return jsonify({'success': False, 'error': 'Закреплённая пара нарушает правило «По странам»'}), 400
             if santa_id in locked_assignments:
                 return jsonify({'success': False, 'error': 'Каждый Дед Мороз может быть закреплён только один раз'}), 400
             if recipient_id in locked_recipient_ids:
@@ -6816,52 +7090,101 @@ def admin_event_distribution_positive_generate(event_id):
     except (TypeError, ValueError):
         return jsonify({'success': False, 'error': 'Некорректные данные закреплённых пар'}), 400
 
-    remaining_santas = [sid for sid in user_ids if sid not in locked_assignments]
-    available_recipients = [rid for rid in user_ids if rid not in locked_recipient_ids]
-
-    if len(remaining_santas) != len(available_recipients):
-        return jsonify({'success': False, 'error': 'Количество доступных Дедов Морозов и получателей не совпадает. Проверьте закреплённые пары.'}), 400
-
     assignment_locked_santas = set()
     try:
         assignment_locked_santas = {int(santa_id) for santa_id in assignment_locked_santas_raw}
     except (TypeError, ValueError):
         assignment_locked_santas = set()
 
-    def is_valid_pair(santa_id, recipient_id):
+    def is_valid_pair(santa_id, recipient_id, require_same_country: bool):
         if santa_id == recipient_id:
             return False
-        if group_by_country:
+        if require_same_country:
             santa_country = participants_map.get(santa_id, {}).get('country')
             recipient_country = participants_map.get(recipient_id, {}).get('country')
             if santa_country and recipient_country and santa_country != recipient_country:
                 return False
         return True
 
-    assignment_pairs = list(locked_assignments.items())
+    used_santas = set(locked_assignments.keys())
+    used_recipients = set(locked_assignments.values())
 
-    def try_assignments(require_same_country: bool):
-        attempts = 3000
+    remaining_candidate_santas = [sid for sid in user_ids if sid not in used_santas]
+    random.shuffle(remaining_candidate_santas)
+
+    recipients_by_country = defaultdict(list)
+    for rid in user_ids:
+        if rid in used_recipients:
+            continue
+        country = participants_map.get(rid, {}).get('country')
+        recipients_by_country[country].append(rid)
+
+    for country_list in recipients_by_country.values():
+        random.shuffle(country_list)
+
+    same_country_pairs = []
+    if group_by_country:
+        for santa_id in remaining_candidate_santas:
+            if santa_id in used_santas:
+                continue
+            country = participants_map.get(santa_id, {}).get('country')
+            candidates = recipients_by_country.get(country)
+            if not candidates:
+                continue
+            recipient_id = None
+            for idx, candidate in enumerate(candidates):
+                if candidate != santa_id:
+                    recipient_id = candidates.pop(idx)
+                    break
+            if recipient_id is None:
+                continue
+            same_country_pairs.append((santa_id, recipient_id))
+            used_santas.add(santa_id)
+            used_recipients.add(recipient_id)
+            if not candidates:
+                recipients_by_country.pop(country, None)
+
+    remaining_santas = [sid for sid in user_ids if sid not in used_santas]
+    available_recipients = [rid for rid in user_ids if rid not in used_recipients]
+
+    if len(remaining_santas) != len(available_recipients):
+        return jsonify({'success': False, 'error': 'Количество доступных Дедов Морозов и получателей не совпадает. Проверьте закреплённые пары.'}), 400
+
+    def try_assignments(rem_santas, rem_recipients, require_same_country: bool, attempts: int = 3000):
+        if len(rem_santas) != len(rem_recipients):
+            return None
+        rem_santas = rem_santas[:]
+        rem_recipients = rem_recipients[:]
         for _ in range(attempts):
-            shuffled = available_recipients[:]
-            random.shuffle(shuffled)
-            if all(is_valid_pair(santa_id, recipient_id) for santa_id, recipient_id in zip(remaining_santas, shuffled)):
-                return list(locked_assignments.items()) + list(zip(remaining_santas, shuffled))
+            random.shuffle(rem_santas)
+            random.shuffle(rem_recipients)
+            valid = True
+            for santa_id, recipient_id in zip(rem_santas, rem_recipients):
+                if not is_valid_pair(santa_id, recipient_id, require_same_country):
+                    valid = False
+                    break
+            if valid:
+                return list(zip(rem_santas, rem_recipients))
         return None
 
+    extra_pairs = []
     if remaining_santas:
         if group_by_country:
-            assignment_pairs = try_assignments(require_same_country=True)
-            if not assignment_pairs:
-                assignment_pairs = try_assignments(require_same_country=False)
+            extra_pairs = try_assignments(remaining_santas, available_recipients, True)
+            if not extra_pairs:
+                extra_pairs = try_assignments(remaining_santas, available_recipients, False)
         else:
-            assignment_pairs = try_assignments(require_same_country=False)
+            extra_pairs = try_assignments(remaining_santas, available_recipients, False)
 
-        if not assignment_pairs:
+        if extra_pairs is None:
             error_message = 'Не удалось сформировать уникальные пары, попробуйте снова'
             if locked_assignments:
                 error_message += ' Убедитесь, что закреплённые пары не блокируют распределение.'
             return jsonify({'success': False, 'error': error_message}), 500
+    else:
+        extra_pairs = []
+
+    assignment_pairs = list(locked_assignments.items()) + same_country_pairs + extra_pairs
 
     assignment_pairs.sort(key=lambda pair: participants_map[pair[0]]['name'] or '')
 
@@ -6882,7 +7205,16 @@ def admin_event_distribution_positive_generate(event_id):
             'assignment_locked': santa_id in assignment_locked_santas
         })
 
-    return jsonify({'success': True, 'pairs': pairs})
+    country_mode_applied = False
+    if group_by_country:
+        country_mode_applied = all(
+            (participants_map.get(santa_id, {}).get('country') is None or
+             participants_map.get(recipient_id, {}).get('country') is None or
+             participants_map.get(santa_id, {}).get('country') == participants_map.get(recipient_id, {}).get('country'))
+            for santa_id, recipient_id in assignment_pairs
+        )
+
+    return jsonify({'success': True, 'pairs': pairs, 'country_mode_applied': country_mode_applied})
 
 @app.route('/admin/events/<int:event_id>/participants/add', methods=['POST'])
 @require_role('admin')
@@ -7233,7 +7565,7 @@ def admin_event_participant_confirm(event_id):
 
         stage_label = 'main'
         if pre_start and main_start and registered_at_dt:
-            if registered_at_dt < main_start:
+            if registered_at_dt >= pre_start and registered_at_dt < main_start:
                 stage_label = 'pre'
         elif pre_start and registered_at_dt and not main_start:
             if registered_at_dt < pre_start:
@@ -7244,10 +7576,14 @@ def admin_event_participant_confirm(event_id):
         if registration_closed_start and registered_at_dt and registered_at_dt >= registration_closed_start:
             stage_label = 'main'
 
-        if stage_label != 'main':
-            conn.close()
-            flash('Подтверждение доступно только для основной регистрации', 'error')
-            return redirect(url_for('admin_event_participants', event_id=event_id))
+        if stage_label != 'main' and main_start:
+            conn.execute('''
+                UPDATE event_registrations
+                SET registered_at = ?
+                WHERE event_id = ? AND user_id = ?
+            ''', (main_start.strftime('%Y-%m-%d %H:%M:%S'), event_id, user_id))
+            registered_at_dt = main_start
+            stage_label = 'main'
 
         conn.execute('''
             INSERT INTO event_participant_approvals (event_id, user_id, approved, approved_at, approved_by, notes)
@@ -7420,8 +7756,8 @@ def admin_event_distribution_positive_save(event_id):
                 return jsonify({'success': False, 'error': f'Получатель {recipient_id} не входит в список утверждённых участников'}), 400
             santa_country = country_lookup.get(santa_id)
             recipient_country = country_lookup.get(recipient_id)
-            if enforce_country and santa_country and recipient_country and santa_country == recipient_country:
-                return jsonify({'success': False, 'error': 'Дед Мороз и Внучок не должны быть из одной страны'}), 400
+            if enforce_country and santa_country and recipient_country and santa_country != recipient_country:
+                return jsonify({'success': False, 'error': 'При распределении по странам Дед Мороз и Внучок должны быть из одной страны'}), 400
             if santa_id in santas_seen:
                 return jsonify({'success': False, 'error': 'Каждый Дед Мороз должен встречаться ровно один раз'}), 400
             if recipient_id in recipients_seen:
@@ -7432,10 +7768,31 @@ def admin_event_distribution_positive_save(event_id):
     except (TypeError, ValueError):
         return jsonify({'success': False, 'error': 'Некорректные идентификаторы участников'}), 400
 
+    locked_pairs_raw = data.get('locked_pairs') or []
+    locked_pairs_set = set()
+    try:
+        for entry in locked_pairs_raw:
+            santa_id = int(entry.get('santa_id'))
+            recipient_id = int(entry.get('recipient_id'))
+            locked_pairs_set.add((santa_id, recipient_id))
+    except (TypeError, ValueError, AttributeError):
+        return jsonify({'success': False, 'error': 'Некорректные данные закреплённых пар'}), 400
+
     if len(assignments) != len(approved_ids):
         return jsonify({'success': False, 'error': 'Распределение должно охватывать всех утверждённых участников'}), 400
 
-    success, result = save_event_assignments(event_id, assignments, user_id)
+    if locked_pairs_set:
+        assignments_set = set(assignments)
+        for santa_id, recipient_id in locked_pairs_set:
+            if (santa_id, recipient_id) not in assignments_set:
+                return jsonify({'success': False, 'error': 'Закреплённые пары должны соответствовать сохранённым значениям'}), 400
+
+    success, result = save_event_assignments(
+        event_id,
+        assignments,
+        user_id,
+        locked_pairs=locked_pairs_set or None
+    )
     if success:
         return jsonify({'success': True, 'message': f'Распределение сохранено ({result} пар).'})
     return jsonify({'success': False, 'error': result}), 500
