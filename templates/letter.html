@@ -20,7 +20,7 @@
                 {% for item in available_letters %}
                 <a 
                     href="{{ url_for('letter', assignment_id=item.assignment_id) }}"
-                    class="btn btn-sm {% if assignment.id == item.assignment_id %}btn-success{% else %}btn-outline-success{% endif %}"
+                    class="btn btn-sm letter-switcher-btn {% if assignment.id == item.assignment_id %}is-active{% endif %}"
                 >
                     {{ item.event_name }} · {{ item.label }}
                 </a>
@@ -31,6 +31,29 @@
 
         <div class="event-view-card" style="max-width: 960px; margin: 0 auto;">
             <style>
+                .letter-switcher-btn {
+                    background: rgba(46, 125, 50, 0.12);
+                    border: 1px solid rgba(46, 125, 50, 0.35);
+                    color: #1b5e20;
+                    transition: all 0.2s ease;
+                }
+                .letter-switcher-btn:hover,
+                .letter-switcher-btn:focus {
+                    background: rgba(46, 125, 50, 0.22);
+                    color: #1b5e20;
+                    border-color: rgba(46, 125, 50, 0.55);
+                }
+                .letter-switcher-btn.is-active {
+                    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+                    border-color: #2e7d32;
+                    color: #ffffff;
+                    box-shadow: 0 8px 18px rgba(27, 94, 32, 0.35);
+                }
+                .letter-switcher-btn.is-active:hover,
+                .letter-switcher-btn.is-active:focus {
+                    color: #ffffff;
+                    border-color: #1b5e20;
+                }
                 .chat-wrapper {
                     display: flex;
                     flex-direction: column;
