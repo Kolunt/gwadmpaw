@@ -177,10 +177,11 @@
                             Вы общаетесь как <strong>{{ letter.grandchild.first_name }}</strong>. Сообщения от Деда Мороза добавляет ваш даритель.
                         {% endif %}
                     </p>
-                    <form method="POST" action="{{ url_for('letter', assignment_id=assignment.id) }}" style="display: grid; gap: 1rem;">
+                    <form id="letter-form" method="POST" action="{{ url_for('letter', assignment_id=assignment.id) }}" style="display: grid; gap: 1rem;">
                         <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
                         <textarea
                             name="message"
+                            id="letter-message-input"
                             class="setting-input"
                             style="min-height: 120px; resize: vertical;"
                             placeholder="{% if user_role == 'santa' %}Напишите ответ Деда Мороза...{% else %}Напишите письмо Деду Морозу...{% endif %}"
@@ -193,6 +194,25 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('letter-form');
+    const textarea = document.getElementById('letter-message-input');
+    if (!form || !textarea) {
+        return;
+    }
+
+    textarea.addEventListener('keydown', function (event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+            event.preventDefault();
+            if (textarea.value.trim().length > 0) {
+                form.submit();
+            }
+        }
+    });
+});
+</script>
 
 {% endblock %}
 
