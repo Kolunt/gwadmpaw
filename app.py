@@ -8079,52 +8079,53 @@ def letter():
 
         return redirect(url_for('letter', assignment_id=selected_assignment.get('id')))
 
-    if user_role == 'santa':
-        first_name = (selected_assignment.get('recipient_first_name')
-                      or selected_assignment.get('recipient_username')
-                      or '').strip()
-        middle_name = (selected_assignment.get('recipient_middle_name') or '').strip()
-        last_name = (selected_assignment.get('recipient_last_name') or '').strip()
+    recipient_first_name = (selected_assignment.get('recipient_first_name')
+                            or selected_assignment.get('recipient_username')
+                            or '').strip()
+    recipient_middle_name = (selected_assignment.get('recipient_middle_name') or '').strip()
+    recipient_last_name = (selected_assignment.get('recipient_last_name') or '').strip()
 
-        full_name_parts = [part for part in [last_name, first_name, middle_name] if part]
-        default_signature = 'Твой внучок'
-        full_name = ' '.join(full_name_parts) if full_name_parts else (first_name or last_name or default_signature)
+    recipient_full_name_parts = [
+        part for part in [recipient_last_name, recipient_first_name, recipient_middle_name] if part
+    ]
+    default_signature = 'Твой внучок'
+    recipient_full_name = (
+        ' '.join(recipient_full_name_parts)
+        if recipient_full_name_parts else (recipient_first_name or recipient_last_name or default_signature)
+    )
 
-        address_text = _format_full_address(selected_assignment)
+    recipient_address = _format_full_address(selected_assignment)
 
-        bio_text = selected_assignment.get('recipient_bio')
-        if bio_text:
-            bio_text = bio_text.strip()
-        if not bio_text:
-            bio_text = 'Я пока не успел рассказать о себе, но обязательно сделаю это совсем скоро!'
+    recipient_bio = selected_assignment.get('recipient_bio')
+    if recipient_bio:
+        recipient_bio = recipient_bio.strip()
+    if not recipient_bio:
+        recipient_bio = 'Я пока не успел рассказать о себе, но обязательно сделаю это совсем скоро!'
 
-        letter_context = {
-            'first_name': first_name or full_name or 'Твой внучок',
-            'full_name': full_name,
-            'address': address_text,
-            'bio': bio_text,
-            'date': datetime.now().strftime('%d.%m.%Y'),
-            'event_name': selected_assignment.get('event_name', 'Мероприятие'),
+    santa_country = selected_assignment.get('santa_country')
+    santa_city = selected_assignment.get('santa_city')
+    origin_parts = []
+    if santa_country:
+        origin_parts.append(santa_country)
+    if santa_city:
+        origin_parts.append(santa_city)
+    if not origin_parts:
+        origin_parts.append('Россия')
+    santa_origin = ', '.join(origin_parts)
+
+    letter_context = {
+        'event_name': selected_assignment.get('event_name', 'Мероприятие'),
+        'date': datetime.now().strftime('%d.%m.%Y'),
+        'grandchild': {
+            'first_name': recipient_first_name or recipient_full_name or default_signature,
+            'full_name': recipient_full_name,
+            'address': recipient_address,
+            'bio': recipient_bio,
+        },
+        'santa': {
+            'origin': santa_origin,
         }
-    else:
-        santa_username = selected_assignment.get('santa_username') or 'Дед Мороз'
-        santa_country = selected_assignment.get('santa_country')
-        santa_city = selected_assignment.get('santa_city')
-        origin_parts = []
-        if santa_country:
-            origin_parts.append(santa_country)
-        if santa_city:
-            origin_parts.append(santa_city)
-        if not origin_parts:
-            origin_parts.append('Россия')
-        origin_text = ', '.join(origin_parts)
-
-        letter_context = {
-            'santa_name': santa_username,
-            'origin': origin_text,
-            'date': datetime.now().strftime('%d.%m.%Y'),
-            'event_name': selected_assignment.get('event_name', 'Мероприятие'),
-        }
+    }
 
     available_letters = []
     for assignment in accessible_assignments:
