@@ -8151,7 +8151,7 @@ def letter():
 
     letter_context = {
         'event_name': selected_assignment.get('event_name', 'Мероприятие'),
-        'date': datetime.now().strftime('%d.%m.%Y'),
+        'date': datetime.now().strftime('%d.%m.%Y %H:%M'),
         'grandchild': {
             'first_name': recipient_first_name or recipient_full_name or default_signature,
             'full_name': recipient_full_name,
