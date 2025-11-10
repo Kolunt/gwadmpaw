@@ -174,7 +174,7 @@
                         {% if user_role == 'santa' %}
                             Вы общаетесь как <strong>Дед Мороз</strong>. Сообщения от внучка добавляет ваш получатель.
                         {% else %}
-                            Вы общаетесь как <strong>{{ letter.grandchild.first_name }}</strong>. Сообщения от Деда Мороза добавляет ваш даритель.
+                            Вы общаетесь как <strong>Внучок</strong>. Сообщения от Деда Мороза добавляет ваш даритель.
                         {% endif %}
                     </p>
                     <form id="letter-form" method="POST" action="{{ url_for('letter', assignment_id=assignment.id) }}" style="display: grid; gap: 1rem;">
