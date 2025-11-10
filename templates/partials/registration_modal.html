@@ -71,6 +71,17 @@
 
             <div class="registration-step" data-step="step4">
                 <div class="registration-step-content">
+                    <h3>Электронная почта</h3>
+                    <p class="text-muted small-note">Мы будем использовать e-mail для уведомлений по мероприятию и связи при необходимости.</p>
+                    <div class="form-group">
+                        <label for="registration-email" class="form-label">E-mail *</label>
+                        <input type="email" id="registration-email" class="form-input" placeholder="example@mail.com" autocomplete="email">
+                    </div>
+                </div>
+            </div>
+
+            <div class="registration-step" data-step="step5">
+                <div class="registration-step-content">
                     <h3>Номер телефона</h3>
                     <p class="text-muted small-note">Укажите номер, по которому с вами можно связаться. Мы не будем рассылать спам.</p>
                     <div class="form-group">
@@ -80,7 +91,7 @@
                 </div>
             </div>
 
-            <div class="registration-step" data-step="step5">
+            <div class="registration-step" data-step="step6">
                 <div class="registration-step-content">
                     <h3>О себе</h3>
                     <p class="text-muted small-note">Расскажите немного о себе, интересах и предпочтениях. Это поможет вашему Деду Морозу подобрать максимально подходящий подарок.</p>
@@ -91,7 +102,7 @@
                 </div>
             </div>
 
-            <div class="registration-step" data-step="step6">
+            <div class="registration-step" data-step="step7">
                 <div class="registration-step-content">
                     <h3>Telegram</h3>
                     <p class="text-muted small-note">Если используете Telegram, укажите ник или номер. Иначе нажмите «Не использую».</p>
@@ -102,7 +113,7 @@
                 </div>
             </div>
 
-            <div class="registration-step" data-step="step7">
+            <div class="registration-step" data-step="step8">
                 <div class="registration-step-content">
                     <h3>WhatsApp</h3>
                     <p class="text-muted small-note">Дополнительный способ связи. Если не пользуетесь, просто отметьте это.</p>
@@ -113,7 +124,7 @@
                 </div>
             </div>
 
-            <div class="registration-step" data-step="step8">
+            <div class="registration-step" data-step="step9">
                 <div class="registration-step-content">
                     <h3>Viber</h3>
                     <p class="text-muted small-note">Если не используете Viber, нажмите «Не использую» — поле останется пустым.</p>
@@ -160,6 +171,10 @@
                         <div class="summary-row">
                             <dt>Квартира</dt>
                             <dd data-summary-field="apartment"></dd>
+                        </div>
+                        <div class="summary-row">
+                            <dt>E-mail</dt>
+                            <dd data-summary-field="email"></dd>
                         </div>
                         <div class="summary-row">
                             <dt>Телефон</dt>
@@ -213,7 +228,7 @@
         const secondaryBtn = document.getElementById('registration-secondary-btn');
         const tertiaryBtn = document.getElementById('registration-tertiary-btn');
 
-        const stepsOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'step8', 'stepfinal'];
+        const stepsOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'step8', 'step9', 'stepfinal'];
         const stepElements = new Map();
         modal.querySelectorAll('.registration-step').forEach(step => {
             const key = step.getAttribute('data-step');
@@ -226,11 +241,12 @@
             step1: 'Это обязательные данные',
             step2: 'Личные данные',
             step3: 'Адрес для подарка',
-            step4: 'Контакты',
-            step5: 'О себе',
-            step6: 'Дополнительный контакт: Telegram',
-            step7: 'Дополнительный контакт: WhatsApp',
-            step8: 'Дополнительный контакт: Viber',
+            step4: 'Контакты: e-mail',
+            step5: 'Контакты: телефон',
+            step6: 'О себе',
+            step7: 'Дополнительный контакт: Telegram',
+            step8: 'Дополнительный контакт: WhatsApp',
+            step9: 'Дополнительный контакт: Viber',
             stepfinal: 'Проверка данных'
         };
 
@@ -245,6 +261,7 @@
             house: document.getElementById('registration-house'),
             building: document.getElementById('registration-building'),
             apartment: document.getElementById('registration-apartment'),
+            email: document.getElementById('registration-email'),
             phone: document.getElementById('registration-phone'),
             bio: document.getElementById('registration-bio'),
             telegram: document.getElementById('registration-telegram'),
@@ -268,6 +285,7 @@
             house: '',
             building: '',
             apartment: '',
+            email: '',
             phone: '',
             bio: '',
             telegram: '',
@@ -345,7 +363,7 @@
                 .filter(Boolean)
                 .join(' ');
             if (summaryFields.fio) summaryFields.fio.textContent = fio || '—';
-            ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment', 'phone', 'telegram', 'whatsapp', 'viber', 'bio']
+            ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment', 'email', 'phone', 'telegram', 'whatsapp', 'viber', 'bio']
                 .forEach(key => {
                     if (summaryFields[key]) {
                         summaryFields[key].textContent = textOrDash(profileData[key]);
@@ -457,6 +475,25 @@
         }
 
         async function handleStep4() {
+            const email = inputs.email.value.trim();
+            if (!email) {
+                showError('Укажите адрес электронной почты.');
+                return;
+            }
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(email)) {
+                showError('Введите корректный адрес электронной почты.');
+                return;
+            }
+            setBusy(true);
+            const saved = await saveProfileData({ email });
+            setBusy(false);
+            if (saved) {
+                goToStep('step5');
+            }
+        }
+
+        async function handleStep5() {
             const phone = inputs.phone.value.trim();
             if (!phone) {
                 showError('Укажите номер телефона.');
@@ -466,13 +503,13 @@
             const saved = await saveProfileData({ phone });
             setBusy(false);
             if (saved) {
-                goToStep('step5');
+                goToStep('step6');
             }
         }
 
-        async function handleStep5() {
+        async function handleStep6() {
             if (!inputs.bio) {
-                goToStep('step6');
+                goToStep('step7');
                 return;
             }
             const bio = inputs.bio.value.trim();
@@ -480,7 +517,7 @@
             const saved = await saveProfileData({ bio });
             setBusy(false);
             if (saved) {
-                goToStep('step6');
+                goToStep('step7');
             }
         }
 
@@ -652,42 +689,50 @@
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step4');
+                    break;
+                case 'step6':
+                    fillInputs();
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = handleStep6;
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.textContent = 'Назад';
+                    secondaryBtn.onclick = () => goToStep('step5');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Пропустить';
                     tertiaryBtn.onclick = () => {
                         inputs.bio.value = '';
-                        handleStep5();
+                        handleStep6();
                     };
                     break;
-                case 'step6':
+                case 'step7':
                     fillInputs();
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = () => handleContactStep('telegram', true);
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step5');
+                    secondaryBtn.onclick = () => goToStep('step6');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
                     tertiaryBtn.onclick = () => handleNotUsing('telegram', 'не использую');
                     break;
-                case 'step7':
+                case 'step8':
                     fillInputs();
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = () => handleContactStep('whatsapp', true);
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step6');
+                    secondaryBtn.onclick = () => goToStep('step7');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
                     tertiaryBtn.onclick = () => handleNotUsing('whatsapp', 'не использую');
                     break;
-                case 'step8':
+                case 'step9':
                     fillInputs();
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = () => handleContactStep('viber', true);
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step7');
+                    secondaryBtn.onclick = () => goToStep('step8');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
                     tertiaryBtn.onclick = () => handleNotUsing('viber', '');
@@ -702,7 +747,7 @@
                     secondaryBtn.onclick = resetToStart;
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Назад';
-                    tertiaryBtn.onclick = () => goToStep('step8');
+                    tertiaryBtn.onclick = () => goToStep('step9');
                     break;
                 default:
                     primaryBtn.onclick = goToNextStep;

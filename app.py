@@ -530,6 +530,7 @@ def init_db():
                 house TEXT,
                 building TEXT,
                 apartment TEXT,
+                email TEXT,
                 phone TEXT,
                 telegram TEXT,
                 whatsapp TEXT,
@@ -542,6 +543,10 @@ def init_db():
                 UNIQUE(event_id, user_id)
             )
         ''')
+        try:
+            c.execute('ALTER TABLE event_registration_details ADD COLUMN email TEXT')
+        except sqlite3.OperationalError:
+            pass
         try:
             c.execute('ALTER TABLE event_registration_details ADD COLUMN bio TEXT')
         except sqlite3.OperationalError:
@@ -4987,6 +4992,7 @@ def get_user_assignments(user_id):
             COALESCE(rd.house, recipient.house) AS recipient_house,
             COALESCE(rd.building, recipient.building) AS recipient_building,
             COALESCE(rd.apartment, recipient.apartment) AS recipient_apartment,
+            COALESCE(rd.email, recipient.email) AS recipient_email,
             COALESCE(rd.phone, recipient.phone) AS recipient_phone,
             COALESCE(rd.telegram, recipient.telegram) AS recipient_telegram,
             COALESCE(rd.whatsapp, recipient.whatsapp) AS recipient_whatsapp,
@@ -5471,7 +5477,7 @@ def event_register(event_id):
             profile_row = conn.execute('''
                 SELECT last_name, first_name, middle_name,
                        postal_code, country, city, street, house, building, apartment,
-                       phone, telegram, whatsapp, viber, bio
+                       email, phone, telegram, whatsapp, viber, bio
                 FROM users
                 WHERE user_id = ?
             ''', (user_id,)).fetchone()
@@ -5510,9 +5516,9 @@ def event_register(event_id):
                 INSERT INTO event_registration_details (
                     event_id, user_id, last_name, first_name, middle_name,
                     postal_code, country, city, street, house, building, apartment,
-                    phone, telegram, whatsapp, viber, bio
+                    email, phone, telegram, whatsapp, viber, bio
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(event_id, user_id) DO UPDATE SET
                     last_name = excluded.last_name,
                     first_name = excluded.first_name,
@@ -5524,6 +5530,7 @@ def event_register(event_id):
                     house = excluded.house,
                     building = excluded.building,
                     apartment = excluded.apartment,
+                    email = excluded.email,
                     phone = excluded.phone,
                     telegram = excluded.telegram,
                     whatsapp = excluded.whatsapp,
@@ -5543,6 +5550,7 @@ def event_register(event_id):
                 profile.get('house'),
                 profile.get('building'),
                 profile.get('apartment'),
+                profile.get('email'),
                 profile.get('phone'),
                 profile.get('telegram'),
                 profile.get('whatsapp'),
