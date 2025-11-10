@@ -352,64 +352,21 @@
                             <option value="dark" {% if setting.value == 'dark' %}selected{% endif %}>Темная</option>
                         </select>
                         {% elif setting.key == 'site_icon' %}
-                        <div class="file-upload-group">
-                            {% if setting.value %}
-                            <div class="current-file-preview">
-                                <img src="{{ setting.value }}" alt="Текущая иконка" class="file-preview-icon">
-                                <div class="current-file-meta">
-                                    <span class="current-file-label">Текущая иконка</span>
-                                </div>
-                            </div>
-                            <div class="file-remove-controls">
-                                <button type="submit" name="delete_site_icon" value="1" class="btn btn-danger btn-small" onclick="return confirm('Удалить текущую иконку?');">
-                                    ❌ Удалить иконку
-                                </button>
-                            </div>
-                            {% endif %}
-                            <input 
-                                type="file" 
-                                id="site_icon" 
-                                name="site_icon" 
-                                accept=".ico,.png,.jpg,.jpeg,.svg"
-                                class="file-input"
-                            >
-                            <label for="site_icon" class="file-upload-label">
-                                <span class="file-upload-text">Выбрать файл</span>
-                                <span class="file-upload-btn">📁</span>
-                            </label>
-                        </div>
+                        <input 
+                            type="hidden" 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            value="🎅"
+                        >
+                        <p class="text-muted small-note">Используется стандартная эмодзи 🎅. Изменение отключено.</p>
                         {% elif setting.key == 'site_logo' %}
-                        <div class="file-upload-group">
-                            {% if setting.value %}
-                            <div class="current-file-preview">
-                                <img src="{{ setting.value }}" alt="Текущий логотип" class="file-preview-logo">
-                                <div class="current-file-meta">
-                                    <span class="current-file-label">Текущий логотип</span>
-                                </div>
-                            </div>
-                            <div class="file-remove-controls">
-                                <button type="submit" name="delete_site_logo" value="1" class="btn btn-danger btn-small" onclick="return confirm('Удалить текущий логотип?');">
-                                    ❌ Удалить логотип
-                                </button>
-                            </div>
-                            {% endif %}
-                            <input 
-                                type="file" 
-                                id="site_logo" 
-                                name="site_logo" 
-                                accept=".png,.jpg,.jpeg,.svg,.gif,.webp"
-                                class="file-input"
-                            >
-                            <label for="site_logo" class="file-upload-label">
-                                <span class="file-upload-text">Выбрать файл</span>
-                                <span class="file-upload-btn">📁</span>
-                            </label>
-                            {% if setting.value %}
-                            <button type="submit" name="delete_site_logo" value="1" class="btn btn-danger btn-small file-remove-btn" onclick="return confirm('Удалить текущий логотип?');">
-                                Удалить
-                            </button>
-                            {% endif %}
-                        </div>
+                        <input 
+                            type="hidden" 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            value="🎅"
+                        >
+                        <p class="text-muted small-note">Используется стандартная эмодзи 🎅 в качестве логотипа. Изменение отключено.</p>
                         {% elif setting.key == 'site_description' %}
                         <textarea 
                             id="setting_{{ setting.key }}" 
@@ -473,45 +430,21 @@
                             <option value="dark" {% if setting.value == 'dark' %}selected{% endif %}>Темная</option>
                         </select>
                         {% elif setting.key == 'site_icon' %}
-                        <div class="file-upload-group">
-                            {% if setting.value %}
-                            <div class="current-file-preview">
-                                <img src="{{ setting.value }}" alt="Текущая иконка" class="file-preview-icon">
-                                <span class="current-file-label">Текущая иконка</span>
-                            </div>
-                            {% endif %}
-                            <input 
-                                type="file" 
-                                id="site_icon" 
-                                name="site_icon" 
-                                accept=".ico,.png,.jpg,.jpeg,.svg"
-                                class="file-input"
-                            >
-                            <label for="site_icon" class="file-upload-label">
-                                <span class="file-upload-text">Выбрать файл</span>
-                                <span class="file-upload-btn">📁</span>
-                            </label>
-                        </div>
+                        <input 
+                            type="hidden" 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            value="🎅"
+                        >
+                        <p class="text-muted small-note">Используется стандартная эмодзи 🎅. Изменение отключено.</p>
                         {% elif setting.key == 'site_logo' %}
-                        <div class="file-upload-group">
-                            {% if setting.value %}
-                            <div class="current-file-preview">
-                                <img src="{{ setting.value }}" alt="Текущий логотип" class="file-preview-logo">
-                                <span class="current-file-label">Текущий логотип</span>
-                            </div>
-                            {% endif %}
-                            <input 
-                                type="file" 
-                                id="site_logo" 
-                                name="site_logo" 
-                                accept=".png,.jpg,.jpeg,.svg,.gif,.webp"
-                                class="file-input"
-                            >
-                            <label for="site_logo" class="file-upload-label">
-                                <span class="file-upload-text">Выбрать файл</span>
-                                <span class="file-upload-btn">📁</span>
-                            </label>
-                        </div>
+                        <input 
+                            type="hidden" 
+                            id="setting_{{ setting.key }}" 
+                            name="setting_{{ setting.key }}" 
+                            value="🎅"
+                        >
+                        <p class="text-muted small-note">Используется стандартная эмодзи 🎅 в качестве логотипа. Изменение отключено.</p>
                         {% elif setting.key == 'site_description' %}
                         <textarea 
                             id="setting_{{ setting.key }}" 

@@ -701,10 +701,11 @@ def init_db():
                 INSERT OR IGNORE INTO settings (key, value, description, category)
                 VALUES (?, ?, ?, ?)
             ''', (key, value, description, category))
-            # Обновляем дефолтные значения для site_icon и site_logo, если они пустые
             if key in ('site_icon', 'site_logo'):
                 c.execute('''
-                    UPDATE settings SET value = ? WHERE key = ? AND (value = '' OR value IS NULL)
+                    UPDATE settings 
+                    SET value = ? 
+                    WHERE key = ? AND (value IS NULL OR value = '' OR value LIKE '/static/uploads/%')
                 ''', (value, key))
         
         # Удаляем устаревшие настройки GWars, если они присутствуют
@@ -3535,72 +3536,6 @@ def admin_settings():
     conn = get_db_connection()
     
     if request.method == 'POST':
-        # Создаем папку для загрузок если её нет
-        upload_dir = os.path.join(app.static_folder, 'uploads')
-        os.makedirs(upload_dir, exist_ok=True)
-        
-        # Обработка удаления файлов
-        existing_icon = conn.execute('SELECT value FROM settings WHERE key = ?', ('site_icon',)).fetchone()
-        existing_icon_path = existing_icon['value'] if existing_icon and existing_icon['value'] else ''
-        existing_logo = conn.execute('SELECT value FROM settings WHERE key = ?', ('site_logo',)).fetchone()
-        existing_logo_path = existing_logo['value'] if existing_logo and existing_logo['value'] else ''
-
-        def remove_uploaded_file(relative_path):
-            if not relative_path:
-                return
-            if relative_path.startswith('/static/uploads/'):
-                abs_path = os.path.join(app.root_path, relative_path.lstrip('/'))
-                try:
-                    if os.path.exists(abs_path):
-                        os.remove(abs_path)
-                except Exception as file_error:
-                    log_error(f"Error removing file {abs_path}: {file_error}")
-
-        if request.form.get('delete_site_icon') == '1':
-            remove_uploaded_file(existing_icon_path)
-            conn.execute('''
-                UPDATE settings SET value = '', updated_at = CURRENT_TIMESTAMP, updated_by = ?
-                WHERE key = 'site_icon'
-            ''', (session.get('user_id'),))
-            flash('Иконка сайта удалена', 'success')
-
-        if request.form.get('delete_site_logo') == '1':
-            remove_uploaded_file(existing_logo_path)
-            conn.execute('''
-                UPDATE settings SET value = '', updated_at = CURRENT_TIMESTAMP, updated_by = ?
-                WHERE key = 'site_logo'
-            ''', (session.get('user_id'),))
-            flash('Логотип сайта удалён', 'success')
-
-        # Обработка загрузки файлов
-        if 'site_icon' in request.files:
-            icon_file = request.files['site_icon']
-            if icon_file and icon_file.filename:
-                # Проверяем расширение
-                allowed_extensions = {'.ico', '.png', '.jpg', '.jpeg', '.svg'}
-                file_ext = os.path.splitext(icon_file.filename)[1].lower()
-                if file_ext in allowed_extensions:
-                    # Сохраняем файл
-                    filename = f"icon_{int(datetime.now().timestamp())}{file_ext}"
-                    filepath = os.path.join(upload_dir, filename)
-                    icon_file.save(filepath)
-                    # Сохраняем путь в настройках
-                    set_setting('site_icon', f'/static/uploads/{filename}', 'Иконка сайта (favicon)', 'general')
-        
-        if 'site_logo' in request.files:
-            logo_file = request.files['site_logo']
-            if logo_file and logo_file.filename:
-                # Проверяем расширение
-                allowed_extensions = {'.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'}
-                file_ext = os.path.splitext(logo_file.filename)[1].lower()
-                if file_ext in allowed_extensions:
-                    # Сохраняем файл
-                    filename = f"logo_{int(datetime.now().timestamp())}{file_ext}"
-                    filepath = os.path.join(upload_dir, filename)
-                    logo_file.save(filepath)
-                    # Сохраняем путь в настройках
-                    set_setting('site_logo', f'/static/uploads/{filename}', 'Логотип сайта', 'general')
-        
         # Обработка настройки локализации
         if 'default_language' in request.form:
             default_language = request.form.get('default_language', 'ru').strip()
@@ -3637,6 +3572,13 @@ def admin_settings():
             except Exception as e:
                 log_error(f"Error updating setting {key}: {e}")
         
+        conn.commit()
+        # Возвращаем иконку/логотип к дефолтной эмодзи
+        conn.execute('''
+            UPDATE settings 
+            SET value = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
+            WHERE key IN ('site_icon', 'site_logo')
+        ''', ('🎅', session.get('user_id')))
         conn.commit()
         flash('Настройки успешно сохранены', 'success')
         conn.close()

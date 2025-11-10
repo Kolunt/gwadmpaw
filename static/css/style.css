@@ -1656,23 +1656,6 @@ body {
     object-fit: contain;
 }
 
-.current-file-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.file-remove-controls {
-    margin-top: -0.5rem;
-    display: flex;
-    justify-content: flex-start;
-}
-
-.btn-small {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.85rem;
-}
-
 .current-file-label {
     color: var(--text-secondary);
     font-size: 0.875rem;
