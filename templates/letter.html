@@ -160,9 +160,9 @@
                         {% endif %}
                     </strong>
                     <div style="margin-top: 0.5rem; white-space: pre-wrap;">{{ msg.message | e | replace('\n', '<br>') | safe }}</div>
-                    {% if msg.created_display %}
-                    <span class="chat-meta">{{ msg.created_display }}</span>
-                    {% endif %}
+                    <span class="chat-meta">
+                        {{ msg.created_display or msg.created_iso or letter.date }}
+                    </span>
                 </div>
                 {% endfor %}
             </div>

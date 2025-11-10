@@ -8205,7 +8205,8 @@ def letter():
         chat_messages.append({
             'sender': row['sender'],
             'message': row['message'],
-            'created_display': created_display
+            'created_display': created_display,
+            'created_iso': str(created_raw) if created_raw is not None else ''
         })
 
     return render_template(
