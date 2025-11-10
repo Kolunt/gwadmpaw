@@ -103,6 +103,12 @@
                             <span style="font-size: 2rem; margin-right: 0.5rem;">🎁</span>
                             <h3 style="margin: 0; color: white;">Вы - Внучок</h3>
                         </div>
+                        <div style="margin-bottom: 1.25rem;">
+                            <form method="GET" action="{{ url_for('letter') }}">
+                                <input type="hidden" name="assignment_id" value="{{ event_data.as_recipient.get('id') }}">
+                                <button type="submit" class="btn btn-light btn-sm" style="color: #333;">Письмо</button>
+                            </form>
+                        </div>
                         {% if event_data.as_recipient.get('santa_sent_at') %}
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
                             <p style="margin: 0.5rem 0;"><strong>Дед Мороз сообщил об отправке:</strong> {{ event_data.as_recipient.get('santa_sent_at') }}</p>
@@ -122,12 +128,6 @@
                             <p style="margin: 0.5rem 0; opacity: 0.9;">Дед Мороз еще не отметил отправку подарка.</p>
                         </div>
                         {% endif %}
-                        <div style="margin-top: 1rem;">
-                            <form method="GET" action="{{ url_for('letter') }}">
-                                <input type="hidden" name="assignment_id" value="{{ event_data.as_recipient.get('id') }}">
-                                <button type="submit" class="btn btn-light btn-sm" style="color: #333;">Письмо</button>
-                            </form>
-                        </div>
                     </div>
                     {% else %}
                     <div class="assignment-card" style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 12px; border: 2px dashed var(--border-color); text-align: center; color: var(--text-secondary);">
