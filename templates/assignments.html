@@ -52,46 +52,12 @@
                                 {% if event_data.as_santa.get('recipient_apartment') %}, кв. {{ event_data.as_santa.get('recipient_apartment') }}{% endif %}
                             </p>
                             {% endif %}
-                            {% if event_data.as_santa.get('recipient_email') %}
+                            {% if event_data.as_santa.get('recipient_bio') %}
                             <p style="margin: 0.5rem 0;">
-                                <strong>E-mail:</strong><br>
-                                {{ event_data.as_santa.get('recipient_email') }}
+                                <strong>О себе:</strong><br>
+                                {{ event_data.as_santa.get('recipient_bio') | e | replace('\n', '<br>') | safe }}
                             </p>
                             {% endif %}
-                            {% set phone_snapshot = event_data.as_santa.get('recipient_phone') %}
-                            {% set telegram_snapshot = event_data.as_santa.get('recipient_telegram') %}
-                            {% set whatsapp_snapshot = event_data.as_santa.get('recipient_whatsapp') %}
-                            {% set viber_snapshot = event_data.as_santa.get('recipient_viber') %}
-                            {% if phone_snapshot %}
-                            <p style="margin: 0.5rem 0;">
-                                <strong>Телефон:</strong><br>
-                                {{ phone_snapshot }}
-                            </p>
-                            {% endif %}
-                            {% if telegram_snapshot %}
-                            <p style="margin: 0.5rem 0;">
-                                <strong>Telegram:</strong><br>
-                                {{ telegram_snapshot }}
-                            </p>
-                            {% endif %}
-                            {% if whatsapp_snapshot %}
-                            <p style="margin: 0.5rem 0;">
-                                <strong>WhatsApp:</strong><br>
-                                {{ whatsapp_snapshot }}
-                            </p>
-                            {% endif %}
-                            {% if viber_snapshot %}
-                            <p style="margin: 0.5rem 0;">
-                                <strong>Viber:</strong><br>
-                                {{ viber_snapshot }}
-                            </p>
-                            {% endif %}
-                        {% if event_data.as_santa.get('recipient_bio') %}
-                        <p style="margin: 0.5rem 0;">
-                            <strong>О себе:</strong><br>
-                            {{ event_data.as_santa.get('recipient_bio') | e | replace('\n', '<br>') | safe }}
-                        </p>
-                        {% endif %}
                         </div>
                         
                         {% if event_data.as_santa.get('santa_sent_at') %}
