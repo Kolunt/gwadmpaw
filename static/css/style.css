@@ -1744,6 +1744,10 @@ body {
     vertical-align: middle;
 }
 
+.logo-mobile {
+    display: none;
+}
+
 @media (max-width: 768px) {
     .navbar-logo {
         height: 32px;
@@ -1752,6 +1756,17 @@ body {
     .file-preview-logo {
         max-width: 150px;
         max-height: 50px;
+    }
+
+    .logo-desktop {
+        display: none;
+    }
+
+    .logo-mobile {
+        display: inline-block;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
     }
 }
 

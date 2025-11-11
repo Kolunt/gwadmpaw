@@ -82,7 +82,8 @@
                 <a href="{{ url_for('index') }}" class="navbar-brand-link">
                     <span class="navbar-logo-emoji">{{ site_logo }}</span>
                     {% set logo_text = get_setting('logo_text', 'Анонимные Деды Морозы') %}
-                    <span class="logo">{{ logo_text }}</span>
+                    <span class="logo logo-desktop">{{ logo_text }}</span>
+                    <span class="logo logo-mobile">АДМ</span>
                 </a>
             </div>
             <div class="navbar-actions">
