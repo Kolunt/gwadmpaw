@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Переписки участников - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="admin-container">
+        <div class="admin-header" style="margin-bottom: 1.5rem;">
+            <div>
+                <h1 style="margin: 0;">💬 Переписки участников</h1>
+                <p class="text-muted" style="margin: 0.5rem 0 0;">Список всех чатов между Дедом Морозом и Внучком.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body" style="overflow-x: auto;">
+                {% if assignments %}
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Мероприятие</th>
+                            <th>Дед Мороз</th>
+                            <th>Внучок</th>
+                            <th>Сообщений</th>
+                            <th>Последнее сообщение</th>
+                            <th style="width: 140px;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in assignments %}
+                        <tr>
+                            <td data-label="ID">{{ item.id }}</td>
+                            <td data-label="Мероприятие">{{ item.event_name }}</td>
+                            <td data-label="Дед Мороз">{{ item.santa_full_name }}</td>
+                            <td data-label="Внучок">{{ item.recipient_full_name }}</td>
+                            <td data-label="Сообщений">{{ item.message_count }}</td>
+                            <td data-label="Последнее сообщение">{{ item.last_message_at or '—' }}</td>
+                            <td data-label="Действия">
+                                <a href="{{ url_for('letter', assignment_id=item.id, admin=1) }}" class="btn btn-sm btn-primary" style="min-width: 120px;">Открыть чат</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted" style="margin: 0;">Пока нет доступных переписок.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

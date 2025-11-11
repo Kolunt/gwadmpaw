@@ -5128,6 +5128,68 @@ def get_user_assignments(user_id):
     
     return assignments
 
+def get_admin_letter_assignments():
+    """Возвращает все переписки для администраторов"""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT
+            ea.*,
+            e.name AS event_name,
+            santa.username AS santa_username,
+            santa.first_name AS santa_first_name,
+            santa.last_name AS santa_last_name,
+            santa.middle_name AS santa_middle_name,
+            COALESCE(sd.country, santa.country) AS santa_country,
+            COALESCE(sd.city, santa.city) AS santa_city,
+            recipient.username AS recipient_username,
+            COALESCE(rd.last_name, recipient.last_name) AS recipient_last_name,
+            COALESCE(rd.first_name, recipient.first_name) AS recipient_first_name,
+            COALESCE(rd.middle_name, recipient.middle_name) AS recipient_middle_name,
+            COALESCE(rd.postal_code, recipient.postal_code) AS recipient_postal_code,
+            COALESCE(rd.country, recipient.country) AS recipient_country,
+            COALESCE(rd.city, recipient.city) AS recipient_city,
+            COALESCE(rd.street, recipient.street) AS recipient_street,
+            COALESCE(rd.house, recipient.house) AS recipient_house,
+            COALESCE(rd.building, recipient.building) AS recipient_building,
+            COALESCE(rd.apartment, recipient.apartment) AS recipient_apartment,
+            rd.bio AS recipient_bio,
+            lm.message_count,
+            lm.last_message_at
+        FROM event_assignments ea
+        JOIN events e ON ea.event_id = e.id
+        JOIN users santa ON ea.santa_user_id = santa.user_id
+        JOIN users recipient ON ea.recipient_user_id = recipient.user_id
+        LEFT JOIN event_registration_details rd
+            ON rd.event_id = ea.event_id AND rd.user_id = ea.recipient_user_id
+        LEFT JOIN event_registration_details sd
+            ON sd.event_id = ea.event_id AND sd.user_id = ea.santa_user_id
+        LEFT JOIN (
+            SELECT assignment_id,
+                   COUNT(*) AS message_count,
+                   MAX(created_at) AS last_message_at
+            FROM letter_messages
+            GROUP BY assignment_id
+        ) lm ON lm.assignment_id = ea.id
+        ORDER BY
+            CASE WHEN lm.last_message_at IS NULL THEN 1 ELSE 0 END,
+            lm.last_message_at DESC,
+            ea.id ASC
+    ''').fetchall()
+    conn.close()
+
+    assignments = []
+    for row in rows:
+        record = dict(row)
+        record['message_count'] = record.get('message_count') or 0
+        record['last_message_at'] = record.get('last_message_at')
+        santa_parts = [record.get('santa_last_name') or '', record.get('santa_first_name') or '', record.get('santa_middle_name') or '']
+        record['santa_full_name'] = ' '.join(part for part in santa_parts if part).strip() or record.get('santa_username')
+        recipient_parts = [record.get('recipient_last_name') or '', record.get('recipient_first_name') or '', record.get('recipient_middle_name') or '']
+        record['recipient_full_name'] = ' '.join(part for part in recipient_parts if part).strip() or record.get('recipient_username')
+        record['chat_role'] = 'admin'
+        assignments.append(record)
+    return assignments
+
 def mark_assignment_sent(assignment_id, user_id, send_info):
     """Отмечает, что подарок отправлен"""
     if not send_info or not send_info.strip():
@@ -8123,22 +8185,35 @@ def letter():
     assignment_id = request.args.get('assignment_id', type=int)
     if assignment_id is None and request.method == 'POST':
         assignment_id = request.form.get('assignment_id', type=int)
-    user_assignments = get_user_assignments(user_id)
+
+    is_admin = has_role(user_id, 'admin')
+    admin_override = is_admin and (request.args.get('admin') == '1' or request.form.get('admin') == '1')
+
+    if admin_override and request.method == 'POST':
+        flash('Администраторы просматривают переписки только в режиме чтения.', 'error')
+        return redirect(url_for('letter', assignment_id=assignment_id, admin=1) if assignment_id else url_for('admin_letters'))
 
     accessible_assignments = []
-    for assignment in user_assignments:
-        role = None
-        if assignment.get('santa_user_id') == user_id:
-            role = 'santa'
-        elif assignment.get('recipient_user_id') == user_id:
-            role = 'grandchild'
-        if not role:
-            continue
-        assignment_copy = dict(assignment)
-        assignment_copy['chat_role'] = role
-        accessible_assignments.append(assignment_copy)
+    if admin_override:
+        accessible_assignments = get_admin_letter_assignments()
+    else:
+        user_assignments = get_user_assignments(user_id)
+        for assignment in user_assignments:
+            role = None
+            if assignment.get('santa_user_id') == user_id:
+                role = 'santa'
+            elif assignment.get('recipient_user_id') == user_id:
+                role = 'grandchild'
+            if not role:
+                continue
+            assignment_copy = dict(assignment)
+            assignment_copy['chat_role'] = role
+            accessible_assignments.append(assignment_copy)
 
     if not accessible_assignments:
+        if admin_override:
+            flash('Пока нет переписок для отображения.', 'info')
+            return redirect(url_for('admin_letters'))
         flash('У вас пока нет переписок для отображения.', 'info')
         return redirect(url_for('assignments'))
 
@@ -8263,17 +8338,24 @@ def letter():
     available_letters = []
     for assignment in accessible_assignments:
         role = assignment.get('chat_role', 'santa')
+        label = ''
         if role == 'santa':
             counterpart = assignment.get('recipient_first_name') or assignment.get('recipient_username') or assignment.get('recipient_last_name') or 'Получатель'
             label = f"Получатель: {counterpart}"
-        else:
+        elif role == 'grandchild':
             counterpart = assignment.get('santa_username') or 'Дед Мороз'
             label = f"Дед Мороз: {counterpart}"
+        elif role == 'admin':
+            santa_label = assignment.get('santa_full_name') or assignment.get('santa_username') or 'Дед Мороз'
+            recipient_label = assignment.get('recipient_full_name') or assignment.get('recipient_username') or 'Внучок'
+            label = f"Санта: {santa_label} → Внучок: {recipient_label}"
         available_letters.append({
             'assignment_id': assignment.get('id'),
             'event_name': assignment.get('event_name', 'Мероприятие'),
             'label': label,
-            'role': role
+            'role': role,
+            'santa_label': assignment.get('santa_full_name') or assignment.get('santa_username'),
+            'recipient_label': assignment.get('recipient_full_name') or assignment.get('recipient_username')
         })
 
     conn = get_db_connection()
@@ -8316,7 +8398,9 @@ def letter():
         assignment=selected_assignment,
         available_letters=available_letters,
         user_role=user_role,
-        chat_messages=chat_messages
+        chat_messages=chat_messages,
+        admin_view=admin_override,
+        admin_letters_url=url_for('admin_letters') if admin_override else None
     )
 
 
@@ -8353,6 +8437,14 @@ def assignments():
             assignments_by_event[event_id]['as_recipient'] = assignment
     
     return render_template('assignments.html', assignments_by_event=assignments_by_event)
+
+
+@app.route('/admin/letters')
+@require_role('admin')
+def admin_letters():
+    """Список всех переписок для администраторов"""
+    assignments = get_admin_letter_assignments()
+    return render_template('admin/letters.html', assignments=assignments)
 
 @app.route('/assignments/<int:assignment_id>/send', methods=['POST'])
 @require_login

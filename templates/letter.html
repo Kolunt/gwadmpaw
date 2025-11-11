@@ -22,7 +22,9 @@
                     href="{{ url_for('letter', assignment_id=item.assignment_id) }}"
                     class="btn btn-sm letter-switcher-btn {% if assignment.id == item.assignment_id %}is-active{% endif %}"
                 >
-                    {% if item.role == 'santa' %}
+                    {% if item.role == 'admin' %}
+                        Санта: {{ item.santa_label }} → Внучок: {{ item.recipient_label }}
+                    {% elif item.role == 'santa' %}
                         Я Дед Мороз
                     {% else %}
                         Я Внучок
@@ -132,7 +134,8 @@
                 }
             </style>
 
-            <div class="chat-wrapper role-{{ user_role }}" id="chat-thread">
+            {% set wrapper_role = 'grandchild' if user_role == 'grandchild' else 'santa' %}
+            <div class="chat-wrapper role-{{ wrapper_role }}" id="chat-thread">
                 <div class="chat-message message-grandchild">
                     <strong>✨ {{ letter.grandchild.first_name }}:</strong>
                     <div style="margin-top: 0.5rem;">
@@ -190,6 +193,16 @@
             <div class="card" style="margin-top: 2rem;">
                 <div class="card-body">
                     <h3 style="margin-top: 0;">Продолжить переписку</h3>
+                    {% if admin_view %}
+                    <p class="text-muted" style="margin-bottom: 0;">
+                        Вы просматриваете переписку как администратор. Сообщения доступны только для чтения.
+                    </p>
+                    {% if admin_letters_url %}
+                    <p style="margin-top: 1rem;">
+                        <a href="{{ admin_letters_url }}" class="btn btn-outline-secondary btn-sm">← К списку переписок</a>
+                    </p>
+                    {% endif %}
+                    {% else %}
                     <p class="text-muted" style="margin-bottom: 1rem;">
                         {% if user_role == 'santa' %}
                             Вы общаетесь как <strong>Дед Мороз</strong>. Сообщения от внучка добавляет ваш получатель.
@@ -219,6 +232,7 @@
                         </div>
                         <button type="submit" class="btn btn-primary" style="justify-self: flex-start;">Отправить сообщение</button>
                     </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
