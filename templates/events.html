@@ -39,7 +39,11 @@
                             {% if current_stage %}
                                 {{ item.display_stage_name or current_stage.info.name }}
                             {% else %}
+                                {% if item.next_stage_is_past %}
+                                <span class="badge-upcoming" style="background-color: var(--text-secondary);">Завершено</span>
+                                {% else %}
                                 <span class="text-muted">Скоро</span>
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td data-label="Мой статус">

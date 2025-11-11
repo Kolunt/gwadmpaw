@@ -5482,7 +5482,8 @@ def events():
         if not is_registration_open(event['id']):
             needs_confirmation = False
 
-        events_with_stages.append({
+        current_stage = get_current_event_stage(event['id'])
+        value = {
             'event': event,
             'current_stage': current_stage,
             'display_stage_name': display_stage_name,
@@ -5490,7 +5491,15 @@ def events():
             'is_registered': is_registered,
             'needs_confirmation': needs_confirmation,
             'registration_open': is_registration_open(event['id'])
-        })
+        }
+
+        # если текущего этапа нет и следующего будущего этапа тоже нет, значит все этапы завершены
+        value['next_stage_is_past'] = False
+        if not current_stage and not next_stage:
+            # Проверяем, были ли когда-то этапы
+            value['next_stage_is_past'] = True
+
+        events_with_stages.append(value)
 
     for item in events_with_stages:
         event = item['event']
