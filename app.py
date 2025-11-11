@@ -2,7 +2,7 @@ from flask import(
     Flask, render_template, redirect, url_for, request, session,
     flash, jsonify, send_file, Response, abort, has_request_context
 )
-from urllib.parse import unquote, unquote_to_bytes, quote
+from urllib.parse import unquote, unquote_plus, unquote_to_bytes, quote
 import hashlib
 import sqlite3
 from datetime import datetime
@@ -1313,14 +1313,19 @@ def verify_sign(username, user_id, sign, encoded_name=None):
     # Вариант 1: ОРИГИНАЛЬНЫЕ БАЙТЫ из URL (правильный способ!)
     # В PHP подпись вычисляется с оригинальными байтами, а не с декодированной строкой
     if encoded_name:
-        try:
-            name_bytes = unquote_to_bytes(encoded_name)
-            expected_sign_bytes = hashlib.md5(
-                GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8')
-            ).hexdigest()
-            variants.append(('bytes', expected_sign_bytes))
-        except:
-            pass
+        encoded_variations = [encoded_name]
+        if '+' in encoded_name:
+            encoded_variations.append(encoded_name.replace('+', '%20'))
+        for encoded_variant in encoded_variations:
+            try:
+                name_bytes = unquote_to_bytes(encoded_variant)
+                expected_sign_bytes = hashlib.md5(
+                    GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8')
+                ).hexdigest()
+                suffix = '' if encoded_variant == encoded_name else '_space'
+                variants.append((f'bytes{suffix}', expected_sign_bytes))
+            except:
+                pass
     
     # Вариант 2: декодированное имя через UTF-8
     expected_sign_decoded = hashlib.md5(
@@ -1330,15 +1335,20 @@ def verify_sign(username, user_id, sign, encoded_name=None):
     
     # Вариант 3: закодированное имя (как пришло в URL)
     if encoded_name:
-        expected_sign_encoded = hashlib.md5(
-            (GWARS_PASSWORD + encoded_name + str(user_id)).encode('utf-8')
-        ).hexdigest()
-        variants.append(('encoded', expected_sign_encoded))
+        encoded_variations = [encoded_name]
+        if '+' in encoded_name:
+            encoded_variations.append(encoded_name.replace('+', '%20'))
+        for encoded_variant in encoded_variations:
+            expected_sign_encoded = hashlib.md5(
+                (GWARS_PASSWORD + encoded_variant + str(user_id)).encode('utf-8')
+            ).hexdigest()
+            suffix = '' if encoded_variant == encoded_name else '_space'
+            variants.append((f'encoded{suffix}', expected_sign_encoded))
     
     # Вариант 4: декодированное через CP1251 (Windows-1251)
     if encoded_name:
         try:
-            name_cp1251 = unquote(encoded_name, encoding='cp1251')
+            name_cp1251 = unquote_plus(encoded_name, encoding='cp1251')
             expected_sign_cp1251 = hashlib.md5(
                 (GWARS_PASSWORD + name_cp1251 + str(user_id)).encode('utf-8')
             ).hexdigest()
@@ -1348,7 +1358,7 @@ def verify_sign(username, user_id, sign, encoded_name=None):
         
         # Вариант 5: декодированное через latin1, затем байты
         try:
-            name_latin1 = unquote(encoded_name, encoding='latin1')
+            name_latin1 = unquote_plus(encoded_name, encoding='latin1')
             name_latin1_bytes = name_latin1.encode('latin1')
             expected_sign_latin1_bytes = hashlib.md5(
                 GWARS_PASSWORD.encode('utf-8') + name_latin1_bytes + str(user_id).encode('utf-8')
@@ -1388,15 +1398,20 @@ def verify_sign3(username, user_id, has_passport, has_mobile, old_passport, sign
     
     # Вариант 1: ОРИГИНАЛЬНЫЕ БАЙТЫ из URL (правильный способ!)
     if encoded_name:
-        try:
-            name_bytes = unquote_to_bytes(encoded_name)
-            expected_sign3_bytes = hashlib.md5(
-                GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8') + 
-                str(has_passport).encode('utf-8') + str(has_mobile).encode('utf-8') + str(old_passport).encode('utf-8')
-            ).hexdigest()[:10]
-            variants.append(('bytes', expected_sign3_bytes))
-        except:
-            pass
+        encoded_variations = [encoded_name]
+        if '+' in encoded_name:
+            encoded_variations.append(encoded_name.replace('+', '%20'))
+        for encoded_variant in encoded_variations:
+            try:
+                name_bytes = unquote_to_bytes(encoded_variant)
+                expected_sign3_bytes = hashlib.md5(
+                    GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8') + 
+                    str(has_passport).encode('utf-8') + str(has_mobile).encode('utf-8') + str(old_passport).encode('utf-8')
+                ).hexdigest()[:10]
+                suffix = '' if encoded_variant == encoded_name else '_space'
+                variants.append((f'bytes{suffix}', expected_sign3_bytes))
+            except:
+                pass
     
     # Вариант 2: декодированное имя
     expected_sign3_decoded = hashlib.md5(
@@ -1834,14 +1849,14 @@ def login():
         if name_encoded:
             try:
                 # Сначала пробуем CP1251 (Windows-1251) - это основная кодировка для русских символов
-                name_cp1251 = unquote(name_encoded, encoding='cp1251')
+                name_cp1251 = unquote_plus(name_encoded, encoding='cp1251')
                 name = name_cp1251  # Используем CP1251 как основной вариант
             except:
                 try:
-                    name = unquote(name_encoded, encoding='utf-8')
+                    name = unquote_plus(name_encoded, encoding='utf-8')
                 except:
                     try:
-                        name = unquote(name_encoded, encoding='latin1')
+                        name = unquote_plus(name_encoded, encoding='latin1')
                         name_latin1 = name
                     except:
                         name = name_encoded
@@ -1850,7 +1865,7 @@ def login():
             # Если CP1251 декодирование не сработало, пробуем еще раз
             if not name_cp1251:
                 try:
-                    name_cp1251 = unquote(name_encoded, encoding='cp1251')
+                    name_cp1251 = unquote_plus(name_encoded, encoding='cp1251')
                 except:
                     name_cp1251 = None
         
