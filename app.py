@@ -35,9 +35,9 @@ def format_gender(value):
     value_str = str(value).strip()
 
     if value_str == '0':
-        return 'М'
+        return 'Тычинки'
     if value_str == '1':
-        return 'Ж'
+        return 'Пестики'
 
     return value_str or 'Не указан'
 
