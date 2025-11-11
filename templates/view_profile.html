@@ -16,10 +16,12 @@
                 <div class="profile-badges">
                     {% if user_roles %}
                         {% for role in user_roles %}
-                            <span class="role-badge">{{ role.display_name }}</span>
+                            {% if role.display_name|lower != 'пользователь' %}
+                                <a href="{{ url_for('role_view', role_name=role.name) }}" class="role-badge role-badge-link">
+                                    {{ role.display_name }}
+                                </a>
+                            {% endif %}
                         {% endfor %}
-                    {% else %}
-                        <span class="role-badge">Пользователь</span>
                     {% endif %}
                     {% if user_titles %}
                         {% for title in user_titles %}

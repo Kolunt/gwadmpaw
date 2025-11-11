@@ -1855,6 +1855,39 @@ body {
     margin-bottom: 0.25rem;
 }
 
+.role-badge-link {
+    text-decoration: none;
+    color: inherit;
+    transition: opacity 0.2s ease;
+}
+
+.role-badge-link:hover {
+    opacity: 0.85;
+}
+
+.role-user-link {
+    color: var(--accent-color);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.role-user-link:hover {
+    color: var(--accent-hover, #1e7e34);
+    text-decoration: underline;
+}
+
+.faq-admin-link {
+    color: var(--accent-color);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.faq-admin-link:hover {
+    color: var(--accent-hover, #1e7e34);
+    text-decoration: underline;
+}
+
 .badge-system {
     background-color: #17a2b8;
     color: white;

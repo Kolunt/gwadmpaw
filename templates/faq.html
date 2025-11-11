@@ -208,7 +208,7 @@
         {% endif %}
         
         <div class="faq-footer">
-            <p>Не нашли ответ на свой вопрос? Обратитесь к администраторам через раздел "Участники" или используйте контакты в вашем профиле.</p>
+            <p>Не нашли ответ на свой вопрос? Обратитесь к <a href="{{ url_for('role_view', role_name='admin') }}" class="faq-admin-link">администраторам</a>.</p>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
             <p style="margin-top: 1rem;">
                 <a href="{{ url_for('admin_faq') }}" class="btn btn-secondary">Перейти в управление FAQ</a>
