@@ -125,49 +125,51 @@
                             </form>
                         </div>
                         {% if event_data.as_recipient.get('santa_sent_at') %}
-                        <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
+                        <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px; display: grid; gap: 0.75rem;">
                             <p style="margin: 0.5rem 0;"><strong>Дед Мороз сообщил об отправке:</strong> {{ event_data.as_recipient.get('santa_sent_at') }}</p>
                             {% if event_data.as_recipient.get('santa_send_info') %}
                             <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Информация от Деда Мороза:</strong><br>{{ event_data.as_recipient.get('santa_send_info') }}</p>
                             {% endif %}
-                            {% if event_data.as_recipient.get('recipient_received_at') %}
-                            <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Вы подтвердили получение {{ event_data.as_recipient.get('recipient_received_at') }}</p>
-                            {% if event_data.as_recipient.get('recipient_thanks_message') %}
-                            <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Ваше сообщение:</strong><br>{{ event_data.as_recipient.get('recipient_thanks_message') | e | replace('\n', '<br>') | safe }}</p>
-                            {% endif %}
-                            {% if event_data.as_recipient.get('recipient_receipt_image') %}
-                            <div style="margin-top: 0.75rem;">
-                                <a href="{{ url_for('static', filename=event_data.as_recipient.get('recipient_receipt_image')) }}" target="_blank" rel="noopener" class="btn btn-light btn-sm" style="color: #333;">Посмотреть фотографию подарка</a>
+                            <div>
+                                {% if event_data.as_recipient.get('recipient_received_at') %}
+                                <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Вы подтвердили получение {{ event_data.as_recipient.get('recipient_received_at') }}</p>
+                                {% if event_data.as_recipient.get('recipient_thanks_message') %}
+                                <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Ваше сообщение:</strong><br>{{ event_data.as_recipient.get('recipient_thanks_message') | e | replace('\n', '<br>') | safe }}</p>
+                                {% endif %}
+                                {% if event_data.as_recipient.get('recipient_receipt_image') %}
+                                <div style="margin-top: 0.75rem;">
+                                    <a href="{{ url_for('static', filename=event_data.as_recipient.get('recipient_receipt_image')) }}" target="_blank" rel="noopener" class="btn btn-light btn-sm" style="color: #333;">Посмотреть фотографию подарка</a>
+                                </div>
+                                {% endif %}
+                                {% else %}
+                                <form method="POST" action="{{ url_for('assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" style="display: grid; gap: 0.75rem; margin-top: 0.5rem;">
+                                    <div>
+                                        <label for="thank_you_{{ event_data.as_recipient.get('id') }}" class="text-muted" style="font-weight: 600;">Сообщение благодарности</label>
+                                        <textarea
+                                            id="thank_you_{{ event_data.as_recipient.get('id') }}"
+                                            name="thank_you_message"
+                                            class="setting-input"
+                                            style="min-height: 100px; resize: vertical;"
+                                            placeholder="Напишите несколько тёплых слов своему Деду Морозу"
+                                            required
+                                        ></textarea>
+                                    </div>
+                                    <div>
+                                        <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" class="text-muted" style="font-weight: 600;">Фотография подарка</label>
+                                        <input
+                                            type="file"
+                                            id="receipt_image_{{ event_data.as_recipient.get('id') }}"
+                                            name="receipt_image"
+                                            accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
+                                            class="setting-input"
+                                            required
+                                        >
+                                        <span class="text-muted" style="font-size: 0.85rem;">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
+                                    </div>
+                                    <button type="submit" class="btn btn-light">Получил</button>
+                                </form>
+                                {% endif %}
                             </div>
-                            {% endif %}
-                            {% else %}
-                            <form method="POST" action="{{ url_for('assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" style="margin-top: 0.75rem; display: grid; gap: 0.75rem;">
-                                <div>
-                                    <label for="thank_you_{{ event_data.as_recipient.get('id') }}" class="text-muted" style="font-weight: 600;">Сообщение благодарности</label>
-                                    <textarea
-                                        id="thank_you_{{ event_data.as_recipient.get('id') }}"
-                                        name="thank_you_message"
-                                        class="setting-input"
-                                        style="min-height: 100px; resize: vertical;"
-                                        placeholder="Напишите несколько тёплых слов своему Деду Морозу"
-                                        required
-                                    ></textarea>
-                                </div>
-                                <div>
-                                    <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" class="text-muted" style="font-weight: 600;">Фотография подарка</label>
-                                    <input
-                                        type="file"
-                                        id="receipt_image_{{ event_data.as_recipient.get('id') }}"
-                                        name="receipt_image"
-                                        accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
-                                        class="setting-input"
-                                        required
-                                    >
-                                    <span class="text-muted" style="font-size: 0.85rem;">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
-                                </div>
-                                <button type="submit" class="btn btn-light">Получил</button>
-                            </form>
-                            {% endif %}
                         </div>
                         {% else %}
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
