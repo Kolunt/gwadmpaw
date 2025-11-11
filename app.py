@@ -4746,7 +4746,7 @@ def get_current_event_stage(event_id):
         if stage_type not in stages_dict:
             continue
         
-        stage = stages_dict[stage_type]
+        stage = dict(stages_dict[stage_type])
         
         # Проверяем, начался ли этап
         if stage['start_datetime']:
