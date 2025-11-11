@@ -5240,6 +5240,15 @@ def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_
             details=f'Получение подарка подтверждено по заданию #{assignment_id}',
             metadata={'assignment_id': assignment_id, 'event_id': assignment['event_id']}
         )
+        conn.execute('''
+            INSERT INTO letter_messages (assignment_id, sender, message, attachment_path)
+            VALUES (?, 'grandchild', ?, ?)
+        ''', (
+            assignment_id,
+            f"Дорогой Дед Мороз! Спасибо за подарок! {thank_you_message}",
+            receipt_relative_path
+        ))
+        conn.commit()
         return True, 'Получение подарка подтверждено'
     except Exception as e:
         log_error(f"Error marking assignment received (id={assignment_id}): {e}")
