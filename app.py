@@ -4747,11 +4747,6 @@ def get_current_event_stage(event_id):
             continue
         
         stage = stages_dict[stage_type]
-
-        # Пропускаем необязательные этапы без даты начала
-        if stage_info.get('has_start') and not stage_info.get('required') and not stage.get('start_datetime'):
-            log_debug(f"get_current_event_stage: skipping optional stage {stage_type} without start date for event {event_id}")
-            continue
         
         # Проверяем, начался ли этап
         if stage['start_datetime']:
@@ -6852,7 +6847,7 @@ def admin_event_create():
                 # Проверяем обязательность
                 is_required = 1 if stage['required'] else 0
                 is_optional = 1 if not stage['required'] else 0
-
+                
                 # Для обязательных этапов проверяем наличие даты начала
                 if stage['required'] and stage['has_start'] and not start_datetime:
                     flash(f'Дата начала этапа "{stage["name"]}" обязательна', 'error')
@@ -6860,11 +6855,6 @@ def admin_event_create():
                     conn.rollback()
                     conn.close()
                     return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES, awards=awards)
-
-                # Необязательные этапы без даты начала не сохраняем
-                if not stage['required'] and stage['has_start'] and not start_datetime:
-                    log_debug(f"Пропускаем этап {stage['type']} без даты начала (необязательный)")
-                    continue
                 
                 # Форматируем datetime для сохранения в БД
                 start_datetime_str = start_datetime.strftime('%Y-%m-%d %H:%M:%S') if start_datetime else None
@@ -8139,14 +8129,6 @@ def admin_event_edit(event_id):
                     conn.rollback()
                     conn.close()
                     return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
-
-                # Если этап необязательный и дата начала не указана, удаляем его (если существовал) и пропускаем
-                if not stage['required'] and stage['has_start'] and not start_datetime:
-                    if stage['type'] in stages_dict:
-                        log_debug(f"Удаляем этап {stage['type']} без даты начала (необязательный)")
-                        conn.execute('DELETE FROM event_stages WHERE event_id = ? AND stage_type = ?', (event_id, stage['type']))
-                        stages_dict.pop(stage['type'], None)
-                    continue
                 
                 # Проверяем последовательность дат
                 if start_datetime and previous_end and start_datetime < previous_end:
