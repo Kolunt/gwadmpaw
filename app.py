@@ -1067,6 +1067,36 @@ def get_user_titles(user_id):
     conn.close()
     return [dict(t) for t in titles]
 
+def get_users_with_title(title_id):
+    """Получает список пользователей, имеющих указанное звание"""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT 
+            u.user_id,
+            u.username,
+            u.level,
+            u.synd,
+            u.avatar_seed,
+            u.avatar_style,
+            u.created_at,
+            u.last_login,
+            ut.assigned_by,
+            ut.assigned_at,
+            COALESCE(admin.username, '') AS assigned_by_username
+        FROM user_titles ut
+        JOIN users u ON ut.user_id = u.user_id
+        LEFT JOIN users admin ON ut.assigned_by = admin.user_id
+        WHERE ut.title_id = ?
+        ORDER BY u.username COLLATE NOCASE
+    ''', (title_id,)).fetchall()
+    conn.close()
+
+    users = []
+    for row in rows:
+        record = dict(row)
+        users.append(record)
+    return users
+
 def get_title_by_name(title_name):
     """Получает звание по имени"""
     conn = get_db_connection()
@@ -8445,6 +8475,20 @@ def admin_letters():
     """Список всех переписок для администраторов"""
     assignments = get_admin_letter_assignments()
     return render_template('admin/letters.html', assignments=assignments)
+
+@app.route('/titles/<int:title_id>')
+def title_view(title_id):
+    """Публичный список пользователей с конкретным званием"""
+    conn = get_db_connection()
+    title = conn.execute('SELECT * FROM titles WHERE id = ?', (title_id,)).fetchone()
+    conn.close()
+
+    if not title:
+        flash('Звание не найдено', 'error')
+        return redirect(url_for('participants'))
+
+    users = get_users_with_title(title_id)
+    return render_template('title_view.html', title=dict(title), users=users, get_avatar_url=get_avatar_url)
 
 @app.route('/assignments/<int:assignment_id>/send', methods=['POST'])
 @require_login

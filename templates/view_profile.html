@@ -23,9 +23,11 @@
                     {% endif %}
                     {% if user_titles %}
                         {% for title in user_titles %}
-                            <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
-                                {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
-                            </span>
+                            <a href="{{ url_for('title_view', title_id=title.id) }}" class="title-badge-link">
+                                <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
+                                    {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+                                </span>
+                            </a>
                         {% endfor %}
                     {% endif %}
                     {% if user_awards %}
@@ -191,9 +193,9 @@
                                 </span>
                             </td>
                             <td class="title-name-cell" data-label="Название">
-                                <span class="title-name" style="color: {{ title.color }};">
+                                <a href="{{ url_for('title_view', title_id=title.id) }}" class="title-name-link" style="color: {{ title.color }};">
                                     {{ title.display_name }}
-                                </span>
+                                </a>
                             </td>
                             <td class="title-description-cell" data-label="Описание">
                                 {% if title.description %}

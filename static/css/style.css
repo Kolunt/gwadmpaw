@@ -1845,6 +1845,21 @@ body {
     margin-right: 0.5rem;
 }
 
+.title-badge-link {
+    text-decoration: none;
+    display: inline-block;
+}
+
+.title-badge-link:hover .title-badge,
+.title-name-link:hover {
+    text-decoration: underline;
+}
+
+.title-name-link {
+    text-decoration: none;
+    font-weight: 600;
+}
+
 /* Таблица званий */
 .titles-table {
     width: 100%;
