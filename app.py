@@ -1165,6 +1165,36 @@ def get_user_awards(user_id):
     conn.close()
     return [dict(a) for a in awards]
 
+def get_users_with_award(award_id):
+    """Получает список пользователей, имеющих указанную награду"""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT 
+            u.user_id,
+            u.username,
+            u.level,
+            u.synd,
+            u.avatar_seed,
+            u.avatar_style,
+            u.created_at,
+            u.last_login,
+            ua.assigned_by,
+            ua.assigned_at,
+            COALESCE(admin.username, '') AS assigned_by_username
+        FROM user_awards ua
+        JOIN users u ON ua.user_id = u.user_id
+        LEFT JOIN users admin ON ua.assigned_by = admin.user_id
+        WHERE ua.award_id = ?
+        ORDER BY u.username COLLATE NOCASE
+    ''', (award_id,)).fetchall()
+    conn.close()
+
+    users = []
+    for row in rows:
+        record = dict(row)
+        users.append(record)
+    return users
+
 def assign_award(user_id, award_id, assigned_by=None):
     """Назначает награду пользователю"""
     if not user_id or not award_id:
@@ -8489,6 +8519,20 @@ def title_view(title_id):
 
     users = get_users_with_title(title_id)
     return render_template('title_view.html', title=dict(title), users=users, get_avatar_url=get_avatar_url)
+
+@app.route('/awards/<int:award_id>')
+def award_view(award_id):
+    """Публичный список пользователей с конкретной наградой"""
+    conn = get_db_connection()
+    award = conn.execute('SELECT * FROM awards WHERE id = ?', (award_id,)).fetchone()
+    conn.close()
+
+    if not award:
+        flash('Награда не найдена', 'error')
+        return redirect(url_for('participants'))
+
+    users = get_users_with_award(award_id)
+    return render_template('award_view.html', award=dict(award), users=users, get_avatar_url=get_avatar_url)
 
 @app.route('/assignments/<int:assignment_id>/send', methods=['POST'])
 @require_login

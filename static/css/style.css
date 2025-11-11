@@ -1860,6 +1860,16 @@ body {
     font-weight: 600;
 }
 
+.award-name-link {
+    text-decoration: none;
+    color: inherit;
+    font-weight: 600;
+}
+
+.award-name-link:hover {
+    text-decoration: underline;
+}
+
 /* Таблица званий */
 .titles-table {
     width: 100%;

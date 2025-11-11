@@ -220,16 +220,18 @@
                     {% for award in user_awards %}
                     <div class="award-card" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; text-align: center; transition: transform 0.2s, box-shadow 0.2s;">
                         {% if award.image %}
-                        <div style="margin-bottom: 1rem;">
+                        <a href="{{ url_for('award_view', award_id=award.id) }}" style="display: inline-block; margin-bottom: 1rem;">
                             <img src="{{ award.image }}" alt="{{ award.title }}" style="max-width: 120px; max-height: 120px; width: auto; height: auto; border-radius: 8px;">
-                        </div>
+                        </a>
                         {% elif award.icon %}
-                        <div style="margin-bottom: 1rem; font-size: 4rem; line-height: 1;">
+                        <a href="{{ url_for('award_view', award_id=award.id) }}" style="display: inline-block; margin-bottom: 1rem; font-size: 4rem; line-height: 1; text-decoration: none;">
                             {{ award.icon }}
-                        </div>
+                        </a>
                         {% endif %}
                         <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">
-                            {% if award.icon and not award.image %}{{ award.icon }} {% endif %}{{ award.title }}
+                            <a href="{{ url_for('award_view', award_id=award.id) }}" class="award-name-link">
+                                {% if award.icon and not award.image %}{{ award.icon }} {% endif %}{{ award.title }}
+                            </a>
                         </h3>
                     </div>
                     {% endfor %}
