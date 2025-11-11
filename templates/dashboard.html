@@ -97,7 +97,7 @@
                 </div>
                 <div class="info-row">
                     <span class="info-label">{{ _('Gender:') }}</span>
-                    <span class="info-value">{{ user.usersex or _('Not specified') }}</span>
+                    <span class="info-value">{{ user.usersex|format_gender }}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">{{ _('Passport:') }}</span>

@@ -26,6 +26,21 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['VERSION'] = __version__
 
+@app.template_filter('format_gender')
+def format_gender(value):
+    """Convert gender codes (0/1) into human-readable labels."""
+    if value is None:
+        return 'Не указан'
+
+    value_str = str(value).strip()
+
+    if value_str == '0':
+        return 'М'
+    if value_str == '1':
+        return 'Ж'
+
+    return value_str or 'Не указан'
+
 LETTER_UPLOAD_RELATIVE = 'uploads/letter_attachments'
 LETTER_UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads', 'letter_attachments')
 ASSIGNMENT_RECEIPT_RELATIVE = 'uploads/assignment_receipts'
@@ -1286,7 +1301,6 @@ def require_login(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
-
 # Проверка подписи sign
 def verify_sign(username, user_id, sign, encoded_name=None):
     # Формируем подпись: md5(password + username + user_id)
@@ -4278,7 +4292,6 @@ def admin_faq_category_delete(category_id):
     
     conn.close()
     return redirect(url_for('admin_faq') + '#categories')
-
 def init_default_rules():
     """Инициализирует дефолтные правила для тестирования"""
     import json
@@ -5521,7 +5534,6 @@ def events():
         modal_texts[setting['key']] = setting['value']
     
     return render_template('events.html', events_with_stages=events_with_stages, modal_texts=modal_texts)
-
 @app.route('/events/<int:event_id>')
 def event_view(event_id):
     """Просмотр мероприятия для пользователей"""
@@ -6116,7 +6128,6 @@ def event_register(event_id):
         flash('Ошибка при регистрации', 'error')
 
     return redirect(url_for('event_view', event_id=event_id))
-
 @app.route('/api/profile/data', methods=['GET'])
 @require_login
 def api_profile_data():
@@ -6738,7 +6749,6 @@ def get_events_requiring_review():
     
     conn.close()
     return events
-
 @app.route('/admin/events')
 @require_role('admin')
 def admin_events():
@@ -8516,8 +8526,6 @@ def assignments():
             assignments_by_event[event_id]['as_recipient'] = assignment
     
     return render_template('assignments.html', assignments_by_event=assignments_by_event)
-
-
 @app.route('/admin/letters')
 @require_role('admin')
 def admin_letters():

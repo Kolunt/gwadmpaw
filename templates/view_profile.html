@@ -99,7 +99,7 @@
                 </div>
                 <div class="info-row">
                     <span class="info-label">Пол:</span>
-                    <span class="info-value">{{ user.usersex or 'Не указан' }}</span>
+                    <span class="info-value">{{ user.usersex|format_gender }}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Паспорт:</span>
