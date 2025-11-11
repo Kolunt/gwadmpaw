@@ -119,6 +119,17 @@
                     opacity: 0.8;
                     margin-top: 0.75rem;
                 }
+                .chat-attachment {
+                    margin-top: 0.75rem;
+                    border-radius: 14px;
+                    overflow: hidden;
+                    background: rgba(255, 255, 255, 0.08);
+                }
+                .chat-attachment img {
+                    display: block;
+                    width: 100%;
+                    height: auto;
+                }
             </style>
 
             <div class="chat-wrapper role-{{ user_role }}" id="chat-thread">
@@ -159,7 +170,16 @@
                             ✨ {{ letter.grandchild.first_name }}:
                         {% endif %}
                     </strong>
+                    {% if msg.message %}
                     <div style="margin-top: 0.5rem; white-space: pre-wrap;">{{ msg.message | e | replace('\n', '<br>') | safe }}</div>
+                    {% endif %}
+                    {% if msg.attachment_url %}
+                    <div class="chat-attachment">
+                        <a href="{{ msg.attachment_url }}" target="_blank" rel="noopener">
+                            <img src="{{ msg.attachment_url }}" alt="Изображение из сообщения" loading="lazy">
+                        </a>
+                    </div>
+                    {% endif %}
                     <span class="chat-meta">
                         {{ msg.created_display or msg.created_iso or letter.date }}
                     </span>
@@ -177,7 +197,7 @@
                             Вы общаетесь как <strong>Внучок</strong>. Сообщения от Деда Мороза добавляет ваш даритель.
                         {% endif %}
                     </p>
-                    <form id="letter-form" method="POST" action="{{ url_for('letter', assignment_id=assignment.id) }}" style="display: grid; gap: 1rem;">
+                    <form id="letter-form" method="POST" action="{{ url_for('letter', assignment_id=assignment.id) }}" enctype="multipart/form-data" style="display: grid; gap: 1rem;">
                         <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
                         <textarea
                             name="message"
@@ -185,8 +205,18 @@
                             class="setting-input"
                             style="min-height: 120px; resize: vertical;"
                             placeholder="{% if user_role == 'santa' %}Напишите ответ Деда Мороза...{% else %}Напишите письмо Деду Морозу...{% endif %}"
-                            required
                         ></textarea>
+                        <div style="display: grid; gap: 0.5rem;">
+                            <label for="letter-attachment-input" class="text-muted" style="font-weight: 600;">Изображение (необязательно)</label>
+                            <input
+                                type="file"
+                                name="attachment"
+                                id="letter-attachment-input"
+                                accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
+                                class="setting-input"
+                            >
+                            <span class="text-muted" style="font-size: 0.85rem;">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
+                        </div>
                         <button type="submit" class="btn btn-primary" style="justify-self: flex-start;">Отправить сообщение</button>
                     </form>
                 </div>
@@ -199,6 +229,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('letter-form');
     const textarea = document.getElementById('letter-message-input');
+    const fileInput = document.getElementById('letter-attachment-input');
     if (!form || !textarea) {
         return;
     }
@@ -206,7 +237,9 @@ document.addEventListener('DOMContentLoaded', function () {
     textarea.addEventListener('keydown', function (event) {
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
             event.preventDefault();
-            if (textarea.value.trim().length > 0) {
+            const hasText = textarea.value.trim().length > 0;
+            const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+            if (hasText || hasFile) {
                 form.submit();
             }
         }

@@ -19,11 +19,17 @@ try:
 except ImportError:
     requests = None
 from werkzeug.exceptions import HTTPException
+from werkzeug.utils import secure_filename
 import traceback
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['VERSION'] = __version__
+
+LETTER_UPLOAD_RELATIVE = 'uploads/letter_attachments'
+LETTER_UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads', 'letter_attachments')
+ALLOWED_LETTER_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+os.makedirs(LETTER_UPLOAD_FOLDER, exist_ok=True)
 
 # Настройка логирования (должно быть перед использованием log_error)
 logging.basicConfig(level=logging.DEBUG)
@@ -623,9 +629,14 @@ def init_db():
                 sender TEXT NOT NULL CHECK(sender IN ('santa','grandchild')),
                 message TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                attachment_path TEXT,
                 FOREIGN KEY (assignment_id) REFERENCES event_assignments(id) ON DELETE CASCADE
             )
         ''')
+        try:
+            c.execute('ALTER TABLE letter_messages ADD COLUMN attachment_path TEXT')
+        except sqlite3.OperationalError:
+            pass
         
         # Таблица категорий FAQ
         c.execute('''
@@ -5141,8 +5152,8 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
 
         if chat_message:
             conn.execute('''
-                INSERT INTO letter_messages (assignment_id, sender, message)
-                VALUES (?, 'santa', ?)
+                INSERT INTO letter_messages (assignment_id, sender, message, attachment_path)
+                VALUES (?, 'santa', ?, NULL)
             ''', (assignment_id, chat_message))
 
         conn.commit()
@@ -8090,24 +8101,54 @@ def letter():
     user_role = selected_assignment.get('chat_role', 'santa')
 
     if request.method == 'POST':
-        message = request.form.get('message', '').strip()
-        if not message:
-            flash('Введите сообщение перед отправкой.', 'error')
+        message = (request.form.get('message') or '').strip()
+        attachment_file = request.files.get('attachment')
+        has_attachment = attachment_file and attachment_file.filename
+
+        if not message and not has_attachment:
+            flash('Введите сообщение или прикрепите изображение.', 'error')
             return redirect(url_for('letter', assignment_id=selected_assignment.get('id')))
 
         if len(message) > 2000:
             message = message[:2000]
 
+        attachment_relative_path = None
+        saved_filepath = None
+
+        if has_attachment:
+            filename = secure_filename(attachment_file.filename)
+            _, ext = os.path.splitext(filename)
+            ext = ext.lower()
+            if ext not in ALLOWED_LETTER_IMAGE_EXTENSIONS:
+                flash('Допускается загрузка только изображений (PNG, JPG, JPEG, GIF, WEBP).', 'error')
+                return redirect(url_for('letter', assignment_id=selected_assignment.get('id')))
+
+            unique_name = f"{selected_assignment.get('id')}_{int(datetime.now().timestamp())}_{secrets.token_hex(4)}{ext}"
+            saved_filepath = os.path.join(LETTER_UPLOAD_FOLDER, unique_name)
+            try:
+                attachment_file.save(saved_filepath)
+            except Exception as exc:
+                log_error(f"Failed to save letter attachment {unique_name}: {exc}")
+                flash('Не удалось загрузить изображение.', 'error')
+                return redirect(url_for('letter', assignment_id=selected_assignment.get('id')))
+
+            attachment_relative_path = f"{LETTER_UPLOAD_RELATIVE}/{unique_name}"
+
         conn = get_db_connection()
         try:
             conn.execute('''
-                INSERT INTO letter_messages (assignment_id, sender, message)
-                VALUES (?, ?, ?)
-            ''', (selected_assignment.get('id'), user_role, message))
+                INSERT INTO letter_messages (assignment_id, sender, message, attachment_path)
+                VALUES (?, ?, ?, ?)
+            ''', (selected_assignment.get('id'), user_role, message, attachment_relative_path))
             conn.commit()
             flash('Сообщение отправлено.', 'success')
         except Exception as exc:
             conn.rollback()
+            if saved_filepath and os.path.exists(saved_filepath):
+                try:
+                    os.remove(saved_filepath)
+                except OSError:
+                    pass
             log_error(f"Error saving letter message for assignment {selected_assignment.get('id')}: {exc}")
             flash('Не удалось сохранить сообщение.', 'error')
         finally:
@@ -8181,7 +8222,7 @@ def letter():
 
     conn = get_db_connection()
     raw_messages = conn.execute('''
-        SELECT sender, message, created_at
+        SELECT sender, message, created_at, attachment_path
         FROM letter_messages
         WHERE assignment_id = ?
         ORDER BY created_at ASC, id ASC
@@ -8202,11 +8243,15 @@ def letter():
                     created_dt = None
             if created_dt:
                 created_display = created_dt.strftime('%d.%m.%Y %H:%M')
+        attachment_rel = row['attachment_path']
+        attachment_url = url_for('static', filename=attachment_rel) if attachment_rel else None
+
         chat_messages.append({
             'sender': row['sender'],
             'message': row['message'],
             'created_display': created_display,
-            'created_iso': str(created_raw) if created_raw is not None else ''
+            'created_iso': str(created_raw) if created_raw is not None else '',
+            'attachment_url': attachment_url
         })
 
     return render_template(
