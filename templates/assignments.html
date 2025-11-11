@@ -144,7 +144,7 @@
                                 {% else %}
                                 <form method="POST" action="{{ url_for('assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" style="display: grid; gap: 0.75rem; margin-top: 0.5rem;">
                                     <div>
-                                        <label for="thank_you_{{ event_data.as_recipient.get('id') }}" class="text-muted" style="font-weight: 600;">Сообщение благодарности</label>
+                                    <label for="thank_you_{{ event_data.as_recipient.get('id') }}" style="font-weight: 600;">Сообщение благодарности</label>
                                         <textarea
                                             id="thank_you_{{ event_data.as_recipient.get('id') }}"
                                             name="thank_you_message"
@@ -155,7 +155,7 @@
                                         ></textarea>
                                     </div>
                                     <div>
-                                        <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" class="text-muted" style="font-weight: 600;">Фотография подарка</label>
+                                    <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" style="font-weight: 600;">Фотография подарка</label>
                                         <input
                                             type="file"
                                             id="receipt_image_{{ event_data.as_recipient.get('id') }}"
@@ -164,7 +164,7 @@
                                             class="setting-input"
                                             required
                                         >
-                                        <span class="text-muted" style="font-size: 0.85rem;">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
+                                    <span style="font-size: 0.85rem;">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
                                     </div>
                                     <button type="submit" class="btn btn-light">Получил</button>
                                 </form>
