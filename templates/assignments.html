@@ -81,8 +81,8 @@
                             <p style="margin: 0.5rem 0; white-space: pre-wrap;">{{ thanks_message | e | replace('\n', '<br>') | safe }}</p>
                             {% endif %}
                             {% if thanks_image %}
-                            <div style="margin-top: 0.75rem;">
-                                <a href="{{ url_for('static', filename=thanks_image) }}" target="_blank" rel="noopener" class="btn btn-light btn-sm" style="color: #333;">Посмотреть фотографию подарка</a>
+                            <div style="margin-top: 0.75rem; display: inline-flex;">
+                                <a href="{{ url_for('static', filename=thanks_image) }}" target="_blank" rel="noopener" class="btn btn-light btn-sm">Посмотреть фотографию подарка</a>
                             </div>
                             {% endif %}
                         </div>
@@ -137,9 +137,9 @@
                                 <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Ваше сообщение:</strong><br>{{ event_data.as_recipient.get('recipient_thanks_message') | e | replace('\n', '<br>') | safe }}</p>
                                 {% endif %}
                                 {% if event_data.as_recipient.get('recipient_receipt_image') %}
-                                <div style="margin-top: 0.75rem;">
-                                    <a href="{{ url_for('static', filename=event_data.as_recipient.get('recipient_receipt_image')) }}" target="_blank" rel="noopener" class="btn btn-light btn-sm" style="color: #333;">Посмотреть фотографию подарка</a>
-                                </div>
+                            <div style="margin-top: 0.75rem; display: inline-flex;">
+                                <a href="{{ url_for('static', filename=event_data.as_recipient.get('recipient_receipt_image')) }}" target="_blank" rel="noopener" class="btn btn-light btn-sm">Посмотреть фотографию подарка</a>
+                            </div>
                                 {% endif %}
                                 {% else %}
                                 <form method="POST" action="{{ url_for('assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" style="display: grid; gap: 0.75rem; margin-top: 0.5rem;">
