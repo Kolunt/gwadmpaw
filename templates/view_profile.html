@@ -356,7 +356,7 @@
                     <span class="info-value">{{ user.bio }}</span>
                 </div>
                 {% endif %}
-                {% if user.contact_info %}
+                {% if user.contact_info and is_admin %}
                 <div class="info-row">
                     <span class="info-label">Контакты:</span>
                     <span class="info-value">{{ user.contact_info }}</span>
