@@ -63,7 +63,7 @@
                             <td data-label="Назначил">{{ user.assigned_by_username or '—' }}</td>
                             <td data-label="Дата назначения">{{ user.assigned_at or '—' }}</td>
                             <td data-label="Профиль">
-                                <a href="{{ url_for('view_profile', user_id=user.user_id) }}" class="btn btn-success btn-sm">Открыть</a>
+                                <a href="{{ url_for('view_profile', user_id=user.user_id) }}" class="award-profile-btn">Открыть</a>
                             </td>
                         </tr>
                         {% endfor %}

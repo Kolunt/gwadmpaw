@@ -1,3 +1,25 @@
+.award-profile-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    border: 2px solid #2e7d32;
+    color: #1b5e20;
+    background: linear-gradient(135deg, #a5d6a7 0%, #81c784 100%);
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.award-profile-btn:hover,
+.award-profile-btn:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(46, 125, 50, 0.28);
+    text-decoration: none;
+    color: #1b5e20;
+}
 .assignments-event-link {
     color: var(--success-color);
     text-decoration: none;
