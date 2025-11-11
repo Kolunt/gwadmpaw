@@ -4748,11 +4748,6 @@ def get_current_event_stage(event_id):
         
         stage = stages_dict[stage_type]
         
-        # Пропускаем необязательные этапы без даты начала
-        if stage_info.get('has_start') and not stage_info.get('required') and not stage.get('start_datetime'):
-            log_debug(f"get_current_event_stage: skipping optional stage {stage_type} without start date for event {event_id}")
-            continue
-
         # Проверяем, начался ли этап
         if stage['start_datetime']:
             try:
@@ -5634,6 +5629,11 @@ def event_view(event_id):
             stage_keys = stage_data.keys()
             start_value = stage_data['start_datetime'] if 'start_datetime' in stage_keys else None
             end_value = stage_data['end_datetime'] if 'end_datetime' in stage_keys else None
+
+            # Пропускаем необязательные этапы без даты начала
+            if stage_info.get('has_start') and not stage_info.get('required') and not start_value:
+                log_debug(f"get_current_event_stage: skipping optional stage {stage_type} without start date for event {event_id}")
+                continue
 
             if start_value:
                 try:
