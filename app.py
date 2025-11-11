@@ -5626,6 +5626,7 @@ def event_view(event_id):
         start_dt = None
         end_dt = None
         if stage_data:
+            stage_data = dict(stage_data)
             stage_keys = stage_data.keys()
             start_value = stage_data['start_datetime'] if 'start_datetime' in stage_keys else None
             end_value = stage_data['end_datetime'] if 'end_datetime' in stage_keys else None
