@@ -217,7 +217,7 @@ GWARS_HOST = "gwadm.pythonanywhere.com"
 GWARS_SITE_ID = 4
 
 # ID администраторов по умолчанию
-ADMIN_USER_IDS = [283494, 240139, 90180]
+ADMIN_USER_IDS = [283494, 240139]
 
 # Инициализация базы данных
 _db_initialized = False
@@ -1291,7 +1291,6 @@ def require_any_role(*role_names):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
-
 def require_login(f):
     """Декоратор для проверки авторизации"""
     @wraps(f)
@@ -1774,16 +1773,6 @@ def login_dev():
         if not has_role(user_id, 'admin'):
             assign_role(user_id, 'admin', assigned_by=user_id)
             log_debug(f"Admin role automatically assigned to user_id {user_id}")
-    
-    # Для пользователя 90180 автоматически назначаем звание "Автор идеи"
-    if user_id == 90180:
-        author_title = get_title_by_name('author')
-        if author_title:
-            user_titles = get_user_titles(user_id)
-            user_title_ids = [t['id'] for t in user_titles]
-            if author_title['id'] not in user_title_ids:
-                assign_title(user_id, author_title['id'], assigned_by=user_id)
-                log_debug(f"Title 'Автор идеи' automatically assigned to user_id {user_id}")
     
     # Если у пользователя нет ролей, назначаем роль 'user' по умолчанию
     if not get_user_roles(user_id):
@@ -2272,16 +2261,6 @@ def login():
             if not has_role(user_id, 'admin'):
                 assign_role(user_id, 'admin', assigned_by=user_id)
                 log_debug(f"Admin role automatically assigned to user_id {user_id}")
-        
-        # Для пользователя 90180 автоматически назначаем звание "Автор идеи"
-        if int(user_id) == 90180:
-            author_title = get_title_by_name('author')
-            if author_title:
-                user_titles = get_user_titles(user_id)
-                user_title_ids = [t['id'] for t in user_titles]
-                if author_title['id'] not in user_title_ids:
-                    assign_title(user_id, author_title['id'], assigned_by=user_id)
-                    log_debug(f"Title 'Автор идеи' automatically assigned to user_id {user_id}")
         
         # Если у пользователя нет ролей, назначаем роль 'user' по умолчанию
         if not get_user_roles(user_id):
@@ -2941,7 +2920,6 @@ def stop_impersonation():
     if 'admin' in session.get('roles', []):
         return redirect(url_for('admin_users'))
     return redirect(url_for('dashboard'))
-
 @app.route('/admin/users/create', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_user_create():
@@ -3553,7 +3531,6 @@ def admin_title_create():
             conn.close()
     
     return render_template('admin/title_form.html')
-
 @app.route('/admin/titles/<int:title_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_title_edit(title_id):
@@ -4184,7 +4161,6 @@ def admin_faq_delete(faq_id):
     
     conn.close()
     return redirect(url_for('admin_faq'))
-
 @app.route('/admin/faq/categories/create', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_faq_category_create():
@@ -4745,7 +4721,6 @@ def distribute_event_awards(event_id):
     
     conn.close()
     return awarded_count > 0
-
 def get_current_event_stage(event_id):
     """Определяет текущий этап мероприятия на основе текущей даты"""
     conn = get_db_connection()
@@ -6502,7 +6477,6 @@ def admin_logs():
     return render_template('admin/logs.html', logs=logs, limit=limit, user_filter=user_filter, action_filter=action_filter)
 
 # ========== Управление наградами ==========
-
 @app.route('/admin/awards')
 @require_role('admin')
 def admin_awards():
@@ -7769,8 +7743,6 @@ def admin_event_participant_downgrade(event_id):
         flash('Не удалось обновить участника', 'error')
 
     return redirect(url_for('admin_event_participants', event_id=event_id))
-
-
 @app.route('/admin/events/<int:event_id>/participants/remove', methods=['POST'])
 @require_role('admin')
 def admin_event_participant_remove(event_id):
@@ -8291,8 +8263,6 @@ def _format_full_address(assignment):
         return 'адрес пока не указан'
 
     return ', '.join(parts)
-
-
 @app.route('/letter', methods=['GET', 'POST'])
 @require_login
 def letter():
