@@ -69,7 +69,7 @@
                 📞 Контакты
             </a>
             {% endif %}
-            {% if user.bio or user.contact_info %}
+            {% if show_about %}
             <a href="{{ url_for('view_profile', user_id=user.user_id) }}#about" 
                class="dashboard-tab" 
                data-tab="about">
@@ -347,19 +347,19 @@
         {% endif %}
 
         <!-- Содержимое таба "О себе" -->
-        {% if user.bio or user.contact_info %}
+        {% if show_about %}
         <div class="dashboard-tab-content" data-tab="about">
             <div class="profile-user-info">
-                {% if user.bio %}
+                {% if bio_to_display %}
                 <div class="info-row">
                     <span class="info-label">О себе:</span>
-                    <span class="info-value">{{ user.bio }}</span>
+                    <span class="info-value">{{ bio_to_display }}</span>
                 </div>
                 {% endif %}
-                {% if user.contact_info and is_admin %}
+                {% if contact_info_to_display %}
                 <div class="info-row">
                     <span class="info-label">Контакты:</span>
-                    <span class="info-value">{{ user.contact_info }}</span>
+                    <span class="info-value">{{ contact_info_to_display }}</span>
                 </div>
                 {% endif %}
             </div>

@@ -2549,10 +2549,23 @@ def view_profile(user_id):
     conn.close()
     
     # Проверяем, является ли это профилем текущего пользователя (если авторизован)
-    is_own_profile = session.get('user_id') == user_id if 'user_id' in session else False
+    session_user_id = session.get('user_id')
+    try:
+        session_user_id_int = int(session_user_id) if session_user_id is not None else None
+    except (TypeError, ValueError):
+        session_user_id_int = None
+    is_own_profile = session_user_id_int == user_id
     is_admin = 'admin' in session.get('roles', []) if 'roles' in session else False
     impersonation_active = bool(session.get('impersonation_original'))
     can_impersonate = is_admin and not is_own_profile and not impersonation_active
+
+    user_keys = user.keys()
+    user_bio = user['bio'] if 'bio' in user_keys else None
+    user_contact_info = user['contact_info'] if 'contact_info' in user_keys else None
+
+    show_about = bool(user_bio or user_contact_info) and (is_admin or is_own_profile)
+    bio_to_display = user_bio if show_about else None
+    contact_info_to_display = user_contact_info if show_about and is_admin else None
     
     return render_template(
         'view_profile.html',
@@ -2563,7 +2576,10 @@ def view_profile(user_id):
         is_own_profile=is_own_profile,
         is_admin=is_admin,
         can_impersonate=can_impersonate,
-        impersonation_active=impersonation_active
+        impersonation_active=impersonation_active,
+        show_about=show_about,
+        bio_to_display=bio_to_display,
+        contact_info_to_display=contact_info_to_display
     )
 @app.route('/participants')
 def participants():
