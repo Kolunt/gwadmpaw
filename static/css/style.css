@@ -2347,7 +2347,7 @@ body {
 
 @media (max-width: 768px) {
     .faq-container {
-        padding: 1rem;
+        padding: 1rem 0.5rem;
     }
     
     .faq-container h1 {
@@ -3218,6 +3218,26 @@ body {
     margin-bottom: 0.75rem;
     color: var(--text-secondary);
     font-size: 0.9rem;
+}
+
+.registration-hint {
+    margin-top: 1.25rem;
+    padding: 1rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--accent-color);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.registration-hint-icon {
+    font-size: 1.1rem;
+    line-height: 1.2;
 }
 
 .form-grid-two {

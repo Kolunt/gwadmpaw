@@ -41,7 +41,7 @@
 .rules-content {
     background-color: var(--bg-card);
     border-radius: 8px;
-    padding: 2rem;
+    padding: 2rem 2rem 2rem 0;
     line-height: 1.8;
     color: var(--text-primary);
 }
@@ -56,7 +56,6 @@
 .rule-item {
     counter-increment: rule-counter;
     margin-bottom: 1.5rem;
-    padding-left: 2rem;
     position: relative;
 }
 
@@ -70,6 +69,29 @@
 
 .rule-text {
     color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .rules-content {
+        padding: 1.25rem 0;
+        text-align: justify;
+    }
+
+    .rule-item {
+        padding-left: 0;
+    }
+
+    .rule-text,
+    .rules-content p,
+    .rules-content li {
+        text-align: justify;
+    }
+
+    .rules-content ul,
+    .rules-content ol {
+        padding-left: 0;
+        list-style-position: inside;
+    }
 }
 
 /* Для старых HTML правил */
@@ -95,9 +117,11 @@
     margin-bottom: 1rem;
 }
 
-.rules-content ul, .rules-content ol {
+.rules-content ul,
+.rules-content ol {
     margin-bottom: 1rem;
-    padding-left: 2rem;
+    padding-left: 0;
+    list-style-position: inside;
 }
 
 .rules-content li {
