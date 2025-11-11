@@ -4617,12 +4617,14 @@ AVATAR_STYLES = ['avataaars', 'bottts', 'identicon', 'initials', 'micah']
 def is_event_finished(event_id):
     """Проверяет, закончилось ли мероприятие полностью"""
     conn = get_db_connection()
-    stages = conn.execute('''
+    stage_rows = conn.execute('''
         SELECT * FROM event_stages 
         WHERE event_id = ? 
         ORDER BY stage_order
     ''', (event_id,)).fetchall()
     conn.close()
+
+    stages = [dict(row) for row in stage_rows]
     
     if not stages:
         return False
@@ -4703,13 +4705,15 @@ def distribute_event_awards(event_id):
 def get_current_event_stage(event_id):
     """Определяет текущий этап мероприятия на основе текущей даты"""
     conn = get_db_connection()
-    stages = conn.execute('''
+    stage_rows = conn.execute('''
         SELECT * FROM event_stages 
         WHERE event_id = ? 
         ORDER BY stage_order
     ''', (event_id,)).fetchall()
     conn.close()
-    
+
+    stages = [dict(row) for row in stage_rows]
+
     if not stages:
         return None
     
