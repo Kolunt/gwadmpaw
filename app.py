@@ -28,8 +28,11 @@ app.config['VERSION'] = __version__
 
 LETTER_UPLOAD_RELATIVE = 'uploads/letter_attachments'
 LETTER_UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads', 'letter_attachments')
+ASSIGNMENT_RECEIPT_RELATIVE = 'uploads/assignment_receipts'
+ASSIGNMENT_RECEIPT_FOLDER = os.path.join(app.static_folder, 'uploads', 'assignment_receipts')
 ALLOWED_LETTER_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
 os.makedirs(LETTER_UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(ASSIGNMENT_RECEIPT_FOLDER, exist_ok=True)
 
 # Настройка логирования (должно быть перед использованием log_error)
 logging.basicConfig(level=logging.DEBUG)
@@ -591,6 +594,8 @@ def init_db():
                 santa_sent_at TIMESTAMP,
                 santa_send_info TEXT,
                 recipient_received_at TIMESTAMP,
+                recipient_thanks_message TEXT,
+                recipient_receipt_image TEXT,
                 FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
                 FOREIGN KEY (santa_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
                 FOREIGN KEY (recipient_user_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -618,6 +623,14 @@ def init_db():
             pass
         try:
             c.execute('ALTER TABLE event_assignments ADD COLUMN assignment_locked INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE event_assignments ADD COLUMN recipient_thanks_message TEXT')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE event_assignments ADD COLUMN recipient_receipt_image TEXT')
         except sqlite3.OperationalError:
             pass
 
@@ -5169,7 +5182,7 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
         return False, 'Не удалось сохранить информацию об отправке'
     finally:
         conn.close()
-def mark_assignment_received(assignment_id, user_id):
+def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_file):
     """Отмечает, что подарок получен"""
     conn = get_db_connection()
     assignment = conn.execute('SELECT * FROM event_assignments WHERE id = ?', (assignment_id,)).fetchone()
@@ -5185,13 +5198,42 @@ def mark_assignment_received(assignment_id, user_id):
     if not assignment['santa_sent_at']:
         conn.close()
         return False, 'Даритель еще не отметил отправку подарка'
-    
+    conn.close()
+
+    thank_you_message = (thank_you_message or '').strip()
+    if not thank_you_message:
+        return False, 'Напишите спасибо для Деда Мороза.'
+    if len(thank_you_message) > 1000:
+        thank_you_message = thank_you_message[:1000]
+
+    if not receipt_file or not receipt_file.filename:
+        return False, 'Приложите фотографию подарка.'
+
+    filename = secure_filename(receipt_file.filename)
+    _, ext = os.path.splitext(filename)
+    ext = ext.lower()
+    if ext not in ALLOWED_LETTER_IMAGE_EXTENSIONS:
+        return False, 'Допускается загрузка только изображений (PNG, JPG, JPEG, GIF, WEBP).'
+
+    unique_name = f"{assignment_id}_{int(datetime.now().timestamp())}_{secrets.token_hex(4)}{ext}"
+    saved_filepath = os.path.join(ASSIGNMENT_RECEIPT_FOLDER, unique_name)
+    try:
+        receipt_file.save(saved_filepath)
+    except Exception as exc:
+        log_error(f"Failed to save assignment receipt image {unique_name}: {exc}")
+        return False, 'Не удалось загрузить изображение.'
+
+    receipt_relative_path = f"{ASSIGNMENT_RECEIPT_RELATIVE}/{unique_name}"
+
+    conn = get_db_connection()
     try:
         conn.execute('''
             UPDATE event_assignments
-            SET recipient_received_at = CURRENT_TIMESTAMP
+            SET recipient_received_at = CURRENT_TIMESTAMP,
+                recipient_thanks_message = ?,
+                recipient_receipt_image = ?
             WHERE id = ?
-        ''', (assignment_id,))
+        ''', (thank_you_message, receipt_relative_path, assignment_id))
         conn.commit()
         log_activity(
             'assignment_received',
@@ -5202,6 +5244,11 @@ def mark_assignment_received(assignment_id, user_id):
     except Exception as e:
         log_error(f"Error marking assignment received (id={assignment_id}): {e}")
         conn.rollback()
+        try:
+            if os.path.exists(saved_filepath):
+                os.remove(saved_filepath)
+        except OSError:
+            pass
         return False, 'Не удалось подтвердить получение подарка'
     finally:
         conn.close()
@@ -8315,8 +8362,15 @@ def assignment_mark_sent(assignment_id):
 def assignment_mark_received(assignment_id):
     """Обработчик подтверждения получения подарка"""
     user_id = session.get('user_id')
-    
-    success, message = mark_assignment_received(assignment_id, user_id)
+    thank_you_message = (request.form.get('thank_you_message') or '').strip()
+    receipt_file = request.files.get('receipt_image')
+
+    success, message = mark_assignment_received(
+        assignment_id,
+        user_id,
+        thank_you_message,
+        receipt_file
+    )
     flash(message, 'success' if success else 'error')
     
     return redirect(url_for('assignments'))
