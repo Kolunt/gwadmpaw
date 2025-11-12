@@ -210,7 +210,7 @@ def get_locale():
                 conn = get_db_connection()
                 user = conn.execute('SELECT language FROM users WHERE user_id = ?', (session['user_id'],)).fetchone()
                 conn.close()
-                if user and user.get('language') and user['language'] in app.config['LANGUAGES']:
+                if user and dict(user).get('language') and user['language'] in app.config['LANGUAGES']:
                     return user['language']
             except Exception as e:
                 log_error(f"Error getting user language: {e}")
