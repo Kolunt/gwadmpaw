@@ -12,21 +12,13 @@
             {% endif %}
         </div>
         
-        {% if faq_by_category %}
+        {% if faq_sections %}
         {# Динамический контент из БД #}
-        {% for category, items in faq_by_category.items() %}
+        {% for section in faq_sections %}
         <div class="faq-section">
-            <h2>
-                {% if category == 'general' %}Общие вопросы
-                {% elif category == 'events' %}Мероприятия
-                {% elif category == 'profile' %}Профиль и настройки
-                {% elif category == 'technical' %}Технические вопросы
-                {% elif category == 'security' %}Безопасность и конфиденциальность
-                {% else %}{{ category|title }}
-                {% endif %}
-            </h2>
+            <h2>{{ section.display_name }}</h2>
             
-            {% for item in items %}
+            {% for item in section.items %}
             <div class="faq-item">
                 <div class="faq-question">
                     <h3>{{ item.question }}</h3>

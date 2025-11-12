@@ -6656,9 +6656,61 @@ def gwars_required():
 
 @app.route('/faq')
 def faq():
-    """Страница с часто задаваемыми вопросами (всегда показывает статический контент)"""
-    # Всегда используем статический контент (дефолтный)
-    return render_template('faq.html', faq_by_category=None)
+    """Страница с часто задаваемыми вопросами"""
+    conn = get_db_connection()
+    categories_rows = conn.execute('''
+        SELECT name, display_name
+        FROM faq_categories
+        WHERE is_active = 1
+        ORDER BY sort_order, display_name
+    ''').fetchall()
+    items_rows = conn.execute('''
+        SELECT question, answer, category, sort_order, id
+        FROM faq_items
+        WHERE is_active = 1
+        ORDER BY sort_order, id
+    ''').fetchall()
+    conn.close()
+
+    from collections import OrderedDict
+
+    def _format_category_label(key: str, display: str | None) -> str:
+        if display:
+            return display
+        mapping = {
+            'general': 'Общие вопросы',
+            'events': 'Мероприятия',
+            'profile': 'Профиль и настройки',
+            'technical': 'Технические вопросы',
+            'security': 'Безопасность и конфиденциальность',
+        }
+        return mapping.get(key, key.replace('_', ' ').title())
+
+    sections = OrderedDict()
+    for row in categories_rows:
+        key = row['name']
+        sections[key] = {
+            'key': key,
+            'display_name': _format_category_label(key, row['display_name']),
+            'items': []
+        }
+
+    for item in items_rows:
+        key = (item['category'] or '').strip() or 'general'
+        if key not in sections:
+            sections[key] = {
+                'key': key,
+                'display_name': _format_category_label(key, None),
+                'items': []
+            }
+        sections[key]['items'].append({
+            'question': item['question'],
+            'answer': item['answer']
+        })
+
+    faq_sections = [section for section in sections.values() if section['items']]
+
+    return render_template('faq.html', faq_sections=faq_sections)
 
 
 @app.route('/rules')
