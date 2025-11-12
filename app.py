@@ -5360,6 +5360,11 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
     if len(send_info) > 500:
         send_info = send_info[:500]
     
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        return False, 'Некорректный идентификатор пользователя'
+    
     conn = get_db_connection()
     assignment = conn.execute('SELECT * FROM event_assignments WHERE id = ?', (assignment_id,)).fetchone()
     
@@ -5367,7 +5372,7 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
         conn.close()
         return False, 'Задание не найдено'
     
-    if assignment['santa_user_id'] != user_id:
+    if assignment['santa_user_id'] != user_id_int:
         conn.close()
         return False, 'Вы не можете обновить это задание'
     
@@ -5407,6 +5412,11 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
         conn.close()
 def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_file):
     """Отмечает, что подарок получен"""
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        return False, 'Некорректный идентификатор пользователя'
+    
     conn = get_db_connection()
     assignment = conn.execute('SELECT * FROM event_assignments WHERE id = ?', (assignment_id,)).fetchone()
     
@@ -5414,7 +5424,7 @@ def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_
         conn.close()
         return False, 'Задание не найдено'
     
-    if assignment['recipient_user_id'] != user_id:
+    if assignment['recipient_user_id'] != user_id_int:
         conn.close()
         return False, 'Вы не можете обновить это задание'
     
