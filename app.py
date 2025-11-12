@@ -5,7 +5,7 @@ from flask import(
 from urllib.parse import unquote, unquote_plus, unquote_to_bytes, quote
 import hashlib
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import logging
 from functools import wraps
@@ -62,7 +62,12 @@ def parse_event_datetime(value):
             continue
 
     try:
-        return datetime.fromisoformat(value_str)
+        result = datetime.fromisoformat(value_str)
+        if result.tzinfo is not None:
+            result = result.astimezone(timezone.utc).replace(tzinfo=None)
+            if EVENT_TIME_OFFSET_HOURS:
+                result += timedelta(hours=EVENT_TIME_OFFSET_HOURS)
+        return result
     except ValueError:
         return None
 
