@@ -4770,7 +4770,7 @@ def get_current_event_stage(event_id):
     if not stages:
         return None
     
-    now = get_event_now()
+    now = datetime.now()
     
     # Проверяем, начался ли этап "Закрытие регистрации" - если да, создаем записи для ревью
     registration_closed_stage = None
@@ -5617,18 +5617,29 @@ def event_view(event_id):
     pre_stage_start_dt = None
     if 'main_registration' in stages_dict:
         main_stage_row = stages_dict['main_registration']
-        main_start_val = main_stage_row.get('start_datetime')
+        main_keys = main_stage_row.keys()
+        main_start_val = main_stage_row['start_datetime'] if 'start_datetime' in main_keys else None
         if main_start_val:
-            main_stage_start_dt = parse_event_datetime(str(main_start_val))
+            try:
+                main_stage_start_dt = datetime.fromisoformat(str(main_start_val))
+            except ValueError:
+                main_stage_start_dt = None
     if 'pre_registration' in stages_dict:
         pre_stage_row = stages_dict['pre_registration']
-        pre_start_val = pre_stage_row.get('start_datetime')
+        pre_keys = pre_stage_row.keys()
+        pre_start_val = pre_stage_row['start_datetime'] if 'start_datetime' in pre_keys else None
         if pre_start_val:
-            pre_stage_start_dt = parse_event_datetime(str(pre_start_val))
+            try:
+                pre_stage_start_dt = datetime.fromisoformat(str(pre_start_val))
+            except ValueError:
+                pre_stage_start_dt = None
 
     registration_dt = None
     if registration_row and registration_row['registered_at']:
-        registration_dt = parse_event_datetime(str(registration_row['registered_at']))
+        try:
+            registration_dt = datetime.fromisoformat(str(registration_row['registered_at']))
+        except ValueError:
+            registration_dt = None
 
     needs_main_confirmation = False
     if (
@@ -5662,10 +5673,16 @@ def event_view(event_id):
                 continue
 
             if start_value:
-                start_dt = parse_event_datetime(str(start_value))
+                try:
+                    start_dt = datetime.fromisoformat(str(start_value))
+                except ValueError:
+                    start_dt = None
 
             if end_value:
-                end_dt = parse_event_datetime(str(end_value))
+                try:
+                    end_dt = datetime.fromisoformat(str(end_value))
+                except ValueError:
+                    end_dt = None
 
             # Проверяем, является ли это текущим этапом
             if current_stage_type == stage_type:
