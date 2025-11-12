@@ -36,6 +36,36 @@ except ValueError:
 def get_event_now():
     return datetime.utcnow() + timedelta(hours=EVENT_TIME_OFFSET_HOURS)
 
+def parse_event_datetime(value):
+    """Безопасно парсит сохранённые в БД даты этапов в объект datetime."""
+    if not value:
+        return None
+
+    if isinstance(value, datetime):
+        return value
+
+    value_str = str(value).strip()
+    if not value_str:
+        return None
+
+    formats = (
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M',
+        '%Y-%m-%d %H:%M',
+    )
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(value_str, fmt)
+        except ValueError:
+            continue
+
+    try:
+        return datetime.fromisoformat(value_str)
+    except ValueError:
+        return None
+
 @app.template_filter('format_gender')
 def format_gender(value):
     """Convert gender codes (0/1) into human-readable labels."""
