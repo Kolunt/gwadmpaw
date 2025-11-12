@@ -5005,7 +5005,6 @@ def get_event_registrations_count(event_id):
     ''', (event_id,)).fetchone()
     conn.close()
     return count['count'] if count else 0
-
 def get_event_registrations(event_id):
     """Получает список зарегистрированных пользователей на мероприятие"""
     conn = get_db_connection()
@@ -6698,6 +6697,7 @@ def faq():
                 'entries': []
             }
         sections[key]['entries'].append({
+            'id': item['id'],
             'question': item['question'],
             'answer': item['answer']
         })

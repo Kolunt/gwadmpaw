@@ -4730,3 +4730,32 @@ html.dark .avatar-candidate-img {
     background-color: #28a745;
 }
 
+.faq-question h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    flex: 1;
+}
+
+.faq-question-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.75rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 1rem;
+    opacity: 0;
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.faq-question:hover .faq-question-link,
+.faq-question-link:focus {
+    opacity: 1;
+}
+
+.faq-question-link:hover {
+    color: var(--accent-color);
+}
+
