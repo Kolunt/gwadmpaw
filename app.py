@@ -784,7 +784,6 @@ def init_db():
                 FOREIGN KEY (updated_by) REFERENCES users(user_id)
             )
         ''')
-        
         # Таблица FAQ
         c.execute('''
             CREATE TABLE IF NOT EXISTS faq_items (
@@ -1539,7 +1538,6 @@ def verify_sign4(sign3, sign4):
     log_error(f"verify_sign4: FAILED. Received sign4={sign4}, sign3={sign3}")
     log_error(f"verify_sign4: Checked dates: {dates_to_check}")
     return False
-
 @app.context_processor
 def inject_default_theme():
     """Добавляет настройку темы по умолчанию и функции во все шаблоны"""
@@ -3436,7 +3434,6 @@ def admin_user_roles(user_id):
 def admin_roles():
     """Редирект на вкладку ролей в управлении пользователями"""
     return redirect(url_for('admin_users') + '#roles')
-
 @app.route('/admin/roles/create', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_role_create():
@@ -4209,7 +4206,6 @@ def admin_faq_create():
             return render_template('admin/faq_form.html', categories=categories)
     
     return render_template('admin/faq_form.html', categories=categories)
-
 @app.route('/admin/faq/<int:faq_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_faq_edit(faq_id):
@@ -5000,7 +4996,6 @@ def is_user_registered(event_id, user_id):
     ''', (event_id, user_id)).fetchone()
     conn.close()
     return registration is not None
-
 def get_event_registrations_count(event_id):
     """Получает количество зарегистрированных пользователей на мероприятие"""
     conn = get_db_connection()
@@ -6508,7 +6503,6 @@ def api_profile_data():
         log_error(traceback.format_exc())
         conn.close()
         return jsonify({'error': f'Ошибка получения данных: {str(e)}'}), 500
-
 @app.route('/api/profile/update', methods=['POST'])
 @require_login
 def api_profile_update():
@@ -6692,7 +6686,7 @@ def faq():
         sections[key] = {
             'key': key,
             'display_name': _format_category_label(key, row['display_name']),
-            'items': []
+            'entries': []
         }
 
     for item in items_rows:
@@ -6701,14 +6695,14 @@ def faq():
             sections[key] = {
                 'key': key,
                 'display_name': _format_category_label(key, None),
-                'items': []
+                'entries': []
             }
-        sections[key]['items'].append({
+        sections[key]['entries'].append({
             'question': item['question'],
             'answer': item['answer']
         })
 
-    faq_sections = [section for section in sections.values() if section['items']]
+    faq_sections = [section for section in sections.values() if section['entries']]
 
     return render_template('faq.html', faq_sections=faq_sections)
 
@@ -7277,7 +7271,6 @@ def admin_event_create():
     awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
     conn.close()
     return render_template('admin/event_form.html', event=None, stages=EVENT_STAGES, awards=awards)
-
 @app.route('/admin/events/<int:event_id>')
 @require_role('admin')
 def admin_event_view(event_id):
@@ -8059,8 +8052,6 @@ def admin_event_participant_upgrade(event_id):
         flash('Не удалось обновить участника', 'error')
 
     return redirect(url_for('admin_event_participants', event_id=event_id))
-
-
 @app.route('/admin/events/<int:event_id>/participants/downgrade', methods=['POST'])
 @require_role('admin')
 def admin_event_participant_downgrade(event_id):
