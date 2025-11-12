@@ -8,7 +8,6 @@
         <div class="admin-header">
             <h1>{{ event.name }}</h1>
             <div class="event-header-actions">
-                <a href="{{ url_for('events') }}" class="btn-icon" title="Назад к мероприятиям">&#8592;</a>
                 {% if is_admin %}
                 <a href="{{ url_for('admin_event_distribution_positive_view', event_id=event.id) }}" class="btn-icon" title="Распределение (позитив)">&#127922;</a>
                 <a href="{{ url_for('admin_event_participants', event_id=event.id) }}" class="btn-icon" title="Участники (админ)">&#128101;</a>
