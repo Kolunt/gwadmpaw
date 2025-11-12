@@ -4836,7 +4836,7 @@ def get_current_event_stage(event_id):
         create_participant_approvals_for_event(event_id)
     
     # Создаем словарь этапов с их информацией
-    stages_dict = {stage['stage_type']: stage for stage in stages}
+    stages_dict = {stage['stage_type']: dict(stage) for stage in stages}
     stages_info_dict = {stage['type']: stage for stage in EVENT_STAGES}
     
     # Ищем текущий этап
@@ -5674,7 +5674,7 @@ def event_view(event_id):
     current_stage_type = current_stage['info']['type'] if current_stage else None
     
     stages_with_info = []
-    stages_dict = {stage['stage_type']: stage for stage in stages}
+    stages_dict = {stage['stage_type']: dict(stage) for stage in stages}
     
     next_stage_candidate = None
     main_stage_start_dt = None
@@ -7078,7 +7078,7 @@ def admin_event_view(event_id):
     conn.close()
     
     # Сопоставляем этапы с их типами
-    stages_dict = {stage['stage_type']: stage for stage in stages}
+    stages_dict = {stage['stage_type']: dict(stage) for stage in stages}
     stages_with_info = []
     for stage_info in EVENT_STAGES:
         stage_data = stages_dict.get(stage_info['type'], None)
@@ -8230,7 +8230,7 @@ def admin_event_edit(event_id):
         ORDER BY stage_order
     ''', (event_id,)).fetchall()
     
-    stages_dict = {stage['stage_type']: stage for stage in stages}
+    stages_dict = {stage['stage_type']: dict(stage) for stage in stages}
     
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
