@@ -19,22 +19,6 @@
             <span class="search-icon">🔍</span>
         </div>
         
-        <div class="filters-row">
-            <div class="filter-group">
-                <label for="filter-name" class="filter-label">Никнейм:</label>
-                <input type="text" id="filter-name" class="filter-input" placeholder="Все">
-            </div>
-            <div class="filter-group">
-                <label for="filter-status" class="filter-label">Статус:</label>
-                <input type="text" id="filter-status" class="filter-input" placeholder="Все">
-            </div>
-            <div class="filter-group">
-                <label for="filter-roles" class="filter-label">Роли:</label>
-                <input type="text" id="filter-roles" class="filter-input" placeholder="Все">
-            </div>
-            <button type="button" id="clear-filters" class="btn btn-secondary btn-sm">Очистить фильтры</button>
-        </div>
-        
         <div class="table-info">
             <span id="rows-count">Показано: <strong id="visible-count">0</strong> из <strong id="total-count">{{ participants|length }}</strong></span>
         </div>
@@ -111,10 +95,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const tbody = document.getElementById('table-body');
     const rows = Array.from(tbody.querySelectorAll('tr'));
     const searchInput = document.getElementById('search-input');
-    const filterName = document.getElementById('filter-name');
-    const filterStatus = document.getElementById('filter-status');
-    const filterRoles = document.getElementById('filter-roles');
-    const clearFiltersBtn = document.getElementById('clear-filters');
     const visibleCount = document.getElementById('visible-count');
     const totalCount = document.getElementById('total-count');
     
@@ -126,26 +106,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Поиск и фильтрация
     function filterRows() {
         const searchTerm = searchInput.value.toLowerCase();
-        const nameFilter = filterName.value.toLowerCase();
-        const statusFilter = filterStatus.value.toLowerCase();
-        const rolesFilter = filterRoles.value.toLowerCase();
         
         let visible = 0;
         
         rows.forEach(row => {
-            const username = row.getAttribute('data-username') || '';
-            const status = row.getAttribute('data-status') || '';
-            const roles = row.getAttribute('data-roles') || '';
-            
             const cells = row.querySelectorAll('td');
             const cellText = Array.from(cells).map(cell => cell.textContent.toLowerCase()).join(' ');
             
             const matchesSearch = !searchTerm || cellText.includes(searchTerm);
-            const matchesName = !nameFilter || username.includes(nameFilter);
-            const matchesStatus = !statusFilter || status.includes(statusFilter);
-            const matchesRoles = !rolesFilter || roles.includes(rolesFilter);
             
-            if (matchesSearch && matchesName && matchesStatus && matchesRoles) {
+            if (matchesSearch) {
                 row.style.display = '';
                 visible++;
             } else {
@@ -232,18 +202,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Обработчики событий
-    searchInput.addEventListener('input', filterRows);
-    filterName.addEventListener('input', filterRows);
-    filterStatus.addEventListener('input', filterRows);
-    filterRoles.addEventListener('input', filterRows);
-    
-    clearFiltersBtn.addEventListener('click', function() {
-        searchInput.value = '';
-        filterName.value = '';
-        filterStatus.value = '';
-        filterRoles.value = '';
+    searchInput.addEventListener('input', debounce(() => {
         filterRows();
-    });
+        // Если применен общий поиск, сбрасываем сортировку, чтобы не вводить в заблуждение
+        if (searchInput.value) {
+            resetSortIndicators();
+        }
+    }, 200));
     
     // Сортировка по заголовкам
     table.querySelectorAll('th.sortable').forEach((header, index) => {
