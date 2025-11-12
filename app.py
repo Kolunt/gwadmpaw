@@ -5,7 +5,7 @@ from flask import(
 from urllib.parse import unquote, unquote_plus, unquote_to_bytes, quote
 import hashlib
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import logging
 from functools import wraps
@@ -14,10 +14,6 @@ import secrets
 import json
 import random
 from collections import defaultdict
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    ZoneInfo = None
 try:
     import requests
 except ImportError:
@@ -30,38 +26,27 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['VERSION'] = __version__
 
-EVENT_TIMEZONE = None
-if ZoneInfo:
-    tz_name = os.getenv('EVENT_TIMEZONE', 'Europe/Moscow')
-    try:
-        EVENT_TIMEZONE = ZoneInfo(tz_name)
-    except Exception as tz_error:
-        logging.warning(f"Failed to load timezone {tz_name}: {tz_error}")
-        EVENT_TIMEZONE = None
+EVENT_TIME_OFFSET_HOURS = 0
+try:
+    EVENT_TIME_OFFSET_HOURS = int(os.getenv('EVENT_TIME_OFFSET_HOURS', '3'))
+except ValueError:
+    EVENT_TIME_OFFSET_HOURS = 0
 
 
 def get_event_now():
-    if EVENT_TIMEZONE:
-        return datetime.now(EVENT_TIMEZONE)
-    return datetime.now()
+    return datetime.utcnow() + timedelta(hours=EVENT_TIME_OFFSET_HOURS)
 
 
 def parse_event_datetime(value):
     if not value:
         return None
     formats = ['%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M', '%Y-%m-%d']
-    parsed = None
     for fmt in formats:
         try:
-            parsed = datetime.strptime(value, fmt)
-            break
+            return datetime.strptime(value, fmt)
         except ValueError:
             continue
-    if not parsed:
-        return None
-    if EVENT_TIMEZONE:
-        return parsed.replace(tzinfo=EVENT_TIMEZONE)
-    return parsed
+    return None
 
 
 @app.template_filter('format_gender')
