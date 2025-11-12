@@ -5,7 +5,7 @@ from flask import(
 from urllib.parse import unquote, unquote_plus, unquote_to_bytes, quote
 import hashlib
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import logging
 from functools import wraps
@@ -25,6 +25,16 @@ import traceback
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['VERSION'] = __version__
+
+EVENT_TIME_OFFSET_HOURS = 0
+try:
+    EVENT_TIME_OFFSET_HOURS = int(os.getenv('EVENT_TIME_OFFSET_HOURS', '3'))
+except ValueError:
+    EVENT_TIME_OFFSET_HOURS = 0
+
+
+def get_event_now():
+    return datetime.utcnow() + timedelta(hours=EVENT_TIME_OFFSET_HOURS)
 
 @app.template_filter('format_gender')
 def format_gender(value):
@@ -1559,7 +1569,7 @@ def index():
     
     # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
     events_with_stages = []
-    now = datetime.now()
+    now = get_event_now()
     stage_info_map = {stage['type']: stage for stage in EVENT_STAGES}
 
     def parse_dt(value):
@@ -4649,7 +4659,7 @@ def is_event_finished(event_id):
     if not stages:
         return False
     
-    now = datetime.now()
+    now = get_event_now()
     
     # Мероприятие считается завершенным, если последний этап (after_party) имеет end_datetime и оно прошло
     after_party_stage = None
@@ -4736,7 +4746,7 @@ def get_current_event_stage(event_id):
     if not stages:
         return None
     
-    now = datetime.now()
+    now = get_event_now()
     
     # Проверяем, начался ли этап "Закрытие регистрации" - если да, создаем записи для ревью
     registration_closed_stage = None
