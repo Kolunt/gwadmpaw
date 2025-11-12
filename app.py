@@ -5402,11 +5402,24 @@ def get_admin_letter_assignments():
             lm.last_message_at DESC,
             ea.id ASC
     ''').fetchall()
-    conn.close()
 
     assignments = []
+    send_info_updates = []
+    thanks_updates = []
     for row in rows:
         record = dict(row)
+        info = record.get('santa_send_info')
+        if info:
+            normalized = _normalize_multiline_text(info)
+            if normalized != info:
+                record['santa_send_info'] = normalized
+                send_info_updates.append((normalized, record['id']))
+        thanks = record.get('recipient_thanks_message')
+        if thanks:
+            normalized_thanks = _normalize_multiline_text(thanks)
+            if normalized_thanks != thanks:
+                record['recipient_thanks_message'] = normalized_thanks
+                thanks_updates.append((normalized_thanks, record['id']))
         record['message_count'] = record.get('message_count') or 0
         record['last_message_at'] = record.get('last_message_at')
         santa_parts = [record.get('santa_last_name') or '', record.get('santa_first_name') or '', record.get('santa_middle_name') or '']
@@ -5415,6 +5428,14 @@ def get_admin_letter_assignments():
         record['recipient_full_name'] = ' '.join(part for part in recipient_parts if part).strip() or record.get('recipient_username')
         record['chat_role'] = 'admin'
         assignments.append(record)
+
+    if send_info_updates:
+        conn.executemany('UPDATE event_assignments SET santa_send_info = ? WHERE id = ?', send_info_updates)
+    if thanks_updates:
+        conn.executemany('UPDATE event_assignments SET recipient_thanks_message = ? WHERE id = ?', thanks_updates)
+    if send_info_updates or thanks_updates:
+        conn.commit()
+    conn.close()
     return assignments
 
 def mark_assignment_sent(assignment_id, user_id, send_info):
