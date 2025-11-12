@@ -7394,6 +7394,7 @@ def admin_event_distribution_positive_create_assignments(event_id):
     ''', (event_id,)).fetchall()
     conn.close()
 
+    log_debug(f"create_assignments: event {event_id}, saved_pairs={len(rows)}")
     if not rows:
         return jsonify({'success': False, 'error': 'Нет сохранённого распределения для создания заданий'}), 400
 
@@ -7409,6 +7410,7 @@ def admin_event_distribution_positive_create_assignments(event_id):
         assignment_locked=True
     )
     if success:
+        log_debug(f"create_assignments: assignments locked for event {event_id}, count={result}")
         return jsonify({'success': True, 'message': f'Создано {result} заданий для участников.'})
     return jsonify({'success': False, 'error': result}), 500
 
