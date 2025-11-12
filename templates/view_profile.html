@@ -25,18 +25,30 @@
                     {% endif %}
                     {% if user_titles %}
                         {% for title in user_titles %}
+                            {% set raw_title_icon = title.icon|default('')|trim %}
+                            {% if raw_title_icon %}
+                                {% set title_icon_symbol = raw_title_icon.split(' ')[0] %}
+                            {% else %}
+                                {% set title_icon_symbol = '🏆' %}
+                            {% endif %}
                             <a href="{{ url_for('title_view', title_id=title.id) }}"
                                class="title-icon-link"
                                title="{{ title.display_name }}">
                                 <span class="title-badge-icon"
                                       style="background-color: {{ title.color }}20; border-color: {{ title.color }}; color: {{ title.color }};">
-                                    {% if title.icon %}{{ title.icon }}{% else %}🏆{% endif %}
+                                    {{ title_icon_symbol }}
                                 </span>
                             </a>
                         {% endfor %}
                     {% endif %}
                     {% if user_awards %}
                         {% for award in user_awards %}
+                            {% set raw_award_icon = award.icon|default('')|trim %}
+                            {% if raw_award_icon %}
+                                {% set award_icon_symbol = raw_award_icon.split(' ')[0] %}
+                            {% else %}
+                                {% set award_icon_symbol = '🎖️' %}
+                            {% endif %}
                             <a href="{{ url_for('award_view', award_id=award.id) }}"
                                class="award-icon-link"
                                title="{{ award.title }}">
@@ -46,7 +58,7 @@
                                          class="award-badge-image">
                                 {% else %}
                                     <span class="award-badge-icon">
-                                        {% if award.icon %}{{ award.icon }}{% else %}🎖️{% endif %}
+                                        {{ award_icon_symbol }}
                                     </span>
                                 {% endif %}
                             </a>
