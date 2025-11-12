@@ -4168,16 +4168,22 @@ def admin_faq():
 @require_role('admin')
 def admin_faq_create():
     """Создание нового FAQ вопроса"""
+    categories = get_faq_categories()
     if request.method == 'POST':
         question = request.form.get('question', '').strip()
         answer = request.form.get('answer', '').strip()
-        category = request.form.get('category', 'general').strip()
+        category = request.form.get('category', '').strip()
         sort_order = request.form.get('sort_order', '100').strip()
         is_active = request.form.get('is_active', '0')
         
         if not question or not answer:
             flash('Вопрос и ответ обязательны для заполнения', 'error')
-            return render_template('admin/faq_form.html')
+            return render_template('admin/faq_form.html', categories=categories)
+        
+        if not category and categories:
+            category = categories[0]['name']
+        elif not category:
+            category = 'general'
         
         try:
             sort_order = int(sort_order) if sort_order else 100
@@ -4200,8 +4206,9 @@ def admin_faq_create():
             log_error(f"Error creating FAQ: {e}")
             flash(f'Ошибка создания FAQ: {str(e)}', 'error')
             conn.close()
+            return render_template('admin/faq_form.html', categories=categories)
     
-    return render_template('admin/faq_form.html')
+    return render_template('admin/faq_form.html', categories=categories)
 
 @app.route('/admin/faq/<int:faq_id>/edit', methods=['GET', 'POST'])
 @require_role('admin')
