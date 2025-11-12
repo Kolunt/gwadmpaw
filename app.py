@@ -5711,6 +5711,39 @@ def event_view(event_id):
                     'stage_type': stage_type
                 }
     
+    if current_stage and not next_stage_candidate:
+        current_type = current_stage['info']['type']
+        try:
+            current_index = next(i for i, s in enumerate(EVENT_STAGES) if s['type'] == current_type)
+        except StopIteration:
+            current_index = None
+
+        if current_index is not None:
+            for idx in range(current_index + 1, len(EVENT_STAGES)):
+                next_info = EVENT_STAGES[idx]
+                next_data = stages_dict.get(next_info['type'])
+                candidate_raw = None
+                candidate_dt = None
+
+                if next_data and next_data.get('start_datetime'):
+                    candidate_raw = next_data['start_datetime']
+                elif next_data and next_data.get('end_datetime'):
+                    candidate_raw = next_data['end_datetime']
+                elif next_info['type'] == 'after_party' and current_stage['data'] and current_stage['data'].get('end_datetime'):
+                    candidate_raw = current_stage['data']['end_datetime']
+
+                if candidate_raw:
+                    candidate_dt = parse_event_datetime(str(candidate_raw))
+
+                if candidate_dt and candidate_dt > now:
+                    next_stage_candidate = {
+                        'name': next_info['name'],
+                        'start_datetime': candidate_raw,
+                        'start_dt': candidate_dt,
+                        'stage_type': next_info['type']
+                    }
+                    break
+
     # Получаем тексты модальных окон
     modal_texts = {}
     conn = get_db_connection()
