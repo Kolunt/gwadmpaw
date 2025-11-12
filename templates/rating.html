@@ -24,7 +24,7 @@
                             <th>Участник</th>
                             <th style="width: 8rem;">Снежинки</th>
                             {% if is_admin %}
-                            <th>За что начислены</th>
+                            <th style="width: 10rem;">Действия</th>
                             {% endif %}
                         </tr>
                     </thead>
@@ -49,16 +49,10 @@
                                 <strong>{{ row.rating }}</strong>
                             </td>
                             {% if is_admin %}
-                            <td data-label="За что начислены">
-                                {% if row.details %}
-                                <ul class="rating-details">
-                                    {% for item in row.details %}
-                                    <li>{{ item }}</li>
-                                    {% endfor %}
-                                </ul>
-                                {% else %}
-                                <span class="text-muted">—</span>
-                                {% endif %}
+                            <td data-label="Действия">
+                                <a href="{{ url_for('admin_rating_detail', user_id=row.user_id) }}" class="btn btn-outline-secondary btn-sm">
+                                    Подробнее
+                                </a>
                             </td>
                             {% endif %}
                         </tr>

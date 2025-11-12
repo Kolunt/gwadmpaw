@@ -623,6 +623,35 @@ def init_db():
         except sqlite3.OperationalError:
             pass
         
+        # Таблица начислений «снежинок»
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS snowflake_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                source TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                active INTEGER DEFAULT 1,
+                manual_revoked INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                revoked_at TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                UNIQUE(user_id, source)
+            )
+        ''')
+        try:
+            c.execute('ALTER TABLE snowflake_events ADD COLUMN manual_revoked INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE snowflake_events ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE snowflake_events ADD COLUMN revoked_at TIMESTAMP')
+        except sqlite3.OperationalError:
+            pass
+        
         # Таблица утверждений участников (для ревью администратором)
         c.execute('''
             CREATE TABLE IF NOT EXISTS event_participant_approvals (
@@ -8770,48 +8799,114 @@ def _normalize_contact_value(value):
     return value
 
 
+_SNOWFLAKE_CONTACT_SOURCES = (
+    ('telegram', 'Telegram', 'Заполнен Telegram'),
+    ('whatsapp', 'WhatsApp', 'Заполнен WhatsApp'),
+    ('viber', 'Viber', 'Заполнен Viber'),
+)
+_SNOWFLAKE_SOURCE_LABELS = {source: label for source, label, _ in _SNOWFLAKE_CONTACT_SOURCES}
+
+
+def _sync_contact_snowflakes(conn, user_row):
+    """Синхронизирует записи о снежинках с актуальными контактами пользователя."""
+    if not isinstance(user_row, dict):
+        user_row = dict(user_row)
+    user_id = user_row.get('user_id')
+    if not user_id:
+        return
+
+    existing = conn.execute(
+        '''
+        SELECT id, source, active, manual_revoked
+        FROM snowflake_events
+        WHERE user_id = ?
+        ''',
+        (user_id,)
+    ).fetchall()
+    existing_map = {row['source']: row for row in existing}
+
+    for source, label, reason in _SNOWFLAKE_CONTACT_SOURCES:
+        contact_value = _normalize_contact_value(user_row.get(source))
+        event = existing_map.get(source)
+        if contact_value:
+            if not event:
+                conn.execute(
+                    '''
+                    INSERT INTO snowflake_events (user_id, source, reason, active, manual_revoked)
+                    VALUES (?, ?, ?, 1, 0)
+                    ''',
+                    (user_id, source, reason)
+                )
+            elif not event['active'] and not event['manual_revoked']:
+                conn.execute(
+                    '''
+                    UPDATE snowflake_events
+                    SET active = 1,
+                        revoked_at = NULL,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    ''',
+                    (event['id'],)
+                )
+        else:
+            if event and event['active'] and not event['manual_revoked']:
+                conn.execute(
+                    '''
+                    UPDATE snowflake_events
+                    SET active = 0,
+                        revoked_at = CURRENT_TIMESTAMP,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    ''',
+                    (event['id'],)
+                )
+
+
 @app.route('/rating')
 def user_rating():
     """Простая система рейтинга участников (прямая ссылка)."""
-    roles = session.get('roles') or []
-    is_admin = isinstance(roles, (list, tuple, set)) and ('admin' in roles)
+    roles = session.get('roles')
+    if isinstance(roles, (list, tuple, set)):
+        is_admin = 'admin' in roles
+    elif isinstance(roles, str):
+        is_admin = roles == 'admin'
+    else:
+        is_admin = False
 
     conn = get_db_connection()
     try:
-        rows = conn.execute('''
-            SELECT user_id, username, telegram, whatsapp, viber
-            FROM users
-            ORDER BY LOWER(username)
+        user_rows = [
+            dict(row) for row in conn.execute('''
+                SELECT user_id, username, telegram, whatsapp, viber
+                FROM users
+                ORDER BY LOWER(username)
+            ''').fetchall()
+        ]
+
+        for user_row in user_rows:
+            _sync_contact_snowflakes(conn, user_row)
+        conn.commit()
+
+        events = conn.execute('''
+            SELECT id, user_id, source, reason, active, manual_revoked
+            FROM snowflake_events
         ''').fetchall()
     finally:
         conn.close()
 
+    events_by_user = defaultdict(list)
+    for event in events:
+        if event['active']:
+            events_by_user[event['user_id']].append(event['reason'])
+
     rating_rows = []
-    for row in rows:
-        rating = 0
-        telegram = _normalize_contact_value(row['telegram'])
-        whatsapp = _normalize_contact_value(row['whatsapp'])
-        viber = _normalize_contact_value(row['viber'])
-        details = []
-
-        if telegram:
-            rating += 1
-            details.append('Заполнен Telegram')
-        if whatsapp:
-            rating += 1
-            details.append('Заполнен WhatsApp')
-        if viber:
-            rating += 1
-            details.append('Заполнен Viber')
-
+    for user_row in user_rows:
+        reasons = events_by_user.get(user_row['user_id'], [])
         rating_rows.append({
-            'user_id': row['user_id'],
-            'username': row['username'],
-            'rating': rating,
-            'telegram': telegram,
-            'whatsapp': whatsapp,
-            'viber': viber,
-            'details': details,
+            'user_id': user_row['user_id'],
+            'username': user_row['username'],
+            'rating': len(reasons),
+            'details': reasons,
         })
 
     rating_rows.sort(key=lambda item: (-item['rating'], item['username'].lower() if item['username'] else ''))
@@ -8821,6 +8916,104 @@ def user_rating():
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
     return resp
+
+
+@app.route('/admin/rating/<int:user_id>')
+@require_role('admin')
+def admin_rating_detail(user_id):
+    conn = get_db_connection()
+    try:
+        user_row = conn.execute('''
+            SELECT user_id, username, telegram, whatsapp, viber
+            FROM users
+            WHERE user_id = ?
+        ''', (user_id,)).fetchone()
+        if not user_row:
+            flash('Пользователь не найден', 'error')
+            return redirect(url_for('user_rating'))
+
+        user_dict = dict(user_row)
+        _sync_contact_snowflakes(conn, user_dict)
+        conn.commit()
+
+        events = [
+            dict(row) for row in conn.execute('''
+                SELECT id, source, reason, active, manual_revoked, created_at, updated_at, revoked_at
+                FROM snowflake_events
+                WHERE user_id = ?
+                ORDER BY created_at DESC, id DESC
+            ''', (user_id,)).fetchall()
+        ]
+    finally:
+        conn.close()
+
+    active_count = sum(1 for event in events if event['active'])
+    return render_template(
+        'admin/rating_detail.html',
+        user=user_dict,
+        events=events,
+        active_count=active_count,
+        source_labels=_SNOWFLAKE_SOURCE_LABELS
+    )
+
+
+@app.route('/admin/rating/events/<int:event_id>/annul', methods=['POST'])
+@require_role('admin')
+def admin_rating_event_annul(event_id):
+    conn = get_db_connection()
+    try:
+        event = conn.execute('SELECT id, user_id, active, manual_revoked FROM snowflake_events WHERE id = ?', (event_id,)).fetchone()
+        if not event:
+            flash('Запись не найдена', 'error')
+            return redirect(url_for('user_rating'))
+
+        user_id = event['user_id']
+        if event['manual_revoked'] and not event['active']:
+            flash('Снежинка уже аннулирована.', 'info')
+        else:
+            conn.execute('''
+                UPDATE snowflake_events
+                SET active = 0,
+                    manual_revoked = 1,
+                    revoked_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (event_id,))
+            conn.commit()
+            log_activity('snowflake_annul', details=f'Аннулирована снежинка #{event_id}', metadata={'event_id': event_id, 'target_user_id': user_id})
+            flash('Снежинка аннулирована.', 'success')
+    finally:
+        conn.close()
+
+    return redirect(url_for('admin_rating_detail', user_id=user_id))
+
+
+@app.route('/admin/rating/events/<int:event_id>/restore', methods=['POST'])
+@require_role('admin')
+def admin_rating_event_restore(event_id):
+    conn = get_db_connection()
+    try:
+        event = conn.execute('SELECT id, user_id, manual_revoked FROM snowflake_events WHERE id = ?', (event_id,)).fetchone()
+        if not event:
+            flash('Запись не найдена', 'error')
+            return redirect(url_for('user_rating'))
+
+        user_id = event['user_id']
+        conn.execute('''
+            UPDATE snowflake_events
+            SET active = 1,
+                manual_revoked = 0,
+                revoked_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (event_id,))
+        conn.commit()
+        log_activity('snowflake_restore', details=f'Восстановлена снежинка #{event_id}', metadata={'event_id': event_id, 'target_user_id': user_id})
+        flash('Снежинка восстановлена.', 'success')
+    finally:
+        conn.close()
+
+    return redirect(url_for('admin_rating_detail', user_id=user_id))
 
 
 @app.route('/awards/<int:award_id>')
