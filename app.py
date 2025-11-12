@@ -8764,7 +8764,7 @@ def _normalize_contact_value(value):
     if not value:
         return ''
     lowered = value.lower()
-    if lowered in {'не использую', 'нет', '-', 'none'}:
+    if lowered in {'не использую', 'нет', '-', 'none', 'no', 'n/a'}:
         return ''
     return value
 
