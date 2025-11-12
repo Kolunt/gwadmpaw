@@ -630,6 +630,7 @@ def init_db():
                 user_id INTEGER NOT NULL,
                 source TEXT NOT NULL,
                 reason TEXT NOT NULL,
+                points INTEGER NOT NULL DEFAULT 1,
                 active INTEGER DEFAULT 1,
                 manual_revoked INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -639,6 +640,10 @@ def init_db():
                 UNIQUE(user_id, source)
             )
         ''')
+        try:
+            c.execute('ALTER TABLE snowflake_events ADD COLUMN points INTEGER NOT NULL DEFAULT 1')
+        except sqlite3.OperationalError:
+            pass
         try:
             c.execute('ALTER TABLE snowflake_events ADD COLUMN manual_revoked INTEGER DEFAULT 0')
         except sqlite3.OperationalError:
@@ -5019,6 +5024,7 @@ def create_participant_approvals_for_event(event_id):
                 (event_id, user_id, approved) 
                 VALUES (?, ?, 0)
             ''', (event_id, reg['user_id']))
+            _ensure_registration_bonus_event(conn, event_id, reg['user_id'])
         
         conn.commit()
         log_debug(f"Created participant approvals for event {event_id}")
@@ -7978,13 +7984,18 @@ def admin_event_participant_confirm(event_id):
     if not user_id:
         flash('Не указан участник', 'error')
         return redirect(url_for('admin_event_participants', event_id=event_id))
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        flash('Некорректный участник', 'error')
+        return redirect(url_for('admin_event_participants', event_id=event_id))
 
     conn = get_db_connection()
     try:
         registration = conn.execute('''
             SELECT registered_at FROM event_registrations
             WHERE event_id = ? AND user_id = ?
-        ''', (event_id, user_id)).fetchone()
+        ''', (event_id, user_id_int)).fetchone()
 
         if not registration:
             conn.close()
@@ -8039,7 +8050,7 @@ def admin_event_participant_confirm(event_id):
                 UPDATE event_registrations
                 SET registered_at = ?
                 WHERE event_id = ? AND user_id = ?
-            ''', (main_start.strftime('%Y-%m-%d %H:%M:%S'), event_id, user_id))
+            ''', (main_start.strftime('%Y-%m-%d %H:%M:%S'), event_id, user_id_int))
             registered_at_dt = main_start
             stage_label = 'main'
 
@@ -8051,14 +8062,15 @@ def admin_event_participant_confirm(event_id):
                 approved_at = CURRENT_TIMESTAMP,
                 approved_by = excluded.approved_by,
                 notes = NULL
-        ''', (event_id, user_id, session.get('user_id')))
+        ''', (event_id, user_id_int, session.get('user_id')))
+        _set_review_penalty(conn, event_id, user_id_int, apply_penalty=False)
         conn.commit()
         conn.close()
 
         log_activity(
             'admin_event_confirm_participant',
-            details=f'Пользователь #{user_id} подтвержден для мероприятия #{event_id}',
-            metadata={'event_id': event_id, 'target_user_id': user_id}
+            details=f'Пользователь #{user_id_int} подтвержден для мероприятия #{event_id}',
+            metadata={'event_id': event_id, 'target_user_id': user_id_int}
         )
         flash('Участник подтвержден', 'success')
     except Exception as exc:
@@ -8078,6 +8090,11 @@ def admin_event_participant_reject(event_id):
     if not user_id:
         flash('Не указан участник', 'error')
         return redirect(url_for('admin_event_participants', event_id=event_id))
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        flash('Некорректный участник', 'error')
+        return redirect(url_for('admin_event_participants', event_id=event_id))
 
     reason = request.form.get('reason', '').strip()
 
@@ -8086,7 +8103,7 @@ def admin_event_participant_reject(event_id):
         registration = conn.execute('''
             SELECT registered_at FROM event_registrations
             WHERE event_id = ? AND user_id = ?
-        ''', (event_id, user_id)).fetchone()
+        ''', (event_id, user_id_int)).fetchone()
 
         if not registration:
             conn.close()
@@ -8149,14 +8166,15 @@ def admin_event_participant_reject(event_id):
                 approved_at = CURRENT_TIMESTAMP,
                 approved_by = excluded.approved_by,
                 notes = excluded.notes
-        ''', (event_id, user_id, session.get('user_id'), reason or None))
+        ''', (event_id, user_id_int, session.get('user_id'), reason or None))
+        _set_review_penalty(conn, event_id, user_id_int, apply_penalty=True)
         conn.commit()
         conn.close()
 
         log_activity(
             'admin_event_reject_participant',
-            details=f'Пользователь #{user_id} отклонен для мероприятия #{event_id}',
-            metadata={'event_id': event_id, 'target_user_id': user_id, 'reason': reason}
+            details=f'Пользователь #{user_id_int} отклонен для мероприятия #{event_id}',
+            metadata={'event_id': event_id, 'target_user_id': user_id_int, 'reason': reason}
         )
         flash('Участнику отказано в участии', 'success')
     except Exception as exc:
@@ -8832,16 +8850,17 @@ def _sync_contact_snowflakes(conn, user_row):
             if not event:
                 conn.execute(
                     '''
-                    INSERT INTO snowflake_events (user_id, source, reason, active, manual_revoked)
-                    VALUES (?, ?, ?, 1, 0)
+                    INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
+                    VALUES (?, ?, ?, 1, 1, 0)
                     ''',
-                    (user_id, source, reason)
+                    (user_id, source, reason, 1)
                 )
             elif not event['active'] and not event['manual_revoked']:
                 conn.execute(
                     '''
                     UPDATE snowflake_events
                     SET active = 1,
+                        points = 1,
                         revoked_at = NULL,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
@@ -8860,6 +8879,110 @@ def _sync_contact_snowflakes(conn, user_row):
                     ''',
                     (event['id'],)
                 )
+
+
+def _ensure_registration_bonus_event(conn, event_id, user_id):
+    source = f'event:{event_id}:registration_bonus'
+    reason = f'Регистрация закрыта: мероприятие #{event_id}'
+    existing = conn.execute(
+        '''
+        SELECT id, active, manual_revoked
+        FROM snowflake_events
+        WHERE user_id = ? AND source = ?
+        ''',
+        (user_id, source)
+    ).fetchone()
+    if not existing:
+        conn.execute(
+            '''
+            INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
+            VALUES (?, ?, ?, 1, 1, 0)
+            ''',
+            (user_id, source, reason, 1)
+        )
+    elif not existing['active']:
+        conn.execute(
+            '''
+            UPDATE snowflake_events
+            SET active = 1,
+                points = 1,
+                manual_revoked = 0,
+                revoked_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            ''',
+            (existing['id'],)
+        )
+
+
+def _set_review_penalty(conn, event_id, user_id, apply_penalty=True):
+    source = f'event:{event_id}:review_penalty'
+    reason = f'Негативное ревью: мероприятие #{event_id}'
+    existing = conn.execute(
+        '''
+        SELECT id, active, manual_revoked
+        FROM snowflake_events
+        WHERE user_id = ? AND source = ?
+        ''',
+        (user_id, source)
+    ).fetchone()
+
+    if apply_penalty:
+        if not existing:
+            conn.execute(
+                '''
+                INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
+                VALUES (?, ?, ?, -2, 1, 0)
+                ''',
+                (user_id, source, reason, -2)
+            )
+        elif not existing['manual_revoked']:
+            conn.execute(
+                '''
+                UPDATE snowflake_events
+                SET active = 1,
+                    points = -2,
+                    manual_revoked = 0,
+                    revoked_at = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                ''',
+                (existing['id'],)
+            )
+    else:
+        if existing and existing['active']:
+            conn.execute(
+                '''
+                UPDATE snowflake_events
+                SET active = 0,
+                    revoked_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP,
+                    manual_revoked = CASE WHEN manual_revoked THEN manual_revoked ELSE 0 END
+                WHERE id = ?
+                ''',
+                (existing['id'],)
+            )
+
+
+def _get_snowflake_source_label(source):
+    contact_map = {s: label for s, label, _ in _SNOWFLAKE_CONTACT_SOURCES}
+    if source in contact_map:
+        return contact_map[source]
+    if source.startswith('event:'):
+        parts = source.split(':')
+        if len(parts) >= 3:
+            try:
+                event_part = parts[1]
+                event_id = int(event_part)
+            except (ValueError, TypeError):
+                event_id = None
+            suffix = parts[2]
+            if suffix == 'registration_bonus':
+                return f'Бонус за регистрацию (мероприятие #{event_id})' if event_id else 'Бонус за регистрацию'
+            if suffix == 'review_penalty':
+                return f'Негативное ревью (мероприятие #{event_id})' if event_id else 'Негативное ревью'
+    return source
+
 
 
 @app.route('/rating')
@@ -8888,25 +9011,23 @@ def user_rating():
         conn.commit()
 
         events = conn.execute('''
-            SELECT id, user_id, source, reason, active, manual_revoked
+            SELECT id, user_id, source, reason, points, active, manual_revoked
             FROM snowflake_events
         ''').fetchall()
     finally:
         conn.close()
 
-    events_by_user = defaultdict(list)
+    events_by_user = defaultdict(lambda: {'points': 0})
     for event in events:
         if event['active']:
-            events_by_user[event['user_id']].append(event['reason'])
+            events_by_user[event['user_id']]['points'] += event['points']
 
     rating_rows = []
     for user_row in user_rows:
-        reasons = events_by_user.get(user_row['user_id'], [])
         rating_rows.append({
             'user_id': user_row['user_id'],
             'username': user_row['username'],
-            'rating': len(reasons),
-            'details': reasons,
+            'rating': events_by_user[user_row['user_id']]['points'] if user_row['user_id'] in events_by_user else 0,
         })
 
     rating_rows.sort(key=lambda item: (-item['rating'], item['username'].lower() if item['username'] else ''))
@@ -8938,7 +9059,7 @@ def admin_rating_detail(user_id):
 
         events = [
             dict(row) for row in conn.execute('''
-                SELECT id, source, reason, active, manual_revoked, created_at, updated_at, revoked_at
+                SELECT id, source, reason, points, active, manual_revoked, created_at, updated_at, revoked_at
                 FROM snowflake_events
                 WHERE user_id = ?
                 ORDER BY created_at DESC, id DESC
@@ -8947,13 +9068,15 @@ def admin_rating_detail(user_id):
     finally:
         conn.close()
 
-    active_count = sum(1 for event in events if event['active'])
+    for event in events:
+        event['source_label'] = _get_snowflake_source_label(event['source'])
+
+    active_count = sum(event['points'] for event in events if event['active'])
     return render_template(
         'admin/rating_detail.html',
         user=user_dict,
         events=events,
         active_count=active_count,
-        source_labels=_SNOWFLAKE_SOURCE_LABELS
     )
 
 

@@ -28,6 +28,7 @@
                         <tr>
                             <th>Источник</th>
                             <th>Причина</th>
+                            <th style="width: 7rem;">Снежинок</th>
                             <th style="width: 8rem;">Статус</th>
                             <th style="width: 11rem;">Выдано</th>
                             <th style="width: 11rem;">Обновлено</th>
@@ -39,10 +40,15 @@
                         {% for event in events %}
                         <tr>
                             <td data-label="Источник">
-                                {{ source_labels.get(event.source, event.source) }}
+                                {{ event.source_label }}
                             </td>
                             <td data-label="Причина">
                                 {{ event.reason }}
+                            </td>
+                            <td data-label="Снежинок">
+                                <strong class="{% if event.points < 0 %}text-danger{% elif event.points > 0 %}text-success{% endif %}">
+                                    {{ event.points }}
+                                </strong>
                             </td>
                             <td data-label="Статус">
                                 {% if event.active %}
