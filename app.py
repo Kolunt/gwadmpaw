@@ -5608,7 +5608,7 @@ def event_view(event_id):
     stages_with_info = []
     stages_dict = {stage['stage_type']: stage for stage in stages}
     
-    next_stage = None
+    next_stage_candidate = None
     main_stage_start_dt = None
     pre_stage_start_dt = None
     if 'main_registration' in stages_dict:
@@ -5703,8 +5703,8 @@ def event_view(event_id):
         })
 
         if start_dt and start_dt > now:
-            if (not next_stage) or start_dt < next_stage['start_dt']:
-                next_stage = {
+            if (not next_stage_candidate) or start_dt < next_stage_candidate['start_dt']:
+                next_stage_candidate = {
                     'name': stage_info['name'],
                     'start_datetime': stage_data['start_datetime'],
                     'start_dt': start_dt
@@ -5718,11 +5718,47 @@ def event_view(event_id):
     for setting in modal_settings:
         modal_texts[setting['key']] = setting['value']
     
-    if next_stage:
+    if not next_stage_candidate and current_stage:
+        current_stage_index = None
+        for idx, stage_info in enumerate(EVENT_STAGES):
+            if stage_info['type'] == current_stage['info']['type']:
+                current_stage_index = idx
+                break
+
+        if current_stage_index is not None and current_stage_index + 1 < len(EVENT_STAGES):
+            following_info = EVENT_STAGES[current_stage_index + 1]
+            following_data = stages_dict.get(following_info['type'])
+            candidate_dt = None
+            candidate_raw = None
+
+            if following_data and following_data.get('start_datetime'):
+                try:
+                    candidate_dt = datetime.fromisoformat(str(following_data['start_datetime']))
+                    candidate_raw = following_data['start_datetime']
+                except ValueError:
+                    candidate_dt = None
+
+            if not candidate_dt and current_stage['data'] and current_stage['data'].get('end_datetime'):
+                try:
+                    candidate_dt = datetime.fromisoformat(str(current_stage['data']['end_datetime']))
+                    candidate_raw = current_stage['data']['end_datetime']
+                except ValueError:
+                    candidate_dt = None
+
+            if candidate_dt and candidate_dt > now:
+                next_stage_candidate = {
+                    'name': following_info['name'],
+                    'start_datetime': candidate_raw,
+                    'start_dt': candidate_dt
+                }
+
+    if next_stage_candidate:
+        start_dt_local = next_stage_candidate['start_dt']
+        start_dt_utc = start_dt_local - timedelta(hours=EVENT_TIME_OFFSET_HOURS)
         next_stage_payload = {
-            'name': next_stage['name'],
-            'start_datetime': next_stage['start_datetime'],
-            'start_iso': next_stage['start_dt'].isoformat()
+            'name': next_stage_candidate['name'],
+            'start_datetime': next_stage_candidate['start_datetime'],
+            'start_iso': start_dt_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
         }
     else:
         next_stage_payload = None
