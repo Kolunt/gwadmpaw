@@ -776,6 +776,25 @@ if (assignmentsBtn) {
             return;
         }
 
+        const lockedPairsResponse = await fetch({{ distribution_save_url|tojson }}, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                pairs: collectPairsFromTable(),
+                enforce_country: sameCountryToggle ? sameCountryToggle.checked : false,
+                locked_pairs: collectLockedPairs()
+            })
+        });
+        const lockedPairsData = await lockedPairsResponse.json();
+        if (!lockedPairsResponse.ok || !lockedPairsData.success) {
+            showMessage(lockedPairsData.error || 'Не удалось сохранить закpеплённые пары. Задания не созданы.', 'error');
+            return;
+        }
+
         assignmentsBtn.disabled = true;
         assignmentsBtn.textContent = '📦 Создаём...';
         for (const [santaId, recipientId] of Object.entries(currentLocksMap)) {
