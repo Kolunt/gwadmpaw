@@ -5441,18 +5441,11 @@ def get_admin_letter_assignments():
 def mark_assignment_sent(assignment_id, user_id, send_info):
     """Отмечает, что подарок отправлен"""
     clear_requested = False
-    clear_requested = False
-    updated_existing = False
-    previous_info = None
-    if request.form.get('clear_info'):
-        send_info = ''
-        clear_requested = True
-    else:
-        if not send_info or not send_info.strip():
-            return False, 'Введите данные об отправке'
-        send_info = _normalize_multiline_text(send_info, max_length=500)
-        if not send_info:
-            return False, 'Введите данные об отправке'
+    if not send_info or not send_info.strip():
+        return False, 'Введите данные об отправке'
+    send_info = _normalize_multiline_text(send_info, max_length=500)
+    if not send_info:
+        return False, 'Введите данные об отправке'
     
     try:
         user_id_int = int(user_id)
@@ -5492,8 +5485,7 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
                 "Если будут вопросы — пиши!"
             ).strip()
         previous_info = assignment['santa_send_info']
-        if previous_info:
-            updated_existing = True
+        updated_existing = bool(previous_info)
         conn.execute('''
             UPDATE event_assignments
             SET santa_sent_at = CURRENT_TIMESTAMP,

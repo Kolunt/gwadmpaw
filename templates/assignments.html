@@ -63,7 +63,7 @@
                         {% if event_data.as_santa.get('santa_sent_at') %}
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
                             <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Подарок отправлен {{ event_data.as_santa.get('santa_sent_at') }}</p>
-                            <form method="POST" action="{{ url_for('assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 0.75rem;">
+                            <form method="POST" action="{{ url_for('assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 0.75rem; display: grid; gap: 0.5rem;">
                                 <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.85); font-weight: 600;">Информация об отправке</label>
                                 <textarea
                                     id="send_info_{{ event_data.as_santa.get('id') }}"
@@ -74,10 +74,10 @@
                                     maxlength="500"
                                     required
                                 >{{ event_data.as_santa.get('santa_send_info') }}</textarea>
-                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
-                                    <button type="submit" class="btn btn-light">Обновить</button>
-                                    <button type="submit" name="clear_info" value="1" class="btn btn-outline-light" onclick="return confirm('Очистить информацию об отправке?');">Очистить</button>
-                                </div>
+                                <button type="submit" class="btn btn-light" style="align-self: flex-start;">
+                                    <span aria-hidden="true">🔄</span>
+                                    <span class="sr-only">Обновить информацию</span>
+                                </button>
                                 <p style="margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8;">Можно ввести до 500 символов. Текст увидит ваш внучок в переписке.</p>
                             </form>
                             {% if event_data.as_santa.get('recipient_received_at') %}
