@@ -4785,8 +4785,11 @@ def is_event_finished(event_id):
     
     return False
 
-def distribute_event_awards(event_id):
-    """Выдает награды всем участникам завершенного мероприятия"""
+def distribute_event_awards(event_id, require_sent=False):
+    """Выдает награды участникам мероприятия.
+
+    Если require_sent=True, награда выдается только Дедам Морозам, которые отметили отправку подарка.
+    """
     conn = get_db_connection()
     
     # Проверяем, есть ли награда для мероприятия
@@ -4797,10 +4800,19 @@ def distribute_event_awards(event_id):
     
     award_id = event['award_id']
     
-    # Получаем всех участников мероприятия
-    participants = conn.execute('''
-        SELECT DISTINCT user_id FROM event_registrations WHERE event_id = ?
-    ''', (event_id,)).fetchall()
+    if require_sent:
+        participants = conn.execute('''
+            SELECT DISTINCT santa_user_id AS user_id
+            FROM event_assignments
+            WHERE event_id = ?
+              AND santa_user_id IS NOT NULL
+              AND santa_sent_at IS NOT NULL
+        ''', (event_id,)).fetchall()
+    else:
+        # Получаем всех участников мероприятия
+        participants = conn.execute('''
+            SELECT DISTINCT user_id FROM event_registrations WHERE event_id = ?
+        ''', (event_id,)).fetchall()
     
     if not participants:
         conn.close()
@@ -4831,7 +4843,7 @@ def distribute_event_awards(event_id):
     
     if awarded_count > 0:
         conn.commit()
-        log_debug(f"Distributed {awarded_count} awards for event {event_id}")
+        log_debug(f"Distributed {awarded_count} awards for event {event_id} (require_sent={require_sent})")
     
     conn.close()
     return awarded_count > 0
@@ -5792,9 +5804,14 @@ def event_view(event_id):
     registrations = get_event_registrations(event_id)
     is_admin = 'admin' in session.get('roles', []) if session.get('roles') else False
     
-    # Проверяем, закончилось ли мероприятие, и выдаем награды если нужно
-    if is_event_finished(event_id):
-        distribute_event_awards(event_id)
+    award_needed = False
+    if current_stage and current_stage['info']['type'] == 'after_party':
+        award_needed = True
+    elif is_event_finished(event_id):
+        award_needed = True
+
+    if award_needed:
+        distribute_event_awards(event_id, require_sent=True)
     
     # Получаем все этапы мероприятия
     conn = get_db_connection()
