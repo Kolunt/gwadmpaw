@@ -15,6 +15,7 @@ import secrets
 import json
 import random
 from collections import defaultdict
+import re
 try:
     import requests
 except ImportError:
@@ -5243,7 +5244,7 @@ def get_user_assignments(user_id):
     """Получает задания пользователя (где он Дед Мороз и где Внучка)"""
     conn = get_db_connection()
     # Получаем задания, где пользователь Дед Мороз
-    as_santa = conn.execute('''
+    as_santa_rows = conn.execute('''
         SELECT 
             ea.*,
             e.name AS event_name,
@@ -5277,7 +5278,7 @@ def get_user_assignments(user_id):
     ''', (user_id,)).fetchall()
     
     # Получаем задания, где пользователь Внучка
-    as_recipient = conn.execute('''
+    as_recipient_rows = conn.execute('''
         SELECT 
             ea.*,
             e.name as event_name,
@@ -5314,14 +5315,43 @@ def get_user_assignments(user_id):
         ORDER BY ea.assigned_at DESC
     ''', (user_id,)).fetchall()
     
-    conn.close()
-    
-    # Объединяем оба списка
     assignments = []
-    for assignment in as_santa:
-        assignments.append(dict(assignment))
-    for assignment in as_recipient:
-        assignments.append(dict(assignment))
+    send_info_updates = []
+    thanks_updates = []
+    
+    for row in as_santa_rows:
+        record = dict(row)
+        info = record.get('santa_send_info')
+        if info:
+            normalized = _normalize_multiline_text(info)
+            if normalized != info:
+                record['santa_send_info'] = normalized
+                send_info_updates.append((normalized, record['id']))
+        assignments.append(record)
+    
+    for row in as_recipient_rows:
+        record = dict(row)
+        send_info = record.get('santa_send_info')
+        if send_info:
+            normalized = _normalize_multiline_text(send_info)
+            if normalized != send_info:
+                record['santa_send_info'] = normalized
+                send_info_updates.append((normalized, record['id']))
+        thanks = record.get('recipient_thanks_message')
+        if thanks:
+            normalized_thanks = _normalize_multiline_text(thanks)
+            if normalized_thanks != thanks:
+                record['recipient_thanks_message'] = normalized_thanks
+                thanks_updates.append((normalized_thanks, record['id']))
+        assignments.append(record)
+    
+    if send_info_updates:
+        conn.executemany('UPDATE event_assignments SET santa_send_info = ? WHERE id = ?', send_info_updates)
+    if thanks_updates:
+        conn.executemany('UPDATE event_assignments SET recipient_thanks_message = ? WHERE id = ?', thanks_updates)
+    if send_info_updates or thanks_updates:
+        conn.commit()
+    conn.close()
     
     return assignments
 
@@ -5392,13 +5422,9 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
     if not send_info or not send_info.strip():
         return False, 'Введите данные об отправке'
     
-    send_info = send_info.strip()
-    send_info = send_info.replace('\r\n', '\n')
-    send_info = send_info.replace('<br />', '\n').replace('<br/>', '\n').replace('<br>', '\n')
-    while '\n\n\n' in send_info:
-        send_info = send_info.replace('\n\n\n', '\n\n')
-    if len(send_info) > 500:
-        send_info = send_info[:500]
+    send_info = _normalize_multiline_text(send_info, max_length=500)
+    if not send_info:
+        return False, 'Введите данные об отправке'
     
     try:
         user_id_int = int(user_id)
@@ -5473,11 +5499,9 @@ def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_
         return False, 'Даритель еще не отметил отправку подарка'
     conn.close()
 
-    thank_you_message = (thank_you_message or '').strip()
+    thank_you_message = _normalize_multiline_text(thank_you_message, max_length=1000)
     if not thank_you_message:
         return False, 'Напишите спасибо для Деда Мороза.'
-    if len(thank_you_message) > 1000:
-        thank_you_message = thank_you_message[:1000]
 
     if not receipt_file or not receipt_file.filename:
         return False, 'Приложите фотографию подарка.'
@@ -8538,16 +8562,13 @@ def letter():
     user_role = selected_assignment.get('chat_role', 'santa')
 
     if request.method == 'POST':
-        message = (request.form.get('message') or '').strip()
+        message = _normalize_multiline_text(request.form.get('message'), max_length=2000)
         attachment_file = request.files.get('attachment')
         has_attachment = attachment_file and attachment_file.filename
 
         if not message and not has_attachment:
             flash('Введите сообщение или прикрепите изображение.', 'error')
             return redirect(url_for('letter', assignment_id=selected_assignment.get('id')))
-
-        if len(message) > 2000:
-            message = message[:2000]
 
         attachment_relative_path = None
         saved_filepath = None
@@ -8666,15 +8687,20 @@ def letter():
 
     conn = get_db_connection()
     raw_messages = conn.execute('''
-        SELECT sender, message, created_at, attachment_path
+        SELECT id, sender, message, created_at, attachment_path
         FROM letter_messages
         WHERE assignment_id = ?
         ORDER BY created_at ASC, id ASC
     ''', (selected_assignment.get('id'),)).fetchall()
-    conn.close()
-
     chat_messages = []
+    message_updates = []
     for row in raw_messages:
+        message_text = row['message']
+        if message_text:
+            normalized = _normalize_multiline_text(message_text)
+            if normalized != message_text:
+                message_text = normalized
+                message_updates.append((normalized, row['id']))
         created_raw = row['created_at']
         created_display = ''
         if created_raw:
@@ -8692,11 +8718,16 @@ def letter():
 
         chat_messages.append({
             'sender': row['sender'],
-            'message': row['message'],
+            'message': message_text,
             'created_display': created_display,
             'created_iso': str(created_raw) if created_raw is not None else '',
             'attachment_url': attachment_url
         })
+
+    if message_updates:
+        conn.executemany('UPDATE letter_messages SET message = ? WHERE id = ?', message_updates)
+        conn.commit()
+    conn.close()
 
     return render_template(
         'letter.html',
@@ -8827,6 +8858,20 @@ _SNOWFLAKE_CONTACT_SOURCES = (
     ('viber', 'Viber', 'Заполнен Viber'),
 )
 _SNOWFLAKE_SOURCE_LABELS = {source: label for source, label, _ in _SNOWFLAKE_CONTACT_SOURCES}
+
+
+def _normalize_multiline_text(value, max_length=None):
+    if value is None:
+        return ''
+    text = str(value)
+    text = text.replace('\r\n', '\n')
+    text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+    text = text.replace('\u2028', '\n').replace('\u2029', '\n')
+    text = text.strip()
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    if max_length and len(text) > max_length:
+        text = text[:max_length]
+    return text
 
 
 def _sync_contact_snowflakes(conn, user_row):
