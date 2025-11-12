@@ -770,6 +770,12 @@ if (assignmentsBtn) {
             return;
         }
 
+        const saveResult = await savePairs({ showSuccess: false });
+        if (!saveResult.ok) {
+            showMessage(saveResult.message || 'Не удалось сохранить текущее распределение. Задания не созданы.', 'error');
+            return;
+        }
+
         assignmentsBtn.disabled = true;
         assignmentsBtn.textContent = '📦 Создаём...';
         for (const [santaId, recipientId] of Object.entries(currentLocksMap)) {
