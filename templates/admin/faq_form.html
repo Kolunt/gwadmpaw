@@ -30,10 +30,10 @@
             <div class="form-group">
                 <label for="category">Категория:</label>
                 <select id="category" name="category" class="form-input" required>
-                    {% if categories %}
+                    {% if categories and categories|length %}
                         {% for cat in categories %}
                         <option value="{{ cat.name }}" {% if faq_item and faq_item.category == cat.name %}selected{% endif %}>
-                            {{ cat.display_name }}
+                            {{ cat.display_name or cat.name }}
                         </option>
                         {% endfor %}
                     {% else %}
