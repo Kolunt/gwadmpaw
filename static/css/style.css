@@ -44,28 +44,6 @@
     }
 }
 
-.rating-contacts {
-    display: grid;
-    gap: 0.35rem;
-}
-
-.rating-contacts div {
-    display: flex;
-    gap: 0.5rem;
-    align-items: baseline;
-}
-
-.rating-label {
-    font-weight: 600;
-    color: var(--text-secondary);
-    min-width: 5.5rem;
-}
-
-@media (max-width: 768px) {
-    .rating-label {
-        min-width: auto;
-    }
-}
 
 @media (max-width: 768px) {
     .assignments-grid {

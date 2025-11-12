@@ -23,7 +23,6 @@
                             <th style="width: 5rem;">Место</th>
                             <th>Участник</th>
                             <th style="width: 8rem;">Рейтинг</th>
-                            <th>Контакты</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -45,22 +44,6 @@
                             </td>
                             <td data-label="Рейтинг">
                                 <strong>{{ row.rating }}</strong>
-                            </td>
-                            <td data-label="Контакты">
-                                <div class="rating-contacts">
-                                    <div>
-                                        <span class="rating-label">Telegram:</span>
-                                        <span>{{ row.telegram or '—' }}</span>
-                                    </div>
-                                    <div>
-                                        <span class="rating-label">WhatsApp:</span>
-                                        <span>{{ row.whatsapp or '—' }}</span>
-                                    </div>
-                                    <div>
-                                        <span class="rating-label">Viber:</span>
-                                        <span>{{ row.viber or '—' }}</span>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                         {% endfor %}
