@@ -8757,6 +8757,57 @@ def role_view(role_name):
     )
 
 
+def _normalize_contact_value(value):
+    if not value:
+        return ''
+    value = str(value).strip()
+    if not value:
+        return ''
+    lowered = value.lower()
+    if lowered in {'не использую', 'нет', '-', 'none'}:
+        return ''
+    return value
+
+
+@app.route('/rating')
+def user_rating():
+    """Простая система рейтинга участников (прямая ссылка)."""
+    conn = get_db_connection()
+    rows = conn.execute('''
+        SELECT user_id, username, telegram, whatsapp, viber
+        FROM users
+        ORDER BY LOWER(username)
+    ''').fetchall()
+    conn.close()
+
+    rating_rows = []
+    for row in rows:
+        rating = 0
+        telegram = _normalize_contact_value(row['telegram'])
+        whatsapp = _normalize_contact_value(row['whatsapp'])
+        viber = _normalize_contact_value(row['viber'])
+
+        if telegram:
+            rating += 1
+        if whatsapp:
+            rating += 1
+        if viber:
+            rating += 1
+
+        rating_rows.append({
+            'user_id': row['user_id'],
+            'username': row['username'],
+            'rating': rating,
+            'telegram': telegram,
+            'whatsapp': whatsapp,
+            'viber': viber,
+        })
+
+    rating_rows.sort(key=lambda item: (-item['rating'], item['username'].lower() if item['username'] else ''))
+
+    return render_template('rating.html', rating_rows=rating_rows)
+
+
 @app.route('/awards/<int:award_id>')
 def award_view(award_id):
     """Публичный список пользователей с конкретной наградой"""
