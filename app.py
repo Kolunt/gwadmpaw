@@ -5665,7 +5665,7 @@ def event_view(event_id):
     conn.close()
     
     # Определяем статус каждого этапа (past, current, future)
-    now = datetime.now()
+    now = get_event_now()
     current_stage_type = current_stage['info']['type'] if current_stage else None
     
     stages_with_info = []
