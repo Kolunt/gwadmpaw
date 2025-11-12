@@ -1960,6 +1960,45 @@ body {
     margin-right: 0.5rem;
 }
 
+.title-icon-link,
+.award-icon-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    margin-right: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.title-badge-icon,
+.award-badge-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.award-badge-icon {
+    color: var(--accent-color);
+    background-color: rgba(var(--accent-rgb, 50, 205, 50), 0.12);
+    border-color: var(--accent-color);
+}
+
+.award-badge-image {
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: contain;
+    border-radius: 50%;
+    border: 2px solid var(--accent-color);
+    background-color: rgba(var(--accent-rgb, 50, 205, 50), 0.12);
+    padding: 0.25rem;
+}
+
 .title-badge-link {
     text-decoration: none;
     display: inline-block;

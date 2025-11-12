@@ -25,18 +25,31 @@
                     {% endif %}
                     {% if user_titles %}
                         {% for title in user_titles %}
-                            <a href="{{ url_for('title_view', title_id=title.id) }}" class="title-badge-link">
-                                <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
-                                    {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+                            <a href="{{ url_for('title_view', title_id=title.id) }}"
+                               class="title-icon-link"
+                               title="{{ title.display_name }}">
+                                <span class="title-badge-icon"
+                                      style="background-color: {{ title.color }}20; border-color: {{ title.color }}; color: {{ title.color }};">
+                                    {% if title.icon %}{{ title.icon }}{% else %}🏆{% endif %}
                                 </span>
                             </a>
                         {% endfor %}
                     {% endif %}
                     {% if user_awards %}
                         {% for award in user_awards %}
-                            <span class="award-badge" style="background-color: var(--accent-color)20; color: var(--accent-color); border-color: var(--accent-color);">
-                                {% if award.icon %}{{ award.icon }} {% else %}🎖️{% endif %} {{ award.title }}
-                            </span>
+                            <a href="{{ url_for('award_view', award_id=award.id) }}"
+                               class="award-icon-link"
+                               title="{{ award.title }}">
+                                {% if award.image %}
+                                    <img src="{{ award.image }}"
+                                         alt="{{ award.title }}"
+                                         class="award-badge-image">
+                                {% else %}
+                                    <span class="award-badge-icon">
+                                        {% if award.icon %}{{ award.icon }}{% else %}🎖️{% endif %}
+                                    </span>
+                                {% endif %}
+                            </a>
                         {% endfor %}
                     {% endif %}
                 </div>
