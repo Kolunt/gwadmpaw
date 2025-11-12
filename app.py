@@ -1,6 +1,7 @@
 from flask import(
     Flask, render_template, redirect, url_for, request, session,
-    flash, jsonify, send_file, Response, abort, has_request_context
+    flash, jsonify, send_file, Response, abort, has_request_context,
+    make_response
 )
 from urllib.parse import unquote, unquote_plus, unquote_to_bytes, quote
 import hashlib
@@ -8807,7 +8808,11 @@ def user_rating():
 
     rating_rows.sort(key=lambda item: (-item['rating'], item['username'].lower() if item['username'] else ''))
 
-    return render_template('rating.html', rating_rows=rating_rows)
+    resp = make_response(render_template('rating.html', rating_rows=rating_rows))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 
 @app.route('/awards/<int:award_id>')
