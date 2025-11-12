@@ -8651,8 +8651,13 @@ def assignments():
     if not user_id:
         flash('Необходимо авторизоваться', 'error')
         return redirect(url_for('login'))
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        flash('Не удалось определить пользователя', 'error')
+        return redirect(url_for('login'))
     
-    user_assignments = get_user_assignments(user_id)
+    user_assignments = get_user_assignments(user_id_int)
     
     # Группируем задания по мероприятиям
     assignments_by_event = {}
@@ -8669,10 +8674,10 @@ def assignments():
             }
         
         # Проверяем, является ли пользователь Дедом Морозом в этом задании
-        if assignment.get('santa_user_id') == user_id:
+        if assignment.get('santa_user_id') == user_id_int:
             assignments_by_event[event_id]['as_santa'] = assignment
         # Проверяем, является ли пользователь Внучкой в этом задании
-        elif assignment.get('recipient_user_id') == user_id:
+        elif assignment.get('recipient_user_id') == user_id_int:
             assignments_by_event[event_id]['as_recipient'] = assignment
     
     return render_template('assignments.html', assignments_by_event=assignments_by_event)
