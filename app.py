@@ -5449,7 +5449,7 @@ def events():
     
     # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
     events_with_stages = []
-    now = datetime.now()
+    now = get_event_now()
     stage_info_map = {stage['type']: stage for stage in EVENT_STAGES}
 
     def parse_dt(value):
