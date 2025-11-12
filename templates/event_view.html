@@ -210,13 +210,11 @@
                             <span class="stage-toggle-icon">{% if is_current %}▼{% else %}▶{% endif %}</span>
                             {{ stage_info.name }}
                             {% if is_current %}
-                            <span class="badge-active"
-                                  style="margin-left: 0.5rem;"
+                            <span style="margin-left: 0.5rem;"
                                   title="Текущий этап"
                                   aria-label="Текущий этап">👀</span>
                             {% elif is_past %}
-                            <span class="badge-upcoming"
-                                  style="margin-left: 0.5rem; background-color: var(--text-secondary);"
+                            <span style="margin-left: 0.5rem;"
                                   title="Завершено"
                                   aria-label="Этап завершен">✅</span>
                             {% endif %}
