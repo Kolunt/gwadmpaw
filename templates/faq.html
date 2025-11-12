@@ -12,7 +12,7 @@
             {% endif %}
         </div>
         
-        {% if faq_sections %}
+        {% if faq_sections is defined and faq_sections %}
         {# Динамический контент из БД #}
         {% for section in faq_sections %}
         <div class="faq-section">
