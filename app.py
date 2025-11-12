@@ -8737,6 +8737,7 @@ def letter():
     ''', (selected_assignment.get('id'),)).fetchall()
     chat_messages = []
     message_updates = []
+    earliest_dt = None
     for row in raw_messages:
         message_text = row['message']
         if message_text:
@@ -8746,6 +8747,7 @@ def letter():
                 message_updates.append((normalized, row['id']))
         created_raw = row['created_at']
         created_display = ''
+        created_dt = None
         if created_raw:
             try:
                 created_dt = datetime.fromisoformat(str(created_raw))
@@ -8756,6 +8758,8 @@ def letter():
                     created_dt = None
             if created_dt:
                 created_display = created_dt.strftime('%d.%m.%Y %H:%M')
+                if earliest_dt is None or created_dt < earliest_dt:
+                    earliest_dt = created_dt
         attachment_rel = row['attachment_path']
         attachment_url = url_for('static', filename=attachment_rel) if attachment_rel else None
 
@@ -8771,6 +8775,20 @@ def letter():
         conn.executemany('UPDATE letter_messages SET message = ? WHERE id = ?', message_updates)
         conn.commit()
     conn.close()
+
+    if earliest_dt is None:
+        candidate_dates = []
+        for key in ('assigned_at', 'santa_sent_at', 'recipient_received_at'):
+            value = selected_assignment.get(key)
+            if value:
+                parsed = parse_event_datetime(value)
+                if parsed:
+                    candidate_dates.append(parsed)
+        if candidate_dates:
+            earliest_dt = min(candidate_dates)
+    if earliest_dt is None:
+        earliest_dt = datetime.now()
+    letter_context['date'] = earliest_dt.strftime('%d.%m.%Y %H:%M')
 
     return render_template(
         'letter.html',
