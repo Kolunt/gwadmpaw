@@ -8773,12 +8773,14 @@ def _normalize_contact_value(value):
 def user_rating():
     """Простая система рейтинга участников (прямая ссылка)."""
     conn = get_db_connection()
-    rows = conn.execute('''
-        SELECT user_id, username, telegram, whatsapp, viber
-        FROM users
-        ORDER BY LOWER(username)
-    ''').fetchall()
-    conn.close()
+    try:
+        rows = conn.execute('''
+            SELECT user_id, username, telegram, whatsapp, viber
+            FROM users
+            ORDER BY LOWER(username)
+        ''').fetchall()
+    finally:
+        conn.close()
 
     rating_rows = []
     for row in rows:
