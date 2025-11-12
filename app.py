@@ -5441,6 +5441,9 @@ def get_admin_letter_assignments():
 def mark_assignment_sent(assignment_id, user_id, send_info):
     """Отмечает, что подарок отправлен"""
     clear_requested = False
+    clear_requested = False
+    updated_existing = False
+    previous_info = None
     if request.form.get('clear_info'):
         send_info = ''
         clear_requested = True
@@ -5488,16 +5491,28 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
                 f"Дорогой внучок! Я всё отправил! {send_info}\n"
                 "Если будут вопросы — пиши!"
             ).strip()
-            conn.execute('''
-                UPDATE event_assignments
-                SET santa_sent_at = CURRENT_TIMESTAMP,
-                    santa_send_info = ?
-                WHERE id = ?
-            ''', (send_info, assignment_id))
-            conn.execute('''
-                INSERT INTO letter_messages (assignment_id, sender, message, attachment_path)
-                VALUES (?, 'santa', ?, NULL)
-            ''', (assignment_id, chat_message))
+        previous_info = assignment['santa_send_info']
+        if previous_info:
+            updated_existing = True
+        conn.execute('''
+            UPDATE event_assignments
+            SET santa_sent_at = CURRENT_TIMESTAMP,
+                santa_send_info = ?
+            WHERE id = ?
+        ''', (send_info, assignment_id))
+        if updated_existing:
+            chat_message = (
+                f"Внучок! Данные для получения изменились: {send_info}"
+            ).strip()
+        else:
+            chat_message = (
+                f"Дорогой внучок! Я всё отправил! {send_info}\n"
+                "Если будут вопросы — пиши!"
+            ).strip()
+        conn.execute('''
+            INSERT INTO letter_messages (assignment_id, sender, message, attachment_path)
+            VALUES (?, 'santa', ?, NULL)
+        ''', (assignment_id, chat_message))
 
         conn.commit()
         log_activity(
