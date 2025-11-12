@@ -1168,29 +1168,34 @@ body {
 /* Dashboard Tabs */
 .dashboard-tabs {
     display: flex;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
     border-bottom: 2px solid var(--border-color);
     background-color: var(--bg-secondary);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
     margin-bottom: 1.5rem;
     border-radius: 8px 8px 0 0;
+    padding: 0.5rem;
+    justify-content: center;
 }
 
 .dashboard-tab {
-    flex: 1;
-    min-width: 120px;
-    padding: 1rem 1.5rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0.6rem 0.9rem;
     background: none;
     border: none;
     border-bottom: 3px solid transparent;
     color: var(--text-secondary);
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    white-space: nowrap;
+    white-space: normal;
     text-decoration: none;
     font-family: inherit;
+    text-align: center;
+    min-width: 0;
 }
 
 .dashboard-tab:hover {
