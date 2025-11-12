@@ -5440,12 +5440,16 @@ def get_admin_letter_assignments():
 
 def mark_assignment_sent(assignment_id, user_id, send_info):
     """Отмечает, что подарок отправлен"""
-    if not send_info or not send_info.strip():
-        return False, 'Введите данные об отправке'
-    
-    send_info = _normalize_multiline_text(send_info, max_length=500)
-    if not send_info:
-        return False, 'Введите данные об отправке'
+    clear_requested = False
+    if request.form.get('clear_info'):
+        send_info = ''
+        clear_requested = True
+    else:
+        if not send_info or not send_info.strip():
+            return False, 'Введите данные об отправке'
+        send_info = _normalize_multiline_text(send_info, max_length=500)
+        if not send_info:
+            return False, 'Введите данные об отправке'
     
     try:
         user_id_int = int(user_id)
@@ -5465,20 +5469,31 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
     
     try:
         chat_message = None
-        if send_info:
+        if clear_requested:
+            conn.execute('''
+                UPDATE event_assignments
+                SET santa_send_info = NULL
+                WHERE id = ?
+            ''', (assignment_id,))
+            system_message = (
+                "Дорогой внучок! Я скорректировал информацию об отправке. "
+                "Если будут вопросы — пиши!"
+            )
+            conn.execute('''
+                INSERT INTO letter_messages (assignment_id, sender, message, attachment_path)
+                VALUES (?, 'santa', ?, NULL)
+            ''', (assignment_id, system_message))
+        else:
             chat_message = (
                 f"Дорогой внучок! Я всё отправил! {send_info}\n"
                 "Если будут вопросы — пиши!"
             ).strip()
-
-        conn.execute('''
-            UPDATE event_assignments
-            SET santa_sent_at = CURRENT_TIMESTAMP,
-                santa_send_info = ?
-            WHERE id = ?
-        ''', (send_info, assignment_id))
-
-        if chat_message:
+            conn.execute('''
+                UPDATE event_assignments
+                SET santa_sent_at = CURRENT_TIMESTAMP,
+                    santa_send_info = ?
+                WHERE id = ?
+            ''', (send_info, assignment_id))
             conn.execute('''
                 INSERT INTO letter_messages (assignment_id, sender, message, attachment_path)
                 VALUES (?, 'santa', ?, NULL)
