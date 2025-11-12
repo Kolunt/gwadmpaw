@@ -5849,11 +5849,12 @@ def event_view(event_id):
 
     if next_stage_candidate:
         start_dt_local = next_stage_candidate['start_dt']
-        start_dt_utc = start_dt_local - timedelta(hours=EVENT_TIME_OFFSET_HOURS)
+        start_iso = start_dt_local.strftime('%Y-%m-%dT%H:%M:%S')
         next_stage_payload = {
             'name': next_stage_candidate['name'],
             'start_datetime': next_stage_candidate['start_datetime'],
-            'start_iso': start_dt_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
+            'start_iso': start_iso,
+            'stage_type': next_stage_candidate.get('stage_type')
         }
     else:
         next_stage_payload = None
