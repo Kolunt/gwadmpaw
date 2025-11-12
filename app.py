@@ -4846,6 +4846,13 @@ def get_current_event_stage(event_id):
     conn.close()
 
     stages = [dict(row) for row in stage_rows]
+    for stage in stages:
+        if (
+            stage.get('stage_type') == 'after_party'
+            and not stage.get('start_datetime')
+            and stage.get('end_datetime')
+        ):
+            stage['start_datetime'] = stage['end_datetime']
 
     if not stages:
         return None
@@ -4910,7 +4917,9 @@ def get_current_event_stage(event_id):
                     end_dt = datetime.strptime(stage['end_datetime'], '%Y-%m-%dT%H:%M')
                 except:
                     end_dt = None
-            
+            if stage_type == 'after_party':
+                end_dt = None
+
             if end_dt and now > end_dt:
                 continue
         
@@ -5000,7 +5009,7 @@ def get_event_stages(event_id):
     """Возвращает список этапов мероприятия в порядке их следования"""
     conn = get_db_connection()
     try:
-        stages = conn.execute('''
+        stage_rows = conn.execute('''
             SELECT stage_type, stage_order, start_datetime, end_datetime
             FROM event_stages
             WHERE event_id = ?
@@ -5008,6 +5017,16 @@ def get_event_stages(event_id):
         ''', (event_id,)).fetchall()
     finally:
         conn.close()
+    stages = []
+    for row in stage_rows:
+        stage = dict(row)
+        if (
+            stage.get('stage_type') == 'after_party'
+            and not stage.get('start_datetime')
+            and stage.get('end_datetime')
+        ):
+            stage['start_datetime'] = stage['end_datetime']
+        stages.append(stage)
     return stages
 def create_participant_approvals_for_event(event_id):
     """Создает записи для ревью участников при закрытии регистрации"""
@@ -5779,12 +5798,21 @@ def event_view(event_id):
     
     # Получаем все этапы мероприятия
     conn = get_db_connection()
-    stages = conn.execute('''
+    stage_rows = conn.execute('''
         SELECT * FROM event_stages 
         WHERE event_id = ? 
         ORDER BY stage_order
     ''', (event_id,)).fetchall()
     conn.close()
+
+    stages = [dict(row) for row in stage_rows]
+    for stage in stages:
+        if (
+            stage.get('stage_type') == 'after_party'
+            and not stage.get('start_datetime')
+            and stage.get('end_datetime')
+        ):
+            stage['start_datetime'] = stage['end_datetime']
     
     # Определяем статус каждого этапа (past, current, future)
     now = get_event_now()
