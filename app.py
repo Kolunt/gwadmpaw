@@ -5770,7 +5770,7 @@ def event_view(event_id):
         next_stage_payload = {
             'name': next_stage_candidate['name'],
             'start_datetime': next_stage_candidate['start_datetime'],
-            'start_iso': start_dt_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
+            'start_iso': start_dt_utc.isoformat()
         }
     else:
         next_stage_payload = None
