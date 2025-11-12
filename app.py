@@ -5733,24 +5733,29 @@ def event_view(event_id):
             for idx in range(current_stage_index + 1, len(EVENT_STAGES)):
                 info = EVENT_STAGES[idx]
                 data = stages_dict.get(info['type'])
-                if not data or not data.get('start_datetime'):
-                    continue
-                try:
-                    candidate_dt = datetime.fromisoformat(str(data['start_datetime']))
-                    candidate_raw = data['start_datetime']
-                except ValueError:
-                    candidate_dt = None
+
+                if data and data.get('start_datetime'):
+                    try:
+                        candidate_dt = datetime.fromisoformat(str(data['start_datetime']))
+                        candidate_raw = data['start_datetime']
+                    except ValueError:
+                        candidate_dt = None
+                elif data and info.get('has_start') and data.get('end_datetime'):
+                    try:
+                        candidate_dt = datetime.fromisoformat(str(data['end_datetime']))
+                        candidate_raw = data['end_datetime']
+                    except ValueError:
+                        candidate_dt = None
+                elif not data and idx == len(EVENT_STAGES) - 1 and current_stage['data'] and current_stage['data'].get('end_datetime'):
+                    try:
+                        candidate_dt = datetime.fromisoformat(str(current_stage['data']['end_datetime']))
+                        candidate_raw = current_stage['data']['end_datetime']
+                    except ValueError:
+                        candidate_dt = None
+
                 if candidate_dt and candidate_dt > now:
                     candidate_info = info
                     break
-
-            if not candidate_info and current_stage['data'] and current_stage['data'].get('end_datetime'):
-                try:
-                    candidate_dt = datetime.fromisoformat(str(current_stage['data']['end_datetime']))
-                    candidate_raw = current_stage['data']['end_datetime']
-                    candidate_info = EVENT_STAGES[min(current_stage_index + 1, len(EVENT_STAGES) - 1)]
-                except ValueError:
-                    candidate_dt = None
 
             if candidate_info and candidate_dt and candidate_dt > now:
                 next_stage_candidate = {
