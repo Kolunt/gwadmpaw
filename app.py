@@ -5707,7 +5707,8 @@ def event_view(event_id):
                 next_stage_candidate = {
                     'name': stage_info['name'],
                     'start_datetime': stage_data['start_datetime'],
-                    'start_dt': start_dt
+                    'start_dt': start_dt,
+                    'stage_type': stage_type
                 }
     
     # Получаем тексты модальных окон
@@ -5718,51 +5719,37 @@ def event_view(event_id):
     for setting in modal_settings:
         modal_texts[setting['key']] = setting['value']
     
-    if not next_stage_candidate and current_stage:
-        current_stage_index = None
-        for idx, stage_info in enumerate(EVENT_STAGES):
-            if stage_info['type'] == current_stage['info']['type']:
-                current_stage_index = idx
-                break
+    if not next_stage_candidate:
+        for stage_info in EVENT_STAGES:
+            data = stages_dict.get(stage_info['type'])
+            if not data:
+                continue
 
-        if current_stage_index is not None:
-            candidate_info = None
             candidate_raw = None
             candidate_dt = None
 
-            for idx in range(current_stage_index + 1, len(EVENT_STAGES)):
-                info = EVENT_STAGES[idx]
-                data = stages_dict.get(info['type'])
+            if data.get('start_datetime'):
+                try:
+                    candidate_dt = datetime.fromisoformat(str(data['start_datetime']))
+                    candidate_raw = data['start_datetime']
+                except ValueError:
+                    candidate_dt = None
 
-                if data and data.get('start_datetime'):
-                    try:
-                        candidate_dt = datetime.fromisoformat(str(data['start_datetime']))
-                        candidate_raw = data['start_datetime']
-                    except ValueError:
-                        candidate_dt = None
-                elif data and info.get('has_start') and data.get('end_datetime'):
-                    try:
-                        candidate_dt = datetime.fromisoformat(str(data['end_datetime']))
-                        candidate_raw = data['end_datetime']
-                    except ValueError:
-                        candidate_dt = None
-                elif not data and idx == len(EVENT_STAGES) - 1 and current_stage['data'] and current_stage['data'].get('end_datetime'):
-                    try:
-                        candidate_dt = datetime.fromisoformat(str(current_stage['data']['end_datetime']))
-                        candidate_raw = current_stage['data']['end_datetime']
-                    except ValueError:
-                        candidate_dt = None
+            if (not candidate_dt or candidate_dt <= now) and data.get('end_datetime') and stage_info['type'] == 'after_party':
+                try:
+                    candidate_dt = datetime.fromisoformat(str(data['end_datetime']))
+                    candidate_raw = data['end_datetime']
+                except ValueError:
+                    candidate_dt = None
 
-                if candidate_dt and candidate_dt > now:
-                    candidate_info = info
-                    break
-
-            if candidate_info and candidate_dt and candidate_dt > now:
+            if candidate_dt and candidate_dt > now:
                 next_stage_candidate = {
-                    'name': candidate_info['name'],
+                    'name': stage_info['name'],
                     'start_datetime': candidate_raw,
-                    'start_dt': candidate_dt
+                    'start_dt': candidate_dt,
+                    'stage_type': stage_info['type']
                 }
+                break
 
     if next_stage_candidate:
         start_dt_local = next_stage_candidate['start_dt']
