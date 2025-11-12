@@ -23,6 +23,9 @@
                             <th style="width: 5rem;">Место</th>
                             <th>Участник</th>
                             <th style="width: 8rem;">Снежинки</th>
+                            {% if is_admin %}
+                            <th>За что начислены</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -45,6 +48,19 @@
                             <td data-label="Снежинки">
                                 <strong>{{ row.rating }}</strong>
                             </td>
+                            {% if is_admin %}
+                            <td data-label="За что начислены">
+                                {% if row.details %}
+                                <ul class="rating-details">
+                                    {% for item in row.details %}
+                                    <li>{{ item }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>

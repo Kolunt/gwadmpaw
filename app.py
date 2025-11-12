@@ -8773,6 +8773,9 @@ def _normalize_contact_value(value):
 @app.route('/rating')
 def user_rating():
     """Простая система рейтинга участников (прямая ссылка)."""
+    roles = session.get('roles') or []
+    is_admin = isinstance(roles, (list, tuple, set)) and ('admin' in roles)
+
     conn = get_db_connection()
     try:
         rows = conn.execute('''
@@ -8789,13 +8792,17 @@ def user_rating():
         telegram = _normalize_contact_value(row['telegram'])
         whatsapp = _normalize_contact_value(row['whatsapp'])
         viber = _normalize_contact_value(row['viber'])
+        details = []
 
         if telegram:
             rating += 1
+            details.append('Заполнен Telegram')
         if whatsapp:
             rating += 1
+            details.append('Заполнен WhatsApp')
         if viber:
             rating += 1
+            details.append('Заполнен Viber')
 
         rating_rows.append({
             'user_id': row['user_id'],
@@ -8804,11 +8811,12 @@ def user_rating():
             'telegram': telegram,
             'whatsapp': whatsapp,
             'viber': viber,
+            'details': details,
         })
 
     rating_rows.sort(key=lambda item: (-item['rating'], item['username'].lower() if item['username'] else ''))
 
-    resp = make_response(render_template('rating.html', rating_rows=rating_rows))
+    resp = make_response(render_template('rating.html', rating_rows=rating_rows, is_admin=is_admin))
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'

@@ -44,6 +44,21 @@
     }
 }
 
+.rating-details {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+    .rating-details {
+        padding-left: 1rem;
+    }
+}
+
 
 @media (max-width: 768px) {
     .assignments-grid {
