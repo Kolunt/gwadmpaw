@@ -5393,6 +5393,10 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
         return False, 'Введите данные об отправке'
     
     send_info = send_info.strip()
+    send_info = send_info.replace('\r\n', '\n')
+    send_info = send_info.replace('<br />', '\n').replace('<br/>', '\n').replace('<br>', '\n')
+    while '\n\n\n' in send_info:
+        send_info = send_info.replace('\n\n\n', '\n\n')
     if len(send_info) > 500:
         send_info = send_info[:500]
     
