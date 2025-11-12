@@ -31,6 +31,35 @@
     color: var(--success-color);
     text-decoration: underline;
 }
+
+.assignments-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .assignments-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .assignments-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .assignment-card form,
+    .assignment-card .chat-attachment {
+        width: 100%;
+    }
+
+    .assignment-card .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
 /* CSS Variables for theming */
 :root {
     --bg-primary: #ffffff;

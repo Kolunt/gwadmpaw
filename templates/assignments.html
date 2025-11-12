@@ -16,7 +16,7 @@
                     <a href="{{ url_for('event_view', event_id=event_id) }}" class="assignments-event-link">{{ event_data.event_name }}</a>
                 </h2>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="assignments-grid">
                     <!-- Где пользователь Дед Мороз -->
                     {% if event_data.as_santa %}
                     <div class="assignment-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px;">
