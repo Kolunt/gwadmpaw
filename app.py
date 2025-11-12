@@ -15,6 +15,10 @@ import json
 import random
 from collections import defaultdict
 try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    ZoneInfo = None
+try:
     import requests
 except ImportError:
     requests = None
@@ -25,6 +29,40 @@ import traceback
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['VERSION'] = __version__
+
+EVENT_TIMEZONE = None
+if ZoneInfo:
+    tz_name = os.getenv('EVENT_TIMEZONE', 'Europe/Moscow')
+    try:
+        EVENT_TIMEZONE = ZoneInfo(tz_name)
+    except Exception as tz_error:
+        logging.warning(f"Failed to load timezone {tz_name}: {tz_error}")
+        EVENT_TIMEZONE = None
+
+
+def get_event_now():
+    if EVENT_TIMEZONE:
+        return datetime.now(EVENT_TIMEZONE)
+    return datetime.now()
+
+
+def parse_event_datetime(value):
+    if not value:
+        return None
+    formats = ['%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M', '%Y-%m-%d']
+    parsed = None
+    for fmt in formats:
+        try:
+            parsed = datetime.strptime(value, fmt)
+            break
+        except ValueError:
+            continue
+    if not parsed:
+        return None
+    if EVENT_TIMEZONE:
+        return parsed.replace(tzinfo=EVENT_TIMEZONE)
+    return parsed
+
 
 @app.template_filter('format_gender')
 def format_gender(value):
@@ -1559,7 +1597,7 @@ def index():
     
     # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
     events_with_stages = []
-    now = datetime.now()
+    now = get_event_now()
     stage_info_map = {stage['type']: stage for stage in EVENT_STAGES}
 
     def parse_dt(value):
@@ -4649,7 +4687,7 @@ def is_event_finished(event_id):
     if not stages:
         return False
     
-    now = datetime.now()
+    now = get_event_now()
     
     # Мероприятие считается завершенным, если последний этап (after_party) имеет end_datetime и оно прошло
     after_party_stage = None
@@ -4659,13 +4697,9 @@ def is_event_finished(event_id):
             break
     
     if after_party_stage and after_party_stage['end_datetime']:
-        try:
-            end_dt = datetime.strptime(after_party_stage['end_datetime'], '%Y-%m-%d %H:%M:%S')
-        except:
-            try:
-                end_dt = datetime.strptime(after_party_stage['end_datetime'], '%Y-%m-%dT%H:%M')
-            except:
-                return False
+        end_dt = parse_event_datetime(after_party_stage['end_datetime'])
+        if not end_dt:
+            return False
         
         return now > end_dt
     
@@ -4741,14 +4775,10 @@ def get_current_event_stage(event_id):
     # Проверяем, начался ли этап "Закрытие регистрации" - если да, создаем записи для ревью
     registration_closed_stage = None
     for stage in stages:
-        if stage['stage_type'] == 'registration_closed' and stage['start_datetime']:
-            try:
-                start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
-            except:
-                try:
-                    start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%dT%H:%M')
-                except:
-                    continue
+        if stage['stage_type'] == 'registration_closed' and stage.get('start_datetime'):
+            start_dt = parse_event_datetime(stage['start_datetime'])
+            if not start_dt:
+                continue
             if now >= start_dt:
                 registration_closed_stage = stage
                 break
@@ -4772,31 +4802,19 @@ def get_current_event_stage(event_id):
         stage = dict(stages_dict[stage_type])
         
         # Проверяем, начался ли этап
-        if stage['start_datetime']:
-            try:
-                start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
-            except:
-                try:
-                    start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%dT%H:%M')
-                except:
-                    log_debug(f"get_current_event_stage: cannot parse start_datetime for stage {stage_type}: {stage['start_datetime']}")
-                    continue
-            
+        if stage.get('start_datetime'):
+            start_dt = parse_event_datetime(stage['start_datetime'])
+            if not start_dt:
+                log_debug(f"get_current_event_stage: cannot parse start_datetime for stage {stage_type}: {stage['start_datetime']}")
+                continue
             # Если этап еще не начался, пропускаем
             if now < start_dt:
                 log_debug(f"get_current_event_stage: stage {stage_type} not started yet (start: {start_dt}, now: {now})")
                 continue
         
         # Проверяем, закончился ли этап
-        if stage['end_datetime']:
-            try:
-                end_dt = datetime.strptime(stage['end_datetime'], '%Y-%m-%d %H:%M:%S')
-            except:
-                try:
-                    end_dt = datetime.strptime(stage['end_datetime'], '%Y-%m-%dT%H:%M')
-                except:
-                    end_dt = None
-            
+        if stage.get('end_datetime'):
+            end_dt = parse_event_datetime(stage['end_datetime'])
             if end_dt and now > end_dt:
                 continue
         
@@ -4805,14 +4823,10 @@ def get_current_event_stage(event_id):
         current_order = stage['stage_order']
         next_stage_started = False
         for next_stage in stages:
-            if next_stage['stage_order'] > current_order and next_stage['start_datetime']:
-                try:
-                    next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
-                except:
-                    try:
-                        next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%dT%H:%M')
-                    except:
-                        continue
+            if next_stage['stage_order'] > current_order and next_stage.get('start_datetime'):
+                next_start_dt = parse_event_datetime(next_stage['start_datetime'])
+                if not next_start_dt:
+                    continue
                 if now >= next_start_dt:
                     next_stage_started = True
                     log_debug(f"get_current_event_stage: stage {stage_type} ended because next stage {next_stage['stage_type']} started at {next_start_dt}")
