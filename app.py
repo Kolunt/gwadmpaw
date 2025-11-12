@@ -8430,12 +8430,17 @@ def letter():
     if not user_id:
         flash('Необходимо авторизоваться', 'error')
         return redirect(url_for('login'))
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        flash('Не удалось определить пользователя', 'error')
+        return redirect(url_for('login'))
 
     assignment_id = request.args.get('assignment_id', type=int)
     if assignment_id is None and request.method == 'POST':
         assignment_id = request.form.get('assignment_id', type=int)
 
-    is_admin = has_role(user_id, 'admin')
+    is_admin = has_role(user_id_int, 'admin')
     admin_override = is_admin and (request.args.get('admin') == '1' or request.form.get('admin') == '1')
 
     if admin_override and request.method == 'POST':
@@ -8446,12 +8451,12 @@ def letter():
     if admin_override:
         accessible_assignments = get_admin_letter_assignments()
     else:
-        user_assignments = get_user_assignments(user_id)
+        user_assignments = get_user_assignments(user_id_int)
         for assignment in user_assignments:
             role = None
-            if assignment.get('santa_user_id') == user_id:
+            if assignment.get('santa_user_id') == user_id_int:
                 role = 'santa'
-            elif assignment.get('recipient_user_id') == user_id:
+            elif assignment.get('recipient_user_id') == user_id_int:
                 role = 'grandchild'
             if not role:
                 continue
