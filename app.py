@@ -5847,17 +5847,17 @@ def event_view(event_id):
                 }
                 break
 
+    next_stage_payload = None
     if next_stage_candidate:
-        start_dt_local = next_stage_candidate['start_dt']
-        start_iso = start_dt_local.strftime('%Y-%m-%dT%H:%M:%S')
-        next_stage_payload = {
-            'name': next_stage_candidate['name'],
-            'start_datetime': next_stage_candidate['start_datetime'],
-            'start_iso': start_iso,
-            'stage_type': next_stage_candidate.get('stage_type')
-        }
-    else:
-        next_stage_payload = None
+        start_dt_local = next_stage_candidate.get('start_dt')
+        if isinstance(start_dt_local, datetime):
+            start_iso = start_dt_local.strftime('%Y-%m-%dT%H:%M:%S')
+            next_stage_payload = {
+                'name': next_stage_candidate.get('name'),
+                'start_datetime': next_stage_candidate.get('start_datetime'),
+                'start_iso': start_iso,
+                'stage_type': next_stage_candidate.get('stage_type')
+            }
 
     return render_template('event_view.html', 
                          event=event,
