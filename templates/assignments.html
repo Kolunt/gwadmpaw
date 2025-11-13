@@ -10,17 +10,6 @@
         </div>
         
         {% if assignments_by_event %}
-        <div class="assignments-filter">
-            <button type="button" class="assignments-filter-btn is-active" data-filter="all">Все</button>
-            {% for event_id, event_data in assignments_by_event.items() %}
-            <button type="button" class="assignments-filter-btn" data-filter="{{ event_id }}">
-                <span class="assignments-filter-label">{{ event_data.event_name }}</span>
-                {% if event_data.event_finished %}
-                <span class="assignments-filter-status">Завершено</span>
-                {% endif %}
-            </button>
-            {% endfor %}
-        </div>
         {% for event_id, event_data in assignments_by_event.items() %}
              {% set event_finished = event_data.event_finished %}
             <div class="faq-item{% if not event_finished %} expanded{% endif %}" data-event-id="{{ event_id }}" data-finished="{{ '1' if event_finished else '0' }}">
@@ -264,28 +253,7 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const filterButtons = document.querySelectorAll('.assignments-filter-btn');
     const eventCards = document.querySelectorAll('.faq-item[data-event-id]');
-
-    if (!filterButtons.length) {
-        return;
-    }
-
-    filterButtons.forEach((button) => {
-        button.addEventListener('click', () => {
-            const target = button.getAttribute('data-filter');
-            filterButtons.forEach((btn) => btn.classList.remove('is-active'));
-            button.classList.add('is-active');
-
-            eventCards.forEach((card) => {
-                const matches = target === 'all' || card.getAttribute('data-event-id') === target;
-                card.classList.toggle('is-hidden', !matches);
-                if (matches && target !== 'all') {
-                    expandCard(card, true);
-                }
-            });
-        });
-    });
 
     eventCards.forEach((card) => {
         const toggle = card.querySelector('.assignment-question');
@@ -309,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function () {
         toggle.addEventListener('keydown', toggleHandler);
     });
 
-    function expandCard(card, force) {
+    function expandCard(card) {
         const toggle = card.querySelector('.assignment-question');
         const content = card.querySelector('.assignment-answer');
         if (!toggle || !content) {
