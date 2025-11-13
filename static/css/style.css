@@ -5038,3 +5038,16 @@ html.dark .avatar-candidate-img {
 +    }
  }
 
++.assignment-finished-note {
++    background: rgba(255, 193, 7, 0.12);
++    border: 1px solid rgba(255, 193, 7, 0.3);
++    color: #705400;
++    padding: 0.75rem 1rem;
++    border-radius: 10px;
++    margin-bottom: 1.25rem;
++    font-size: 0.95rem;
++    line-height: 1.5;
++}
++
+ @media (max-width: 1024px) {
+

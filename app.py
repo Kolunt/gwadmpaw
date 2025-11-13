@@ -5501,6 +5501,10 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
         conn.close()
         return False, 'Вы не можете обновить это задание'
     
+    if is_event_finished(assignment['event_id']):
+        conn.close()
+        return False, 'Мероприятие завершено. Действия с заданием недоступны.'
+
     try:
         chat_message = None
         if clear_requested:
@@ -5574,6 +5578,10 @@ def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_
     if assignment['recipient_user_id'] != user_id_int:
         conn.close()
         return False, 'Вы не можете обновить это задание'
+    
+    if is_event_finished(assignment['event_id']):
+        conn.close()
+        return False, 'Мероприятие завершено. Действия с заданием недоступны.'
     
     if not assignment['santa_sent_at']:
         conn.close()
@@ -8708,6 +8716,13 @@ def letter():
 
     user_role = selected_assignment.get('chat_role', 'santa')
 
+    event_finished = is_event_finished(selected_assignment.get('event_id'))
+
+    if request.method == 'POST' and not admin_override:
+        if event_finished:
+            flash('Мероприятие завершено. Переписка доступна только для чтения.', 'error')
+            return redirect(url_for('letter', assignment_id=selected_assignment.get('id')))
+
     if request.method == 'POST':
         message = _normalize_multiline_text(request.form.get('message'), max_length=2000)
         attachment_file = request.files.get('attachment')
@@ -8902,7 +8917,8 @@ def letter():
         user_role=user_role,
         chat_messages=chat_messages,
         admin_view=admin_override,
-        admin_letters_url=url_for('admin_letters') if admin_override else None
+        admin_letters_url=url_for('admin_letters') if admin_override else None,
+        event_finished=event_finished
     )
 
 
@@ -8928,12 +8944,13 @@ def assignments():
         event_id = assignment.get('event_id')
         if not event_id:
             continue
-            
+        
         if event_id not in assignments_by_event:
             assignments_by_event[event_id] = {
                 'event_name': assignment.get('event_name', 'Мероприятие'),
                 'as_santa': None,  # Где пользователь Дед Мороз
-                'as_recipient': None  # Где пользователь Внучка
+                'as_recipient': None,  # Где пользователь Внучка
+                'event_finished': is_event_finished(event_id)
             }
         
         # Проверяем, является ли пользователь Дедом Морозом в этом задании

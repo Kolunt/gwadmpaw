@@ -12,9 +12,15 @@
         {% if assignments_by_event %}
             {% for event_id, event_data in assignments_by_event.items() %}
             <div class="event-view-card" style="margin-bottom: 2rem;">
+                {% set event_finished = event_data.event_finished %}
                 <h2 style="margin-bottom: 1.5rem;">
                     <a href="{{ url_for('event_view', event_id=event_id) }}" class="assignments-event-link">{{ event_data.event_name }}</a>
                 </h2>
+                {% if event_finished %}
+                <div class="assignment-finished-note">
+                    <span>Мероприятие завершено. Действия с заданиями недоступны, информация сохранена для истории.</span>
+                </div>
+                {% endif %}
                 
                 <div class="assignments-grid">
                     <!-- Где пользователь Дед Мороз -->
@@ -63,6 +69,10 @@
                         {% if event_data.as_santa.get('santa_sent_at') %}
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
                             <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Подарок отправлен {{ event_data.as_santa.get('santa_sent_at') }}</p>
+                            {% if event_data.as_santa.get('santa_send_info') %}
+                            <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Информация об отправке:</strong><br>{{ event_data.as_santa.get('santa_send_info') }}</p>
+                            {% endif %}
+                            {% if not event_finished %}
                             <form method="POST" action="{{ url_for('assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 0.75rem; display: grid; gap: 0.5rem;">
                                 <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.85); font-weight: 600;">Информация об отправке</label>
                                 <textarea
@@ -80,6 +90,9 @@
                                 </button>
                                 <p style="margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8;">Можно ввести до 500 символов. Текст увидит ваш внучок в переписке.</p>
                             </form>
+                            {% else %}
+                            <p style="margin: 0.5rem 0; font-size: 0.9rem; opacity: 0.9;">Информацию об отправке изменить уже нельзя.</p>
+                            {% endif %}
                             {% if event_data.as_santa.get('recipient_received_at') %}
                             <p style="margin: 0.75rem 0 0;"><strong>Получатель подтвердил получение:</strong> {{ event_data.as_santa.get('recipient_received_at') }}</p>
                             {% else %}
@@ -110,6 +123,7 @@
                         </div>
                         {% endif %}
                         {% else %}
+                        {% if not event_finished %}
                         <form method="POST" action="{{ url_for('assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 1rem;">
                             <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-weight: 600;">Информация об отправке</label>
                             <textarea 
@@ -124,6 +138,11 @@
                             <button type="submit" class="btn btn-light" style="margin-top: 0.75rem;">Отправил</button>
                             <p style="margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8;">Можно ввести до 500 символов</p>
                         </form>
+                        {% else %}
+                        <div style="margin-top: 1rem; background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 8px;">
+                            <p style="margin: 0; opacity: 0.9;">Подарок не был отмечен как отправленный до завершения мероприятия.</p>
+                        </div>
+                        {% endif %}
                         {% endif %}
                     </div>
                     {% else %}
@@ -172,6 +191,7 @@
                             </div>
                                 {% endif %}
                                 {% else %}
+                                {% if not event_finished %}
                                 <form method="POST" action="{{ url_for('assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" style="display: grid; gap: 0.75rem; margin-top: 0.5rem;">
                                     <div>
                                     <label for="thank_you_{{ event_data.as_recipient.get('id') }}" style="font-weight: 600;">Сообщение благодарности</label>
@@ -198,6 +218,9 @@
                                     </div>
                                     <button type="submit" class="btn btn-light">Получил</button>
                                 </form>
+                                {% else %}
+                                <p style="margin: 0.5rem 0; opacity: 0.85;">Подтвердить получение после завершения мероприятия уже нельзя.</p>
+                                {% endif %}
                                 {% endif %}
                             </div>
                         </div>

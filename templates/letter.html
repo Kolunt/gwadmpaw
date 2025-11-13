@@ -192,7 +192,7 @@
 
             <div class="card" style="margin-top: 2rem;">
                 <div class="card-body">
-                    <h3 style="margin-top: 0;">Продолжить переписку</h3>
+                    <h3 style="margin-top: 0;">{% if event_finished and not admin_view %}Переписка завершена{% else %}Продолжить переписку{% endif %}</h3>
                     {% if admin_view %}
                     <p class="text-muted" style="margin-bottom: 0;">
                         Вы просматриваете переписку как администратор. Сообщения доступны только для чтения.
@@ -202,6 +202,10 @@
                         <a href="{{ admin_letters_url }}" class="btn btn-outline-secondary btn-sm">← К списку переписок</a>
                     </p>
                     {% endif %}
+                    {% elif event_finished %}
+                    <p class="text-muted" style="margin-bottom: 0;">
+                        Мероприятие завершено. Переписка доступна только для чтения.
+                    </p>
                     {% else %}
                     <p class="text-muted" style="margin-bottom: 1rem;">
                         {% if user_role == 'santa' %}
