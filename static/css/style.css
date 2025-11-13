@@ -5187,3 +5187,104 @@ html.dark .avatar-candidate-img {
     }
 }
 
+.assignments-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
++.assignment-accordion-item {
++    border: 1px solid rgba(103, 117, 134, 0.18);
++    border-radius: 14px;
++    background: var(--bg-card);
++    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
++    margin-bottom: 1.25rem;
++    overflow: hidden;
++    transition: border-color 0.2s ease, box-shadow 0.2s ease;
++}
++
++.assignment-accordion-item:hover,
++.assignment-accordion-item.is-expanded {
++    border-color: rgba(102, 126, 234, 0.35);
++    box-shadow: 0 12px 28px rgba(102, 126, 234, 0.18);
++}
++
++.assignment-accordion-item.is-hidden {
++    display: none;
++}
++
++.assignment-accordion-toggle {
++    width: 100%;
++    border: none;
++    background: transparent;
++    padding: 1.2rem 1.5rem;
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    gap: 1rem;
++    font: inherit;
++    text-align: left;
++    cursor: pointer;
++    color: var(--text-primary);
++    transition: background 0.2s ease;
++}
++
++.assignment-accordion-toggle:hover {
++    background: rgba(102, 126, 234, 0.08);
++}
++
++.assignment-accordion-toggle:focus-visible {
++    outline: 2px solid var(--accent-color);
++    outline-offset: -4px;
++}
++
++.assignment-accordion-meta {
++    display: flex;
++    flex-direction: column;
++    gap: 0.35rem;
++}
++
++.assignment-accordion-title {
++    font-size: 1.12rem;
++    font-weight: 600;
++}
++
++.assignment-accordion-status {
++    font-size: 0.85rem;
++    font-weight: 600;
++    padding: 0.25rem 0.6rem;
++    border-radius: 999px;
++    align-self: flex-start;
++}
++
++.assignment-accordion-status.active {
++    background: rgba(40, 167, 69, 0.18);
++    color: #1e7e34;
++}
++
++.assignment-accordion-status.finished {
++    background: rgba(108, 117, 125, 0.18);
++    color: #495057;
++}
++
++.assignment-accordion-icon {
++    font-size: 1.25rem;
++    color: rgba(15, 23, 42, 0.4);
++    transition: transform 0.2s ease;
++}
++
++.assignment-accordion-item.is-expanded .assignment-accordion-icon {
++    transform: rotate(180deg);
++}
++
++.assignment-accordion-content {
++    padding: 0 1.5rem 1.5rem;
++    border-top: 1px solid rgba(103, 117, 134, 0.12);
++    background: linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(248,250,252,0.95) 100%);
++}
++
++.assignment-accordion-content[hidden] {
++    display: none;
++}
+

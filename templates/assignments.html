@@ -22,17 +22,16 @@
             {% endfor %}
         </div>
         {% for event_id, event_data in assignments_by_event.items() %}
-            {% set event_finished = event_data.event_finished %}
-            <details class="assignment-event-card" data-event-id="{{ event_id }}" data-finished="{{ '1' if event_finished else '0' }}" {% if not event_finished %}open{% endif %}>
-                <summary class="assignment-event-summary">
-                    <span class="assignment-event-name">
-                        <a href="{{ url_for('event_view', event_id=event_id) }}" class="assignments-event-link">{{ event_data.event_name }}</a>
-                    </span>
-                    <span class="assignment-event-status {{ 'finished' if event_finished else 'active' }}">
-                        {{ 'Завершено' if event_finished else 'Активно' }}
-                    </span>
-                </summary>
-                <div class="assignment-event-body">
+             {% set event_finished = event_data.event_finished %}
+            <div class="assignment-accordion-item{% if event_finished %} is-finished{% endif %}{% if not event_finished %} is-expanded{% endif %}" data-event-id="{{ event_id }}" data-finished="{{ '1' if event_finished else '0' }}">
+                <button type="button" class="assignment-accordion-toggle" aria-expanded="{{ 'true' if not event_finished else 'false' }}">
+                    <div class="assignment-accordion-meta">
+                        <span class="assignment-accordion-title">{{ event_data.event_name }}</span>
+                        <span class="assignment-accordion-status {{ 'finished' if event_finished else 'active' }}">{{ 'Завершено' if event_finished else 'Активно' }}</span>
+                    </div>
+                    <span class="assignment-accordion-icon" aria-hidden="true">▾</span>
+                </button>
+                <div class="assignment-accordion-content"{% if event_finished %} hidden{% endif %}>
                     {% if event_finished %}
                     <div class="assignment-finished-note">
                         <span>Мероприятие завершено. Действия с заданиями недоступны, информация сохранена для истории.</span>
@@ -254,7 +253,7 @@
                     {% endif %}
                 </div>
                 </div>
-            </details>
+            </div>
         {% endfor %}
         {% else %}
         <div class="empty-state">
@@ -268,7 +267,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const filterButtons = document.querySelectorAll('.assignments-filter-btn');
-    const eventCards = document.querySelectorAll('.assignment-event-card');
+    const eventCards = document.querySelectorAll('.assignment-accordion-item');
 
     if (!filterButtons.length) {
         return;
@@ -284,11 +283,50 @@ document.addEventListener('DOMContentLoaded', function () {
                 const matches = target === 'all' || card.getAttribute('data-event-id') === target;
                 card.classList.toggle('is-hidden', !matches);
                 if (matches && target !== 'all') {
-                    card.open = true;
+                    expandCard(card, true);
                 }
             });
         });
     });
+
+    eventCards.forEach((card) => {
+        const toggle = card.querySelector('.assignment-accordion-toggle');
+        const content = card.querySelector('.assignment-accordion-content');
+        if (!toggle || !content) {
+            return;
+        }
+
+        toggle.addEventListener('click', () => {
+            const isExpanded = card.classList.contains('is-expanded');
+            if (isExpanded) {
+                collapseCard(card);
+            } else {
+                expandCard(card);
+            }
+        });
+    });
+
+    function expandCard(card, force) {
+        const toggle = card.querySelector('.assignment-accordion-toggle');
+        const content = card.querySelector('.assignment-accordion-content');
+        if (!toggle || !content) {
+            return;
+        }
+        content.hidden = false;
+        card.classList.add('is-expanded');
+        toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    function collapseCard(card) {
+        const toggle = card.querySelector('.assignment-accordion-toggle');
+        const content = card.querySelector('.assignment-accordion-content');
+        if (!toggle || !content) {
+            return;
+        }
+        content.hidden = true;
+        card.classList.remove('is-expanded');
+        toggle.setAttribute('aria-expanded', 'false');
+    }
 });
 </script>
 {% endblock %}
