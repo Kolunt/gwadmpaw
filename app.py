@@ -1716,7 +1716,10 @@ def index():
             'next_stage': next_stage
         })
 
-    events_with_stages = [item for item in events_with_stages_raw if item['current_stage']]
+    events_with_stages = [
+        item for item in events_with_stages_raw
+        if item['current_stage'] and item['current_stage']['info']['type'] != 'after_party'
+     ]
 
     for item in events_with_stages:
         event = item['event']
@@ -5753,7 +5756,10 @@ def events():
 
         events_with_stages_raw.append(value)
 
-    events_with_stages = [item for item in events_with_stages_raw if item['current_stage']]
+    events_with_stages = [
+        item for item in events_with_stages_raw
+        if item['current_stage'] and item['current_stage']['info']['type'] != 'after_party'
+     ]
 
     for item in events_with_stages:
         event = item['event']
