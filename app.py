@@ -555,6 +555,10 @@ def init_db():
             c.execute('ALTER TABLE events ADD COLUMN award_id INTEGER REFERENCES awards(id)')
         except sqlite3.OperationalError:
             pass  # Колонка уже существует
+        try:
+            c.execute('ALTER TABLE events ADD COLUMN deleted_at TIMESTAMP')
+        except sqlite3.OperationalError:
+            pass  # Колонка уже существует
         
         # Таблица этапов мероприятий
         c.execute('''
