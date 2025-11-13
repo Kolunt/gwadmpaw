@@ -4941,21 +4941,9 @@ html.dark .avatar-candidate-img {
     padding: 0.65rem;
 }
 
-.modal-back-btn:before {
-    content: '🔙';
-    font-size: 1.25rem;
-    line-height: 1;
-}
-
-.modal-back-btn span,
-.modal-back-btn svg {
-    display: none;
-}
-
-.modal-back-btn:not([style*="display: none"])::after {
-    content: 'Назад';
-    font-size: 0.95rem;
-    margin-left: 0.35rem;
+.modal-back-btn::before,
+.modal-back-btn::after {
+    content: none !important;
 }
 
 @media (max-width: 640px) {
