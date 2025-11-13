@@ -82,15 +82,15 @@
                                                   action="{{ url_for('event_register', event_id=event.id) }}"
                                                   class="register-form"
                                                   data-event-id="{{ event.id }}">
-                                                <button type="submit" class="btn btn-sm btn-primary">Записаться</button>
+                                                <button type="submit" class="btn-icon btn-icon-success" title="Записаться">&#10003;</button>
                                             </form>
                                         {% endif %}
                                     {% else %}
                                         <span class="text-muted small">Регистрация закрыта</span>
                                     {% endif %}
                                 {% endif %}
-                                <a href="{{ url_for('event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Просмотр">
-                                    <span aria-hidden="true">👁️</span>
+                                <a href="{{ url_for('event_view', event_id=event.id) }}" class="btn-icon" title="Просмотр">
+                                    <span aria-hidden="true">&#128065;</span>
                                 </a>
                             </div>
                         </td>
