@@ -5287,4 +5287,53 @@ html.dark .avatar-candidate-img {
 +.assignment-accordion-content[hidden] {
 +    display: none;
 +}
++
++.faq-item[data-event-id] {
++    margin-bottom: 1.25rem;
++}
++
++.faq-item[data-event-id].is-hidden {
++    display: none;
++}
++
++.assignment-question {
++    display: flex;
++    align-items: center;
++    gap: 1rem;
++}
++
++.assignment-question h3 {
++    margin: 0;
++    font-size: 1.12rem;
++    font-weight: 600;
++}
++
++.assignment-status-badge {
++    font-size: 0.85rem;
++    font-weight: 600;
++    padding: 0.25rem 0.6rem;
++    border-radius: 999px;
++}
++
++.assignment-status-badge.active {
++    background: rgba(40, 167, 69, 0.18);
++    color: #1e7e34;
++}
++
++.assignment-status-badge.finished {
++    background: rgba(108, 117, 125, 0.18);
++    color: #495057;
++}
++
++.assignment-answer[hidden] {
++    display: none;
++}
++
++.faq-item.expanded .assignment-answer[hidden] {
++    display: block;
++}
++
++.assignment-question .faq-toggle-icon {
++    margin-left: auto;
++}
 

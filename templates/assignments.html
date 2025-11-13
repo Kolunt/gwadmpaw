@@ -23,15 +23,13 @@
         </div>
         {% for event_id, event_data in assignments_by_event.items() %}
              {% set event_finished = event_data.event_finished %}
-            <div class="assignment-accordion-item{% if event_finished %} is-finished{% endif %}{% if not event_finished %} is-expanded{% endif %}" data-event-id="{{ event_id }}" data-finished="{{ '1' if event_finished else '0' }}">
-                <button type="button" class="assignment-accordion-toggle" aria-expanded="{{ 'true' if not event_finished else 'false' }}">
-                    <div class="assignment-accordion-meta">
-                        <span class="assignment-accordion-title">{{ event_data.event_name }}</span>
-                        <span class="assignment-accordion-status {{ 'finished' if event_finished else 'active' }}">{{ 'Завершено' if event_finished else 'Активно' }}</span>
-                    </div>
-                    <span class="assignment-accordion-icon" aria-hidden="true">▾</span>
-                </button>
-                <div class="assignment-accordion-content"{% if event_finished %} hidden{% endif %}>
+            <div class="faq-item{% if not event_finished %} expanded{% endif %}" data-event-id="{{ event_id }}" data-finished="{{ '1' if event_finished else '0' }}">
+                <div class="faq-question assignment-question" role="button" tabindex="0" aria-expanded="{{ 'true' if not event_finished else 'false' }}">
+                    <h3>{{ event_data.event_name }}</h3>
+                    <span class="assignment-status-badge {{ 'finished' if event_finished else 'active' }}">{{ 'Завершено' if event_finished else 'Активно' }}</span>
+                    <span class="faq-toggle-icon" aria-hidden="true">⌄</span>
+                </div>
+                <div class="faq-answer assignment-answer"{% if event_finished %} hidden{% endif %}>
                     {% if event_finished %}
                     <div class="assignment-finished-note">
                         <span>Мероприятие завершено. Действия с заданиями недоступны, информация сохранена для истории.</span>
@@ -267,7 +265,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const filterButtons = document.querySelectorAll('.assignments-filter-btn');
-    const eventCards = document.querySelectorAll('.assignment-accordion-item');
+    const eventCards = document.querySelectorAll('.faq-item[data-event-id]');
 
     if (!filterButtons.length) {
         return;
@@ -290,41 +288,46 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     eventCards.forEach((card) => {
-        const toggle = card.querySelector('.assignment-accordion-toggle');
-        const content = card.querySelector('.assignment-accordion-content');
+        const toggle = card.querySelector('.assignment-question');
+        const content = card.querySelector('.assignment-answer');
         if (!toggle || !content) {
             return;
         }
 
-        toggle.addEventListener('click', () => {
-            const isExpanded = card.classList.contains('is-expanded');
-            if (isExpanded) {
+        const toggleHandler = (event) => {
+            if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            if (card.classList.contains('expanded')) {
                 collapseCard(card);
             } else {
                 expandCard(card);
             }
-        });
+        };
+
+        toggle.addEventListener('click', toggleHandler);
+        toggle.addEventListener('keydown', toggleHandler);
     });
 
     function expandCard(card, force) {
-        const toggle = card.querySelector('.assignment-accordion-toggle');
-        const content = card.querySelector('.assignment-accordion-content');
+        const toggle = card.querySelector('.assignment-question');
+        const content = card.querySelector('.assignment-answer');
         if (!toggle || !content) {
             return;
         }
         content.hidden = false;
-        card.classList.add('is-expanded');
+        card.classList.add('expanded');
         toggle.setAttribute('aria-expanded', 'true');
     }
 
     function collapseCard(card) {
-        const toggle = card.querySelector('.assignment-accordion-toggle');
-        const content = card.querySelector('.assignment-accordion-content');
+        const toggle = card.querySelector('.assignment-question');
+        const content = card.querySelector('.assignment-answer');
         if (!toggle || !content) {
             return;
         }
         content.hidden = true;
-        card.classList.remove('is-expanded');
+        card.classList.remove('expanded');
         toggle.setAttribute('aria-expanded', 'false');
     }
 });
