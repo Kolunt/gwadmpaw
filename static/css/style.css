@@ -5050,4 +5050,140 @@ html.dark .avatar-candidate-img {
 +}
 +
  @media (max-width: 1024px) {
+    .assignments-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
++.assignments-filter {
++    display: flex;
++    flex-wrap: wrap;
++    gap: 0.5rem;
++    margin-bottom: 1.5rem;
++}
++
++.assignments-filter-btn {
++    display: inline-flex;
++    align-items: center;
++    gap: 0.4rem;
++    padding: 0.45rem 0.85rem;
++    border: 1px solid var(--border-color);
++    border-radius: 999px;
++    background: var(--bg-card);
++    color: var(--text-primary);
++    font-size: 0.95rem;
++    font-weight: 500;
++    cursor: pointer;
++    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
++}
++
++.assignments-filter-btn:hover,
++.assignments-filter-btn:focus {
++    border-color: var(--accent-color);
++    color: var(--accent-color);
++    box-shadow: var(--shadow);
++}
++
++.assignments-filter-btn.is-active {
++    background: var(--accent-color);
++    color: #ffffff;
++    border-color: var(--accent-color);
++    box-shadow: 0 10px 20px rgba(0, 123, 255, 0.18);
++}
++
++.assignments-filter-status {
++    font-size: 0.75rem;
++    line-height: 1;
++    padding: 0.15rem 0.5rem;
++    border-radius: 999px;
++    background: rgba(255, 193, 7, 0.18);
++    color: #705400;
++    font-weight: 600;
++}
++
++.assignment-event-card {
++    background: var(--bg-card);
++    border: 1px solid var(--border-color);
++    border-radius: 14px;
++    margin-bottom: 1.5rem;
++    overflow: hidden;
++    transition: border-color 0.2s ease, box-shadow 0.2s ease;
++}
++
++.assignment-event-card[open] {
++    border-color: rgba(102, 126, 234, 0.35);
++    box-shadow: var(--shadow-lg);
++}
++
++.assignment-event-card.is-hidden {
++    display: none;
++}
++
++.assignment-event-summary {
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    gap: 1rem;
++    padding: 1.25rem 1.5rem;
++    cursor: pointer;
++    list-style: none;
++}
++
++.assignment-event-summary::marker,
++.assignment-event-summary::-webkit-details-marker {
++    display: none;
++}
++
++.assignment-event-name {
++    font-size: 1.15rem;
++    font-weight: 600;
++}
++
++.assignment-event-status {
++    font-size: 0.85rem;
++    font-weight: 600;
++    padding: 0.25rem 0.6rem;
++    border-radius: 999px;
++}
++
++.assignment-event-status.active {
++    background: rgba(40, 167, 69, 0.18);
++    color: #1e7e34;
++}
++
++.assignment-event-status.finished {
++    background: rgba(108, 117, 125, 0.18);
++    color: #495057;
++}
++
++.assignment-event-body {
++    padding: 0 1.5rem 1.5rem;
++    border-top: 1px solid var(--border-color);
++}
++
++.assignment-event-body .assignments-grid {
++    margin-top: 1.5rem;
++}
++
+ .assignment-finished-note {
+     background: rgba(255, 193, 7, 0.12);
+     border: 1px solid rgba(255, 193, 7, 0.3);
+     color: #705400;
+     padding: 0.75rem 1rem;
+     border-radius: 10px;
+     margin-bottom: 1.25rem;
+     font-size: 0.95rem;
+     line-height: 1.5;
+ }
+
+@media (max-width: 768px) {
+    .assignment-event-summary {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .assignment-event-body {
+        padding: 0 1rem 1.25rem;
+    }
+}
 

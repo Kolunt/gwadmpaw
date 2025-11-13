@@ -10,19 +10,35 @@
         </div>
         
         {% if assignments_by_event %}
+        <div class="assignments-filter">
+            <button type="button" class="assignments-filter-btn is-active" data-filter="all">Все</button>
             {% for event_id, event_data in assignments_by_event.items() %}
-            <div class="event-view-card" style="margin-bottom: 2rem;">
-                {% set event_finished = event_data.event_finished %}
-                <h2 style="margin-bottom: 1.5rem;">
-                    <a href="{{ url_for('event_view', event_id=event_id) }}" class="assignments-event-link">{{ event_data.event_name }}</a>
-                </h2>
-                {% if event_finished %}
-                <div class="assignment-finished-note">
-                    <span>Мероприятие завершено. Действия с заданиями недоступны, информация сохранена для истории.</span>
-                </div>
+            <button type="button" class="assignments-filter-btn" data-filter="{{ event_id }}">
+                <span class="assignments-filter-label">{{ event_data.event_name }}</span>
+                {% if event_data.event_finished %}
+                <span class="assignments-filter-status">Завершено</span>
                 {% endif %}
-                
-                <div class="assignments-grid">
+            </button>
+            {% endfor %}
+        </div>
+        {% for event_id, event_data in assignments_by_event.items() %}
+            {% set event_finished = event_data.event_finished %}
+            <details class="assignment-event-card" data-event-id="{{ event_id }}" data-finished="{{ '1' if event_finished else '0' }}" {% if not event_finished %}open{% endif %}>
+                <summary class="assignment-event-summary">
+                    <span class="assignment-event-name">
+                        <a href="{{ url_for('event_view', event_id=event_id) }}" class="assignments-event-link">{{ event_data.event_name }}</a>
+                    </span>
+                    <span class="assignment-event-status {{ 'finished' if event_finished else 'active' }}">
+                        {{ 'Завершено' if event_finished else 'Активно' }}
+                    </span>
+                </summary>
+                <div class="assignment-event-body">
+                    {% if event_finished %}
+                    <div class="assignment-finished-note">
+                        <span>Мероприятие завершено. Действия с заданиями недоступны, информация сохранена для истории.</span>
+                    </div>
+                    {% endif %}
+                    <div class="assignments-grid">
                     <!-- Где пользователь Дед Мороз -->
                     {% if event_data.as_santa %}
                     <div class="assignment-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px;">
@@ -237,8 +253,9 @@
                     </div>
                     {% endif %}
                 </div>
-            </div>
-            {% endfor %}
+                </div>
+            </details>
+        {% endfor %}
         {% else %}
         <div class="empty-state">
             <p style="font-size: 1.2rem; color: var(--text-secondary); text-align: center; padding: 3rem;">
@@ -248,5 +265,31 @@
         {% endif %}
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const filterButtons = document.querySelectorAll('.assignments-filter-btn');
+    const eventCards = document.querySelectorAll('.assignment-event-card');
+
+    if (!filterButtons.length) {
+        return;
+    }
+
+    filterButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const target = button.getAttribute('data-filter');
+            filterButtons.forEach((btn) => btn.classList.remove('is-active'));
+            button.classList.add('is-active');
+
+            eventCards.forEach((card) => {
+                const matches = target === 'all' || card.getAttribute('data-event-id') === target;
+                card.classList.toggle('is-hidden', !matches);
+                if (matches && target !== 'all') {
+                    card.open = true;
+                }
+            });
+        });
+    });
+});
+</script>
 {% endblock %}
 
