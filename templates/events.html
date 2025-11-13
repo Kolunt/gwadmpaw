@@ -75,7 +75,7 @@
                                         {% if item.is_registered %}
                                             <form method="POST" action="{{ url_for('event_unregister', event_id=event.id) }}"
                                                   onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');">
-                                                <button type="submit" class="btn-icon btn-icon-danger" title="Отменить участие">&#10060;</button>
+                                                <button type="submit" class="btn-icon btn-icon-danger" title="Отменить участие" aria-label="Отменить участие">❌</button>
                                             </form>
                                         {% else %}
                                             <form method="POST"
@@ -89,9 +89,7 @@
                                         <span class="text-muted small">Регистрация закрыта</span>
                                     {% endif %}
                                 {% endif %}
-                                <a href="{{ url_for('event_view', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Просмотр">
-                                    <span aria-hidden="true">👁️</span>
-                                </a>
+                                <a href="{{ url_for('event_view', event_id=event.id) }}" class="btn-icon" title="Просмотр" aria-label="Просмотр">👁️</a>
                             </div>
                         </td>
                     </tr>

@@ -4507,15 +4507,16 @@ html.dark .avatar-candidate-img {
 }
 
 .events-actions-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 0.35rem;
     justify-content: flex-end;
     align-items: center;
 }
 
 .events-actions-group form {
     margin: 0;
+    display: inline-flex;
 }
 
 .events-table td[data-label="Действия"] {
