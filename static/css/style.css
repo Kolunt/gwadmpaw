@@ -3091,7 +3091,7 @@ body {
     align-items: center;
     min-width: 80px;
     position: relative;
-    padding: 0 1.25rem;
+    padding: 0 1rem;
 }
 
 .countdown-item:not(:last-child)::after {
@@ -4793,7 +4793,7 @@ html.dark .avatar-candidate-img {
 
     .countdown-item {
         min-width: 70px;
-        padding: 0 1rem;
+        padding: 0 0.8rem;
     }
 
     .countdown-item:not(:last-child)::after {
@@ -4817,7 +4817,7 @@ html.dark .avatar-candidate-img {
 
     .countdown-item {
         min-width: 60px;
-        padding: 0 0.85rem;
+        padding: 0 0.7rem;
     }
 
     .countdown-item:not(:last-child)::after {
