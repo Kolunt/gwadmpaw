@@ -1632,6 +1632,7 @@ def index():
         SELECT e.*, u.username as creator_name
         FROM events e
         LEFT JOIN users u ON e.created_by = u.user_id
+        WHERE e.deleted_at IS NULL
         ORDER BY e.created_at DESC
         LIMIT 6
     ''').fetchall()
@@ -5647,7 +5648,9 @@ def events():
         SELECT e.*, u.username as creator_name
         FROM events e
         LEFT JOIN users u ON e.created_by = u.user_id
+        WHERE e.deleted_at IS NULL
         ORDER BY e.created_at DESC
+        LIMIT 6
     ''').fetchall()
     conn.close()
     
