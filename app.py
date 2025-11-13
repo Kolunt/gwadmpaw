@@ -1637,7 +1637,7 @@ def index():
     ''').fetchall()
     
     # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
-    events_with_stages = []
+    events_with_stages_raw = []
     now = get_event_now()
     stage_info_map = {stage['type']: stage for stage in EVENT_STAGES}
 
@@ -1709,12 +1709,14 @@ def index():
                         }
                         break
 
-        events_with_stages.append({
+        events_with_stages_raw.append({
             'event': event,
             'current_stage': current_stage,
             'display_stage_name': display_stage_name,
             'next_stage': next_stage
         })
+
+    events_with_stages = [item for item in events_with_stages_raw if item['current_stage']]
 
     for item in events_with_stages:
         event = item['event']
@@ -5665,7 +5667,7 @@ def events():
             user_registrations[row['event_id']] = row['registered_at']
     
     # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
-    events_with_stages = []
+    events_with_stages_raw = []
     now = get_event_now()
     stage_info_map = {stage['type']: stage for stage in EVENT_STAGES}
 
@@ -5749,7 +5751,9 @@ def events():
             # Проверяем, были ли когда-то этапы
             value['next_stage_is_past'] = True
 
-        events_with_stages.append(value)
+        events_with_stages_raw.append(value)
+
+    events_with_stages = [item for item in events_with_stages_raw if item['current_stage']]
 
     for item in events_with_stages:
         event = item['event']
