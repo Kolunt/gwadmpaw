@@ -4937,8 +4937,8 @@ html.dark .avatar-candidate-img {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
-    padding: 0.65rem 1rem;
+    font-size: 1.25rem;
+    padding: 0.65rem;
 }
 
 .modal-back-btn:before {
