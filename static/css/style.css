@@ -4999,3 +4999,17 @@ html.dark .avatar-candidate-img {
     line-height: 1;
 }
 
+.modal-footer .btn.modal-back-btn {
+    min-width: auto;
+    padding: 0.4rem 0.6rem;
+    flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+    .modal-footer .btn.modal-back-btn {
+        flex: 0 0 auto;
+        min-width: auto;
+        padding: 0.4rem 0.6rem;
+    }
+}
+
