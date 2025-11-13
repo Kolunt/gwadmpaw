@@ -4508,8 +4508,8 @@ html.dark .avatar-candidate-img {
 
 .events-actions-group {
     display: flex;
-    flex-wrap: nowrap;
-    gap: 0.35rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     justify-content: flex-end;
     align-items: center;
 }
@@ -4757,31 +4757,5 @@ html.dark .avatar-candidate-img {
 
 .faq-question-link:hover {
     color: var(--accent-color);
-}
-
-.btn-icon-success {
-    background-color: rgba(40, 167, 69, 0.12);
-    border-color: rgba(40, 167, 69, 0.3);
-    color: var(--success-color);
-}
-
-.btn-icon-success:hover,
-.btn-icon-success:focus {
-    background-color: var(--success-color);
-    border-color: var(--success-color);
-    color: #fff;
-}
-
-[data-theme="dark"] .btn-icon-success {
-    background-color: rgba(40, 167, 69, 0.2);
-    border-color: rgba(40, 167, 69, 0.35);
-    color: var(--success-color);
-}
-
-[data-theme="dark"] .btn-icon-success:hover,
-[data-theme="dark"] .btn-icon-success:focus {
-    background-color: var(--success-color);
-    border-color: var(--success-color);
-    color: #0f172a;
 }
 
