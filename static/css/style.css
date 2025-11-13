@@ -4962,3 +4962,33 @@ html.dark .avatar-candidate-img {
     }
 }
 
+.modal-footer .btn {
+    min-width: 120px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+    .modal-footer {
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+ 
+     .modal-footer .btn {
+         width: auto;
+         min-width: 110px;
+         flex-grow: 1;
+     }
+ }
+
+.modal-btn-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+

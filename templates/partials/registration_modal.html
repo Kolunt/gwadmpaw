@@ -663,6 +663,8 @@
                     primaryBtn.onclick = () => goToStep('step2');
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Не сейчас';
+                    secondaryBtn.removeAttribute('title');
+                    secondaryBtn.removeAttribute('aria-label');
                     secondaryBtn.onclick = closeModal;
                     break;
                 case 'step2':
@@ -675,7 +677,9 @@
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = handleStep3;
                     secondaryBtn.style.display = 'inline-block';
-                    secondaryBtn.textContent = '🔙';
+                    secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
+                    secondaryBtn.setAttribute('aria-label', 'Назад');
+                    secondaryBtn.title = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step2');
                     break;
                 case 'step4':
@@ -683,7 +687,9 @@
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = handleStep4;
                     secondaryBtn.style.display = 'inline-block';
-                    secondaryBtn.textContent = '🔙';
+                    secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
+                    secondaryBtn.setAttribute('aria-label', 'Назад');
+                    secondaryBtn.title = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step3');
                     break;
                 case 'step5':
@@ -691,7 +697,9 @@
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = handleStep5;
                     secondaryBtn.style.display = 'inline-block';
-                    secondaryBtn.textContent = '🔙';
+                    secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
+                    secondaryBtn.setAttribute('aria-label', 'Назад');
+                    secondaryBtn.title = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step4');
                     break;
                 case 'step6':
@@ -699,7 +707,9 @@
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = handleStep6;
                     secondaryBtn.style.display = 'inline-block';
-                    secondaryBtn.textContent = '🔙';
+                    secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
+                    secondaryBtn.setAttribute('aria-label', 'Назад');
+                    secondaryBtn.title = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step5');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Пропустить';
@@ -713,7 +723,9 @@
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = () => handleContactStep('telegram', true);
                     secondaryBtn.style.display = 'inline-block';
-                    secondaryBtn.textContent = '🔙';
+                    secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
+                    secondaryBtn.setAttribute('aria-label', 'Назад');
+                    secondaryBtn.title = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step6');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
@@ -724,7 +736,9 @@
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = () => handleContactStep('whatsapp', true);
                     secondaryBtn.style.display = 'inline-block';
-                    secondaryBtn.textContent = '🔙';
+                    secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
+                    secondaryBtn.setAttribute('aria-label', 'Назад');
+                    secondaryBtn.title = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step7');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
@@ -735,7 +749,9 @@
                     primaryBtn.textContent = 'Подтверждаю';
                     primaryBtn.onclick = () => handleContactStep('viber', true);
                     secondaryBtn.style.display = 'inline-block';
-                    secondaryBtn.textContent = '🔙';
+                    secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
+                    secondaryBtn.setAttribute('aria-label', 'Назад');
+                    secondaryBtn.title = 'Назад';
                     secondaryBtn.onclick = () => goToStep('step8');
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
@@ -748,6 +764,8 @@
                     primaryBtn.onclick = finalizeRegistration;
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Заново';
+                    secondaryBtn.removeAttribute('title');
+                    secondaryBtn.removeAttribute('aria-label');
                     secondaryBtn.onclick = resetToStart;
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Назад';
