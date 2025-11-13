@@ -5013,3 +5013,28 @@ html.dark .avatar-candidate-img {
     }
 }
 
+@media (max-width: 640px) {
+     .modal-footer {
+-        justify-content: space-between;
+-        gap: 0.5rem;
++        justify-content: space-between;
++        gap: 0.4rem;
+     }
+ 
+     .modal-footer .btn {
+-        flex: 1 1 0;
+-        min-width: 0;
+-        padding: 0.65rem 0.75rem;
++        flex: 1 1 0;
++        min-width: 0;
++        padding: 0.55rem 0.6rem;
++        white-space: normal;
+     }
++
++    .modal-footer .modal-primary-btn,
++    .modal-footer #registration-tertiary-btn {
++        min-width: 0;
++        flex: 1 1 0;
++    }
+ }
+
