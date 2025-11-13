@@ -1634,7 +1634,6 @@ def index():
         LEFT JOIN users u ON e.created_by = u.user_id
         WHERE e.deleted_at IS NULL
         ORDER BY e.created_at DESC
-        LIMIT 6
     ''').fetchall()
     
     # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
@@ -1717,10 +1716,7 @@ def index():
             'next_stage': next_stage
         })
 
-    events_with_stages = [
-        item for item in events_with_stages_raw
-        if item['current_stage'] and item['current_stage']['info']['type'] != 'after_party'
-     ]
+    events_with_stages = events_with_stages_raw
 
     for item in events_with_stages:
         event = item['event']
@@ -5650,7 +5646,6 @@ def events():
         LEFT JOIN users u ON e.created_by = u.user_id
         WHERE e.deleted_at IS NULL
         ORDER BY e.created_at DESC
-        LIMIT 6
     ''').fetchall()
     conn.close()
     
@@ -5759,10 +5754,7 @@ def events():
 
         events_with_stages_raw.append(value)
 
-    events_with_stages = [
-        item for item in events_with_stages_raw
-        if item['current_stage'] and item['current_stage']['info']['type'] != 'after_party'
-     ]
+    events_with_stages = events_with_stages_raw
 
     for item in events_with_stages:
         event = item['event']
