@@ -3063,29 +3063,49 @@ body {
 
 .countdown-section {
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 16px;
     background-color: var(--bg-secondary);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    padding: 1.75rem;
+    margin-bottom: 1.75rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    align-items: center;
 }
 
 .countdown-timer {
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1.75rem;
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
 }
 
 .countdown-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 60px;
+    min-width: 80px;
+    position: relative;
+    padding: 0 1.25rem;
+}
+
+.countdown-item:not(:last-child)::after {
+    content: ':';
+    position: absolute;
+    right: -0.9rem;
+    top: -0.15rem;
+    font-size: 2.8rem;
+    color: var(--text-secondary);
+    line-height: 1;
 }
 
 .countdown-value {
-    font-size: 2.2rem;
+    font-size: 3.2rem;
     font-weight: 700;
     color: var(--accent-color);
     line-height: 1;
@@ -3094,8 +3114,9 @@ body {
 .countdown-label {
     font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
     color: var(--text-secondary);
+    margin-top: 0.35rem;
 }
 
 .countdown-separator {
@@ -4758,5 +4779,59 @@ html.dark .avatar-candidate-img {
 
 .faq-question-link:hover {
     color: var(--accent-color);
+}
+
+@media (max-width: 768px) {
+    .countdown-section {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .countdown-timer {
+        gap: 1.25rem;
+        flex-wrap: wrap;
+    }
+
+    .countdown-item {
+        min-width: 70px;
+        padding: 0 1rem;
+    }
+
+    .countdown-item:not(:last-child)::after {
+        right: -0.7rem;
+        font-size: 2.4rem;
+    }
+
+    .countdown-value {
+        font-size: 2.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .countdown-section {
+        padding: 1.25rem;
+    }
+
+    .countdown-timer {
+        gap: 1rem;
+    }
+
+    .countdown-item {
+        min-width: 60px;
+        padding: 0 0.85rem;
+    }
+
+    .countdown-item:not(:last-child)::after {
+        right: -0.55rem;
+        font-size: 2.2rem;
+    }
+
+    .countdown-value {
+        font-size: 2.6rem;
+    }
+
+    .countdown-label {
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+    }
 }
 
