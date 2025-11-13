@@ -3324,6 +3324,14 @@ body {
 
 .modal-footer .btn {
     min-width: 120px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    line-height: 1.2;
     flex-shrink: 0;
 }
 
@@ -3334,9 +3342,9 @@ body {
     }
 
     .modal-footer .btn {
-        width: auto;
-        min-width: 110px;
-        flex-grow: 1;
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 0.65rem 0.75rem;
     }
 }
 
@@ -4950,9 +4958,7 @@ html.dark .avatar-candidate-img {
 
 @media (max-width: 640px) {
     .modal-footer {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
+        justify-content: space-between;
         gap: 0.5rem;
     }
 
@@ -4972,6 +4978,7 @@ html.dark .avatar-candidate-img {
     border-radius: 6px;
     font-weight: 500;
     line-height: 1.2;
+    flex-shrink: 0;
 }
 
 @media (max-width: 640px) {
