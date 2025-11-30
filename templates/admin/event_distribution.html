@@ -750,6 +750,7 @@ function renderPairs(pairs, options = {}) {
         const santaId = Number(pair.santa_id);
         const recipientId = Number(pair.recipient_id);
         row.dataset.santaId = santaId;
+        row.dataset.santaName = pair.santa_name || ''; // Сохраняем имя для сортировки
         row.dataset.santaCountry = pair.santa_country || '';
         row.dataset.santaCity = pair.santa_city || '';
         row.dataset.recipientId = recipientId;
