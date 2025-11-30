@@ -285,6 +285,34 @@ function updateRowLockState(row, locked, { silent = false } = {}) {
             recipientCell.setAttribute('draggable', 'false');
         }
         currentLocksMap[row.dataset.santaId] = Number(row.dataset.recipientId);
+        
+        // Перемещаем закрепленную пару вверх списка
+        if (resultsBody && row.parentNode === resultsBody) {
+            const lockedRows = Array.from(resultsBody.querySelectorAll('tr[data-locked="true"]'));
+            const unlockedRows = Array.from(resultsBody.querySelectorAll('tr[data-locked="false"]'));
+            
+            // Очищаем tbody
+            resultsBody.innerHTML = '';
+            
+            // Сначала добавляем все закрепленные пары (сортировка по имени)
+            const sortedLocked = lockedRows.sort((a, b) => {
+                const aName = (a.dataset.santaName || '').toLowerCase();
+                const bName = (b.dataset.santaName || '').toLowerCase();
+                return aName.localeCompare(bName);
+            });
+            sortedLocked.forEach(r => resultsBody.appendChild(r));
+            
+            // Затем добавляем незакрепленные пары (сортировка по имени)
+            const sortedUnlocked = unlockedRows.sort((a, b) => {
+                const aName = (a.dataset.santaName || '').toLowerCase();
+                const bName = (b.dataset.santaName || '').toLowerCase();
+                return aName.localeCompare(bName);
+            });
+            sortedUnlocked.forEach(r => resultsBody.appendChild(r));
+            
+            // Переустанавливаем обработчики drag & drop
+            attachDragHandlers();
+        }
     } else {
         row.classList.remove('distribution-row-locked');
         if (lockButton) {
@@ -298,6 +326,34 @@ function updateRowLockState(row, locked, { silent = false } = {}) {
             recipientCell.setAttribute('draggable', 'true');
         }
         delete currentLocksMap[row.dataset.santaId];
+        
+        // Перемещаем открепленную пару вниз списка (к незакрепленным)
+        if (resultsBody && row.parentNode === resultsBody) {
+            const lockedRows = Array.from(resultsBody.querySelectorAll('tr[data-locked="true"]'));
+            const unlockedRows = Array.from(resultsBody.querySelectorAll('tr[data-locked="false"]'));
+            
+            // Очищаем tbody
+            resultsBody.innerHTML = '';
+            
+            // Сначала добавляем все закрепленные пары (сортировка по имени)
+            const sortedLocked = lockedRows.sort((a, b) => {
+                const aName = (a.dataset.santaName || '').toLowerCase();
+                const bName = (b.dataset.santaName || '').toLowerCase();
+                return aName.localeCompare(bName);
+            });
+            sortedLocked.forEach(r => resultsBody.appendChild(r));
+            
+            // Затем добавляем незакрепленные пары (сортировка по имени)
+            const sortedUnlocked = unlockedRows.sort((a, b) => {
+                const aName = (a.dataset.santaName || '').toLowerCase();
+                const bName = (b.dataset.santaName || '').toLowerCase();
+                return aName.localeCompare(bName);
+            });
+            sortedUnlocked.forEach(r => resultsBody.appendChild(r));
+            
+            // Переустанавливаем обработчики drag & drop
+            attachDragHandlers();
+        }
     }
 
     if (!silent) {
@@ -674,7 +730,22 @@ function renderPairs(pairs, options = {}) {
         return country || city || '—';
     };
 
-    pairs.forEach(pair => {
+    // Сортируем пары: закрепленные вверху, затем по имени Деда Мороза
+    const sortedPairs = [...pairs].sort((a, b) => {
+        const aIsLocked = initialLockMap[Number(a.santa_id)] !== undefined;
+        const bIsLocked = initialLockMap[Number(b.santa_id)] !== undefined;
+        
+        // Сначала закрепленные пары
+        if (aIsLocked && !bIsLocked) return -1;
+        if (!aIsLocked && bIsLocked) return 1;
+        
+        // Затем сортировка по имени Деда Мороза
+        const aName = (a.santa_name || '').toLowerCase();
+        const bName = (b.santa_name || '').toLowerCase();
+        return aName.localeCompare(bName);
+    });
+
+    sortedPairs.forEach(pair => {
         const row = document.createElement('tr');
         const santaId = Number(pair.santa_id);
         const recipientId = Number(pair.recipient_id);
