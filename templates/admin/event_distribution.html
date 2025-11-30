@@ -308,15 +308,24 @@ function updateRowLockState(row, locked, { silent = false } = {}) {
 }
 
 function collectPairsFromTable() {
-    if (!resultsBody) return [];
+    if (!resultsBody) {
+        console.warn('collectPairsFromTable: resultsBody not found');
+        return [];
+    }
     const rows = resultsBody.querySelectorAll('tr');
-    if (!rows || rows.length === 0) return [];
+    if (!rows || rows.length === 0) {
+        console.warn('collectPairsFromTable: No rows found');
+        return [];
+    }
     
-    return Array.from(rows).map(row => {
+    console.log(`collectPairsFromTable: Found ${rows.length} rows`);
+    
+    const pairs = Array.from(rows).map((row, index) => {
         const santaId = row.dataset.santaId;
         const recipientId = row.dataset.recipientId;
         
         if (!santaId || !recipientId) {
+            console.warn(`collectPairsFromTable: Row ${index} missing IDs: santaId=${santaId}, recipientId=${recipientId}`);
             return null;
         }
         
@@ -324,6 +333,7 @@ function collectPairsFromTable() {
         const recipientIdNum = Number(recipientId);
         
         if (Number.isNaN(santaIdNum) || Number.isNaN(recipientIdNum)) {
+            console.warn(`collectPairsFromTable: Row ${index} invalid IDs: santaId=${santaId}, recipientId=${recipientId}`);
             return null;
         }
         
@@ -332,6 +342,9 @@ function collectPairsFromTable() {
             recipient_id: recipientIdNum
         };
     }).filter(pair => pair !== null && Number.isInteger(pair.santa_id) && Number.isInteger(pair.recipient_id));
+    
+    console.log(`collectPairsFromTable: Collected ${pairs.length} valid pairs`);
+    return pairs;
 }
 
 function collectLockedPairs() {
@@ -827,6 +840,17 @@ async function handleGenerate() {
             const countryModeApplied = data.country_mode_applied !== false;
             const assignedSantas = Object.keys(assignedLockedPairs).map(Number);
             
+            console.log('Generated pairs count:', data.pairs ? data.pairs.length : 0);
+            
+            // Проверяем, что все пары получены
+            if (!data.pairs || !Array.isArray(data.pairs) || data.pairs.length === 0) {
+                showMessage('Сервер вернул пустое распределение. Попробуйте снова.', 'error');
+                if (saveBtn) {
+                    saveBtn.disabled = !pendingChanges;
+                }
+                return;
+            }
+            
             // Рендерим пары
             renderPairs(data.pairs, { markDirty: false, locks: lockedPairs, assignedLocks: assignedSantas });
             
@@ -841,9 +865,19 @@ async function handleGenerate() {
             });
             
             // Проверяем, что пары действительно отрендерены
-            const pairs = collectPairsFromTable();
-            if (!pairs || pairs.length === 0) {
+            const collectedPairs = collectPairsFromTable();
+            console.log('Collected pairs from table:', collectedPairs.length);
+            console.log('Expected pairs count:', data.pairs.length);
+            
+            if (!collectedPairs || collectedPairs.length === 0) {
                 showMessage('Распределение сформировано, но не удалось получить данные для сохранения. Попробуйте сохранить вручную.', 'error');
+                markDirty();
+                return;
+            }
+            
+            if (collectedPairs.length !== data.pairs.length) {
+                console.warn(`Pair count mismatch: generated ${data.pairs.length}, collected ${collectedPairs.length}`);
+                showMessage(`Внимание: сформировано ${data.pairs.length} пар, но собрано ${collectedPairs.length}. Проверьте таблицу и сохраните вручную.`, 'error');
                 markDirty();
                 return;
             }

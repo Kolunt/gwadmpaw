@@ -7837,6 +7837,34 @@ def admin_event_distribution_positive_generate(event_id):
 
     assignment_pairs = list(locked_assignments.items()) + same_country_pairs + extra_pairs
 
+    # Проверяем, что все участники включены в распределение
+    all_santa_ids = set(pair[0] for pair in assignment_pairs)
+    all_recipient_ids = set(pair[1] for pair in assignment_pairs)
+    all_participant_ids = set(user_ids)
+    
+    missing_santas = all_participant_ids - all_santa_ids
+    missing_recipients = all_participant_ids - all_recipient_ids
+    
+    log_debug(f"admin_event_distribution_positive_generate: event_id={event_id}, total_participants={len(user_ids)}, "
+              f"generated_pairs={len(assignment_pairs)}, locked={len(locked_assignments)}, "
+              f"same_country={len(same_country_pairs)}, extra={len(extra_pairs)}")
+    
+    if missing_santas or missing_recipients:
+        log_error(f"admin_event_distribution_positive_generate: Missing participants! "
+                 f"Missing santas: {sorted(missing_santas)}, Missing recipients: {sorted(missing_recipients)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Не удалось создать распределение для всех участников. Отсутствует Дедов Морозов: {len(missing_santas)}, отсутствует получателей: {len(missing_recipients)}'
+        }), 500
+
+    if len(assignment_pairs) != len(user_ids):
+        log_error(f"admin_event_distribution_positive_generate: Pair count mismatch! "
+                 f"Expected: {len(user_ids)}, Got: {len(assignment_pairs)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Количество созданных пар ({len(assignment_pairs)}) не соответствует количеству участников ({len(user_ids)})'
+        }), 500
+
     assignment_pairs.sort(key=lambda pair: participants_map[pair[0]]['name'] or '')
 
     pairs = []
@@ -7865,6 +7893,7 @@ def admin_event_distribution_positive_generate(event_id):
             for santa_id, recipient_id in assignment_pairs
         )
 
+    log_debug(f"admin_event_distribution_positive_generate: Successfully generated {len(pairs)} pairs")
     return jsonify({'success': True, 'pairs': pairs, 'country_mode_applied': country_mode_applied})
 
 @app.route('/admin/events/<int:event_id>/participants/add', methods=['POST'])
