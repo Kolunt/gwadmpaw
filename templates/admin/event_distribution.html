@@ -397,6 +397,14 @@ async function savePairs({ showSuccess = true } = {}) {
             locked_pairs: collectLockedPairs()
         };
 
+        console.log('Saving pairs:', {
+            pairsCount: validPairs.length,
+            enforce_country: requestBody.enforce_country,
+            locked_pairs_count: requestBody.locked_pairs.length,
+            firstPair: validPairs[0],
+            lastPair: validPairs[validPairs.length - 1]
+        });
+
         const response = await fetch(saveUrl, {
             method: 'POST',
             headers: {
@@ -409,12 +417,19 @@ async function savePairs({ showSuccess = true } = {}) {
         
         let data;
         try {
-            data = await response.json();
+            const responseText = await response.text();
+            console.log('Response status:', response.status);
+            console.log('Response text:', responseText);
+            
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON:', parseError);
+                throw new Error('Некорректный ответ от сервера: ' + responseText.substring(0, 200));
+            }
         } catch (parseError) {
-            console.error('Failed to parse response:', parseError);
-            const text = await response.text();
-            console.error('Response text:', text);
-            throw new Error('Некорректный ответ от сервера');
+            console.error('Failed to get response:', parseError);
+            throw new Error('Ошибка получения ответа от сервера: ' + (parseError.message || 'неизвестная ошибка'));
         }
         
         if (response.ok && data.success) {

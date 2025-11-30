@@ -8375,7 +8375,11 @@ def admin_event_participant_reject(event_id):
 def admin_event_distribution_positive_save(event_id):
     data = request.get_json(silent=True) or {}
     pairs = data.get('pairs')
+    
+    log_debug(f"admin_event_distribution_positive_save: event_id={event_id}, pairs type={type(pairs)}, pairs length={len(pairs) if pairs else 0}")
+    
     if not pairs or not isinstance(pairs, list):
+        log_error(f"admin_event_distribution_positive_save: Invalid pairs data. Type: {type(pairs)}, Value: {pairs}")
         return jsonify({'success': False, 'error': 'Некорректные данные распределения'}), 400
 
     enforce_country = bool(data.get('enforce_country'))
@@ -8396,7 +8400,10 @@ def admin_event_distribution_positive_save(event_id):
     country_lookup = {row['user_id']: row['country'] for row in approved_rows}
     conn.close()
 
+    log_debug(f"admin_event_distribution_positive_save: approved_ids count={len(approved_ids)}, approved_ids={sorted(approved_ids)}")
+
     if len(approved_ids) < 2:
+        log_error(f"admin_event_distribution_positive_save: Not enough approved participants. Count: {len(approved_ids)}")
         return jsonify({'success': False, 'error': 'Недостаточно утверждённых участников для сохранения распределения'}), 400
 
     assignments = []
@@ -8404,28 +8411,59 @@ def admin_event_distribution_positive_save(event_id):
     recipients_seen = set()
 
     try:
-        for entry in pairs:
-            santa_id = int(entry.get('santa_id'))
-            recipient_id = int(entry.get('recipient_id'))
+        for idx, entry in enumerate(pairs):
+            if not isinstance(entry, dict):
+                log_error(f"admin_event_distribution_positive_save: Entry {idx} is not a dict: {entry}")
+                return jsonify({'success': False, 'error': f'Некорректный формат пары #{idx + 1}'}), 400
+            
+            santa_id_raw = entry.get('santa_id')
+            recipient_id_raw = entry.get('recipient_id')
+            
+            if santa_id_raw is None or recipient_id_raw is None:
+                log_error(f"admin_event_distribution_positive_save: Entry {idx} missing IDs: santa_id={santa_id_raw}, recipient_id={recipient_id_raw}")
+                return jsonify({'success': False, 'error': f'Пара #{idx + 1} содержит некорректные идентификаторы'}), 400
+            
+            try:
+                santa_id = int(santa_id_raw)
+                recipient_id = int(recipient_id_raw)
+            except (TypeError, ValueError) as e:
+                log_error(f"admin_event_distribution_positive_save: Entry {idx} invalid IDs: santa_id={santa_id_raw}, recipient_id={recipient_id_raw}, error={e}")
+                return jsonify({'success': False, 'error': f'Пара #{idx + 1} содержит некорректные идентификаторы'}), 400
+            
             if santa_id == recipient_id:
-                return jsonify({'success': False, 'error': 'Участник не может быть назначен самому себе'}), 400
+                log_error(f"admin_event_distribution_positive_save: Entry {idx} santa equals recipient: {santa_id}")
+                return jsonify({'success': False, 'error': f'Участник {santa_id} не может быть назначен самому себе'}), 400
+            
             if santa_id not in approved_ids:
+                log_error(f"admin_event_distribution_positive_save: Entry {idx} santa_id {santa_id} not in approved_ids. Approved: {sorted(approved_ids)}")
                 return jsonify({'success': False, 'error': f'Пользователь {santa_id} не входит в список утверждённых участников'}), 400
+            
             if recipient_id not in approved_ids:
+                log_error(f"admin_event_distribution_positive_save: Entry {idx} recipient_id {recipient_id} not in approved_ids. Approved: {sorted(approved_ids)}")
                 return jsonify({'success': False, 'error': f'Получатель {recipient_id} не входит в список утверждённых участников'}), 400
+            
             santa_country = country_lookup.get(santa_id)
             recipient_country = country_lookup.get(recipient_id)
             if enforce_country and santa_country and recipient_country and santa_country != recipient_country:
-                return jsonify({'success': False, 'error': 'При распределении по странам Дед Мороз и Внучок должны быть из одной страны'}), 400
+                log_error(f"admin_event_distribution_positive_save: Entry {idx} country mismatch: santa={santa_country}, recipient={recipient_country}")
+                return jsonify({'success': False, 'error': f'При распределении по странам Дед Мороз ({santa_country}) и Внучок ({recipient_country}) должны быть из одной страны'}), 400
+            
             if santa_id in santas_seen:
-                return jsonify({'success': False, 'error': 'Каждый Дед Мороз должен встречаться ровно один раз'}), 400
+                log_error(f"admin_event_distribution_positive_save: Entry {idx} duplicate santa_id: {santa_id}")
+                return jsonify({'success': False, 'error': f'Дед Мороз {santa_id} встречается более одного раза'}), 400
+            
             if recipient_id in recipients_seen:
-                return jsonify({'success': False, 'error': 'Каждый получатель должен встречаться ровно один раз'}), 400
+                log_error(f"admin_event_distribution_positive_save: Entry {idx} duplicate recipient_id: {recipient_id}")
+                return jsonify({'success': False, 'error': f'Получатель {recipient_id} встречается более одного раза'}), 400
+            
             santas_seen.add(santa_id)
             recipients_seen.add(recipient_id)
             assignments.append((santa_id, recipient_id))
-    except (TypeError, ValueError):
-        return jsonify({'success': False, 'error': 'Некорректные идентификаторы участников'}), 400
+    except Exception as e:
+        log_error(f"admin_event_distribution_positive_save: Unexpected error processing pairs: {e}")
+        import traceback
+        log_error(traceback.format_exc())
+        return jsonify({'success': False, 'error': f'Ошибка обработки данных: {str(e)}'}), 400
 
     locked_pairs_raw = data.get('locked_pairs') or []
     locked_pairs_set = set()
@@ -8437,8 +8475,17 @@ def admin_event_distribution_positive_save(event_id):
     except (TypeError, ValueError, AttributeError):
         return jsonify({'success': False, 'error': 'Некорректные данные закреплённых пар'}), 400
 
+    log_debug(f"admin_event_distribution_positive_save: assignments count={len(assignments)}, approved_ids count={len(approved_ids)}")
+    log_debug(f"admin_event_distribution_positive_save: assignments santas={sorted(santas_seen)}, approved_ids={sorted(approved_ids)}")
+    
     if len(assignments) != len(approved_ids):
-        return jsonify({'success': False, 'error': 'Распределение должно охватывать всех утверждённых участников'}), 400
+        missing_santas = approved_ids - santas_seen
+        missing_recipients = approved_ids - recipients_seen
+        log_error(f"admin_event_distribution_positive_save: Count mismatch. Missing santas: {sorted(missing_santas)}, Missing recipients: {sorted(missing_recipients)}")
+        return jsonify({
+            'success': False, 
+            'error': f'Распределение должно охватывать всех утверждённых участников. Получено пар: {len(assignments)}, ожидается: {len(approved_ids)}'
+        }), 400
 
     if locked_pairs_set:
         assignments_set = set(assignments)
