@@ -309,10 +309,29 @@ function updateRowLockState(row, locked, { silent = false } = {}) {
 
 function collectPairsFromTable() {
     if (!resultsBody) return [];
-    return Array.from(resultsBody.querySelectorAll('tr')).map(row => ({
-        santa_id: Number(row.dataset.santaId),
-        recipient_id: Number(row.dataset.recipientId)
-    })).filter(pair => Number.isInteger(pair.santa_id) && Number.isInteger(pair.recipient_id));
+    const rows = resultsBody.querySelectorAll('tr');
+    if (!rows || rows.length === 0) return [];
+    
+    return Array.from(rows).map(row => {
+        const santaId = row.dataset.santaId;
+        const recipientId = row.dataset.recipientId;
+        
+        if (!santaId || !recipientId) {
+            return null;
+        }
+        
+        const santaIdNum = Number(santaId);
+        const recipientIdNum = Number(recipientId);
+        
+        if (Number.isNaN(santaIdNum) || Number.isNaN(recipientIdNum)) {
+            return null;
+        }
+        
+        return {
+            santa_id: santaIdNum,
+            recipient_id: recipientIdNum
+        };
+    }).filter(pair => pair !== null && Number.isInteger(pair.santa_id) && Number.isInteger(pair.recipient_id));
 }
 
 function collectLockedPairs() {
@@ -328,8 +347,40 @@ async function savePairs({ showSuccess = true } = {}) {
     }
 
     const pairs = collectPairsFromTable();
-    if (!pairs.length) {
-        return { ok: false, message: 'Нет данных для сохранения.' };
+    if (!pairs || !Array.isArray(pairs) || pairs.length === 0) {
+        const errorMsg = 'Нет данных для сохранения. Убедитесь, что распределение сформировано.';
+        if (showSuccess) {
+            showMessage(errorMsg, 'error');
+        }
+        return { ok: false, message: errorMsg };
+    }
+
+    // Валидация данных перед отправкой
+    const validPairs = pairs.filter(pair => {
+        return pair && 
+               typeof pair.santa_id === 'number' && 
+               typeof pair.recipient_id === 'number' &&
+               !Number.isNaN(pair.santa_id) && 
+               !Number.isNaN(pair.recipient_id) &&
+               pair.santa_id > 0 && 
+               pair.recipient_id > 0 &&
+               pair.santa_id !== pair.recipient_id;
+    });
+
+    if (validPairs.length !== pairs.length) {
+        const errorMsg = 'Обнаружены некорректные пары. Проверьте распределение.';
+        if (showSuccess) {
+            showMessage(errorMsg, 'error');
+        }
+        return { ok: false, message: errorMsg };
+    }
+
+    if (validPairs.length === 0) {
+        const errorMsg = 'Нет валидных пар для сохранения.';
+        if (showSuccess) {
+            showMessage(errorMsg, 'error');
+        }
+        return { ok: false, message: errorMsg };
     }
 
     if (saveBtn) {
@@ -340,6 +391,12 @@ async function savePairs({ showSuccess = true } = {}) {
     }
 
     try {
+        const requestBody = {
+            pairs: validPairs,
+            enforce_country: sameCountryToggle ? sameCountryToggle.checked : false,
+            locked_pairs: collectLockedPairs()
+        };
+
         const response = await fetch(saveUrl, {
             method: 'POST',
             headers: {
@@ -347,13 +404,19 @@ async function savePairs({ showSuccess = true } = {}) {
                 'Accept': 'application/json'
             },
             credentials: 'same-origin',
-            body: JSON.stringify({
-                pairs,
-                enforce_country: sameCountryToggle ? sameCountryToggle.checked : false,
-                locked_pairs: collectLockedPairs()
-            })
+            body: JSON.stringify(requestBody)
         });
-        const data = await response.json();
+        
+        let data;
+        try {
+            data = await response.json();
+        } catch (parseError) {
+            console.error('Failed to parse response:', parseError);
+            const text = await response.text();
+            console.error('Response text:', text);
+            throw new Error('Некорректный ответ от сервера');
+        }
+        
         if (response.ok && data.success) {
             pendingChanges = false;
             if (saveBtn) {
@@ -374,20 +437,20 @@ async function savePairs({ showSuccess = true } = {}) {
         if (saveContainer && pendingChanges) {
             saveContainer.style.display = 'block';
         }
-        const errorMessage = data.error || 'Не удалось сохранить распределение.';
+        const errorMessage = data.error || `Не удалось сохранить распределение. (HTTP ${response.status})`;
         if (showSuccess) {
             showMessage(errorMessage, 'error');
         }
         return { ok: false, message: errorMessage };
     } catch (error) {
-        console.error(error);
+        console.error('Error in savePairs:', error);
         if (saveBtn) {
             saveBtn.disabled = !pendingChanges;
         }
         if (saveContainer && pendingChanges) {
             saveContainer.style.display = 'block';
         }
-        const errorMessage = 'Произошла ошибка при сохранении распределения.';
+        const errorMessage = 'Произошла ошибка при сохранении распределения: ' + (error.message || 'неизвестная ошибка');
         if (showSuccess) {
             showMessage(errorMessage, 'error');
         }
@@ -532,7 +595,16 @@ function attachDragHandlers() {
 }
 
 function renderPairs(pairs, options = {}) {
-    if (!resultsBody || !Array.isArray(pairs)) return;
+    if (!resultsBody) {
+        console.error('resultsBody element not found');
+        return;
+    }
+    
+    if (!Array.isArray(pairs)) {
+        console.error('pairs is not an array:', pairs);
+        return;
+    }
+    
     const initialLockMap = {};
     if (Array.isArray(options.locks)) {
         options.locks.forEach(lock => {
@@ -547,7 +619,23 @@ function renderPairs(pairs, options = {}) {
 
     currentLocksMap = {};
     assignedLockedPairs = {};
-    resultsBody.innerHTML = '';
+    
+    // Безопасная очистка содержимого
+    try {
+        // Сохраняем ссылку на родительский элемент перед очисткой
+        const parent = resultsBody.parentElement;
+        resultsBody.innerHTML = '';
+        
+        // Проверяем, что элемент все еще в DOM
+        if (!parent || !parent.contains(resultsBody)) {
+            console.error('resultsBody was removed from DOM');
+            return;
+        }
+    } catch (error) {
+        console.error('Error clearing resultsBody:', error);
+        return;
+    }
+    
     const assignedSet = new Set((options.assignedLocks || []).map(Number));
 
     const formatLocation = (country, city) => {
@@ -723,7 +811,28 @@ async function handleGenerate() {
             }
             const countryModeApplied = data.country_mode_applied !== false;
             const assignedSantas = Object.keys(assignedLockedPairs).map(Number);
+            
+            // Рендерим пары
             renderPairs(data.pairs, { markDirty: false, locks: lockedPairs, assignedLocks: assignedSantas });
+            
+            // Ждем, пока DOM обновится перед сохранением
+            await new Promise(resolve => {
+                // Используем requestAnimationFrame для гарантии, что DOM обновлен
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        resolve();
+                    });
+                });
+            });
+            
+            // Проверяем, что пары действительно отрендерены
+            const pairs = collectPairsFromTable();
+            if (!pairs || pairs.length === 0) {
+                showMessage('Распределение сформировано, но не удалось получить данные для сохранения. Попробуйте сохранить вручную.', 'error');
+                markDirty();
+                return;
+            }
+            
             const saveResult = await savePairs({ showSuccess: false });
             if (saveResult.ok) {
                 const successMessage = countryModeApplied
@@ -732,6 +841,7 @@ async function handleGenerate() {
                 showMessage(successMessage, 'success');
             } else {
                 showMessage('Распределение сформировано, но сохранить не удалось: ' + saveResult.message, 'error');
+                markDirty();
             }
         } else {
             showMessage(data.error || 'Не удалось сформировать распределение. Попробуйте снова.', 'error');
@@ -740,7 +850,7 @@ async function handleGenerate() {
             }
         }
     } catch (error) {
-        console.error(error);
+        console.error('Error in handleGenerate:', error);
         showMessage('Произошла ошибка при формировании распределения.', 'error');
         if (saveBtn) {
             saveBtn.disabled = !pendingChanges;
@@ -828,6 +938,22 @@ if (assignmentsBtn) {
             assignmentsBtn.textContent = '📦 Создать задания';
         }
     });
+}
+
+// Защита от ошибок MutationObserver (может возникать из-за внешних скриптов)
+if (typeof MutationObserver !== 'undefined') {
+    const originalObserve = MutationObserver.prototype.observe;
+    MutationObserver.prototype.observe = function(target, options) {
+        if (!target || !(target instanceof Node)) {
+            console.warn('MutationObserver.observe called with invalid target:', target);
+            return;
+        }
+        try {
+            return originalObserve.call(this, target, options);
+        } catch (error) {
+            console.warn('MutationObserver.observe error:', error);
+        }
+    };
 }
 
 if (existingPairs && existingPairs.length) {
