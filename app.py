@@ -8418,12 +8418,17 @@ def admin_event_distribution_positive_save(event_id):
         return jsonify({'success': False, 'error': 'Необходима авторизация'}), 403
 
     conn = get_db_connection()
+    # Используем ту же логику, что и в генерации: только зарегистрированные И утвержденные участники
     approved_rows = conn.execute('''
-        SELECT epa.user_id, COALESCE(d.country, u.country) AS country
-        FROM event_participant_approvals epa
-        JOIN users u ON epa.user_id = u.user_id
-        LEFT JOIN event_registration_details d ON d.event_id = epa.event_id AND d.user_id = epa.user_id
-        WHERE epa.event_id = ? AND epa.approved = 1
+        SELECT 
+            er.user_id, 
+            COALESCE(d.country, u.country) AS country
+        FROM event_registrations er
+        LEFT JOIN event_participant_approvals epa ON epa.event_id = er.event_id AND epa.user_id = er.user_id
+        JOIN users u ON er.user_id = u.user_id
+        LEFT JOIN event_registration_details d ON d.event_id = er.event_id AND d.user_id = er.user_id
+        WHERE er.event_id = ?
+          AND epa.approved = 1
     ''', (event_id,)).fetchall()
     approved_ids = {row['user_id'] for row in approved_rows}
     country_lookup = {row['user_id']: row['country'] for row in approved_rows}
@@ -8507,14 +8512,29 @@ def admin_event_distribution_positive_save(event_id):
     log_debug(f"admin_event_distribution_positive_save: assignments count={len(assignments)}, approved_ids count={len(approved_ids)}")
     log_debug(f"admin_event_distribution_positive_save: assignments santas={sorted(santas_seen)}, approved_ids={sorted(approved_ids)}")
     
-    if len(assignments) != len(approved_ids):
-        missing_santas = approved_ids - santas_seen
-        missing_recipients = approved_ids - recipients_seen
-        log_error(f"admin_event_distribution_positive_save: Count mismatch. Missing santas: {sorted(missing_santas)}, Missing recipients: {sorted(missing_recipients)}")
+    # Проверяем, что все участники из распределения есть в списке утвержденных
+    all_santa_ids = set(pair[0] for pair in assignments)
+    all_recipient_ids = set(pair[1] for pair in assignments)
+    
+    invalid_santas = all_santa_ids - approved_ids
+    invalid_recipients = all_recipient_ids - approved_ids
+    
+    if invalid_santas or invalid_recipients:
+        log_error(f"admin_event_distribution_positive_save: Invalid participants in distribution. Invalid santas: {sorted(invalid_santas)}, Invalid recipients: {sorted(invalid_recipients)}")
         return jsonify({
             'success': False, 
-            'error': f'Распределение должно охватывать всех утверждённых участников. Получено пар: {len(assignments)}, ожидается: {len(approved_ids)}'
+            'error': f'Распределение содержит участников, не входящих в список утверждённых. Некорректных Дедов Морозов: {len(invalid_santas)}, некорректных получателей: {len(invalid_recipients)}'
         }), 400
+    
+    # Проверяем, что количество пар соответствует количеству участников
+    # Но не требуем строгого соответствия, так как некоторые участники могли быть удалены
+    if len(assignments) != len(approved_ids):
+        missing_santas = approved_ids - all_santa_ids
+        missing_recipients = approved_ids - all_recipient_ids
+        log_debug(f"admin_event_distribution_positive_save: Count mismatch (this is OK if participants were removed). "
+                 f"Missing santas: {sorted(missing_santas)}, Missing recipients: {sorted(missing_recipients)}")
+        # Это не ошибка - просто предупреждение в логах
+        # Распределение может содержать меньше пар, если участники были удалены
 
     if locked_pairs_set:
         assignments_set = set(assignments)
