@@ -5104,6 +5104,50 @@ def get_event_registrations(event_id):
     conn.close()
     return registrations
 
+def get_event_registrations_paginated(event_id, page=1, per_page=20):
+    """Получает список зарегистрированных пользователей на мероприятие с пагинацией"""
+    # Ограничиваем per_page разумными значениями
+    per_page = min(max(per_page, 10), 100)
+    
+    conn = get_db_connection()
+    
+    # Подсчитываем общее количество
+    total_count = conn.execute('''
+        SELECT COUNT(*) as count 
+        FROM event_registrations 
+        WHERE event_id = ?
+    ''', (event_id,)).fetchone()
+    total_count = total_count['count'] if total_count else 0
+    
+    # Вычисляем offset
+    offset = (page - 1) * per_page
+    
+    # Получаем участников с пагинацией
+    registrations = conn.execute('''
+        SELECT er.*, u.user_id, u.username, u.avatar_seed, u.avatar_style, u.level, u.synd
+        FROM event_registrations er
+        JOIN users u ON er.user_id = u.user_id
+        WHERE er.event_id = ?
+        ORDER BY er.registered_at ASC
+        LIMIT ? OFFSET ?
+    ''', (event_id, per_page, offset)).fetchall()
+    conn.close()
+    
+    # Вычисляем данные для пагинации
+    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+    has_prev = page > 1
+    has_next = page < total_pages
+    
+    return {
+        'registrations': registrations,
+        'total_count': total_count,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages,
+        'has_prev': has_prev,
+        'has_next': has_next
+    }
+
 def get_event_stages(event_id):
     """Возвращает список этапов мероприятия в порядке их следования"""
     conn = get_db_connection()
@@ -5899,7 +5943,15 @@ def event_view(event_id):
 
     is_registered = registration_row is not None
     registrations_count = get_event_registrations_count(event_id)
-    registrations = get_event_registrations(event_id)
+    
+    # Параметры пагинации для участников
+    participants_page = request.args.get('participants_page', 1, type=int)
+    participants_per_page = 20  # По 20 участников на странице
+    
+    # Получаем участников с пагинацией
+    registrations_data = get_event_registrations_paginated(event_id, participants_page, participants_per_page)
+    registrations = registrations_data['registrations']
+    
     is_admin = 'admin' in session.get('roles', []) if session.get('roles') else False
     
     award_needed = False
@@ -6147,7 +6199,13 @@ def event_view(event_id):
                          is_admin=is_admin,
                          next_stage=next_stage_payload,
                          show_gifts_stats=show_gifts_stats,
-                         gifts_stats=gifts_stats)
+                         gifts_stats=gifts_stats,
+                         participants_page=registrations_data['page'],
+                         participants_per_page=registrations_data['per_page'],
+                         participants_total_count=registrations_data['total_count'],
+                         participants_total_pages=registrations_data['total_pages'],
+                         participants_has_prev=registrations_data['has_prev'],
+                         participants_has_next=registrations_data['has_next'])
 
 def has_required_contacts(user_id):
     """Проверяет, заполнены ли обязательные контактные данные пользователя"""

@@ -189,7 +189,7 @@
             <!-- Список зарегистрированных участников -->
             {% if registrations %}
             <div class="event-info-section">
-                <h3>Участники ({{ registrations_count }})</h3>
+                <h3>Участники ({{ participants_total_count|default(registrations_count) }})</h3>
                 {% if is_admin %}
                 <div style="margin-bottom: 1rem;">
                     <a href="{{ url_for('admin_event_participants', event_id=event.id) }}" class="btn btn-secondary">
@@ -215,6 +215,79 @@
                     </div>
                     {% endfor %}
                 </div>
+                
+                <!-- Пагинация участников -->
+                {% if participants_total_pages is defined and participants_total_pages > 1 %}
+                <div class="pagination-container" style="margin-top: 1.5rem;">
+                    <nav class="pagination" aria-label="Навигация по страницам участников">
+                        <ul class="pagination-list">
+                            {% if participants_has_prev is defined and participants_has_prev %}
+                            <li class="pagination-item">
+                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=(participants_page|default(1))-1) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
+                                    ← Предыдущая
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="pagination-item pagination-item-disabled">
+                                <span class="pagination-link pagination-link-prev pagination-link-disabled" aria-label="Предыдущая страница">
+                                    ← Предыдущая
+                                </span>
+                            </li>
+                            {% endif %}
+                            
+                            {% set current_participants_page = participants_page|default(1) %}
+                            {% set start_participants_page = [1, current_participants_page - 2]|max %}
+                            {% set end_participants_page = [participants_total_pages, current_participants_page + 2]|min %}
+                            
+                            {% if start_participants_page > 1 %}
+                            <li class="pagination-item">
+                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=1) }}" class="pagination-link">1</a>
+                            </li>
+                            {% if start_participants_page > 2 %}
+                            <li class="pagination-item pagination-item-ellipsis">
+                                <span class="pagination-ellipsis">...</span>
+                            </li>
+                            {% endif %}
+                            {% endif %}
+                            
+                            {% for p in range(start_participants_page, end_participants_page + 1) %}
+                            <li class="pagination-item">
+                                {% if p == current_participants_page %}
+                                <span class="pagination-link pagination-link-active" aria-current="page">{{ p }}</span>
+                                {% else %}
+                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=p) }}" class="pagination-link">{{ p }}</a>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                            
+                            {% if end_participants_page < participants_total_pages %}
+                            {% if end_participants_page < participants_total_pages - 1 %}
+                            <li class="pagination-item pagination-item-ellipsis">
+                                <span class="pagination-ellipsis">...</span>
+                            </li>
+                            {% endif %}
+                            <li class="pagination-item">
+                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=participants_total_pages) }}" class="pagination-link">{{ participants_total_pages }}</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% if participants_has_next is defined and participants_has_next %}
+                            <li class="pagination-item">
+                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=current_participants_page+1) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
+                                    Следующая →
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="pagination-item pagination-item-disabled">
+                                <span class="pagination-link pagination-link-next pagination-link-disabled" aria-label="Следующая страница">
+                                    Следующая →
+                                </span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
             
