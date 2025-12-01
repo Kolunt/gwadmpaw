@@ -2682,9 +2682,25 @@ def view_profile(user_id):
 def participants():
     """Страница со списком участников"""
     try:
+        # Параметры пагинации
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        
+        # Ограничиваем per_page разумными значениями
+        per_page = min(max(per_page, 10), 100)
+        
         conn = get_db_connection()
         
-        # Получаем всех пользователей с их ролями
+        # Подсчитываем общее количество пользователей
+        total_count = conn.execute('''
+            SELECT COUNT(DISTINCT u.user_id)
+            FROM users u
+        ''').fetchone()[0]
+        
+        # Вычисляем offset
+        offset = (page - 1) * per_page
+        
+        # Получаем пользователей с их ролями с пагинацией
         users = conn.execute('''
             SELECT 
                 u.user_id,
@@ -2699,7 +2715,8 @@ def participants():
             LEFT JOIN roles r ON ur.role_id = r.id
             GROUP BY u.user_id
             ORDER BY u.created_at ASC
-        ''').fetchall()
+            LIMIT ? OFFSET ?
+        ''', (per_page, offset)).fetchall()
         
         # Для каждого пользователя определяем статус
         participants_data = []
@@ -2747,9 +2764,23 @@ def participants():
         
         conn.close()
         
+        # Вычисляем данные для пагинации
+        total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+        has_prev = page > 1
+        has_next = page < total_pages
+        
+        # Логирование для отладки
+        log_debug(f"Participants pagination: page={page}, per_page={per_page}, total_count={total_count}, total_pages={total_pages}, participants_count={len(participants_data)}")
+        
         return render_template('participants.html', 
                              participants=participants_data,
-                             get_avatar_url=get_avatar_url)
+                             get_avatar_url=get_avatar_url,
+                             page=page,
+                             per_page=per_page,
+                             total_count=total_count,
+                             total_pages=total_pages,
+                             has_prev=has_prev,
+                             has_next=has_next)
     except Exception as e:
         log_error(f"Error in participants route: {e}")
         log_error(traceback.format_exc())

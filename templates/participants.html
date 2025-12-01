@@ -20,7 +20,12 @@
         </div>
         
         <div class="table-info">
-            <span id="rows-count">Показано: <strong id="visible-count">0</strong> из <strong id="total-count">{{ participants|length }}</strong></span>
+            <span id="rows-count">
+                Показано: <strong id="visible-count">{{ participants|length }}</strong> из <strong id="total-count">{{ total_count|default(participants|length) }}</strong>
+                {% if total_pages is defined and total_pages > 1 %}
+                    (Страница {{ page|default(1) }} из {{ total_pages }})
+                {% endif %}
+            </span>
         </div>
     </div>
     
@@ -87,6 +92,87 @@
             </tbody>
         </table>
     </div>
+    
+    <!-- Отладочная информация (временно) -->
+    {% if total_pages is not defined %}
+    <!-- DEBUG: total_pages не определена -->
+    {% endif %}
+    {% if page is not defined %}
+    <!-- DEBUG: page не определена -->
+    {% endif %}
+    
+    <!-- Пагинация -->
+    {% if total_pages is defined and total_pages > 1 %}
+    <div class="pagination-container">
+        <nav class="pagination" aria-label="Навигация по страницам">
+            <ul class="pagination-list">
+                {% if has_prev is defined and has_prev %}
+                <li class="pagination-item">
+                    <a href="{{ url_for('participants', page=(page|default(1))-1, per_page=per_page|default(50)) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
+                        ← Предыдущая
+                    </a>
+                </li>
+                {% else %}
+                <li class="pagination-item pagination-item-disabled">
+                    <span class="pagination-link pagination-link-prev pagination-link-disabled" aria-label="Предыдущая страница">
+                        ← Предыдущая
+                    </span>
+                </li>
+                {% endif %}
+                
+                {% set current_page = page|default(1) %}
+                {% set start_page = [1, current_page - 2]|max %}
+                {% set end_page = [total_pages, current_page + 2]|min %}
+                
+                {% if start_page > 1 %}
+                <li class="pagination-item">
+                    <a href="{{ url_for('participants', page=1, per_page=per_page|default(50)) }}" class="pagination-link">1</a>
+                </li>
+                {% if start_page > 2 %}
+                <li class="pagination-item pagination-item-ellipsis">
+                    <span class="pagination-ellipsis">...</span>
+                </li>
+                {% endif %}
+                {% endif %}
+                
+                {% for p in range(start_page, end_page + 1) %}
+                <li class="pagination-item">
+                    {% if p == current_page %}
+                    <span class="pagination-link pagination-link-active" aria-current="page">{{ p }}</span>
+                    {% else %}
+                    <a href="{{ url_for('participants', page=p, per_page=per_page|default(50)) }}" class="pagination-link">{{ p }}</a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+                
+                {% if end_page < total_pages %}
+                {% if end_page < total_pages - 1 %}
+                <li class="pagination-item pagination-item-ellipsis">
+                    <span class="pagination-ellipsis">...</span>
+                </li>
+                {% endif %}
+                <li class="pagination-item">
+                    <a href="{{ url_for('participants', page=total_pages, per_page=per_page|default(50)) }}" class="pagination-link">{{ total_pages }}</a>
+                </li>
+                {% endif %}
+                
+                {% if has_next is defined and has_next %}
+                <li class="pagination-item">
+                    <a href="{{ url_for('participants', page=current_page+1, per_page=per_page|default(50)) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
+                        Следующая →
+                    </a>
+                </li>
+                {% else %}
+                <li class="pagination-item pagination-item-disabled">
+                    <span class="pagination-link pagination-link-next pagination-link-disabled" aria-label="Следующая страница">
+                        Следующая →
+                    </span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
 </div>
 
 <script>
@@ -103,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
         direction: 'none'
     };
     
-    // Поиск и фильтрация
+    // Поиск и фильтрация (работает только на текущей странице)
     function filterRows() {
         const searchTerm = searchInput.value.toLowerCase();
         
@@ -124,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         visibleCount.textContent = visible;
-        totalCount.textContent = rows.length;
+        // totalCount уже установлен из шаблона, не меняем его
     }
     
     // Сортировка
@@ -201,13 +287,22 @@ document.addEventListener('DOMContentLoaded', function() {
         rows.forEach(row => tbody.appendChild(row));
     }
     
+    // Функция debounce
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
     // Обработчики событий
     searchInput.addEventListener('input', debounce(() => {
         filterRows();
-        // Если применен общий поиск, сбрасываем сортировку, чтобы не вводить в заблуждение
-        if (searchInput.value) {
-            resetSortIndicators();
-        }
     }, 200));
     
     // Сортировка по заголовкам
