@@ -255,8 +255,6 @@ body {
     min-height: calc(100vh - 60px);
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    overflow-x: hidden;
 }
 
 .sidebar {
@@ -493,11 +491,14 @@ body {
 .main-content {
     flex: 1;
     padding: 2rem 0;
+    min-height: auto;
 }
 
 @media (max-width: 768px) {
     .main-content {
         padding-top: 1rem;
+        padding-bottom: 3rem;
+        min-height: auto;
     }
     
     .content-wrapper {
@@ -1281,10 +1282,9 @@ body {
     .content-wrapper {
         margin-left: 0 !important;
         margin-top: 60px;
-        min-height: calc(100vh - 60px);
+        min-height: auto;
         height: auto;
-        overflow-y: visible;
-        overflow-x: hidden;
+        overflow: visible;
     }
     
     body {
@@ -1292,6 +1292,7 @@ body {
         overflow-y: auto;
         height: auto;
         min-height: 100vh;
+        position: relative;
     }
     
     html {
@@ -1301,6 +1302,11 @@ body {
     }
     
     .main-content {
+        padding-bottom: 3rem;
+        min-height: auto;
+    }
+    
+    .container {
         padding-bottom: 2rem;
     }
     
