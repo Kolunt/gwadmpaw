@@ -66,6 +66,36 @@
         gap: 1.25rem;
     }
 
+    .assignment-card {
+        padding: 1rem !important;
+    }
+    
+    .assignment-card h3 {
+        font-size: 1.25rem !important;
+    }
+    
+    .assignment-card > div[style*="display: flex"] {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .assignment-card > div[style*="display: flex"] span[style*="font-size: 2rem"] {
+        font-size: 1.5rem !important;
+        margin-right: 0.5rem !important;
+    }
+    
+    .assignment-card > div[style*="margin-bottom: 1.25rem"] {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .assignment-card > div[style*="background: rgba(255, 255, 255, 0.2)"] {
+        padding: 0.75rem !important;
+    }
+    
+    .assignment-card p {
+        margin: 0.25rem 0 !important;
+        font-size: 0.9rem !important;
+    }
+    
     .assignment-card form,
     .assignment-card .chat-attachment {
         width: 100%;
@@ -74,6 +104,8 @@
     .assignment-card .btn {
         width: 100%;
         text-align: center;
+        padding: 0.5rem 1rem !important;
+        font-size: 0.875rem !important;
     }
 }
 /* CSS Variables for theming */
