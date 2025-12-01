@@ -7697,53 +7697,54 @@ def admin_event_participants(event_id):
 @require_role('admin')
 def admin_event_distribution_positive_view(event_id):
     """Отображает участников со статусом 'Позитив' для распределения"""
-    conn = get_db_connection()
-    event = conn.execute('''
-        SELECT e.*, u.username as creator_name
-        FROM events e
-        LEFT JOIN users u ON e.created_by = u.user_id
-        WHERE e.id = ?
-    ''', (event_id,)).fetchone()
+    try:
+        conn = get_db_connection()
+        event = conn.execute('''
+            SELECT e.*, u.username as creator_name
+            FROM events e
+            LEFT JOIN users u ON e.created_by = u.user_id
+            WHERE e.id = ?
+        ''', (event_id,)).fetchone()
 
-    if not event:
+        if not event:
+            conn.close()
+            flash('Мероприятие не найдено', 'error')
+            return redirect(url_for('admin_events'))
+
+        participants = conn.execute('''
+            SELECT 
+                er.user_id,
+                u.username,
+                u.last_name,
+                u.first_name,
+                u.middle_name,
+                COALESCE(d.postal_code, u.postal_code) AS postal_code,
+                COALESCE(d.country, u.country) AS country,
+                COALESCE(d.city, u.city) AS city,
+                COALESCE(d.street, u.street) AS street,
+                COALESCE(d.house, u.house) AS house,
+                COALESCE(d.building, u.building) AS building,
+                COALESCE(d.apartment, u.apartment) AS apartment,
+                COALESCE(d.phone, u.phone) AS phone,
+                COALESCE(d.telegram, u.telegram) AS telegram,
+                COALESCE(d.whatsapp, u.whatsapp) AS whatsapp,
+                COALESCE(d.viber, u.viber) AS viber,
+                epa.notes as approval_notes,
+                er.registered_at
+            FROM event_registrations er
+            LEFT JOIN users u ON er.user_id = u.user_id
+            LEFT JOIN event_registration_details d ON d.event_id = er.event_id AND d.user_id = er.user_id
+            INNER JOIN event_participant_approvals epa ON epa.event_id = er.event_id AND epa.user_id = er.user_id
+            WHERE er.event_id = ?
+              AND epa.approved = 1
+            ORDER BY u.username COLLATE NOCASE
+        ''', (event_id,)).fetchall()
         conn.close()
-        flash('Мероприятие не найдено', 'error')
-        return redirect(url_for('admin_events'))
 
-    participants = conn.execute('''
-        SELECT 
-            er.user_id,
-            u.username,
-            u.last_name,
-            u.first_name,
-            u.middle_name,
-            COALESCE(d.postal_code, u.postal_code) AS postal_code,
-            COALESCE(d.country, u.country) AS country,
-            COALESCE(d.city, u.city) AS city,
-            COALESCE(d.street, u.street) AS street,
-            COALESCE(d.house, u.house) AS house,
-            COALESCE(d.building, u.building) AS building,
-            COALESCE(d.apartment, u.apartment) AS apartment,
-            COALESCE(d.phone, u.phone) AS phone,
-            COALESCE(d.telegram, u.telegram) AS telegram,
-            COALESCE(d.whatsapp, u.whatsapp) AS whatsapp,
-            COALESCE(d.viber, u.viber) AS viber,
-            epa.notes as approval_notes,
-            er.registered_at
-        FROM event_registrations er
-        LEFT JOIN users u ON er.user_id = u.user_id
-        LEFT JOIN event_registration_details d ON d.event_id = er.event_id AND d.user_id = er.user_id
-        INNER JOIN event_participant_approvals epa ON epa.event_id = er.event_id AND epa.user_id = er.user_id
-        WHERE er.event_id = ?
-          AND epa.approved = 1
-        ORDER BY u.username COLLATE NOCASE
-    ''', (event_id,)).fetchall()
-    conn.close()
-
-    participants_data = []
-    participants_lookup = {}
-    for row in participants:
-        participant_dict = {
+        participants_data = []
+        participants_lookup = {}
+        for row in participants:
+            participant_dict = {
             'user_id': row['user_id'],
             'username': row['username'] or f'ID {row["user_id"]}',
             'last_name': row['last_name'],
@@ -7767,62 +7768,91 @@ def admin_event_distribution_positive_view(event_id):
                 'viber': row['viber'],
             },
             'notes': row['approval_notes'],
-            'registered_at': row['registered_at'],
-        }
-        participants_data.append(participant_dict)
-        participants_lookup[row['user_id']] = participant_dict
+                'registered_at': row['registered_at'],
+            }
+            participants_data.append(participant_dict)
+            participants_lookup[row['user_id']] = participant_dict
 
-    conn_assignments = get_db_connection()
-    saved_rows = conn_assignments.execute('''
-        SELECT santa_user_id, recipient_user_id, santa_sent_at, recipient_received_at, locked, assignment_locked
-        FROM event_assignments
-        WHERE event_id = ?
-        ORDER BY assigned_at ASC, id ASC
-    ''', (event_id,)).fetchall()
-    conn_assignments.close()
+        conn_assignments = get_db_connection()
+        # Загружаем пары и проверяем наличие сообщений от Деда Мороза для определения статуса отправки
+        # Используем подзапрос для проверки наличия сообщений
+        saved_rows = conn_assignments.execute('''
+        SELECT 
+            ea.santa_user_id, 
+            ea.recipient_user_id, 
+            ea.santa_sent_at, 
+            ea.santa_send_info, 
+            ea.recipient_received_at, 
+            ea.locked, 
+            ea.assignment_locked,
+            ea.id as assignment_id,
+            CASE 
+                WHEN (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '') THEN 1
+                WHEN EXISTS (
+                    SELECT 1 FROM letter_messages lm 
+                    WHERE lm.assignment_id = ea.id AND lm.sender = 'santa'
+                ) THEN 1
+                ELSE 0 
+            END as has_sent_indicator
+        FROM event_assignments ea
+        WHERE ea.event_id = ?
+            ORDER BY ea.assigned_at ASC, ea.id ASC
+        ''', (event_id,)).fetchall()
+        conn_assignments.close()
 
-    saved_pairs = []
-    locked_santas = set()
-    for record in saved_rows:
-        santa = participants_lookup.get(record['santa_user_id'])
-        recipient = participants_lookup.get(record['recipient_user_id'])
-        if not santa or not recipient:
-            continue
-        locked_flag = bool(record['locked'])
-        assignment_locked_flag = bool(record['assignment_locked'])
-        if assignment_locked_flag:
-            locked_santas.add(record['santa_user_id'])
-        saved_pairs.append({
-            'santa_id': santa['user_id'],
-            'santa_name': santa['username'],
-            'santa_country': santa.get('country'),
-            'santa_city': santa.get('city'),
-            'recipient_id': recipient['user_id'],
-            'recipient_name': recipient['username'],
-            'recipient_country': recipient.get('country'),
-            'recipient_city': recipient.get('city'),
-            'santa_sent_at': record['santa_sent_at'],
-            'recipient_received_at': record['recipient_received_at'],
-            'locked': locked_flag,
-            'assignment_locked': assignment_locked_flag
-        })
+        saved_pairs = []
+        locked_santas = set()
+        for record in saved_rows:
+            santa = participants_lookup.get(record['santa_user_id'])
+            recipient = participants_lookup.get(record['recipient_user_id'])
+            if not santa or not recipient:
+                continue
+            locked_flag = bool(record['locked'])
+            assignment_locked_flag = bool(record['assignment_locked'])
+            if assignment_locked_flag:
+                locked_santas.add(record['santa_user_id'])
+            # Если santa_sent_at пустой, но есть сообщение от Деда Мороза, считаем что подарок отправлен
+            santa_sent_at = record['santa_sent_at']
+            has_sent_indicator = bool(record['has_sent_indicator']) if 'has_sent_indicator' in record.keys() else False
+            
+            saved_pairs.append({
+                'santa_id': santa['user_id'],
+                'santa_name': santa['username'],
+                'santa_country': santa.get('country'),
+                'santa_city': santa.get('city'),
+                'recipient_id': recipient['user_id'],
+                'recipient_name': recipient['username'],
+                'recipient_country': recipient.get('country'),
+                'recipient_city': recipient.get('city'),
+                'santa_sent_at': santa_sent_at if (santa_sent_at and santa_sent_at != '') else None,
+                'santa_send_info': record['santa_send_info'] if 'santa_send_info' in record.keys() else None,
+                'recipient_received_at': record['recipient_received_at'],
+                'has_sent_indicator': has_sent_indicator,
+                'locked': locked_flag,
+                'assignment_locked': assignment_locked_flag
+            })
 
-    distribution_url = url_for('admin_event_distribution_positive_generate', event_id=event_id)
-    distribution_save_url = url_for('admin_event_distribution_positive_save', event_id=event_id)
+        distribution_url = url_for('admin_event_distribution_positive_generate', event_id=event_id)
+        distribution_save_url = url_for('admin_event_distribution_positive_save', event_id=event_id)
 
-    return render_template(
-        'admin/event_distribution.html',
-        event=event,
-        distribution_type='positive',
-        participants=participants_data,
-        participants_count=len(participants_data),
-        distribution_generate_url=distribution_url,
-        distribution_save_url=distribution_save_url,
-        distribution_create_assignments_url=url_for('admin_event_distribution_positive_create_assignments', event_id=event_id),
-        distribution_unassign_url=url_for('admin_event_distribution_positive_unassign', event_id=event_id),
-        saved_pairs=saved_pairs,
-        saved_locked_santas=list(locked_santas)
-    )
+        return render_template(
+            'admin/event_distribution.html',
+            event=event,
+            distribution_type='positive',
+            participants=participants_data,
+            participants_count=len(participants_data),
+            distribution_generate_url=distribution_url,
+            distribution_save_url=distribution_save_url,
+            distribution_create_assignments_url=url_for('admin_event_distribution_positive_create_assignments', event_id=event_id),
+            distribution_unassign_url=url_for('admin_event_distribution_positive_unassign', event_id=event_id),
+            saved_pairs=saved_pairs,
+            saved_locked_santas=list(locked_santas)
+        )
+    except Exception as e:
+        log_error(f"Error in admin_event_distribution_positive_view for event {event_id}: {e}")
+        log_error(f"Traceback: {traceback.format_exc()}")
+        flash(f'Ошибка при загрузке страницы распределения: {str(e)}', 'error')
+        return redirect(url_for('admin_event_view', event_id=event_id))
 
 @app.route('/admin/events/<int:event_id>/distribution/positive/assignments', methods=['POST'])
 @require_role('admin')
@@ -8082,10 +8112,48 @@ def admin_event_distribution_positive_generate(event_id):
 
     assignment_pairs.sort(key=lambda pair: participants_map[pair[0]]['name'] or '')
 
+    # Загружаем существующие данные об отправке для сохранения при генерации
+    # Учитываем как явные отметки (santa_sent_at), так и сообщения от Деда Мороза
+    conn_existing = get_db_connection()
+    existing_assignments = conn_existing.execute('''
+        SELECT 
+            ea.santa_user_id, 
+            ea.recipient_user_id, 
+            ea.santa_sent_at, 
+            ea.santa_send_info, 
+            ea.recipient_received_at,
+            CASE 
+                WHEN (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '') THEN 1
+                WHEN EXISTS (
+                    SELECT 1 FROM letter_messages lm 
+                    WHERE lm.assignment_id = ea.id AND lm.sender = 'santa'
+                ) THEN 1
+                ELSE 0 
+            END as has_sent_indicator
+        FROM event_assignments ea
+        WHERE ea.event_id = ?
+    ''', (event_id,)).fetchall()
+    conn_existing.close()
+    
+    existing_data_map = {}
+    for row in existing_assignments:
+        key = (row['santa_user_id'], row['recipient_user_id'])
+        existing_data_map[key] = {
+            'santa_sent_at': row['santa_sent_at'],
+            'santa_send_info': row['santa_send_info'] if 'santa_send_info' in row.keys() else None,
+            'recipient_received_at': row['recipient_received_at'],
+            'has_sent_indicator': bool(row['has_sent_indicator']) if 'has_sent_indicator' in row.keys() else False
+        }
+
     pairs = []
     for santa_id, recipient_id in assignment_pairs:
         santa_meta = participants_map.get(santa_id, {})
         recipient_meta = participants_map.get(recipient_id, {})
+        
+        # Проверяем, есть ли существующие данные об отправке для этой пары
+        existing_key = (santa_id, recipient_id)
+        existing_data = existing_data_map.get(existing_key, {})
+        
         pairs.append({
             'santa_id': santa_id,
             'santa_name': santa_meta.get('name'),
@@ -8095,6 +8163,10 @@ def admin_event_distribution_positive_generate(event_id):
             'recipient_name': recipient_meta.get('name'),
             'recipient_country': recipient_meta.get('country'),
             'recipient_city': recipient_meta.get('city'),
+            'santa_sent_at': existing_data.get('santa_sent_at') if (existing_data.get('santa_sent_at') and existing_data.get('santa_sent_at') != '') else None,
+            'santa_send_info': existing_data.get('santa_send_info'),
+            'recipient_received_at': existing_data.get('recipient_received_at'),
+            'has_sent_indicator': existing_data.get('has_sent_indicator', False),
             'locked': santa_id in locked_assignments,
             'assignment_locked': santa_id in assignment_locked_santas
         })

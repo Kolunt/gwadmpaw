@@ -828,18 +828,25 @@ function renderPairs(pairs, options = {}) {
         statusCell.dataset.label = 'Статус';
         const statusBadge = document.createElement('span');
         statusBadge.classList.add('distribution-status');
+        
+        // Проверяем отправку: либо есть santa_sent_at, либо есть has_sent_indicator (сообщение от Деда Мороза)
         const sentStamp = pair.santa_sent_at ? new Date(pair.santa_sent_at) : null;
+        const isSent = sentStamp || pair.has_sent_indicator;
         const receivedStamp = pair.recipient_received_at ? new Date(pair.recipient_received_at) : null;
+        
         if (receivedStamp) {
             statusBadge.textContent = 'Завершено';
             statusBadge.classList.add('status-complete');
-        } else if (sentStamp) {
-            statusBadge.textContent = 'Отправил';
+        } else if (isSent) {
+            // Показываем имя отправителя в статусе
+            const senderName = pair.santa_name || 'Дед Мороз';
+            statusBadge.textContent = senderName;
             statusBadge.classList.add('status-sent');
         } else {
             statusBadge.textContent = 'Не отправил';
             statusBadge.classList.add('status-pending');
         }
+        
         statusCell.appendChild(statusBadge);
 
         row.appendChild(santaCell);
