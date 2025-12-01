@@ -5372,18 +5372,17 @@ html.dark .avatar-candidate-img {
 +    background: rgba(108, 117, 125, 0.18);
 +    color: #495057;
 +}
-+
-+.assignment-answer[hidden] {
-+    display: none;
-+}
-+
-+.faq-item.expanded .assignment-answer[hidden] {
-+    display: block;
-+}
+.assignment-answer[hidden] {
+    display: none;
+}
 
-+.assignment-question .faq-toggle-icon {
-+    margin-left: auto;
-+}
+.faq-item.expanded .assignment-answer[hidden] {
+    display: block;
+}
+
+.assignment-question .faq-toggle-icon {
+    margin-left: auto;
+}
 
 /* Статистика подарков */
 .gifts-statistics-section {
