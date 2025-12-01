@@ -5021,38 +5021,34 @@ def get_event_gifts_statistics(event_id):
         ''', (event_id,)).fetchone()
         total_assignments = total_result['count'] if total_result else 0
         
-        # Получаем детальную информацию для отладки
-        all_assignments = conn.execute('''
-            SELECT id, santa_user_id, recipient_user_id, santa_sent_at, recipient_received_at
-            FROM event_assignments
-            WHERE event_id = ?
-        ''', (event_id,)).fetchall()
-        
-        # Логируем все назначения для отладки
-        log_debug(f"Event {event_id} all assignments: {len(all_assignments)}")
-        for assignment in all_assignments:
-            log_debug(f"  Assignment {assignment['id']}: santa={assignment['santa_user_id']}, recipient={assignment['recipient_user_id']}, sent_at={assignment['santa_sent_at']}, received_at={assignment['recipient_received_at']}")
-        
         # Отправлено, но не подтверждено получение
+        # Учитываем как явно отмеченные (santa_sent_at), так и те, где есть сообщения от Деда Мороза
         sent_not_received_result = conn.execute('''
-            SELECT COUNT(*) as count
-            FROM event_assignments
-            WHERE event_id = ?
-              AND santa_sent_at IS NOT NULL
-              AND santa_sent_at != ''
-              AND (recipient_received_at IS NULL OR recipient_received_at = '')
+            SELECT COUNT(DISTINCT ea.id) as count
+            FROM event_assignments ea
+            LEFT JOIN letter_messages lm ON lm.assignment_id = ea.id AND lm.sender = 'santa'
+            WHERE ea.event_id = ?
+              AND (
+                  (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '')
+                  OR lm.id IS NOT NULL
+              )
+              AND (ea.recipient_received_at IS NULL OR ea.recipient_received_at = '')
         ''', (event_id,)).fetchone()
         sent_not_received = sent_not_received_result['count'] if sent_not_received_result else 0
         
         # Отправлено и подтверждено получение
+        # Учитываем как явно отмеченные (santa_sent_at), так и те, где есть сообщения от Деда Мороза
         sent_and_received_result = conn.execute('''
-            SELECT COUNT(*) as count
-            FROM event_assignments
-            WHERE event_id = ?
-              AND santa_sent_at IS NOT NULL
-              AND santa_sent_at != ''
-              AND recipient_received_at IS NOT NULL
-              AND recipient_received_at != ''
+            SELECT COUNT(DISTINCT ea.id) as count
+            FROM event_assignments ea
+            LEFT JOIN letter_messages lm ON lm.assignment_id = ea.id AND lm.sender = 'santa'
+            WHERE ea.event_id = ?
+              AND (
+                  (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '')
+                  OR lm.id IS NOT NULL
+              )
+              AND ea.recipient_received_at IS NOT NULL
+              AND ea.recipient_received_at != ''
         ''', (event_id,)).fetchone()
         sent_and_received = sent_and_received_result['count'] if sent_and_received_result else 0
         
