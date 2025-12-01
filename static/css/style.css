@@ -255,6 +255,8 @@ body {
     min-height: calc(100vh - 60px);
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .sidebar {
@@ -1103,6 +1105,7 @@ body {
 .dashboard-container {
     max-width: 800px;
     margin: 0 auto;
+    padding-bottom: 2rem;
 }
 
 /* Для страницы events: полная ширина на десктопе */
@@ -1110,6 +1113,7 @@ body {
     max-width: none;
     width: 100%;
     padding: 0 1rem;
+    padding-bottom: 2rem;
 }
 
 @media (min-width: 769px) {
@@ -1277,6 +1281,27 @@ body {
     .content-wrapper {
         margin-left: 0 !important;
         margin-top: 60px;
+        min-height: calc(100vh - 60px);
+        height: auto;
+        overflow-y: visible;
+        overflow-x: hidden;
+    }
+    
+    body {
+        overflow-x: hidden;
+        overflow-y: auto;
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    html {
+        overflow-x: hidden;
+        overflow-y: auto;
+        height: auto;
+    }
+    
+    .main-content {
+        padding-bottom: 2rem;
     }
     
     .sidebar {
@@ -1389,6 +1414,7 @@ body {
 .admin-container {
     max-width: 1400px;
     margin: 0 auto;
+    padding-bottom: 2rem;
 }
 
 .admin-header {
