@@ -108,6 +108,39 @@
         font-size: 0.875rem !important;
     }
 }
+
+@media (max-width: 480px) {
+    .assignment-card {
+        padding: 0.75rem !important;
+        border-radius: 8px !important;
+    }
+    
+    .assignment-card h3 {
+        font-size: 1.1rem !important;
+    }
+    
+    .assignment-card > div[style*="display: flex"] {
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .assignment-card > div[style*="display: flex"] span[style*="font-size: 2rem"] {
+        font-size: 1.25rem !important;
+    }
+    
+    .assignment-card > div[style*="margin-bottom: 1.25rem"] {
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .assignment-card > div[style*="background: rgba(255, 255, 255, 0.2)"] {
+        padding: 0.5rem !important;
+    }
+    
+    .assignment-card p {
+        margin: 0.2rem 0 !important;
+        font-size: 0.85rem !important;
+        line-height: 1.4 !important;
+    }
+}
 /* CSS Variables for theming */
 :root {
     --bg-primary: #ffffff;
