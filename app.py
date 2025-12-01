@@ -5077,31 +5077,25 @@ def get_event_gifts_statistics(event_id):
         total_assignments = total_result['count'] if total_result else 0
         
         # Отправлено, но не подтверждено получение
-        # Учитываем как явно отмеченные (santa_sent_at), так и те, где есть сообщения от Деда Мороза
+        # Учитываем только явно отмеченные (santa_sent_at) - нажатие кнопки "Отправил"
+        # Сообщения не считаются признаком отправки подарка
         sent_not_received_result = conn.execute('''
             SELECT COUNT(DISTINCT ea.id) as count
             FROM event_assignments ea
-            LEFT JOIN letter_messages lm ON lm.assignment_id = ea.id AND lm.sender = 'santa'
             WHERE ea.event_id = ?
-              AND (
-                  (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '')
-                  OR lm.id IS NOT NULL
-              )
+              AND (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '')
               AND (ea.recipient_received_at IS NULL OR ea.recipient_received_at = '')
         ''', (event_id,)).fetchone()
         sent_not_received = sent_not_received_result['count'] if sent_not_received_result else 0
         
         # Отправлено и подтверждено получение
-        # Учитываем как явно отмеченные (santa_sent_at), так и те, где есть сообщения от Деда Мороза
+        # Учитываем только явно отмеченные (santa_sent_at) - нажатие кнопки "Отправил"
+        # Сообщения не считаются признаком отправки подарка
         sent_and_received_result = conn.execute('''
             SELECT COUNT(DISTINCT ea.id) as count
             FROM event_assignments ea
-            LEFT JOIN letter_messages lm ON lm.assignment_id = ea.id AND lm.sender = 'santa'
             WHERE ea.event_id = ?
-              AND (
-                  (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '')
-                  OR lm.id IS NOT NULL
-              )
+              AND (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '')
               AND ea.recipient_received_at IS NOT NULL
               AND ea.recipient_received_at != ''
         ''', (event_id,)).fetchone()
