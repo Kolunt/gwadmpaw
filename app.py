@@ -5014,32 +5014,39 @@ def get_event_gifts_statistics(event_id):
     conn = get_db_connection()
     try:
         # Всего назначений (сколько подарков должно быть отправлено)
-        total_assignments = conn.execute('''
+        total_result = conn.execute('''
             SELECT COUNT(*) as count
             FROM event_assignments
             WHERE event_id = ?
-        ''', (event_id,)).fetchone()['count']
+        ''', (event_id,)).fetchone()
+        total_assignments = total_result['count'] if total_result else 0
         
         # Отправлено, но не подтверждено получение
-        sent_not_received = conn.execute('''
+        sent_not_received_result = conn.execute('''
             SELECT COUNT(*) as count
             FROM event_assignments
             WHERE event_id = ?
               AND santa_sent_at IS NOT NULL
-              AND recipient_received_at IS NULL
-        ''', (event_id,)).fetchone()['count']
+              AND (recipient_received_at IS NULL OR recipient_received_at = '')
+        ''', (event_id,)).fetchone()
+        sent_not_received = sent_not_received_result['count'] if sent_not_received_result else 0
         
         # Отправлено и подтверждено получение
-        sent_and_received = conn.execute('''
+        sent_and_received_result = conn.execute('''
             SELECT COUNT(*) as count
             FROM event_assignments
             WHERE event_id = ?
               AND santa_sent_at IS NOT NULL
               AND recipient_received_at IS NOT NULL
-        ''', (event_id,)).fetchone()['count']
+              AND recipient_received_at != ''
+        ''', (event_id,)).fetchone()
+        sent_and_received = sent_and_received_result['count'] if sent_and_received_result else 0
         
         # Не отправлено
         not_sent = total_assignments - sent_not_received - sent_and_received
+        
+        # Логирование для отладки
+        log_debug(f"Event {event_id} gifts stats: total={total_assignments}, sent_not_received={sent_not_received}, sent_and_received={sent_and_received}, not_sent={not_sent}")
         
         return {
             'total': total_assignments,
@@ -5049,6 +5056,7 @@ def get_event_gifts_statistics(event_id):
         }
     except Exception as e:
         log_error(f"Error getting gifts statistics for event {event_id}: {e}")
+        log_error(traceback.format_exc())
         return {
             'total': 0,
             'sent_not_received': 0,
