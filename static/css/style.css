@@ -1279,15 +1279,8 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-    .content-wrapper {
-        margin-left: 0 !important;
-        margin-top: 60px;
-        min-height: auto;
-        height: auto;
-        overflow: visible;
-    }
-    
     body {
+        display: block !important;
         overflow-x: hidden;
         overflow-y: auto;
         height: auto;
@@ -1299,15 +1292,37 @@ body {
         overflow-x: hidden;
         overflow-y: auto;
         height: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .content-wrapper {
+        margin-left: 0 !important;
+        margin-top: 60px;
+        min-height: auto;
+        height: auto;
+        overflow: visible;
+        display: block;
+        flex: none;
     }
     
     .main-content {
+        padding-bottom: 4rem;
+        min-height: auto;
+        flex: none;
+        display: block;
+    }
+    
+    .container {
         padding-bottom: 3rem;
         min-height: auto;
     }
     
-    .container {
-        padding-bottom: 2rem;
+    .dashboard-container {
+        padding-bottom: 3rem;
+    }
+    
+    .admin-container {
+        padding-bottom: 3rem;
     }
     
     .sidebar {
