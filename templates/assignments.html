@@ -60,6 +60,12 @@
                                 {% if event_data.as_santa.get('recipient_apartment') %}, кв. {{ event_data.as_santa.get('recipient_apartment') }}{% endif %}
                             </p>
                             {% endif %}
+                            {% if event_data.as_santa.get('recipient_phone') %}
+                            <p style="margin: 0.5rem 0;">
+                                <strong>Телефон:</strong><br>
+                                <a href="tel:{{ event_data.as_santa.get('recipient_phone') }}" style="color: rgba(255,255,255,0.95); text-decoration: underline;">{{ event_data.as_santa.get('recipient_phone') }}</a>
+                            </p>
+                            {% endif %}
                             {% if event_data.as_santa.get('recipient_bio') %}
                             <p style="margin: 0.5rem 0;">
                                 <strong>О себе:</strong><br>
