@@ -5325,10 +5325,27 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
     conn = connection or get_db_connection()
     try:
         existing_rows = conn.execute('''
-            SELECT santa_user_id, recipient_user_id, locked, assignment_locked, santa_sent_at, santa_send_info, recipient_received_at, assigned_at, assigned_by
+            SELECT santa_user_id, recipient_user_id, locked, assignment_locked, santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image, assigned_at, assigned_by
             FROM event_assignments
             WHERE event_id = ?
         ''', (event_id,)).fetchall()
+        
+        # Создаем словарь для быстрого поиска старых данных по паре (santa, recipient)
+        existing_data_map = {}
+        for row in existing_rows:
+            key = (row['santa_user_id'], row['recipient_user_id'])
+            existing_data_map[key] = {
+                'locked': row['locked'] if 'locked' in row.keys() else 0,
+                'assignment_locked': row['assignment_locked'] if 'assignment_locked' in row.keys() else 0,
+                'santa_sent_at': row['santa_sent_at'] if 'santa_sent_at' in row.keys() else None,
+                'santa_send_info': row['santa_send_info'] if 'santa_send_info' in row.keys() else None,
+                'recipient_received_at': row['recipient_received_at'] if 'recipient_received_at' in row.keys() else None,
+                'recipient_thanks_message': row['recipient_thanks_message'] if 'recipient_thanks_message' in row.keys() else None,
+                'recipient_receipt_image': row['recipient_receipt_image'] if 'recipient_receipt_image' in row.keys() else None,
+                'assigned_at': row['assigned_at'] if 'assigned_at' in row.keys() else None,
+                'assigned_by': row['assigned_by'] if 'assigned_by' in row.keys() else None
+            }
+        
         conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
         locked_map = {}
         if locked_pairs:
@@ -5350,14 +5367,40 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
 
         data = []
         for santa, recipient in assignments:
+            # Проверяем, есть ли старые данные для этой пары
+            old_data = existing_data_map.get((santa, recipient), {})
+            
+            # Определяем locked статус
             locked_flag = 0
             if assignment_locked or locked_map.get(santa) == recipient:
                 locked_flag = 1
-            assignment_locked_flag = 1 if assignment_locked else 0
-            data.append((event_id, santa, recipient, assigned_by, locked_flag, assignment_locked_flag))
+            elif old_data.get('locked'):
+                locked_flag = 1
+            
+            assignment_locked_flag = 1 if assignment_locked else (old_data.get('assignment_locked', 0))
+            
+            # Сохраняем старые данные о отправке/получении, если они есть
+            santa_sent_at = old_data.get('santa_sent_at')
+            santa_send_info = old_data.get('santa_send_info')
+            recipient_received_at = old_data.get('recipient_received_at')
+            recipient_thanks_message = old_data.get('recipient_thanks_message')
+            recipient_receipt_image = old_data.get('recipient_receipt_image')
+            assigned_at = old_data.get('assigned_at') or datetime.now().isoformat()
+            assigned_by_final = old_data.get('assigned_by') or assigned_by
+            
+            data.append((
+                event_id, santa, recipient, assigned_by_final, locked_flag, assignment_locked_flag,
+                santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image,
+                assigned_at
+            ))
+        
         conn.executemany('''
-            INSERT INTO event_assignments (event_id, santa_user_id, recipient_user_id, assigned_by, locked, assignment_locked)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO event_assignments (
+                event_id, santa_user_id, recipient_user_id, assigned_by, locked, assignment_locked,
+                santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image,
+                assigned_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', data)
         conn.commit()
         log_activity(
@@ -5386,10 +5429,12 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
                     santa_sent_at,
                     santa_send_info,
                     recipient_received_at,
+                    recipient_thanks_message,
+                    recipient_receipt_image,
                     assigned_at,
                     assigned_by
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', [
                 (
                     event_id,
@@ -5400,6 +5445,8 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
                     row['santa_sent_at'] if 'santa_sent_at' in row.keys() else None,
                     row['santa_send_info'] if 'santa_send_info' in row.keys() else None,
                     row['recipient_received_at'] if 'recipient_received_at' in row.keys() else None,
+                    row['recipient_thanks_message'] if 'recipient_thanks_message' in row.keys() else None,
+                    row['recipient_receipt_image'] if 'recipient_receipt_image' in row.keys() else None,
                     row['assigned_at'] if 'assigned_at' in row.keys() else None,
                     row['assigned_by'] if 'assigned_by' in row.keys() else None
                 )
