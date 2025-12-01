@@ -4978,6 +4978,55 @@ def get_current_event_stage(event_id):
     
     return current_stage
 
+def get_event_gifts_statistics(event_id):
+    """Получает статистику по подаркам для мероприятия"""
+    conn = get_db_connection()
+    try:
+        # Всего назначений (сколько подарков должно быть отправлено)
+        total_assignments = conn.execute('''
+            SELECT COUNT(*) as count
+            FROM event_assignments
+            WHERE event_id = ?
+        ''', (event_id,)).fetchone()['count']
+        
+        # Отправлено, но не подтверждено получение
+        sent_not_received = conn.execute('''
+            SELECT COUNT(*) as count
+            FROM event_assignments
+            WHERE event_id = ?
+              AND santa_sent_at IS NOT NULL
+              AND recipient_received_at IS NULL
+        ''', (event_id,)).fetchone()['count']
+        
+        # Отправлено и подтверждено получение
+        sent_and_received = conn.execute('''
+            SELECT COUNT(*) as count
+            FROM event_assignments
+            WHERE event_id = ?
+              AND santa_sent_at IS NOT NULL
+              AND recipient_received_at IS NOT NULL
+        ''', (event_id,)).fetchone()['count']
+        
+        # Не отправлено
+        not_sent = total_assignments - sent_not_received - sent_and_received
+        
+        return {
+            'total': total_assignments,
+            'sent_not_received': sent_not_received,
+            'sent_and_received': sent_and_received,
+            'not_sent': not_sent
+        }
+    except Exception as e:
+        log_error(f"Error getting gifts statistics for event {event_id}: {e}")
+        return {
+            'total': 0,
+            'sent_not_received': 0,
+            'sent_and_received': 0,
+            'not_sent': 0
+        }
+    finally:
+        conn.close()
+
 def is_registration_open(event_id):
     """Проверяет, открыта ли регистрация на мероприятие"""
     current_stage = get_current_event_stage(event_id)
@@ -6044,6 +6093,16 @@ def event_view(event_id):
                 'stage_type': next_stage_candidate.get('stage_type')
             }
 
+    # Получаем статистику по подаркам (только после закрытия регистрации)
+    gifts_stats = None
+    show_gifts_stats = False
+    if current_stage:
+        stage_type = current_stage['info']['type']
+        # Показываем статистику после закрытия регистрации
+        if stage_type in ['registration_closed', 'lottery', 'celebration_date', 'after_party']:
+            show_gifts_stats = True
+            gifts_stats = get_event_gifts_statistics(event_id)
+    
     return render_template('event_view.html', 
                          event=event,
                          current_stage=current_stage,
@@ -6055,7 +6114,9 @@ def event_view(event_id):
                          registrations=registrations,
                          stages_with_info=stages_with_info,
                          is_admin=is_admin,
-                         next_stage=next_stage_payload)
+                         next_stage=next_stage_payload,
+                         show_gifts_stats=show_gifts_stats,
+                         gifts_stats=gifts_stats)
 
 def has_required_contacts(user_id):
     """Проверяет, заполнены ли обязательные контактные данные пользователя"""

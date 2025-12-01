@@ -3366,6 +3366,54 @@ body {
     gap: 1rem;
 }
 
+.registration-commitments {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.registration-commitment {
+    padding: 1.25rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--bg-secondary);
+    transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.registration-commitment:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .registration-commitment:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.registration-commitment-text {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.registration-commitment-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.registration-commitment-checkbox input[type="checkbox"] {
+    margin-right: 0;
+    margin-top: 0.25rem;
+}
+
+.registration-commitment-checkbox span {
+    flex: 1;
+    line-height: 1.4;
+}
+
 .small-note {
     margin-top: -0.25rem;
     margin-bottom: 0.75rem;
@@ -5332,8 +5380,95 @@ html.dark .avatar-candidate-img {
 +.faq-item.expanded .assignment-answer[hidden] {
 +    display: block;
 +}
-+
+
 +.assignment-question .faq-toggle-icon {
 +    margin-left: auto;
 +}
+
+/* Статистика подарков */
+.gifts-statistics-section {
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border: 2px solid var(--accent-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.gifts-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.gifts-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gifts-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.gifts-stat-card .stat-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.gifts-stat-card .stat-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.gifts-stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+.gifts-stat-card .stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.gifts-stat-card.stat-total {
+    border-left: 4px solid var(--accent-color);
+}
+
+.gifts-stat-card.stat-sent {
+    border-left: 4px solid #ff9800;
+}
+
+.gifts-stat-card.stat-received {
+    border-left: 4px solid #4caf50;
+}
+
+@media (max-width: 768px) {
+    .gifts-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .gifts-stat-card {
+        padding: 1rem;
+    }
+    
+    .gifts-stat-card .stat-icon {
+        font-size: 2rem;
+    }
+    
+    .gifts-stat-card .stat-value {
+        font-size: 1.75rem;
+    }
+}
 

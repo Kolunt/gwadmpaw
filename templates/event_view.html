@@ -45,6 +45,35 @@
             </div>
             {% endif %}
             
+            {% if show_gifts_stats and gifts_stats %}
+            <div class="event-info-section gifts-statistics-section">
+                <h3>📊 Статистика подарков</h3>
+                <div class="gifts-stats-grid">
+                    <div class="gifts-stat-card stat-total">
+                        <div class="stat-icon">🎁</div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ gifts_stats.total }}</div>
+                            <div class="stat-label">Всего должно быть отправлено</div>
+                        </div>
+                    </div>
+                    <div class="gifts-stat-card stat-sent">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ gifts_stats.sent_not_received }}</div>
+                            <div class="stat-label">Отправлено, но не подтверждено получение</div>
+                        </div>
+                    </div>
+                    <div class="gifts-stat-card stat-received">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ gifts_stats.sent_and_received }}</div>
+                            <div class="stat-label">Отправлено и подтверждено получение</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
             <div class="event-info-section collapsible-section">
                 <div class="collapsible-header" onclick="toggleCollapsibleSection(this)">
                     <h3>
