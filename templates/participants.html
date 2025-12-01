@@ -15,6 +15,7 @@
                 class="search-input" 
                 placeholder="Поиск по всем полям..."
                 autocomplete="off"
+                value="{{ search_query|default('') }}"
             >
             <span class="search-icon">🔍</span>
         </div>
@@ -108,7 +109,7 @@
             <ul class="pagination-list">
                 {% if has_prev is defined and has_prev %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('participants', page=(page|default(1))-1, per_page=per_page|default(50)) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
+                    <a href="{{ url_for('participants', page=(page|default(1))-1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
                         ← Предыдущая
                     </a>
                 </li>
@@ -126,7 +127,7 @@
                 
                 {% if start_page > 1 %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('participants', page=1, per_page=per_page|default(50)) }}" class="pagination-link">1</a>
+                    <a href="{{ url_for('participants', page=1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link">1</a>
                 </li>
                 {% if start_page > 2 %}
                 <li class="pagination-item pagination-item-ellipsis">
@@ -140,7 +141,7 @@
                     {% if p == current_page %}
                     <span class="pagination-link pagination-link-active" aria-current="page">{{ p }}</span>
                     {% else %}
-                    <a href="{{ url_for('participants', page=p, per_page=per_page|default(50)) }}" class="pagination-link">{{ p }}</a>
+                    <a href="{{ url_for('participants', page=p, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link">{{ p }}</a>
                     {% endif %}
                 </li>
                 {% endfor %}
@@ -152,13 +153,13 @@
                 </li>
                 {% endif %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('participants', page=total_pages, per_page=per_page|default(50)) }}" class="pagination-link">{{ total_pages }}</a>
+                    <a href="{{ url_for('participants', page=total_pages, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link">{{ total_pages }}</a>
                 </li>
                 {% endif %}
                 
                 {% if has_next is defined and has_next %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('participants', page=current_page+1, per_page=per_page|default(50)) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
+                    <a href="{{ url_for('participants', page=current_page+1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
                         Следующая →
                     </a>
                 </li>
@@ -189,28 +190,20 @@ document.addEventListener('DOMContentLoaded', function() {
         direction: 'none'
     };
     
-    // Поиск и фильтрация (работает только на текущей странице)
-    function filterRows() {
-        const searchTerm = searchInput.value.toLowerCase();
+    // Поиск с серверной фильтрацией (работает по всем страницам)
+    function performSearch() {
+        const searchTerm = searchInput.value.trim();
+        const url = new URL(window.location.href);
         
-        let visible = 0;
+        if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
+        } else {
+            url.searchParams.delete('search');
+        }
+        // Сбрасываем страницу на первую при поиске
+        url.searchParams.set('page', '1');
         
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            const cellText = Array.from(cells).map(cell => cell.textContent.toLowerCase()).join(' ');
-            
-            const matchesSearch = !searchTerm || cellText.includes(searchTerm);
-            
-            if (matchesSearch) {
-                row.style.display = '';
-                visible++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        visibleCount.textContent = visible;
-        // totalCount уже установлен из шаблона, не меняем его
+        window.location.href = url.toString();
     }
     
     // Сортировка
@@ -301,18 +294,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Обработчики событий
+    // При вводе текста выполняем серверный поиск
     searchInput.addEventListener('input', debounce(() => {
-        filterRows();
-    }, 200));
+        performSearch();
+    }, 500));
+    
+    // Обработка Enter для немедленного поиска
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            performSearch();
+        }
+    });
     
     // Сортировка по заголовкам
     table.querySelectorAll('th.sortable').forEach((header, index) => {
         header.addEventListener('click', () => sortTable(index));
         header.style.cursor = 'pointer';
     });
-    
-    // Инициализация
-    filterRows();
     
     // Автоматическая сортировка по дате регистрации (по возрастанию - старые сверху)
     currentSort.column = 3; // Колонка "Дата регистрации"

@@ -2682,41 +2682,95 @@ def view_profile(user_id):
 def participants():
     """Страница со списком участников"""
     try:
-        # Параметры пагинации
+        # Параметры пагинации и поиска
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
+        search_query = request.args.get('search', '').strip()
+        
+        # Логирование для отладки поиска
+        if search_query:
+            log_debug(f"Participants search: query='{search_query}', encoded={search_query.encode('utf-8')}")
         
         # Ограничиваем per_page разумными значениями
         per_page = min(max(per_page, 10), 100)
         
         conn = get_db_connection()
         
-        # Подсчитываем общее количество пользователей
-        total_count = conn.execute('''
-            SELECT COUNT(DISTINCT u.user_id)
-            FROM users u
-        ''').fetchone()[0]
+        # Формируем условия поиска
+        # SQLite LOWER() не работает с кириллицей, поэтому используем другой подход:
+        # Загружаем всех пользователей и фильтруем в Python
+        search_params = []
+        if search_query:
+            search_lower = search_query.lower()
+            # Используем оригинальный запрос и нижний регистр для SQL
+            # Но основной фильтр будет в Python
+            search_pattern = f'%{search_query}%'
+            search_params = [search_pattern, search_pattern, search_pattern]
         
-        # Вычисляем offset
-        offset = (page - 1) * per_page
-        
-        # Получаем пользователей с их ролями с пагинацией
-        users = conn.execute('''
-            SELECT 
-                u.user_id,
-                u.username,
-                u.avatar_seed,
-                u.avatar_style,
-                u.created_at,
-                u.last_login,
-                GROUP_CONCAT(r.display_name, ', ') as roles
-            FROM users u
-            LEFT JOIN user_roles ur ON u.user_id = ur.user_id
-            LEFT JOIN roles r ON ur.role_id = r.id
-            GROUP BY u.user_id
-            ORDER BY u.created_at ASC
-            LIMIT ? OFFSET ?
-        ''', (per_page, offset)).fetchall()
+        # Для поиска загружаем всех пользователей и фильтруем в Python
+        # (так как SQLite LOWER() не работает с кириллицей)
+        if search_query:
+            # Загружаем всех пользователей для фильтрации в Python
+            all_users = conn.execute('''
+                SELECT 
+                    u.user_id,
+                    u.username,
+                    u.avatar_seed,
+                    u.avatar_style,
+                    u.created_at,
+                    u.last_login,
+                    GROUP_CONCAT(r.display_name, ', ') as roles
+                FROM users u
+                LEFT JOIN user_roles ur ON u.user_id = ur.user_id
+                LEFT JOIN roles r ON ur.role_id = r.id
+                GROUP BY u.user_id
+                ORDER BY u.created_at ASC
+            ''').fetchall()
+            
+            # Фильтруем в Python с учетом регистра
+            search_lower = search_query.lower()
+            filtered_users = []
+            for user in all_users:
+                user_keys = user.keys()
+                username = user['username'] if 'username' in user_keys else ''
+                user_id_str = str(user['user_id']) if 'user_id' in user_keys else ''
+                roles_str = user['roles'] if ('roles' in user_keys and user['roles']) else ''
+                
+                # Проверяем совпадение (регистронезависимо)
+                if (search_query.lower() in username.lower() or 
+                    search_query.lower() in user_id_str.lower() or
+                    search_query.lower() in roles_str.lower()):
+                    filtered_users.append(user)
+            
+            # Применяем пагинацию к отфильтрованным результатам
+            total_count = len(filtered_users)
+            offset = (page - 1) * per_page
+            users = filtered_users[offset:offset + per_page]
+        else:
+            # Без поиска - обычная пагинация
+            total_count = conn.execute('''
+                SELECT COUNT(DISTINCT u.user_id)
+                FROM users u
+            ''').fetchone()[0]
+            
+            offset = (page - 1) * per_page
+            users_query = '''
+                SELECT 
+                    u.user_id,
+                    u.username,
+                    u.avatar_seed,
+                    u.avatar_style,
+                    u.created_at,
+                    u.last_login,
+                    GROUP_CONCAT(r.display_name, ', ') as roles
+                FROM users u
+                LEFT JOIN user_roles ur ON u.user_id = ur.user_id
+                LEFT JOIN roles r ON ur.role_id = r.id
+                GROUP BY u.user_id
+                ORDER BY u.created_at ASC
+                LIMIT ? OFFSET ?
+            '''
+            users = conn.execute(users_query, [per_page, offset]).fetchall()
         
         # Для каждого пользователя определяем статус
         participants_data = []
@@ -2780,7 +2834,8 @@ def participants():
                              total_count=total_count,
                              total_pages=total_pages,
                              has_prev=has_prev,
-                             has_next=has_next)
+                             has_next=has_next,
+                             search_query=search_query)
     except Exception as e:
         log_error(f"Error in participants route: {e}")
         log_error(traceback.format_exc())
