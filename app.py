@@ -5405,6 +5405,17 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
                 'assigned_by': row['assigned_by'] if 'assigned_by' in row.keys() else None
             }
         
+        # Получаем старые assignment_id для переноса сообщений
+        old_assignments_map = {}
+        old_assignments_rows = conn.execute('''
+            SELECT id, santa_user_id, recipient_user_id
+            FROM event_assignments
+            WHERE event_id = ?
+        ''', (event_id,)).fetchall()
+        for row in old_assignments_rows:
+            key = (row['santa_user_id'], row['recipient_user_id'])
+            old_assignments_map[key] = row['id']
+        
         conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
         locked_map = {}
         if locked_pairs:
@@ -5425,6 +5436,7 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
                 locked_map[santa] = recipient
 
         data = []
+        assignment_id_mapping = {}  # Старый ID -> Новый ID для переноса сообщений
         for santa, recipient in assignments:
             # Проверяем, есть ли старые данные для этой пары
             old_data = existing_data_map.get((santa, recipient), {})
@@ -5452,15 +5464,41 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
                 santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image,
                 assigned_at
             ))
+            
+            # Сохраняем маппинг старых assignment_id на пару (santa, recipient) для переноса сообщений
+            old_key = (santa, recipient)
+            if old_key in old_assignments_map:
+                assignment_id_mapping[old_assignments_map[old_key]] = (santa, recipient)
         
-        conn.executemany('''
-            INSERT INTO event_assignments (
-                event_id, santa_user_id, recipient_user_id, assigned_by, locked, assignment_locked,
-                santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image,
-                assigned_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', data)
+        # Вставляем новые назначения по одному, чтобы получить их ID для переноса сообщений
+        cursor = conn.cursor()
+        new_assignments_id_map = {}  # (santa, recipient) -> новый assignment_id
+        for assignment_data in data:
+            cursor.execute('''
+                INSERT INTO event_assignments (
+                    event_id, santa_user_id, recipient_user_id, assigned_by, locked, assignment_locked,
+                    santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image,
+                    assigned_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', assignment_data)
+            new_assignment_id = cursor.lastrowid
+            santa = assignment_data[1]
+            recipient = assignment_data[2]
+            new_assignments_id_map[(santa, recipient)] = new_assignment_id
+        
+        # Переносим сообщения на новые assignment_id
+        if assignment_id_mapping:
+            for old_id, pair_key in assignment_id_mapping.items():
+                if pair_key in new_assignments_id_map:
+                    new_id = new_assignments_id_map[pair_key]
+                    conn.execute('''
+                        UPDATE letter_messages
+                        SET assignment_id = ?
+                        WHERE assignment_id = ?
+                    ''', (new_id, old_id))
+                    log_debug(f"Transferred messages from old assignment_id {old_id} to new assignment_id {new_id} for pair {pair_key}")
+        
         conn.commit()
         log_activity(
             'assignments_saved',
@@ -7585,7 +7623,10 @@ def admin_event_view(event_id):
     # Определяем текущий этап для отображения кнопки ревью
     current_stage = get_current_event_stage(event_id)
     
-    return render_template('admin/event_view.html', event=event, stages_with_info=stages_with_info, current_stage=current_stage)
+    # Преобразуем event в словарь для корректной работы в шаблоне
+    event_dict = dict(event) if event else {}
+    
+    return render_template('admin/event_view.html', event=event_dict, stages_with_info=stages_with_info, current_stage=current_stage)
 
 
 @app.route('/admin/events/<int:event_id>/participants')
