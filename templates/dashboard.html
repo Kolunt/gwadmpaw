@@ -549,27 +549,27 @@ function initDashboardTabs() {
             e.preventDefault();
             const targetTab = this.getAttribute('data-tab');
             if (targetTab) {
-                switchTab(targetTab);
+            switchTab(targetTab);
             }
         });
     });
     
     // Функция для обработки hash
     function handleHash() {
-        const hash = window.location.hash.substring(1); // Убираем #
-        if (hash) {
-            // Проверяем, существует ли таб с таким именем
-            const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === hash);
-            if (tabExists) {
-                switchTab(hash);
+    const hash = window.location.hash.substring(1); // Убираем #
+    if (hash) {
+        // Проверяем, существует ли таб с таким именем
+        const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === hash);
+        if (tabExists) {
+            switchTab(hash);
             } else {
                 // Если таб не найден, показываем первый таб
                 switchTab('main');
-            }
-        } else {
-            // Если hash нет, показываем первый таб
-            switchTab('main');
         }
+    } else {
+        // Если hash нет, показываем первый таб
+        switchTab('main');
+    }
     }
     
     // Проверяем hash при загрузке страницы
@@ -582,9 +582,9 @@ function initDashboardTabs() {
 // Инициализация при загрузке DOM
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initDashboardTabs);
-} else {
+        } else {
     // DOM уже загружен
     initDashboardTabs();
-}
+        }
 </script>
 {% endblock %}
