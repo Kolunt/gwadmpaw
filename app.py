@@ -5240,8 +5240,6 @@ def admin_settings():
     except Exception as e:
         log_error(f"Error fetching all titles: {e}")
     
-    conn.close()
-    
     # Получаем меню бота
     bot_menu_items = []
     try:
@@ -5254,22 +5252,51 @@ def admin_settings():
     except sqlite3.OperationalError as e:
         # Таблица может не существовать, если БД не была инициализирована
         log_error(f"Error fetching bot menu: {e}")
+        # Попробуем создать таблицу, если её нет
+        try:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS telegram_bot_menu (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    button_text TEXT NOT NULL,
+                    button_type TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    sort_order INTEGER DEFAULT 100,
+                    is_active INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.commit()
+            log_debug("Created telegram_bot_menu table")
+        except Exception as create_error:
+            log_error(f"Error creating telegram_bot_menu table: {create_error}")
         bot_menu_items = []
-    finally:
-        conn.close()
+    except Exception as e:
+        log_error(f"Unexpected error fetching bot menu: {e}")
+        import traceback
+        log_error(traceback.format_exc())
+        bot_menu_items = []
     
-    return render_template('admin/settings.html', 
-                         settings_by_category=settings_by_category,
-                         settings_dict=settings_dict,
-                         default_language=default_language,
-                         available_languages=available_languages,
-                         current_locale=current_locale,
-                         BABEL_AVAILABLE=BABEL_AVAILABLE,
-                         admin_users=admin_users,
-                         system_roles=system_roles,
-                         system_titles=system_titles,
-                         all_titles=all_titles,
-                         bot_menu_items=bot_menu_items)
+    conn.close()
+    
+    try:
+        return render_template('admin/settings.html', 
+                             settings_by_category=settings_by_category,
+                             settings_dict=settings_dict,
+                             default_language=default_language,
+                             available_languages=available_languages,
+                             current_locale=current_locale,
+                             BABEL_AVAILABLE=BABEL_AVAILABLE,
+                             admin_users=admin_users,
+                             system_roles=system_roles,
+                             system_titles=system_titles,
+                             all_titles=all_titles,
+                             bot_menu_items=bot_menu_items)
+    except Exception as e:
+        log_error(f"Error rendering admin/settings.html: {e}")
+        import traceback
+        log_error(traceback.format_exc())
+        raise
 
 def verify_dadata_api(api_key, secret_key):
     """Проверяет валидность Dadata API ключей"""
