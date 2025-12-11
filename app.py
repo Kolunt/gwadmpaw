@@ -589,6 +589,36 @@ def init_db():
             )
         ''')
         
+        # Таблица связи пользователей с Telegram
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS telegram_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER UNIQUE NOT NULL,
+                telegram_chat_id TEXT NOT NULL,
+                telegram_username TEXT,
+                verification_code TEXT,
+                verification_code_expires_at TIMESTAMP,
+                verified INTEGER DEFAULT 0,
+                verified_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        ''')
+        
+        # Таблица меню бота
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS telegram_bot_menu (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                button_text TEXT NOT NULL,
+                button_type TEXT NOT NULL,  -- 'command', 'url', 'callback'
+                action TEXT NOT NULL,  -- команда или URL или callback_data
+                sort_order INTEGER DEFAULT 100,
+                is_active INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
         # Таблица мероприятий
         c.execute('''
             CREATE TABLE IF NOT EXISTS events (
@@ -894,6 +924,7 @@ def init_db():
             ('dadata_secret_key', '', 'Dadata Secret ключ', 'integrations'),
             ('dadata_enabled', '0', 'Dadata интеграция включена', 'integrations'),
             ('dadata_verified', '0', 'Dadata ключи проверены', 'integrations'),
+            ('site_url', '', 'Базовый URL сайта (для Telegram бота и ссылок)', 'integrations'),
         ]
         
         for key, value, description, category in default_settings:
@@ -910,6 +941,21 @@ def init_db():
         
         # Удаляем устаревшие настройки GWars, если они присутствуют
         c.execute('DELETE FROM settings WHERE key IN (?, ?)', ('gwars_host', 'gwars_site_id'))
+        
+        # Инициализация дефолтного меню бота
+        default_menu_items = [
+            ('Мероприятия', 'command', 'events', 10, 1),
+            ('Задания', 'command', 'assignments', 20, 1),
+            ('FAQ', 'url', '/faq', 30, 1),
+            ('Правила', 'url', '/rules', 40, 1),
+        ]
+        
+        for button_text, button_type, action, sort_order, is_active in default_menu_items:
+            c.execute('''
+                INSERT OR IGNORE INTO telegram_bot_menu 
+                (button_text, button_type, action, sort_order, is_active)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (button_text, button_type, action, sort_order, is_active))
 
         # Обновляем настройки для всех пользователей: темная тема и русский язык по умолчанию
         try:
@@ -2461,21 +2507,126 @@ def login():
         flash(f'Ошибка при входе: {str(e)}', 'error')
         return redirect(url_for('index'))
 
+@app.route('/telegram/verify/generate', methods=['POST'])
+@require_login
+def telegram_verify_generate():
+    """Генерирует код верификации для пользователя"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Необходима авторизация'}), 401
+    
+    code = generate_telegram_verification_code(user_id)
+    if code:
+        # Получаем имя бота для ссылки
+        token = get_setting('telegram_bot_token', '')
+        bot_username = None
+        if token and requests:
+            try:
+                api_url = f'https://api.telegram.org/bot{token}/getMe'
+                response = requests.get(api_url, timeout=5)
+                if response.status_code == 200:
+                    result = response.json()
+                    if result.get('ok'):
+                        bot_username = result.get('result', {}).get('username')
+            except:
+                pass
+        
+        return jsonify({
+            'success': True,
+            'code': code,
+            'user_id': user_id,
+            'bot_username': bot_username,
+            'message': f'Код верификации: {code}\n\nОткройте бота в Telegram и отправьте ему этот код.'
+        })
+    else:
+        return jsonify({'success': False, 'message': 'Ошибка при генерации кода'}), 500
+
+@app.route('/telegram/verify/status', methods=['GET'])
+@require_login
+def telegram_verify_status():
+    """Проверяет статус верификации Telegram"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'verified': False}), 401
+    
+    conn = get_db_connection()
+    telegram_user = conn.execute('''
+        SELECT verified, telegram_chat_id, telegram_username, verified_at
+        FROM telegram_users
+        WHERE user_id = ?
+    ''', (user_id,)).fetchone()
+    conn.close()
+    
+    if telegram_user:
+        return jsonify({
+            'success': True,
+            'verified': bool(telegram_user['verified']),
+            'telegram_chat_id': telegram_user['telegram_chat_id'],
+            'telegram_username': telegram_user['telegram_username'],
+            'verified_at': telegram_user['verified_at']
+        })
+    else:
+        return jsonify({'success': True, 'verified': False})
+
+@app.route('/telegram/verify/unlink', methods=['POST'])
+@require_login
+def telegram_verify_unlink():
+    """Отвязывает Telegram аккаунт от пользователя"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Необходима авторизация'}), 401
+    
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            DELETE FROM telegram_users
+            WHERE user_id = ?
+        ''', (user_id,))
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Telegram аккаунт успешно отвязан'})
+    except Exception as e:
+        log_error(f"Error unlinking Telegram: {e}")
+        return jsonify({'success': False, 'message': f'Ошибка при отвязке: {str(e)}'}), 500
+    finally:
+        conn.close()
+
 @app.route('/dashboard')
 @require_login
 def dashboard():
     # Получаем данные пользователя из БД
     conn = get_db_connection()
-    user = conn.execute(
-        'SELECT * FROM users WHERE user_id = ?', (session['user_id'],)
-    ).fetchone()
+    try:
+        user = conn.execute(
+            'SELECT * FROM users WHERE user_id = ?', (session['user_id'],)
+        ).fetchone()
+        
+        # Получаем роли пользователя
+        user_roles = get_user_roles(session['user_id'])
+        
+        # Получаем статус верификации Telegram
+        telegram_verified = False
+        telegram_info = None
+        try:
+            telegram_user = conn.execute('''
+                SELECT verified, telegram_chat_id, telegram_username, verified_at
+                FROM telegram_users
+                WHERE user_id = ?
+            ''', (session['user_id'],)).fetchone()
+            
+            if telegram_user:
+                telegram_verified = bool(telegram_user['verified'])
+                telegram_info = dict(telegram_user)
+        except sqlite3.OperationalError as e:
+            # Таблица может не существовать, если БД не была инициализирована
+            log_error(f"Error fetching telegram user: {e}")
+    finally:
+        conn.close()
     
-    # Получаем роли пользователя
-    user_roles = get_user_roles(session['user_id'])
-    
-    conn.close()
-    
-    return render_template('dashboard.html', user=user, user_roles=user_roles)
+    return render_template('dashboard.html', 
+                         user=user, 
+                         user_roles=user_roles,
+                         telegram_verified=telegram_verified,
+                         telegram_info=telegram_info)
 
 
 @app.route('/api/avatar/generate-options', methods=['POST'])
@@ -3404,15 +3555,535 @@ def admin_broadcasts_template_get(template_id):
     conn.close()
     
     if template:
-        return jsonify({
-            'success': True,
-            'template': dict(template)
-        })
+        return jsonify(dict(template))
+    return jsonify({'error': 'Template not found'}), 404
+
+@app.route('/admin/telegram/menu', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_telegram_menu():
+    """Управление меню Telegram бота"""
+    conn = get_db_connection()
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'create':
+            button_text = request.form.get('button_text', '').strip()
+            button_type = request.form.get('button_type', 'command')
+            action_value = request.form.get('action_value', '').strip()
+            sort_order = int(request.form.get('sort_order', 100))
+            
+            if not button_text or not action_value:
+                conn.close()
+                flash('Название кнопки и действие обязательны', 'error')
+                return redirect(url_for('admin_settings') + '#integrations')
+            
+            try:
+                conn.execute('''
+                    INSERT INTO telegram_bot_menu (button_text, button_type, action, sort_order, is_active)
+                    VALUES (?, ?, ?, ?, 1)
+                ''', (button_text, button_type, action_value, sort_order))
+                conn.commit()
+                flash('Пункт меню успешно добавлен', 'success')
+            except Exception as e:
+                log_error(f"Error creating menu item: {e}")
+                flash('Ошибка при добавлении пункта меню', 'error')
+        
+        elif action == 'update':
+            menu_id = request.form.get('menu_id')
+            button_text = request.form.get('button_text', '').strip()
+            button_type = request.form.get('button_type', 'command')
+            action_value = request.form.get('action_value', '').strip()
+            sort_order = int(request.form.get('sort_order', 100))
+            is_active = 1 if request.form.get('is_active') == '1' else 0
+            
+            if not menu_id or not button_text or not action_value:
+                conn.close()
+                flash('Все поля обязательны', 'error')
+                return redirect(url_for('admin_settings') + '#integrations')
+            
+            try:
+                conn.execute('''
+                    UPDATE telegram_bot_menu
+                    SET button_text = ?, button_type = ?, action = ?, sort_order = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (button_text, button_type, action_value, sort_order, is_active, menu_id))
+                conn.commit()
+                flash('Пункт меню успешно обновлен', 'success')
+            except Exception as e:
+                log_error(f"Error updating menu item: {e}")
+                flash('Ошибка при обновлении пункта меню', 'error')
+        
+        elif action == 'delete':
+            menu_id = request.form.get('menu_id')
+            if menu_id:
+                try:
+                    conn.execute('DELETE FROM telegram_bot_menu WHERE id = ?', (menu_id,))
+                    conn.commit()
+                    flash('Пункт меню успешно удален', 'success')
+                except Exception as e:
+                    log_error(f"Error deleting menu item: {e}")
+                    flash('Ошибка при удалении пункта меню', 'error')
+        
+        conn.close()
+        return redirect(url_for('admin_settings') + '#integrations')
+    
+    # GET - возвращаем список меню
+    menu_items = conn.execute('''
+        SELECT id, button_text, button_type, action, sort_order, is_active, created_at, updated_at
+        FROM telegram_bot_menu
+        ORDER BY sort_order ASC
+    ''').fetchall()
+    conn.close()
+    
+    return jsonify([dict(item) for item in menu_items])
+
+@app.route('/admin/telegram/menu/<int:menu_id>', methods=['GET'])
+@require_role('admin')
+def admin_telegram_menu_get(menu_id):
+    """Получение пункта меню по ID"""
+    conn = get_db_connection()
+    menu_item = conn.execute('''
+        SELECT id, button_text, button_type, action, sort_order, is_active
+        FROM telegram_bot_menu
+        WHERE id = ?
+    ''', (menu_id,)).fetchone()
+    conn.close()
+    
+    if menu_item:
+        return jsonify(dict(menu_item))
+    return jsonify({'error': 'Menu item not found'}), 404
+
+@app.route('/telegram/webhook', methods=['POST'])
+def telegram_webhook():
+    """Вебхук для обработки сообщений от Telegram бота"""
+    if not requests:
+        return jsonify({'ok': False, 'error': 'requests library not available'}), 500
+    
+    # Проверяем, что бот включен
+    telegram_enabled = get_setting('telegram_enabled', '0') == '1'
+    telegram_verified = get_setting('telegram_verified', '0') == '1'
+    if not telegram_enabled or not telegram_verified:
+        return jsonify({'ok': False, 'error': 'Telegram bot not enabled or verified'}), 503
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'ok': False}), 400
+        
+        message = data.get('message')
+        callback_query = data.get('callback_query')
+        
+        if callback_query:
+            # Обработка нажатий на кнопки
+            try:
+                return handle_telegram_callback(callback_query)
+            except Exception as e:
+                log_error(f"Error handling callback: {e}")
+                return jsonify({'ok': True})  # Возвращаем ok, чтобы Telegram не повторял запрос
+        elif message:
+            # Обработка текстовых сообщений и команд
+            try:
+                return handle_telegram_message(message)
+            except Exception as e:
+                log_error(f"Error handling message: {e}")
+                return jsonify({'ok': True})  # Возвращаем ok, чтобы Telegram не повторял запрос
+        
+        return jsonify({'ok': True})
+    except Exception as e:
+        log_error(f"Error processing Telegram webhook: {e}")
+        import traceback
+        log_error(traceback.format_exc())
+        return jsonify({'ok': True})  # Возвращаем ok, чтобы Telegram не повторял запрос
+
+def handle_telegram_message(message):
+    """Обрабатывает сообщения от пользователей в Telegram"""
+    chat_id = message.get('chat', {}).get('id')
+    text = message.get('text', '').strip()
+    username = message.get('from', {}).get('username')
+    
+    if not chat_id:
+        return jsonify({'ok': False, 'error': 'No chat_id'}), 400
+    
+    # Обработка команд
+    if text.startswith('/'):
+        command = text.split()[0].lower()
+        
+        if command == '/start':
+            return handle_start_command(chat_id, username, text)
+        elif command == '/menu':
+            return handle_menu_command(chat_id)
+        elif command == '/verify':
+            return handle_verify_command(chat_id, text)
+        elif command == '/events':
+            return handle_events_command(chat_id)
+        elif command == '/assignments':
+            return handle_assignments_command(chat_id)
+        else:
+            send_telegram_message_with_keyboard(
+                "Неизвестная команда. Используйте /menu для просмотра меню.",
+                chat_id
+            )
+            return jsonify({'ok': True})
+    
+    # Обработка кода верификации (6 цифр)
+    elif text.isdigit() and len(text) == 6:
+        return handle_verification_code(chat_id, text, username)
+    
+    # Обработка обычных сообщений
     else:
-        return jsonify({
-            'success': False,
-            'message': 'Шаблон не найден'
-        }), 404
+        send_telegram_message_with_keyboard(
+            "Используйте /menu для просмотра доступных команд.",
+            chat_id
+        )
+        return jsonify({'ok': True})
+
+def handle_telegram_callback(callback_query):
+    """Обрабатывает нажатия на inline кнопки"""
+    chat_id = callback_query.get('message', {}).get('chat', {}).get('id')
+    data = callback_query.get('data', '')
+    
+    if not chat_id:
+        return jsonify({'ok': False, 'error': 'No chat_id'}), 400
+    
+    # Обработка callback_data
+    if data.startswith('cmd_'):
+        command = data.replace('cmd_', '')
+        if command == 'events':
+            return handle_events_command(chat_id)
+        elif command == 'assignments':
+            return handle_assignments_command(chat_id)
+        elif command == 'faq':
+            return handle_faq_command(chat_id)
+        elif command == 'rules':
+            return handle_rules_command(chat_id)
+    
+    # Отправляем подтверждение нажатия кнопки
+    token = get_setting('telegram_bot_token', '')
+    if token:
+        try:
+            api_url = f'https://api.telegram.org/bot{token}/answerCallbackQuery'
+            requests.post(api_url, json={'callback_query_id': callback_query.get('id')}, timeout=5)
+        except:
+            pass
+    
+    return jsonify({'ok': True})
+
+def handle_start_command(chat_id, username, full_text):
+    """Обрабатывает команду /start"""
+    # Проверяем, есть ли код верификации в команде
+    parts = full_text.split()
+    if len(parts) > 1:
+        verification_code = parts[1]
+        # Это может быть код верификации или user_id
+        return handle_start_with_code(chat_id, username, verification_code)
+    
+    # Обычное приветствие
+    welcome_text = (
+        "👋 Добро пожаловать в бота Анонимных Дедов Морозов!\n\n"
+        "Для использования бота необходимо привязать ваш аккаунт.\n"
+        "Перейдите в свой профиль на сайте и запросите код верификации."
+    )
+    
+    send_telegram_message_with_keyboard(welcome_text, chat_id)
+    return jsonify({'ok': True})
+
+def handle_start_with_code(chat_id, username, code):
+    """Обрабатывает /start с кодом верификации"""
+    # Если код - это user_id (обычно 6+ цифр), генерируем код верификации
+    if code.isdigit():
+        try:
+            user_id = int(code)
+            # Проверяем, что это действительно user_id (обычно больше 100000)
+            # Или это может быть код верификации (ровно 6 цифр)
+            if len(code) == 6:
+                # Это код верификации
+                handle_verification_code(chat_id, code, username)
+            elif user_id > 100000:
+                # Это user_id, генерируем код верификации
+                verification_code = generate_telegram_verification_code(user_id)
+                if verification_code:
+                    send_telegram_message_with_keyboard(
+                        f"Ваш код верификации: {verification_code}\n\n"
+                        "Введите этот код в бота для завершения привязки аккаунта.\n"
+                        f"Или используйте команду: /verify {verification_code}",
+                        chat_id
+                    )
+                else:
+                    send_telegram_message_with_keyboard(
+                        "Ошибка при генерации кода. Попробуйте позже.",
+                        chat_id
+                    )
+            else:
+                # Небольшое число, возможно код верификации
+                handle_verification_code(chat_id, code, username)
+        except ValueError:
+            # Не число, игнорируем
+            send_telegram_message_with_keyboard(
+                "Используйте /menu для просмотра доступных команд.",
+                chat_id
+            )
+    else:
+        # Не число, игнорируем
+        send_telegram_message_with_keyboard(
+            "Используйте /menu для просмотра доступных команд.",
+            chat_id
+        )
+    
+    return jsonify({'ok': True})
+
+def handle_menu_command(chat_id):
+    """Показывает меню бота"""
+    menu_items = get_telegram_bot_menu()
+    if not menu_items:
+        send_telegram_message_with_keyboard("Меню пока не настроено.", chat_id)
+        return jsonify({'ok': True})
+    
+    # Формируем inline клавиатуру
+    keyboard = {'inline_keyboard': []}
+    row = []
+    
+    for item in menu_items:
+        button_text = item['button_text']
+        button_type = item['button_type']
+        action = item['action']
+        
+        if button_type == 'command':
+            row.append({'text': button_text, 'callback_data': f'cmd_{action}'})
+        elif button_type == 'url':
+            # Получаем базовый URL сайта
+            base_url = get_base_url()
+            full_url = action if action.startswith('http') else f"{base_url}{action}"
+            row.append({'text': button_text, 'url': full_url})
+        
+        # Добавляем кнопки по 2 в ряд
+        if len(row) >= 2:
+            keyboard['inline_keyboard'].append(row)
+            row = []
+    
+    if row:
+        keyboard['inline_keyboard'].append(row)
+    
+    menu_text = "📋 Главное меню:\n\nВыберите раздел:"
+    send_telegram_message_with_keyboard(menu_text, chat_id, keyboard)
+    return jsonify({'ok': True})
+
+def handle_verify_command(chat_id, full_text):
+    """Обрабатывает команду /verify"""
+    parts = full_text.split()
+    if len(parts) > 1:
+        code = parts[1]
+        username = None
+        return handle_verification_code(chat_id, code, username)
+    else:
+        send_telegram_message_with_keyboard(
+            "Для верификации введите команду:\n/verify <код>\n\n"
+            "Код можно получить в вашем профиле на сайте.",
+            chat_id
+        )
+    return jsonify({'ok': True})
+
+def handle_verification_code(chat_id, code, username):
+    """Обрабатывает код верификации"""
+    conn = get_db_connection()
+    try:
+        # Ищем пользователя с этим кодом
+        telegram_user = conn.execute('''
+            SELECT user_id, verification_code, verification_code_expires_at
+            FROM telegram_users
+            WHERE verification_code = ? AND verified = 0
+        ''', (code,)).fetchone()
+        
+        if not telegram_user:
+            send_telegram_message_with_keyboard(
+                "Код верификации не найден или уже использован.\n"
+                "Запросите новый код в вашем профиле на сайте.",
+                chat_id
+            )
+            return jsonify({'ok': True})
+        
+        user_id = telegram_user['user_id']
+        expires_at_str = telegram_user['verification_code_expires_at']
+        
+        # Проверяем срок действия
+        if expires_at_str:
+            expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
+            if expires_at.tzinfo:
+                expires_at = expires_at.replace(tzinfo=None)
+            if datetime.utcnow() > expires_at:
+                send_telegram_message_with_keyboard(
+                    "Код верификации истёк. Запросите новый код в вашем профиле.",
+                    chat_id
+                )
+                return jsonify({'ok': True})
+        
+        # Связываем пользователя с Telegram
+        success, message = verify_telegram_code(user_id, code, str(chat_id), username)
+        
+        if success:
+            send_telegram_message_with_keyboard(
+                f"✅ {message}\n\nИспользуйте /menu для просмотра доступных команд.",
+                chat_id
+            )
+        else:
+            send_telegram_message_with_keyboard(f"❌ {message}", chat_id)
+        
+        return jsonify({'ok': True})
+    except Exception as e:
+        log_error(f"Error handling verification code: {e}")
+        send_telegram_message_with_keyboard(
+            "Произошла ошибка при верификации. Попробуйте позже.",
+            chat_id
+        )
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+def get_base_url():
+    """Получает базовый URL сайта"""
+    # Сначала проверяем настройку из БД
+    site_url = get_setting('site_url', '')
+    if site_url:
+        return site_url.rstrip('/')
+    
+    # Затем пытаемся получить из request
+    try:
+        if has_request_context():
+            return request.host_url.rstrip('/')
+    except:
+        pass
+    
+    # Fallback: дефолтное значение для разработки
+    return 'http://localhost:5000'
+
+def handle_events_command(chat_id):
+    """Показывает список мероприятий"""
+    conn = get_db_connection()
+    try:
+        events = conn.execute('''
+            SELECT id, name, description
+            FROM events
+            WHERE deleted_at IS NULL
+            ORDER BY created_at DESC
+            LIMIT 10
+        ''').fetchall()
+        conn.close()
+        
+        if not events:
+            send_telegram_message_with_keyboard("Мероприятия не найдены.", chat_id)
+            return jsonify({'ok': True})
+        
+        base_url = get_base_url()
+        text = "🎉 Мероприятия:\n\n"
+        keyboard = {'inline_keyboard': []}
+        
+        for event in events:
+            event_id = event['id']
+            event_name = event['name']
+            event_url = f"{base_url}/events#{event_id}"
+            text += f"• {event_name}\n"
+            keyboard['inline_keyboard'].append([{
+                'text': f"📋 {event_name}",
+                'url': event_url
+            }])
+        
+        send_telegram_message_with_keyboard(text, chat_id, keyboard)
+        return jsonify({'ok': True})
+    except Exception as e:
+        log_error(f"Error handling events command: {e}")
+        send_telegram_message_with_keyboard("Ошибка при получении мероприятий.", chat_id)
+        return jsonify({'ok': True})
+
+def handle_assignments_command(chat_id):
+    """Показывает задания пользователя"""
+    conn = get_db_connection()
+    try:
+        # Находим user_id по chat_id
+        telegram_user = conn.execute('''
+            SELECT user_id FROM telegram_users
+            WHERE telegram_chat_id = ? AND verified = 1
+        ''', (str(chat_id),)).fetchone()
+        
+        if not telegram_user:
+            send_telegram_message_with_keyboard(
+                "Ваш аккаунт не привязан к Telegram. Используйте /verify для привязки.",
+                chat_id
+            )
+            return jsonify({'ok': True})
+        
+        user_id = telegram_user['user_id']
+        
+        # Получаем задания пользователя
+        assignments = conn.execute('''
+            SELECT ea.id, ea.event_id, e.name as event_name,
+                   ea.recipient_user_id, u.username as recipient_username,
+                   ea.santa_sent_at, ea.recipient_received_at
+            FROM event_assignments ea
+            JOIN events e ON ea.event_id = e.id
+            JOIN users u ON ea.recipient_user_id = u.user_id
+            WHERE ea.santa_user_id = ? AND e.deleted_at IS NULL
+            ORDER BY ea.assigned_at DESC
+            LIMIT 10
+        ''', (user_id,)).fetchall()
+        conn.close()
+        
+        if not assignments:
+            send_telegram_message_with_keyboard(
+                "У вас пока нет заданий.",
+                chat_id
+            )
+            return jsonify({'ok': True})
+        
+        base_url = get_base_url()
+        text = "📋 Ваши задания:\n\n"
+        keyboard = {'inline_keyboard': []}
+        
+        for assignment in assignments:
+            event_name = assignment['event_name']
+            recipient = assignment['recipient_username']
+            sent = "✅" if assignment['santa_sent_at'] else "⏳"
+            received = "✅" if assignment['recipient_received_at'] else "⏳"
+            
+            text += f"{sent} Отправить: {recipient}\n"
+            text += f"{received} Получить от: {recipient}\n"
+            text += f"Мероприятие: {event_name}\n\n"
+            
+            assignment_url = f"{base_url}/assignments"
+            keyboard['inline_keyboard'].append([{
+                'text': f"📋 {event_name}",
+                'url': assignment_url
+            }])
+        
+        send_telegram_message_with_keyboard(text, chat_id, keyboard)
+        return jsonify({'ok': True})
+    except Exception as e:
+        log_error(f"Error handling assignments command: {e}")
+        send_telegram_message_with_keyboard("Ошибка при получении заданий.", chat_id)
+        return jsonify({'ok': True})
+
+def handle_faq_command(chat_id):
+    """Отправляет ссылку на FAQ"""
+    base_url = get_base_url()
+    faq_url = f"{base_url}/faq"
+    keyboard = {'inline_keyboard': [[{'text': '📖 Открыть FAQ', 'url': faq_url}]]}
+    send_telegram_message_with_keyboard(
+        "❓ Часто задаваемые вопросы:\n\nНажмите кнопку ниже, чтобы открыть FAQ на сайте.",
+        chat_id,
+        keyboard
+    )
+    return jsonify({'ok': True})
+
+def handle_rules_command(chat_id):
+    """Отправляет ссылку на правила"""
+    base_url = get_base_url()
+    rules_url = f"{base_url}/rules"
+    keyboard = {'inline_keyboard': [[{'text': '📜 Открыть правила', 'url': rules_url}]]}
+    send_telegram_message_with_keyboard(
+        "📜 Правила проекта:\n\nНажмите кнопку ниже, чтобы открыть правила на сайте.",
+        chat_id,
+        keyboard
+    )
+    return jsonify({'ok': True})
 
 @app.route('/admin/test')
 def admin_test():
@@ -4571,6 +5242,22 @@ def admin_settings():
     
     conn.close()
     
+    # Получаем меню бота
+    bot_menu_items = []
+    try:
+        bot_menu_rows = conn.execute('''
+            SELECT id, button_text, button_type, action, sort_order, is_active
+            FROM telegram_bot_menu
+            ORDER BY sort_order ASC
+        ''').fetchall()
+        bot_menu_items = [dict(row) for row in bot_menu_rows]
+    except sqlite3.OperationalError as e:
+        # Таблица может не существовать, если БД не была инициализирована
+        log_error(f"Error fetching bot menu: {e}")
+        bot_menu_items = []
+    finally:
+        conn.close()
+    
     return render_template('admin/settings.html', 
                          settings_by_category=settings_by_category,
                          settings_dict=settings_dict,
@@ -4581,7 +5268,8 @@ def admin_settings():
                          admin_users=admin_users,
                          system_roles=system_roles,
                          system_titles=system_titles,
-                         all_titles=all_titles)
+                         all_titles=all_titles,
+                         bot_menu_items=bot_menu_items)
 
 def verify_dadata_api(api_key, secret_key):
     """Проверяет валидность Dadata API ключей"""
@@ -4762,6 +5450,24 @@ def verify_telegram_bot(token, chat_id=None):
                 bot_username = bot_info.get('username', 'неизвестен')
                 bot_name = bot_info.get('first_name', 'Бот')
                 
+                # Пытаемся настроить вебхук автоматически
+                try:
+                    base_url = get_base_url()
+                    webhook_url = f"{base_url}/telegram/webhook"
+                    webhook_api_url = f'https://api.telegram.org/bot{token}/setWebhook'
+                    webhook_response = requests.post(webhook_api_url, json={
+                        'url': webhook_url
+                    }, timeout=10)
+                    if webhook_response.status_code == 200:
+                        webhook_result = webhook_response.json()
+                        if webhook_result.get('ok'):
+                            log_debug(f"Webhook set successfully: {webhook_url}")
+                        else:
+                            log_error(f"Failed to set webhook: {webhook_result.get('description')}")
+                except Exception as e:
+                    log_error(f"Error setting webhook: {e}")
+                    # Не критично, продолжаем
+                
                 # Если указан chat_id, пытаемся отправить тестовое сообщение
                 if chat_id:
                     try:
@@ -4889,6 +5595,144 @@ def send_telegram_message(message, chat_id=None, parse_mode=None):
     except Exception as e:
         log_error(f"Error sending Telegram message: {e}")
         return False, f"Ошибка при отправке: {str(e)}"
+
+def send_telegram_message_with_keyboard(message, chat_id, keyboard=None, parse_mode=None):
+    """Отправляет сообщение через Telegram бота с клавиатурой (меню)
+    
+    Args:
+        message: Текст сообщения
+        chat_id: Chat ID получателя
+        keyboard: InlineKeyboardMarkup или ReplyKeyboardMarkup (dict)
+        parse_mode: Режим парсинга (HTML, Markdown и т.д.)
+    
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    if not requests:
+        return False, "Библиотека requests не установлена"
+    
+    token = get_setting('telegram_bot_token', '')
+    if not token:
+        return False, "Токен бота не настроен"
+    
+    try:
+        api_url = f'https://api.telegram.org/bot{token}/sendMessage'
+        data = {
+            'chat_id': chat_id,
+            'text': message
+        }
+        if parse_mode:
+            data['parse_mode'] = parse_mode
+        if keyboard:
+            data['reply_markup'] = keyboard
+        
+        response = requests.post(api_url, json=data, timeout=10)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('ok'):
+                return True, "Сообщение успешно отправлено"
+            else:
+                error_desc = result.get('description', 'Неизвестная ошибка')
+                return False, f"Ошибка отправки: {error_desc}"
+        else:
+            error_data = response.json() if response.status_code == 200 else {}
+            error_desc = error_data.get('description', f'HTTP {response.status_code}')
+            return False, f"Ошибка отправки: {error_desc}"
+            
+    except Exception as e:
+        log_error(f"Error sending Telegram message with keyboard: {e}")
+        return False, f"Ошибка при отправке: {str(e)}"
+
+def generate_telegram_verification_code(user_id):
+    """Генерирует код верификации для пользователя"""
+    conn = get_db_connection()
+    try:
+        # Генерируем 6-значный код
+        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        expires_at = datetime.utcnow() + timedelta(minutes=10)  # Код действителен 10 минут
+        
+        # Сохраняем или обновляем код
+        conn.execute('''
+            INSERT INTO telegram_users (user_id, verification_code, verification_code_expires_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                verification_code = excluded.verification_code,
+                verification_code_expires_at = excluded.verification_code_expires_at,
+                verified = 0
+        ''', (user_id, code, expires_at))
+        conn.commit()
+        return code
+    except Exception as e:
+        log_error(f"Error generating verification code: {e}")
+        return None
+    finally:
+        conn.close()
+
+def verify_telegram_code(user_id, code, telegram_chat_id, telegram_username=None):
+    """Проверяет код верификации и связывает пользователя с Telegram"""
+    conn = get_db_connection()
+    try:
+        telegram_user = conn.execute('''
+            SELECT verification_code, verification_code_expires_at
+            FROM telegram_users
+            WHERE user_id = ?
+        ''', (user_id,)).fetchone()
+        
+        if not telegram_user:
+            return False, "Код верификации не найден. Запросите новый код."
+        
+        stored_code = telegram_user['verification_code']
+        expires_at_str = telegram_user['verification_code_expires_at']
+        
+        if not stored_code or stored_code != code:
+            return False, "Неверный код верификации."
+        
+        # Проверяем срок действия
+        if expires_at_str:
+            expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
+            if expires_at.tzinfo:
+                expires_at = expires_at.replace(tzinfo=None)
+            if datetime.utcnow() > expires_at:
+                return False, "Код верификации истёк. Запросите новый код."
+        
+        # Связываем пользователя с Telegram
+        conn.execute('''
+            UPDATE telegram_users
+            SET telegram_chat_id = ?,
+                telegram_username = ?,
+                verified = 1,
+                verified_at = CURRENT_TIMESTAMP,
+                verification_code = NULL,
+                verification_code_expires_at = NULL
+            WHERE user_id = ?
+        ''', (telegram_chat_id, telegram_username, user_id))
+        conn.commit()
+        
+        return True, "Telegram успешно привязан к вашему аккаунту!"
+    except Exception as e:
+        log_error(f"Error verifying Telegram code: {e}")
+        return False, f"Ошибка при верификации: {str(e)}"
+    finally:
+        conn.close()
+
+def get_telegram_bot_menu():
+    """Получает активные пункты меню бота"""
+    conn = get_db_connection()
+    try:
+        menu_items = conn.execute('''
+            SELECT button_text, button_type, action
+            FROM telegram_bot_menu
+            WHERE is_active = 1
+            ORDER BY sort_order ASC
+        ''').fetchall()
+        conn.close()
+        return menu_items
+    except Exception as e:
+        log_error(f"Error getting bot menu: {e}")
+        if conn:
+            conn.close()
+        return []
 
 def send_email_via_smtp(to_email, subject, body, html_body=None):
     """Отправляет email через настроенный SMTP сервер"""

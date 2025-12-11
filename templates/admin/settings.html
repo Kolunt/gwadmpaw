@@ -379,6 +379,59 @@
                                     </small>
                                 </label>
                             </div>
+                            
+                            <!-- Настройка вебхука и базового URL -->
+                            <div class="setting-item" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color, #e0e0e0);">
+                                <h3 style="margin-bottom: 1rem; color: var(--text-primary);">🔗 Настройка вебхука</h3>
+                                <p style="color: var(--text-secondary, #666); font-size: 0.9em; margin-bottom: 1rem;">
+                                    Для работы бота необходимо настроить вебхук. URL вебхука:
+                                </p>
+                                <div style="padding: 1rem; background: var(--bg-secondary, #f5f5f5); border-radius: 6px; margin-bottom: 1rem;">
+                                    <code id="webhook-url" style="font-size: 0.9em; word-break: break-all;">{{ request.host_url.rstrip('/') }}/telegram/webhook</code>
+                                    <button type="button" class="btn btn-secondary" onclick="copyWebhookUrl()" style="margin-left: 1rem; padding: 0.5rem 1rem;">
+                                        📋 Копировать
+                                    </button>
+                                </div>
+                                <p style="color: var(--text-secondary, #666); font-size: 0.85em; margin-bottom: 1rem;">
+                                    💡 Вебхук настраивается автоматически при проверке бота. Если нужно настроить вручную: /setwebhook в @BotFather → вставьте URL выше
+                                </p>
+                                
+                                {% set site_url = settings_dict.get('site_url', {}) %}
+                                <div class="setting-item" style="margin-top: 1rem;">
+                                    <label for="site_url" class="setting-label">
+                                        Базовый URL сайта
+                                        <small class="setting-hint">Используется для формирования ссылок в боте (оставьте пустым для автоматического определения)</small>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="site_url" 
+                                        name="setting_site_url" 
+                                        value="{{ site_url.get('value', '') if site_url else '' }}"
+                                        class="setting-input"
+                                        placeholder="https://yourdomain.com"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Управление меню бота -->
+                        <div class="settings-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color, #e0e0e0);">
+                            <h2 class="settings-section-title">📋 Управление меню бота</h2>
+                            <p style="color: var(--text-secondary, #666); margin-bottom: 1.5rem;">
+                                Настройте пункты меню, которые будут отображаться в Telegram боте
+                            </p>
+                            
+                            <div id="bot-menu-container">
+                                <div style="margin-bottom: 1rem;">
+                                    <button type="button" class="btn btn-primary" onclick="showMenuModal('create')">
+                                        ➕ Добавить пункт меню
+                                    </button>
+                                </div>
+                                
+                                <div id="bot-menu-list" class="bot-menu-list">
+                                    <!-- Список пунктов меню будет загружен через JavaScript -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1519,6 +1572,304 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 4px;
     font-family: 'Courier New', monospace;
 }
+
+/* Стили для управления меню бота */
+.bot-menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.bot-menu-item {
+    padding: 1rem;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bot-menu-item-info {
+    flex: 1;
+}
+
+.bot-menu-item-text {
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 0.25rem;
+}
+
+.bot-menu-item-details {
+    font-size: 0.85em;
+    color: var(--text-secondary, #666);
+}
+
+.bot-menu-item-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.menu-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-modal.active {
+    display: flex;
+}
+
+.menu-modal-content {
+    background: var(--bg-card, #fff);
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
 </style>
+
+<!-- Модальное окно для управления пунктом меню -->
+<div id="menu-modal" class="menu-modal">
+    <div class="menu-modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 id="menu-modal-title">Добавить пункт меню</h2>
+            <button type="button" onclick="closeMenuModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">&times;</button>
+        </div>
+        
+        <form id="menu-form" method="POST" action="{{ url_for('admin_telegram_menu') }}">
+            <input type="hidden" name="action" id="menu-action" value="create">
+            <input type="hidden" name="menu_id" id="menu-id">
+            
+            <div class="setting-item" style="margin-bottom: 1rem;">
+                <label for="menu-button-text" class="setting-label">Название кнопки *</label>
+                <input type="text" id="menu-button-text" name="button_text" class="setting-input" required placeholder="Например: Мероприятия">
+            </div>
+            
+            <div class="setting-item" style="margin-bottom: 1rem;">
+                <label for="menu-button-type" class="setting-label">Тип кнопки *</label>
+                <select id="menu-button-type" name="button_type" class="setting-input" required onchange="updateMenuActionPlaceholder()">
+                    <option value="command">Команда (command)</option>
+                    <option value="url">Ссылка (url)</option>
+                    <option value="callback">Callback (callback)</option>
+                </select>
+            </div>
+            
+            <div class="setting-item" style="margin-bottom: 1rem;">
+                <label for="menu-action-value" class="setting-label">Действие *</label>
+                <input type="text" id="menu-action-value" name="action_value" class="setting-input" required placeholder="events">
+                <small class="setting-hint" id="menu-action-hint">
+                    Для команды: название команды (например: events, assignments)<br>
+                    Для ссылки: URL (например: /faq, /rules или полный URL)<br>
+                    Для callback: callback_data
+                </small>
+            </div>
+            
+            <div class="setting-item" style="margin-bottom: 1rem;">
+                <label for="menu-sort-order" class="setting-label">Порядок сортировки</label>
+                <input type="number" id="menu-sort-order" name="sort_order" class="setting-input" value="100" min="0">
+                <small class="setting-hint">Меньшее значение = выше в меню</small>
+            </div>
+            
+            <div class="setting-item" style="margin-bottom: 1.5rem;">
+                <label for="menu-is-active" class="setting-label">
+                    <input type="checkbox" id="menu-is-active" name="is_active" value="1" checked class="setting-checkbox">
+                    <span>Активен</span>
+                </label>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeMenuModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Управление меню бота
+let botMenuItems = {{ bot_menu_items|tojson|safe }};
+
+function loadBotMenu() {
+    const container = document.getElementById('bot-menu-list');
+    if (!container) {
+        console.log('bot-menu-list container not found');
+        return;
+    }
+    
+    console.log('Loading bot menu, items count:', botMenuItems ? botMenuItems.length : 0);
+    
+    if (botMenuItems.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary, #666);">Пункты меню не добавлены</p>';
+        return;
+    }
+    
+    container.innerHTML = botMenuItems.map(item => {
+        const typeLabels = {
+            'command': 'Команда',
+            'url': 'Ссылка',
+            'callback': 'Callback'
+        };
+        const statusBadge = item.is_active 
+            ? '<span style="background: var(--success-color, #28a745); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8em;">Активен</span>'
+            : '<span style="background: var(--error-color, #dc3545); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8em;">Неактивен</span>';
+        
+        return `
+            <div class="bot-menu-item">
+                <div class="bot-menu-item-info">
+                    <div class="bot-menu-item-text">${item.button_text}</div>
+                    <div class="bot-menu-item-details">
+                        Тип: ${typeLabels[item.button_type] || item.button_type} | 
+                        Действие: ${item.action} | 
+                        Порядок: ${item.sort_order}
+                    </div>
+                </div>
+                <div class="bot-menu-item-actions">
+                    ${statusBadge}
+                    <button type="button" class="btn btn-secondary" onclick="editMenuItem(${item.id})" style="padding: 0.5rem 1rem;">✏️</button>
+                    <form method="POST" action="{{ url_for('admin_telegram_menu') }}" style="display: inline;" onsubmit="return confirm('Удалить этот пункт меню?');">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="menu_id" value="${item.id}">
+                        <button type="submit" class="btn btn-secondary" style="padding: 0.5rem 1rem;">🗑️</button>
+                    </form>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function showMenuModal(action, menuId = null) {
+    const modal = document.getElementById('menu-modal');
+    const form = document.getElementById('menu-form');
+    const title = document.getElementById('menu-modal-title');
+    const actionInput = document.getElementById('menu-action');
+    const idInput = document.getElementById('menu-id');
+    
+    if (action === 'create') {
+        title.textContent = 'Добавить пункт меню';
+        actionInput.value = 'create';
+        idInput.value = '';
+        form.reset();
+        document.getElementById('menu-sort-order').value = '100';
+        document.getElementById('menu-is-active').checked = true;
+    } else if (action === 'edit' && menuId) {
+        title.textContent = 'Редактировать пункт меню';
+        actionInput.value = 'update';
+        idInput.value = menuId;
+        
+        const item = botMenuItems.find(m => m.id === menuId);
+        if (item) {
+            document.getElementById('menu-button-text').value = item.button_text;
+            document.getElementById('menu-button-type').value = item.button_type;
+            document.getElementById('menu-action-value').value = item.action;
+            document.getElementById('menu-sort-order').value = item.sort_order;
+            document.getElementById('menu-is-active').checked = item.is_active == 1;
+            updateMenuActionPlaceholder();
+        }
+    }
+    
+    modal.classList.add('active');
+}
+
+function closeMenuModal() {
+    document.getElementById('menu-modal').classList.remove('active');
+}
+
+function editMenuItem(menuId) {
+    showMenuModal('edit', menuId);
+}
+
+function updateMenuActionPlaceholder() {
+    const type = document.getElementById('menu-button-type').value;
+    const actionInput = document.getElementById('menu-action-value');
+    const hint = document.getElementById('menu-action-hint');
+    
+    if (type === 'command') {
+        actionInput.placeholder = 'events';
+        hint.innerHTML = 'Для команды: название команды (например: events, assignments)';
+    } else if (type === 'url') {
+        actionInput.placeholder = '/faq';
+        hint.innerHTML = 'Для ссылки: URL (например: /faq, /rules или полный URL)';
+    } else if (type === 'callback') {
+        actionInput.placeholder = 'callback_data';
+        hint.innerHTML = 'Для callback: callback_data';
+    }
+}
+
+function copyWebhookUrl() {
+    const url = document.getElementById('webhook-url').textContent;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('URL вебхука скопирован в буфер обмена!');
+    }).catch(() => {
+        // Fallback для старых браузеров
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('URL вебхука скопирован в буфер обмена!');
+    });
+}
+
+// Загружаем меню при загрузке страницы и при переключении на вкладку Telegram
+document.addEventListener('DOMContentLoaded', function() {
+    // Загружаем меню сразу
+    loadBotMenu();
+    
+    // Также загружаем при переключении на вкладку Telegram
+    const telegramSubtab = document.querySelector('.integration-subtab[data-integration="telegram"]');
+    const integrationSubtabs = document.querySelectorAll('.integration-subtab');
+    const integrationContents = document.querySelectorAll('.integration-content');
+    
+    if (integrationSubtabs.length > 0) {
+        integrationSubtabs.forEach(subtab => {
+            subtab.addEventListener('click', function() {
+                const integration = this.dataset.integration;
+                
+                // Переключаем активные подтабы
+                integrationSubtabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Переключаем содержимое
+                integrationContents.forEach(content => {
+                    if (content.dataset.integration === integration) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+                
+                // Если переключились на Telegram, загружаем меню
+                if (integration === 'telegram') {
+                    setTimeout(() => {
+                        loadBotMenu();
+                    }, 100);
+                }
+            });
+        });
+    }
+    
+    // Обновляем меню после сохранения (если страница не перезагрузилась)
+    const menuForm = document.getElementById('menu-form');
+    if (menuForm) {
+        menuForm.addEventListener('submit', function(e) {
+            // Даем время на сохранение, затем перезагружаем страницу
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        });
+    }
+});
+</script>
 {% endblock %}
 
