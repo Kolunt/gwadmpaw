@@ -11833,5 +11833,97 @@ def handle_unexpected_error(error):
 
 
 
+@app.route('/cron/run', methods=['GET', 'POST'])
+def cron_run():
+    """HTTP endpoint для запуска cron задач из внешнего сервиса
+    
+    Защищен секретным токеном, который можно настроить через переменную окружения
+    CRON_SECRET_TOKEN или через настройку в БД.
+    
+    Использование:
+    https://gwadm.pythonanywhere.com/cron/run?token=YOUR_SECRET_TOKEN
+    """
+    # Получаем секретный токен из переменной окружения или настроек
+    expected_token = os.getenv('CRON_SECRET_TOKEN') or get_setting('cron_secret_token', '')
+    
+    # Если токен не настроен, генерируем случайный при первом запуске
+    if not expected_token:
+        # Генерируем случайный токен и сохраняем в настройках
+        import secrets
+        expected_token = secrets.token_urlsafe(32)
+        conn = get_db_connection()
+        try:
+            # Проверяем, существует ли настройка
+            existing = conn.execute('SELECT key FROM settings WHERE key = ?', ('cron_secret_token',)).fetchone()
+            if not existing:
+                conn.execute('''
+                    INSERT INTO settings (key, value, description, category)
+                    VALUES (?, ?, ?, ?)
+                ''', ('cron_secret_token', expected_token, 'Секретный токен для запуска cron задач', 'system'))
+                conn.commit()
+            else:
+                # Получаем существующий токен
+                setting = conn.execute('SELECT value FROM settings WHERE key = ?', ('cron_secret_token',)).fetchone()
+                if setting:
+                    expected_token = setting['value']
+        except Exception as e:
+            log_error(f"Error getting/setting cron token: {e}")
+        finally:
+            conn.close()
+    
+    # Проверяем токен из запроса
+    provided_token = request.args.get('token') or request.form.get('token')
+    
+    if not provided_token or provided_token != expected_token:
+        return jsonify({
+            'success': False,
+            'error': 'Invalid or missing token'
+        }), 401
+    
+    # Запускаем задачи
+    try:
+        from cron_tasks import cleanup_expired_verification_codes, cleanup_old_activity_logs, backup_database
+        
+        results = {
+            'timestamp': datetime.now().isoformat(),
+            'tasks': {}
+        }
+        
+        # Очистка истекших кодов верификации
+        cleaned_codes = cleanup_expired_verification_codes()
+        results['tasks']['cleanup_expired_verification_codes'] = {
+            'success': True,
+            'cleaned_count': cleaned_codes
+        }
+        
+        # Опциональные задачи (можно включить через параметры)
+        if request.args.get('cleanup_logs') == '1' or request.form.get('cleanup_logs') == '1':
+            days = int(request.args.get('logs_days', request.form.get('logs_days', 90)))
+            cleaned_logs = cleanup_old_activity_logs(days=days)
+            results['tasks']['cleanup_old_activity_logs'] = {
+                'success': True,
+                'cleaned_count': cleaned_logs,
+                'days': days
+            }
+        
+        if request.args.get('backup') == '1' or request.form.get('backup') == '1':
+            backup_success = backup_database()
+            results['tasks']['backup_database'] = {
+                'success': backup_success
+            }
+        
+        results['success'] = True
+        return jsonify(results), 200
+        
+    except Exception as e:
+        log_error(f"Error running cron tasks: {e}")
+        import traceback
+        log_error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
