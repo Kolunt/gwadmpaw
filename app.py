@@ -5138,11 +5138,61 @@ def admin_settings():
                         conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'telegram_verified'))
                         conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'telegram_enabled'))
                 
-                conn.execute('''
-                    UPDATE settings 
-                    SET value = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
-                    WHERE key = ?
-                ''', (value, session.get('user_id'), key))
+                # Проверяем, существует ли настройка
+                existing_setting = conn.execute('SELECT key FROM settings WHERE key = ?', (key,)).fetchone()
+                if existing_setting:
+                    # Обновляем существующую настройку
+                    conn.execute('''
+                        UPDATE settings 
+                        SET value = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
+                        WHERE key = ?
+                    ''', (value, session.get('user_id'), key))
+                else:
+                    # Создаем новую настройку
+                    # Определяем категорию настройки
+                    category = 'general'
+                    if key.startswith('dadata_'):
+                        category = 'integrations'
+                    elif key.startswith('smtp_'):
+                        category = 'integrations'
+                    elif key.startswith('telegram_'):
+                        category = 'integrations'
+                    
+                    # Получаем описание настройки, если оно есть
+                    description = ''
+                    if key == 'telegram_bot_token':
+                        description = 'Токен бота от @BotFather в Telegram'
+                    elif key == 'telegram_chat_id':
+                        description = 'Chat ID для отправки уведомлений'
+                    elif key == 'telegram_enabled':
+                        description = 'Включить интеграцию Telegram'
+                    elif key == 'telegram_verified':
+                        description = 'Флаг проверки Telegram интеграции'
+                    
+                    # Проверяем структуру таблицы settings
+                    columns_info = conn.execute("PRAGMA table_info(settings)").fetchall()
+                    columns = [col[1] for col in columns_info]
+                    
+                    if 'created_at' in columns and 'created_by' in columns and 'updated_at' in columns and 'updated_by' in columns:
+                        conn.execute('''
+                            INSERT INTO settings (key, value, description, category, created_at, created_by, updated_at, updated_by)
+                            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?)
+                        ''', (key, value, description, category, session.get('user_id'), session.get('user_id')))
+                    elif 'updated_at' in columns and 'updated_by' in columns:
+                        conn.execute('''
+                            INSERT INTO settings (key, value, description, category, updated_at, updated_by)
+                            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                        ''', (key, value, description, category, session.get('user_id')))
+                    elif 'updated_at' in columns:
+                        conn.execute('''
+                            INSERT INTO settings (key, value, description, category, updated_at)
+                            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ''', (key, value, description, category))
+                    else:
+                        conn.execute('''
+                            INSERT INTO settings (key, value, description, category)
+                            VALUES (?, ?, ?, ?)
+                        ''', (key, value, description, category))
             except Exception as e:
                 log_error(f"Error updating setting {key}: {e}")
         
