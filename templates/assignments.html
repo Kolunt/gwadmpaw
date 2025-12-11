@@ -35,7 +35,7 @@
                         <div style="margin-bottom: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
                             <form method="GET" action="{{ url_for('letter') }}">
                                 <input type="hidden" name="assignment_id" value="{{ event_data.as_santa.get('id') }}">
-                                <button type="submit" class="btn btn-light btn-sm" style="color: #333;">Письмо</button>
+                                <button type="submit" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">➡️Переписка✉️‼️</button>
                             </form>
                         </div>
                         <p style="margin-bottom: 1rem; opacity: 0.9;">Вы должны отправить подарок:</p>
@@ -170,7 +170,7 @@
                         <div style="margin-bottom: 1.25rem;">
                             <form method="GET" action="{{ url_for('letter') }}">
                                 <input type="hidden" name="assignment_id" value="{{ event_data.as_recipient.get('id') }}">
-                                <button type="submit" class="btn btn-light btn-sm" style="color: #333;">Письмо</button>
+                                <button type="submit" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">➡️Переписка✉️‼️</button>
                             </form>
                         </div>
                         {% if event_data.as_recipient.get('santa_sent_at') %}
@@ -257,6 +257,23 @@
         {% endif %}
     </div>
 </div>
+<style>
+@keyframes letterButtonPulse {
+    0% {
+        background-color: #ffffff;
+    }
+    50% {
+        background-color: #28a745;
+    }
+    100% {
+        background-color: #ffffff;
+    }
+}
+
+.letter-button-animated {
+    animation: letterButtonPulse 2s ease-in-out infinite;
+}
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const eventCards = document.querySelectorAll('.faq-item[data-event-id]');

@@ -553,6 +553,42 @@ def init_db():
             )
         ''')
         
+        # Таблица истории рассылок
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS broadcasts_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_by INTEGER NOT NULL,
+                created_by_username TEXT,
+                recipient_type TEXT NOT NULL,
+                delivery_method TEXT NOT NULL,
+                subject TEXT,
+                message TEXT NOT NULL,
+                total_recipients INTEGER DEFAULT 0,
+                success_count INTEGER DEFAULT 0,
+                error_count INTEGER DEFAULT 0,
+                errors TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (created_by) REFERENCES users(user_id)
+            )
+        ''')
+        
+        # Таблица шаблонов рассылок
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS broadcast_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                delivery_method TEXT NOT NULL,
+                subject TEXT,
+                message TEXT NOT NULL,
+                created_by INTEGER NOT NULL,
+                created_by_username TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (created_by) REFERENCES users(user_id)
+            )
+        ''')
+        
         # Таблица мероприятий
         c.execute('''
             CREATE TABLE IF NOT EXISTS events (
@@ -2975,6 +3011,409 @@ def admin_panel():
     """Главная страница админ-панели"""
     return render_template('admin/index.html')
 
+@app.route('/admin/broadcasts')
+@require_role('admin')
+def admin_broadcasts():
+    """Страница рассылок"""
+    conn = get_db_connection()
+    # Получаем всех пользователей с email и telegram
+    users = conn.execute('''
+        SELECT user_id, username, email, telegram, is_blocked
+        FROM users
+        ORDER BY username COLLATE NOCASE
+    ''').fetchall()
+    
+    # Получаем историю рассылок
+    broadcasts_history_raw = conn.execute('''
+        SELECT id, created_by, created_by_username, recipient_type, delivery_method,
+               subject, message, total_recipients, success_count, error_count,
+               errors, created_at
+        FROM broadcasts_history
+        ORDER BY created_at DESC
+        LIMIT 50
+    ''').fetchall()
+    
+    # Получаем шаблоны рассылок
+    templates = conn.execute('''
+        SELECT id, name, description, delivery_method, subject, message, 
+               created_by_username, created_at, updated_at
+        FROM broadcast_templates
+        ORDER BY updated_at DESC
+    ''').fetchall()
+    
+    conn.close()
+    
+    # Парсим JSON ошибок для каждого элемента истории
+    broadcasts_history = []
+    for item in broadcasts_history_raw:
+        item_dict = dict(item)
+        # Парсим JSON ошибок, если они есть
+        if item_dict.get('errors'):
+            try:
+                item_dict['errors_parsed'] = json.loads(item_dict['errors'])
+            except (json.JSONDecodeError, TypeError):
+                item_dict['errors_parsed'] = [item_dict['errors']] if item_dict['errors'] else []
+        else:
+            item_dict['errors_parsed'] = []
+        broadcasts_history.append(item_dict)
+    
+    # Проверяем доступность интеграций
+    smtp_enabled = get_setting('smtp_enabled', '0') == '1'
+    smtp_verified = get_setting('smtp_verified', '0') == '1'
+    telegram_enabled = get_setting('telegram_enabled', '0') == '1'
+    telegram_verified = get_setting('telegram_verified', '0') == '1'
+    
+    smtp_available = smtp_enabled and smtp_verified
+    telegram_available = telegram_enabled and telegram_verified
+    
+    return render_template('admin/broadcasts.html', 
+                         users=users,
+                         smtp_available=smtp_available,
+                         telegram_available=telegram_available,
+                         broadcasts_history=broadcasts_history,
+                         templates=templates)
+
+@app.route('/admin/broadcasts/send', methods=['POST'])
+@require_role('admin')
+def admin_broadcasts_send():
+    """Обработка отправки рассылки"""
+    recipient_type = request.form.get('recipient_type', 'all')  # 'all' или 'selected'
+    selected_users = request.form.getlist('selected_users')  # Список user_id
+    delivery_method = request.form.get('delivery_method', 'email')  # 'email' или 'telegram'
+    subject = request.form.get('subject', '').strip()
+    message = request.form.get('message', '').strip()
+    
+    if not message:
+        flash('Текст сообщения обязателен', 'error')
+        return redirect(url_for('admin_broadcasts'))
+    
+    if delivery_method == 'email' and not subject:
+        flash('Тема письма обязательна для email рассылки', 'error')
+        return redirect(url_for('admin_broadcasts'))
+    
+    # Получаем список получателей с расширенными данными для плейсхолдеров
+    conn = get_db_connection()
+    if recipient_type == 'all':
+        if delivery_method == 'email':
+            recipients = conn.execute('''
+                SELECT user_id, username, email, level, synd, phone, telegram,
+                       first_name, last_name, city, country
+                FROM users
+                WHERE email IS NOT NULL AND email != '' AND is_blocked = 0
+            ''').fetchall()
+        else:  # telegram
+            recipients = conn.execute('''
+                SELECT user_id, username, email, level, synd, phone, telegram,
+                       first_name, last_name, city, country
+                FROM users
+                WHERE telegram IS NOT NULL AND telegram != '' AND is_blocked = 0
+            ''').fetchall()
+    else:
+        # Выбранные пользователи
+        if not selected_users:
+            conn.close()
+            flash('Выберите хотя бы одного получателя', 'error')
+            return redirect(url_for('admin_broadcasts'))
+        
+        placeholders = ','.join(['?'] * len(selected_users))
+        if delivery_method == 'email':
+            recipients = conn.execute(f'''
+                SELECT user_id, username, email, level, synd, phone, telegram,
+                       first_name, last_name, city, country
+                FROM users
+                WHERE user_id IN ({placeholders}) 
+                  AND email IS NOT NULL AND email != '' AND is_blocked = 0
+            ''', selected_users).fetchall()
+        else:  # telegram
+            recipients = conn.execute(f'''
+                SELECT user_id, username, email, level, synd, phone, telegram,
+                       first_name, last_name, city, country
+                FROM users
+                WHERE user_id IN ({placeholders}) 
+                  AND telegram IS NOT NULL AND telegram != '' AND is_blocked = 0
+            ''', selected_users).fetchall()
+    
+    conn.close()
+    
+    if not recipients:
+        flash('Не найдено получателей с указанным способом доставки', 'error')
+        return redirect(url_for('admin_broadcasts'))
+    
+    # Функция замены плейсхолдеров
+    def replace_placeholders(text, recipient):
+        """Заменяет плейсхолдеры в тексте на данные получателя"""
+        # Формируем имя (приоритет: first_name + last_name, затем username)
+        name = ''
+        if recipient.get('first_name') or recipient.get('last_name'):
+            name_parts = []
+            if recipient.get('first_name'):
+                name_parts.append(recipient['first_name'])
+            if recipient.get('last_name'):
+                name_parts.append(recipient['last_name'])
+            name = ' '.join(name_parts).strip()
+        if not name:
+            name = recipient.get('username', '')
+        
+        replacements = {
+            '[name]': name,
+            '[username]': recipient.get('username', ''),
+            '[email]': recipient.get('email', ''),
+            '[telegram]': recipient.get('telegram', ''),
+            '[phone]': recipient.get('phone', ''),
+            '[id]': str(recipient.get('user_id', '')),
+            '[level]': str(recipient.get('level', '')) if recipient.get('level') else '',
+            '[syndicate]': str(recipient.get('synd', '')) if recipient.get('synd') else '',
+            '[first_name]': recipient.get('first_name', ''),
+            '[last_name]': recipient.get('last_name', ''),
+            '[city]': recipient.get('city', ''),
+            '[country]': recipient.get('country', ''),
+        }
+        
+        result = text
+        for placeholder, value in replacements.items():
+            result = result.replace(placeholder, value)
+        
+        return result
+    
+    # Отправляем сообщения
+    success_count = 0
+    error_count = 0
+    errors = []
+    
+    for recipient in recipients:
+        try:
+            # Заменяем плейсхолдеры в сообщении и теме
+            personalized_message = replace_placeholders(message, recipient)
+            personalized_subject = replace_placeholders(subject, recipient) if subject else ''
+            
+            if delivery_method == 'email':
+                email = recipient['email']
+                success, result_message = send_email_via_smtp(
+                    to_email=email,
+                    subject=personalized_subject,
+                    body=personalized_message
+                )
+            else:  # telegram
+                telegram = recipient['telegram']
+                # Если telegram начинается с @, используем как username, иначе как chat_id
+                success, result_message = send_telegram_message(
+                    message=personalized_message,
+                    chat_id=telegram
+                )
+            
+            if success:
+                success_count += 1
+                log_activity(
+                    'broadcast_sent',
+                    details=f'Рассылка отправлена пользователю {recipient["username"]} (ID: {recipient["user_id"]}) через {delivery_method}',
+                    metadata={
+                        'recipient_id': recipient['user_id'],
+                        'recipient_username': recipient['username'],
+                        'delivery_method': delivery_method,
+                        'subject': subject if delivery_method == 'email' else None
+                    }
+                )
+            else:
+                error_count += 1
+                errors.append(f"{recipient['username']}: {result_message}")
+        except Exception as e:
+            error_count += 1
+            errors.append(f"{recipient['username']}: {str(e)}")
+            log_error(f"Error sending broadcast to {recipient['username']}: {e}")
+    
+    # Сохраняем историю рассылки
+    conn = get_db_connection()
+    try:
+        errors_json = json.dumps(errors, ensure_ascii=False) if errors else None
+        conn.execute('''
+            INSERT INTO broadcasts_history 
+            (created_by, created_by_username, recipient_type, delivery_method, subject, 
+             message, total_recipients, success_count, error_count, errors)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            session.get('user_id'),
+            session.get('username'),
+            recipient_type,
+            delivery_method,
+            subject if delivery_method == 'email' else None,
+            message,
+            len(recipients),
+            success_count,
+            error_count,
+            errors_json
+        ))
+        conn.commit()
+    except Exception as e:
+        log_error(f"Error saving broadcast history: {e}")
+    finally:
+        conn.close()
+    
+    # Формируем сообщение о результате
+    if success_count > 0 and error_count == 0:
+        flash(f'Рассылка успешно отправлена {success_count} получателям', 'success')
+    elif success_count > 0:
+        flash(f'Рассылка отправлена {success_count} получателям. Ошибок: {error_count}. Детали: {"; ".join(errors[:5])}', 'warning')
+    else:
+        flash(f'Не удалось отправить рассылку. Ошибки: {"; ".join(errors[:5])}', 'error')
+    
+    log_activity(
+        'broadcast_completed',
+        details=f'Рассылка завершена: успешно {success_count}, ошибок {error_count}',
+        metadata={
+            'recipient_type': recipient_type,
+            'delivery_method': delivery_method,
+            'success_count': success_count,
+            'error_count': error_count,
+            'total_recipients': len(recipients)
+        }
+    )
+    
+    return redirect(url_for('admin_broadcasts'))
+
+@app.route('/admin/broadcasts/templates', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_broadcasts_templates():
+    """Управление шаблонами рассылок"""
+    if request.method == 'GET':
+        # Редирект на главную страницу рассылок с табом шаблонов
+        return redirect(url_for('admin_broadcasts') + '#templates')
+    
+    conn = get_db_connection()
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'create':
+            name = request.form.get('name', '').strip()
+            description = request.form.get('description', '').strip()
+            delivery_method = request.form.get('delivery_method', 'email')
+            subject = request.form.get('subject', '').strip()
+            message = request.form.get('message', '').strip()
+            
+            if not name or not message:
+                flash('Название и текст сообщения обязательны', 'error')
+                conn.close()
+                return redirect(url_for('admin_broadcasts_templates'))
+            
+            if delivery_method == 'email' and not subject:
+                flash('Тема обязательна для email шаблона', 'error')
+                conn.close()
+                return redirect(url_for('admin_broadcasts_templates'))
+            
+            try:
+                conn.execute('''
+                    INSERT INTO broadcast_templates 
+                    (name, description, delivery_method, subject, message, created_by, created_by_username)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    name,
+                    description,
+                    delivery_method,
+                    subject if delivery_method == 'email' else None,
+                    message,
+                    session.get('user_id'),
+                    session.get('username')
+                ))
+                conn.commit()
+                flash('Шаблон успешно создан', 'success')
+                log_activity(
+                    'broadcast_template_created',
+                    details=f'Создан шаблон рассылки "{name}"',
+                    metadata={'template_name': name, 'delivery_method': delivery_method}
+                )
+            except Exception as e:
+                log_error(f"Error creating broadcast template: {e}")
+                flash('Ошибка при создании шаблона', 'error')
+        
+        elif action == 'update':
+            template_id = request.form.get('template_id')
+            name = request.form.get('name', '').strip()
+            description = request.form.get('description', '').strip()
+            delivery_method = request.form.get('delivery_method', 'email')
+            subject = request.form.get('subject', '').strip()
+            message = request.form.get('message', '').strip()
+            
+            if not template_id or not name or not message:
+                flash('Название и текст сообщения обязательны', 'error')
+                conn.close()
+                return redirect(url_for('admin_broadcasts_templates'))
+            
+            if delivery_method == 'email' and not subject:
+                flash('Тема обязательна для email шаблона', 'error')
+                conn.close()
+                return redirect(url_for('admin_broadcasts_templates'))
+            
+            try:
+                conn.execute('''
+                    UPDATE broadcast_templates
+                    SET name = ?, description = ?, delivery_method = ?, 
+                        subject = ?, message = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (
+                    name,
+                    description,
+                    delivery_method,
+                    subject if delivery_method == 'email' else None,
+                    message,
+                    template_id
+                ))
+                conn.commit()
+                flash('Шаблон успешно обновлен', 'success')
+                log_activity(
+                    'broadcast_template_updated',
+                    details=f'Обновлен шаблон рассылки "{name}"',
+                    metadata={'template_id': template_id, 'template_name': name}
+                )
+            except Exception as e:
+                log_error(f"Error updating broadcast template: {e}")
+                flash('Ошибка при обновлении шаблона', 'error')
+        
+        elif action == 'delete':
+            template_id = request.form.get('template_id')
+            if template_id:
+                try:
+                    template = conn.execute('SELECT name FROM broadcast_templates WHERE id = ?', (template_id,)).fetchone()
+                    conn.execute('DELETE FROM broadcast_templates WHERE id = ?', (template_id,))
+                    conn.commit()
+                    flash('Шаблон успешно удален', 'success')
+                    if template:
+                        log_activity(
+                            'broadcast_template_deleted',
+                            details=f'Удален шаблон рассылки "{template["name"]}"',
+                            metadata={'template_id': template_id}
+                        )
+                except Exception as e:
+                    log_error(f"Error deleting broadcast template: {e}")
+                    flash('Ошибка при удалении шаблона', 'error')
+    
+    conn.close()
+    
+    # После POST запроса редиректим обратно на страницу рассылок с табом шаблонов
+    return redirect(url_for('admin_broadcasts') + '#templates')
+
+@app.route('/admin/broadcasts/templates/<int:template_id>')
+@require_role('admin')
+def admin_broadcasts_template_get(template_id):
+    """Получение шаблона по ID (для AJAX)"""
+    conn = get_db_connection()
+    template = conn.execute('''
+        SELECT id, name, description, delivery_method, subject, message
+        FROM broadcast_templates
+        WHERE id = ?
+    ''', (template_id,)).fetchone()
+    conn.close()
+    
+    if template:
+        return jsonify({
+            'success': True,
+            'template': dict(template)
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'message': 'Шаблон не найден'
+        }), 404
+
 @app.route('/admin/test')
 def admin_test():
     """Тестовый маршрут для проверки загрузки админ-панели"""
@@ -4010,6 +4449,24 @@ def admin_settings():
                         conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'dadata_verified'))
                         conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'dadata_enabled'))
                 
+                # Если изменяются SMTP настройки, сбрасываем флаг проверки
+                if key in ('smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_use_tls'):
+                    # Получаем текущее значение
+                    current_setting = conn.execute('SELECT value FROM settings WHERE key = ?', (key,)).fetchone()
+                    if current_setting and current_setting['value'] != value:
+                        # Настройка изменилась, сбрасываем флаг проверки и отключаем SMTP
+                        conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'smtp_verified'))
+                        conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'smtp_enabled'))
+                
+                # Если изменяется токен Telegram бота, сбрасываем флаг проверки
+                if key == 'telegram_bot_token':
+                    # Получаем текущее значение
+                    current_setting = conn.execute('SELECT value FROM settings WHERE key = ?', (key,)).fetchone()
+                    if current_setting and current_setting['value'] != value:
+                        # Токен изменился, сбрасываем флаг проверки и отключаем бота
+                        conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'telegram_verified'))
+                        conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('0', 'telegram_enabled'))
+                
                 conn.execute('''
                     UPDATE settings 
                     SET value = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
@@ -4188,6 +4645,320 @@ def verify_dadata():
         conn.close()
     
     return jsonify({'success': success, 'message': message})
+
+def verify_smtp_connection(host, port, username, password, use_tls=False, from_email=None):
+    """Проверяет подключение к SMTP серверу"""
+    import smtplib
+    from email.mime.text import MIMEText
+    
+    if not host or not port or not username or not password:
+        return False, "Все поля обязательны для заполнения"
+    
+    try:
+        port_int = int(port)
+        if port_int < 1 or port_int > 65535:
+            return False, "Порт должен быть в диапазоне 1-65535"
+    except ValueError:
+        return False, "Порт должен быть числом"
+    
+    try:
+        # Создаем подключение к SMTP серверу
+        if use_tls:
+            # Для TLS (порт 587)
+            server = smtplib.SMTP(host, port_int, timeout=10)
+            server.starttls()
+        else:
+            # Для SSL (порт 465) или без шифрования (порт 25)
+            if port_int == 465:
+                server = smtplib.SMTP_SSL(host, port_int, timeout=10)
+            else:
+                server = smtplib.SMTP(host, port_int, timeout=10)
+        
+        # Пытаемся авторизоваться
+        server.login(username, password)
+        
+        # Если указан email отправителя, пытаемся отправить тестовое письмо
+        if from_email:
+            try:
+                test_msg = MIMEText('Тестовое письмо для проверки SMTP подключения.')
+                test_msg['Subject'] = 'Проверка SMTP - Анонимные Деды Морозы'
+                test_msg['From'] = from_email
+                test_msg['To'] = from_email  # Отправляем себе для проверки
+                
+                # Отправляем тестовое письмо
+                server.sendmail(from_email, [from_email], test_msg.as_string())
+                server.quit()
+                return True, "Подключение успешно. Тестовое письмо отправлено на " + from_email
+            except Exception as e:
+                server.quit()
+                return False, f"Подключение установлено, но не удалось отправить тестовое письмо: {str(e)}"
+        else:
+            server.quit()
+            return True, "Подключение успешно установлено"
+            
+    except smtplib.SMTPAuthenticationError:
+        return False, "Ошибка аутентификации. Проверьте логин и пароль"
+    except smtplib.SMTPConnectError as e:
+        return False, f"Ошибка подключения к серверу: {str(e)}"
+    except smtplib.SMTPException as e:
+        return False, f"Ошибка SMTP: {str(e)}"
+    except Exception as e:
+        return False, f"Ошибка при проверке: {str(e)}"
+
+@app.route('/admin/settings/verify-smtp', methods=['POST'])
+@require_role('admin')
+def verify_smtp():
+    """Проверка SMTP подключения"""
+    host = request.form.get('host', '').strip()
+    port = request.form.get('port', '').strip()
+    username = request.form.get('username', '').strip()
+    password = request.form.get('password', '').strip()
+    use_tls = request.form.get('use_tls', '0') == '1'
+    from_email = request.form.get('from_email', '').strip()
+    
+    if not host or not port or not username or not password:
+        return jsonify({'success': False, 'message': 'Все поля обязательны для заполнения'}), 400
+    
+    success, message = verify_smtp_connection(host, port, username, password, use_tls, from_email)
+    
+    if success:
+        # Сохраняем настройки и помечаем как проверенные
+        conn = get_db_connection()
+        try:
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', (host, 'smtp_host'))
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', (port, 'smtp_port'))
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', (username, 'smtp_username'))
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', (password, 'smtp_password'))
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('1' if use_tls else '0', 'smtp_use_tls'))
+            if from_email:
+                conn.execute('UPDATE settings SET value = ? WHERE key = ?', (from_email, 'smtp_from_email'))
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('1', 'smtp_verified'))
+            conn.commit()
+        except Exception as e:
+            log_error(f"Error saving SMTP settings: {e}")
+            conn.close()
+            return jsonify({'success': False, 'message': f'Ошибка сохранения настроек: {str(e)}'}), 500
+        conn.close()
+    
+    return jsonify({'success': success, 'message': message})
+
+def verify_telegram_bot(token, chat_id=None):
+    """Проверяет подключение к Telegram боту"""
+    if not requests:
+        return False, "Библиотека requests не установлена. Установите: pip install requests"
+    
+    if not token:
+        return False, "Токен бота обязателен"
+    
+    try:
+        # Проверяем токен через getMe
+        api_url = f'https://api.telegram.org/bot{token}/getMe'
+        response = requests.get(api_url, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('ok'):
+                bot_info = data.get('result', {})
+                bot_username = bot_info.get('username', 'неизвестен')
+                bot_name = bot_info.get('first_name', 'Бот')
+                
+                # Если указан chat_id, пытаемся отправить тестовое сообщение
+                if chat_id:
+                    try:
+                        send_url = f'https://api.telegram.org/bot{token}/sendMessage'
+                        send_data = {
+                            'chat_id': chat_id,
+                            'text': '✅ Тестовое сообщение от бота "Анонимные Деды Морозы". Интеграция работает!'
+                        }
+                        send_response = requests.post(send_url, json=send_data, timeout=10)
+                        
+                        if send_response.status_code == 200 and send_response.json().get('ok'):
+                            return True, f"Бот '{bot_name}' (@{bot_username}) подключен. Тестовое сообщение отправлено в чат {chat_id}"
+                        else:
+                            error_data = send_response.json() if send_response.status_code == 200 else {}
+                            error_desc = error_data.get('description', 'Неизвестная ошибка')
+                            return False, f"Бот подключен, но не удалось отправить сообщение в чат {chat_id}: {error_desc}"
+                    except requests.exceptions.RequestException as e:
+                        return False, f"Бот подключен, но ошибка при отправке тестового сообщения: {str(e)}"
+                else:
+                    return True, f"Бот '{bot_name}' (@{bot_username}) успешно подключен. Chat ID не указан - можно отправлять сообщения по username"
+            else:
+                return False, "Неверный ответ от Telegram API"
+        elif response.status_code == 401:
+            return False, "Неверный токен бота. Проверьте токен от @BotFather"
+        else:
+            error_text = response.text[:200] if response.text else 'Неизвестная ошибка'
+            return False, f"Ошибка проверки: {response.status_code} - {error_text}"
+            
+    except requests.exceptions.Timeout:
+        return False, "Таймаут при подключении к Telegram API"
+    except requests.exceptions.ConnectionError:
+        return False, "Ошибка подключения к Telegram API. Проверьте интернет-соединение"
+    except Exception as e:
+        return False, f"Ошибка при проверке: {str(e)}"
+
+@app.route('/admin/settings/verify-telegram', methods=['POST'])
+@require_role('admin')
+def verify_telegram():
+    """Проверка Telegram бота"""
+    token = request.form.get('token', '').strip()
+    chat_id = request.form.get('chat_id', '').strip() or None
+    
+    if not token:
+        return jsonify({'success': False, 'message': 'Токен бота обязателен'}), 400
+    
+    success, message = verify_telegram_bot(token, chat_id)
+    
+    if success:
+        # Сохраняем настройки и помечаем как проверенные
+        conn = get_db_connection()
+        try:
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', (token, 'telegram_bot_token'))
+            if chat_id:
+                conn.execute('UPDATE settings SET value = ? WHERE key = ?', (chat_id, 'telegram_chat_id'))
+            conn.execute('UPDATE settings SET value = ? WHERE key = ?', ('1', 'telegram_verified'))
+            conn.commit()
+        except Exception as e:
+            log_error(f"Error saving Telegram settings: {e}")
+            conn.close()
+            return jsonify({'success': False, 'message': f'Ошибка сохранения настроек: {str(e)}'}), 500
+        conn.close()
+    
+    return jsonify({'success': success, 'message': message})
+
+def send_telegram_message(message, chat_id=None, parse_mode=None):
+    """Отправляет сообщение через Telegram бота
+    
+    Args:
+        message: Текст сообщения
+        chat_id: Chat ID или username (может начинаться с @) получателя. 
+                 Если не указан, используется из настроек.
+        parse_mode: Режим парсинга (HTML, Markdown и т.д.)
+    
+    Returns:
+        tuple: (success: bool, message: str)
+    """
+    if not requests:
+        return False, "Библиотека requests не установлена"
+    
+    # Получаем настройки Telegram
+    telegram_enabled = get_setting('telegram_enabled', '0') == '1'
+    if not telegram_enabled:
+        return False, "Telegram бот не включен в настройках"
+    
+    telegram_verified = get_setting('telegram_verified', '0') == '1'
+    if not telegram_verified:
+        return False, "Telegram бот не проверен. Проверьте подключение в настройках"
+    
+    token = get_setting('telegram_bot_token', '')
+    if not token:
+        return False, "Токен бота не настроен"
+    
+    # Используем chat_id из параметра или из настроек
+    target_chat_id = chat_id or get_setting('telegram_chat_id', '')
+    if not target_chat_id:
+        return False, "Chat ID не указан. Укажите chat_id в параметрах или настройках"
+    
+    try:
+        api_url = f'https://api.telegram.org/bot{token}/sendMessage'
+        data = {
+            'chat_id': target_chat_id,
+            'text': message
+        }
+        if parse_mode:
+            data['parse_mode'] = parse_mode
+        
+        response = requests.post(api_url, json=data, timeout=10)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('ok'):
+                return True, "Сообщение успешно отправлено"
+            else:
+                error_desc = result.get('description', 'Неизвестная ошибка')
+                return False, f"Ошибка отправки: {error_desc}"
+        else:
+            error_data = response.json() if response.status_code == 200 else {}
+            error_desc = error_data.get('description', f'HTTP {response.status_code}')
+            return False, f"Ошибка отправки: {error_desc}"
+            
+    except requests.exceptions.Timeout:
+        return False, "Таймаут при отправке сообщения"
+    except requests.exceptions.ConnectionError:
+        return False, "Ошибка подключения к Telegram API"
+    except Exception as e:
+        log_error(f"Error sending Telegram message: {e}")
+        return False, f"Ошибка при отправке: {str(e)}"
+
+def send_email_via_smtp(to_email, subject, body, html_body=None):
+    """Отправляет email через настроенный SMTP сервер"""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    # Получаем настройки SMTP
+    smtp_enabled = get_setting('smtp_enabled', '0') == '1'
+    if not smtp_enabled:
+        return False, "SMTP не включен в настройках"
+    
+    smtp_verified = get_setting('smtp_verified', '0') == '1'
+    if not smtp_verified:
+        return False, "SMTP не проверен. Проверьте подключение в настройках"
+    
+    smtp_host = get_setting('smtp_host', '')
+    smtp_port = get_setting('smtp_port', '587')
+    smtp_username = get_setting('smtp_username', '')
+    smtp_password = get_setting('smtp_password', '')
+    smtp_use_tls = get_setting('smtp_use_tls', '0') == '1'
+    smtp_from_email = get_setting('smtp_from_email', '')
+    smtp_from_name = get_setting('smtp_from_name', 'Анонимные Деды Морозы')
+    
+    if not smtp_host or not smtp_username or not smtp_password or not smtp_from_email:
+        return False, "SMTP настройки неполные. Проверьте настройки в админ-панели"
+    
+    try:
+        port_int = int(smtp_port)
+        
+        # Создаем сообщение
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{smtp_from_name} <{smtp_from_email}>"
+        msg['To'] = to_email
+        
+        # Добавляем текстовую и HTML версию
+        if html_body:
+            part1 = MIMEText(body, 'plain', 'utf-8')
+            part2 = MIMEText(html_body, 'html', 'utf-8')
+            msg.attach(part1)
+            msg.attach(part2)
+        else:
+            part = MIMEText(body, 'plain', 'utf-8')
+            msg.attach(part)
+        
+        # Подключаемся к SMTP серверу
+        if smtp_use_tls:
+            server = smtplib.SMTP(smtp_host, port_int, timeout=10)
+            server.starttls()
+        else:
+            if port_int == 465:
+                server = smtplib.SMTP_SSL(smtp_host, port_int, timeout=10)
+            else:
+                server = smtplib.SMTP(smtp_host, port_int, timeout=10)
+        
+        # Авторизуемся и отправляем
+        server.login(smtp_username, smtp_password)
+        server.sendmail(smtp_from_email, [to_email], msg.as_string())
+        server.quit()
+        
+        return True, "Письмо успешно отправлено"
+        
+    except smtplib.SMTPAuthenticationError:
+        return False, "Ошибка аутентификации SMTP. Проверьте логин и пароль"
+    except smtplib.SMTPException as e:
+        return False, f"Ошибка SMTP: {str(e)}"
+    except Exception as e:
+        log_error(f"Error sending email: {e}")
+        return False, f"Ошибка при отправке письма: {str(e)}"
 
 def init_default_modal_texts():
     """Инициализирует дефолтные тексты модальных окон для регистрации на мероприятия"""

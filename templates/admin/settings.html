@@ -64,6 +64,12 @@
                     <button type="button" class="integration-subtab active" data-integration="dadata">
                         🔍 Dadata
                     </button>
+                    <button type="button" class="integration-subtab" data-integration="smtp">
+                        📧 SMTP
+                    </button>
+                    <button type="button" class="integration-subtab" data-integration="telegram">
+                        🤖 Telegram
+                    </button>
                 </div>
                 
                 <!-- Содержимое подтабов -->
@@ -133,6 +139,242 @@
                                             Сначала проверьте ключи
                                         {% else %}
                                             Интеграция активна
+                                        {% endif %}
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Содержимое подтаба SMTP -->
+                <div class="integration-content" data-integration="smtp">
+                    <div class="settings-section">
+                        <h2 class="settings-section-title">📧 Настройки SMTP</h2>
+                        
+                        {% set smtp_host = settings_dict.get('smtp_host', {}) %}
+                        {% set smtp_port = settings_dict.get('smtp_port', {}) %}
+                        {% set smtp_username = settings_dict.get('smtp_username', {}) %}
+                        {% set smtp_password = settings_dict.get('smtp_password', {}) %}
+                        {% set smtp_use_tls = settings_dict.get('smtp_use_tls', {}) %}
+                        {% set smtp_from_email = settings_dict.get('smtp_from_email', {}) %}
+                        {% set smtp_from_name = settings_dict.get('smtp_from_name', {}) %}
+                        {% set smtp_verified = settings_dict.get('smtp_verified', {}) %}
+                        {% set smtp_enabled = settings_dict.get('smtp_enabled', {}) %}
+                        
+                        <div class="smtp-integration-form">
+                            <div class="setting-item">
+                                <label for="smtp_host" class="setting-label">
+                                    SMTP сервер
+                                    <small class="setting-hint">Адрес SMTP сервера (например: smtp.gmail.com)</small>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="smtp_host" 
+                                    name="setting_smtp_host" 
+                                    value="{{ smtp_host.get('value', '') if smtp_host else '' }}"
+                                    class="setting-input"
+                                    placeholder="smtp.gmail.com"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="smtp_port" class="setting-label">
+                                    Порт
+                                    <small class="setting-hint">Порт SMTP сервера (обычно 587 для TLS, 465 для SSL, 25 для без шифрования)</small>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    id="smtp_port" 
+                                    name="setting_smtp_port" 
+                                    value="{{ smtp_port.get('value', '587') if smtp_port else '587' }}"
+                                    class="setting-input"
+                                    placeholder="587"
+                                    min="1"
+                                    max="65535"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="smtp_username" class="setting-label">
+                                    Логин
+                                    <small class="setting-hint">Имя пользователя для SMTP (обычно email адрес)</small>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="smtp_username" 
+                                    name="setting_smtp_username" 
+                                    value="{{ smtp_username.get('value', '') if smtp_username else '' }}"
+                                    class="setting-input"
+                                    placeholder="user@example.com"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="smtp_password" class="setting-label">
+                                    Пароль
+                                    <small class="setting-hint">Пароль для SMTP (для Gmail используйте пароль приложения)</small>
+                                </label>
+                                <input 
+                                    type="password" 
+                                    id="smtp_password" 
+                                    name="setting_smtp_password" 
+                                    value="{{ smtp_password.get('value', '') if smtp_password else '' }}"
+                                    class="setting-input"
+                                    placeholder="Введите пароль"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="smtp_use_tls" class="setting-label">
+                                    <input 
+                                        type="checkbox" 
+                                        id="smtp_use_tls" 
+                                        name="setting_smtp_use_tls" 
+                                        value="1"
+                                        {% if smtp_use_tls and smtp_use_tls.get('value', '0') == '1' %}checked{% endif %}
+                                        class="setting-checkbox"
+                                        onchange="document.getElementById('smtp_use_tls_hidden').value = this.checked ? '1' : '0';"
+                                    >
+                                    <input type="hidden" id="smtp_use_tls_hidden" name="setting_smtp_use_tls" value="{% if smtp_use_tls and smtp_use_tls.get('value', '0') == '1' %}1{% else %}0{% endif %}">
+                                    <span>Использовать TLS</span>
+                                    <small class="setting-hint">
+                                        Включите для портов 587, выключите для порта 465 (SSL) или 25
+                                    </small>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="smtp_from_email" class="setting-label">
+                                    Email отправителя
+                                    <small class="setting-hint">Email адрес, с которого будут отправляться письма</small>
+                                </label>
+                                <input 
+                                    type="email" 
+                                    id="smtp_from_email" 
+                                    name="setting_smtp_from_email" 
+                                    value="{{ smtp_from_email.get('value', '') if smtp_from_email else '' }}"
+                                    class="setting-input"
+                                    placeholder="noreply@example.com"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="smtp_from_name" class="setting-label">
+                                    Имя отправителя
+                                    <small class="setting-hint">Имя, которое будет отображаться в поле "От"</small>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="smtp_from_name" 
+                                    name="setting_smtp_from_name" 
+                                    value="{{ smtp_from_name.get('value', 'Анонимные Деды Морозы') if smtp_from_name else 'Анонимные Деды Морозы' }}"
+                                    class="setting-input"
+                                    placeholder="Анонимные Деды Морозы"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <button type="button" id="verify-smtp-btn" class="btn btn-secondary">
+                                    🔍 Проверить подключение
+                                </button>
+                                <span id="smtp-verify-status" class="verify-status"></span>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="smtp_enabled" class="setting-label">
+                                    <input 
+                                        type="checkbox" 
+                                        id="smtp_enabled" 
+                                        name="setting_smtp_enabled" 
+                                        value="1"
+                                        {% if smtp_enabled and smtp_enabled.get('value', '0') == '1' %}checked{% endif %}
+                                        {% if not smtp_verified or smtp_verified.get('value', '0') != '1' %}disabled{% endif %}
+                                        class="setting-checkbox"
+                                        onchange="document.getElementById('smtp_enabled_hidden').value = this.checked ? '1' : '0';"
+                                    >
+                                    <input type="hidden" id="smtp_enabled_hidden" name="setting_smtp_enabled" value="{% if smtp_enabled and smtp_enabled.get('value', '0') == '1' %}1{% else %}0{% endif %}">
+                                    <span>Включить SMTP</span>
+                                    <small class="setting-hint">
+                                        {% if not smtp_verified or smtp_verified.get('value', '0') != '1' %}
+                                            Сначала проверьте подключение
+                                        {% else %}
+                                            SMTP активен
+                                        {% endif %}
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Содержимое подтаба Telegram -->
+                <div class="integration-content" data-integration="telegram">
+                    <div class="settings-section">
+                        <h2 class="settings-section-title">🤖 Интеграция Telegram бота</h2>
+                        
+                        {% set telegram_bot_token = settings_dict.get('telegram_bot_token', {}) %}
+                        {% set telegram_chat_id = settings_dict.get('telegram_chat_id', {}) %}
+                        {% set telegram_verified = settings_dict.get('telegram_verified', {}) %}
+                        {% set telegram_enabled = settings_dict.get('telegram_enabled', {}) %}
+                        
+                        <div class="telegram-integration-form">
+                            <div class="setting-item">
+                                <label for="telegram_bot_token" class="setting-label">
+                                    Токен бота
+                                    <small class="setting-hint">Токен бота от @BotFather в Telegram</small>
+                                </label>
+                                <input 
+                                    type="password" 
+                                    id="telegram_bot_token" 
+                                    name="setting_telegram_bot_token" 
+                                    value="{{ telegram_bot_token.get('value', '') if telegram_bot_token else '' }}"
+                                    class="setting-input"
+                                    placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="telegram_chat_id" class="setting-label">
+                                    Chat ID (опционально)
+                                    <small class="setting-hint">ID чата для отправки уведомлений. Если не указан, можно отправлять сообщения по username</small>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="telegram_chat_id" 
+                                    name="setting_telegram_chat_id" 
+                                    value="{{ telegram_chat_id.get('value', '') if telegram_chat_id else '' }}"
+                                    class="setting-input"
+                                    placeholder="@username или -1001234567890"
+                                >
+                            </div>
+                            
+                            <div class="setting-item">
+                                <button type="button" id="verify-telegram-btn" class="btn btn-secondary">
+                                    🔍 Проверить подключение
+                                </button>
+                                <span id="telegram-verify-status" class="verify-status"></span>
+                            </div>
+                            
+                            <div class="setting-item">
+                                <label for="telegram_enabled" class="setting-label">
+                                    <input 
+                                        type="checkbox" 
+                                        id="telegram_enabled" 
+                                        name="setting_telegram_enabled" 
+                                        value="1"
+                                        {% if telegram_enabled and telegram_enabled.get('value', '0') == '1' %}checked{% endif %}
+                                        {% if not telegram_verified or telegram_verified.get('value', '0') != '1' %}disabled{% endif %}
+                                        class="setting-checkbox"
+                                        onchange="document.getElementById('telegram_enabled_hidden').value = this.checked ? '1' : '0';"
+                                    >
+                                    <input type="hidden" id="telegram_enabled_hidden" name="setting_telegram_enabled" value="{% if telegram_enabled and telegram_enabled.get('value', '0') == '1' %}1{% else %}0{% endif %}">
+                                    <span>Включить интеграцию Telegram</span>
+                                    <small class="setting-hint">
+                                        {% if not telegram_verified or telegram_verified.get('value', '0') != '1' %}
+                                            Сначала проверьте подключение
+                                        {% else %}
+                                            Telegram бот активен
                                         {% endif %}
                                     </small>
                                 </label>
@@ -878,6 +1120,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Переключение подтабов интеграций
+    const integrationSubtabs = document.querySelectorAll('.integration-subtab');
+    const integrationContents = document.querySelectorAll('.integration-content');
+    
+    integrationSubtabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const integration = this.getAttribute('data-integration');
+            
+            // Убираем активный класс у всех подтабов и содержимого
+            integrationSubtabs.forEach(t => t.classList.remove('active'));
+            integrationContents.forEach(c => c.classList.remove('active'));
+            
+            // Добавляем активный класс к выбранному подтабу и содержимому
+            this.classList.add('active');
+            const content = document.querySelector(`.integration-content[data-integration="${integration}"]`);
+            if (content) {
+                content.classList.add('active');
+            }
+        });
+    });
+    
     // Обработка проверки Dadata API
     const verifyDadataBtn = document.getElementById('verify-dadata-btn');
     const verifyStatus = document.getElementById('dadata-verify-status');
@@ -945,6 +1208,160 @@ document.addEventListener('DOMContentLoaded', function() {
             .finally(() => {
                 verifyDadataBtn.disabled = false;
                 verifyDadataBtn.textContent = '🔍 Проверить ключи';
+            });
+        });
+    }
+    
+    // Обработка проверки SMTP
+    const verifySmtpBtn = document.getElementById('verify-smtp-btn');
+    const smtpVerifyStatus = document.getElementById('smtp-verify-status');
+    const smtpEnabledCheckbox = document.getElementById('smtp_enabled');
+    
+    if (verifySmtpBtn) {
+        verifySmtpBtn.addEventListener('click', function() {
+            const host = document.getElementById('smtp_host').value.trim();
+            const port = document.getElementById('smtp_port').value.trim();
+            const username = document.getElementById('smtp_username').value.trim();
+            const password = document.getElementById('smtp_password').value.trim();
+            const useTls = document.getElementById('smtp_use_tls').checked;
+            const fromEmail = document.getElementById('smtp_from_email').value.trim();
+            
+            if (!host || !port || !username || !password || !fromEmail) {
+                smtpVerifyStatus.textContent = '❌ Заполните все обязательные поля';
+                smtpVerifyStatus.className = 'verify-status error';
+                return;
+            }
+            
+            verifySmtpBtn.disabled = true;
+            verifySmtpBtn.textContent = '⏳ Проверка...';
+            smtpVerifyStatus.textContent = '';
+            smtpVerifyStatus.className = 'verify-status';
+            
+            const formData = new FormData();
+            formData.append('host', host);
+            formData.append('port', port);
+            formData.append('username', username);
+            formData.append('password', password);
+            formData.append('use_tls', useTls ? '1' : '0');
+            formData.append('from_email', fromEmail);
+            
+            const verifySmtpUrl = {{ url_for("verify_smtp")|tojson }};
+            fetch(verifySmtpUrl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    smtpVerifyStatus.textContent = '✅ ' + data.message;
+                    smtpVerifyStatus.className = 'verify-status success';
+                    if (smtpEnabledCheckbox) {
+                        smtpEnabledCheckbox.disabled = false;
+                        // Обновляем подсказку
+                        const hint = smtpEnabledCheckbox.closest('.setting-item').querySelector('.setting-hint');
+                        if (hint) {
+                            hint.textContent = 'SMTP активен';
+                        }
+                    }
+                } else {
+                    smtpVerifyStatus.textContent = '❌ ' + data.message;
+                    smtpVerifyStatus.className = 'verify-status error';
+                    if (smtpEnabledCheckbox) {
+                        smtpEnabledCheckbox.disabled = true;
+                        smtpEnabledCheckbox.checked = false;
+                        const hiddenInput = document.getElementById('smtp_enabled_hidden');
+                        if (hiddenInput) {
+                            hiddenInput.value = '0';
+                        }
+                        // Обновляем подсказку
+                        const hint = smtpEnabledCheckbox.closest('.setting-item').querySelector('.setting-hint');
+                        if (hint) {
+                            hint.textContent = 'Сначала проверьте подключение';
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                smtpVerifyStatus.textContent = '❌ Ошибка при проверке: ' + error.message;
+                smtpVerifyStatus.className = 'verify-status error';
+            })
+            .finally(() => {
+                verifySmtpBtn.disabled = false;
+                verifySmtpBtn.textContent = '🔍 Проверить подключение';
+            });
+        });
+    }
+    
+    // Обработка проверки Telegram бота
+    const verifyTelegramBtn = document.getElementById('verify-telegram-btn');
+    const telegramVerifyStatus = document.getElementById('telegram-verify-status');
+    const telegramEnabledCheckbox = document.getElementById('telegram_enabled');
+    
+    if (verifyTelegramBtn) {
+        verifyTelegramBtn.addEventListener('click', function() {
+            const token = document.getElementById('telegram_bot_token').value.trim();
+            const chatId = document.getElementById('telegram_chat_id').value.trim();
+            
+            if (!token) {
+                telegramVerifyStatus.textContent = '❌ Токен бота обязателен';
+                telegramVerifyStatus.className = 'verify-status error';
+                return;
+            }
+            
+            verifyTelegramBtn.disabled = true;
+            verifyTelegramBtn.textContent = '⏳ Проверка...';
+            telegramVerifyStatus.textContent = '';
+            telegramVerifyStatus.className = 'verify-status';
+            
+            const formData = new FormData();
+            formData.append('token', token);
+            if (chatId) {
+                formData.append('chat_id', chatId);
+            }
+            
+            const verifyTelegramUrl = {{ url_for("verify_telegram")|tojson }};
+            fetch(verifyTelegramUrl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    telegramVerifyStatus.textContent = '✅ ' + data.message;
+                    telegramVerifyStatus.className = 'verify-status success';
+                    if (telegramEnabledCheckbox) {
+                        telegramEnabledCheckbox.disabled = false;
+                        // Обновляем подсказку
+                        const hint = telegramEnabledCheckbox.closest('.setting-item').querySelector('.setting-hint');
+                        if (hint) {
+                            hint.textContent = 'Telegram бот активен';
+                        }
+                    }
+                } else {
+                    telegramVerifyStatus.textContent = '❌ ' + data.message;
+                    telegramVerifyStatus.className = 'verify-status error';
+                    if (telegramEnabledCheckbox) {
+                        telegramEnabledCheckbox.disabled = true;
+                        telegramEnabledCheckbox.checked = false;
+                        const hiddenInput = document.getElementById('telegram_enabled_hidden');
+                        if (hiddenInput) {
+                            hiddenInput.value = '0';
+                        }
+                        // Обновляем подсказку
+                        const hint = telegramEnabledCheckbox.closest('.setting-item').querySelector('.setting-hint');
+                        if (hint) {
+                            hint.textContent = 'Сначала проверьте подключение';
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                telegramVerifyStatus.textContent = '❌ Ошибка при проверке: ' + error.message;
+                telegramVerifyStatus.className = 'verify-status error';
+            })
+            .finally(() => {
+                verifyTelegramBtn.disabled = false;
+                verifyTelegramBtn.textContent = '🔍 Проверить подключение';
             });
         });
     }

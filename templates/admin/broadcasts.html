@@ -1,0 +1,1340 @@
+{% extends "base.html" %}
+
+{% block title %}Рассылки - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>Рассылки</h1>
+        <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-primary" onclick="activateTab('send')" style="white-space: nowrap;">
+                📢 Отправить рассылку
+            </button>
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        </div>
+    </div>
+    
+    <div class="admin-tabs">
+        <button type="button" class="admin-tab-btn active" data-tab="history">
+            📋 История рассылок
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="templates">
+            📝 Шаблоны
+        </button>
+    </div>
+    
+    <!-- Таб: Отправка рассылки -->
+    <div class="admin-tab-content" data-tab="send">
+        <div class="broadcasts-form-container">
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0;">Отправка рассылки</h2>
+                <button type="button" class="btn btn-secondary" onclick="activateTab('history')">
+                    ← Назад к истории
+                </button>
+            </div>
+            
+            <div class="form-section" style="margin-bottom: 20px;">
+                <h2>Шаблоны</h2>
+                <div class="template-selector">
+                    <label for="template-select" class="template-label">
+                        Выберите шаблон:
+                    </label>
+                    <select id="template-select" class="form-input" style="max-width: 400px; display: inline-block;">
+                        <option value="">-- Без шаблона --</option>
+                        {% for template in templates %}
+                        <option value="{{ template.id }}" 
+                                data-method="{{ template.delivery_method }}"
+                                data-subject="{{ template.subject or '' }}"
+                                data-message="{{ template.message }}">
+                            {{ template.name }} ({% if template.delivery_method == 'email' %}📧 Email{% else %}🤖 Telegram{% endif %})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <form method="POST" action="{{ url_for('admin_broadcasts_send') }}" id="broadcast-form">
+            <!-- Выбор получателей -->
+            <div class="form-section">
+                <h2>Получатели</h2>
+                <div class="form-group">
+                    <label class="radio-label">
+                        <input type="radio" name="recipient_type" value="all" checked id="recipient-all">
+                        <span>Всем пользователям</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="recipient_type" value="selected" id="recipient-selected">
+                        <span>Выбранным пользователям</span>
+                    </label>
+                </div>
+                
+                <div id="users-selection" style="display: none; margin-top: 15px;">
+                    <div class="users-list-container" style="max-height: 400px; overflow-y: auto; padding: 10px; border-radius: 4px;">
+                        <div style="margin-bottom: 10px;">
+                            <input type="text" id="users-search" placeholder="Поиск пользователей..." class="form-input" style="width: 100%;">
+                        </div>
+                        <div id="users-checkboxes">
+                            {% for user in users %}
+                            <label class="checkbox-label" data-username="{{ user.username|lower }}" data-email="{{ (user.email or '')|lower }}" data-telegram="{{ (user.telegram or '')|lower }}">
+                                <input type="checkbox" name="selected_users" value="{{ user.user_id }}" class="user-checkbox" {% if user.is_blocked %}disabled{% endif %}>
+                                <span>
+                                    {{ user.username }} (ID: {{ user.user_id }})
+                                    {% if user.email %}
+                                        <span class="email-indicator" title="Есть email">📧</span>
+                                    {% endif %}
+                                    {% if user.telegram %}
+                                        <span class="telegram-indicator" title="Есть Telegram">🤖</span>
+                                    {% endif %}
+                                    {% if user.is_blocked %}
+                                        <span class="blocked-indicator" title="Заблокирован">🔒</span>
+                                    {% endif %}
+                                </span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Выбор способа доставки -->
+            <div class="form-section">
+                <h2>Способ доставки</h2>
+                <div class="form-group">
+                    <label class="radio-label">
+                        <input type="radio" name="delivery_method" value="email" id="delivery-email" checked>
+                        <span>Email</span>
+                        {% if not smtp_available %}
+                        <small class="warning-text" style="display: block; margin-left: 25px;">
+                            ⚠️ SMTP не настроен или не включен. Настройте в разделе "Интеграции"
+                        </small>
+                        {% endif %}
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="delivery_method" value="telegram" id="delivery-telegram">
+                        <span>Telegram</span>
+                        {% if not telegram_available %}
+                        <small class="warning-text" style="display: block; margin-left: 25px;">
+                            ⚠️ Telegram бот не настроен или не включен. Настройте в разделе "Интеграции"
+                        </small>
+                        {% endif %}
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Тема (только для email) -->
+            <div class="form-section" id="subject-section">
+                <h2>Тема письма</h2>
+                <input type="text" name="subject" id="broadcast-subject" class="form-input" placeholder="Введите тему письма" required>
+            </div>
+            
+            <!-- Текст сообщения -->
+            <div class="form-section">
+                <h2>Текст сообщения</h2>
+                <div style="margin-bottom: 10px;">
+                    <label class="form-label" style="font-size: 0.9em; margin-bottom: 5px;">Доступные плейсхолдеры (нажмите для вставки):</label>
+                    <div class="placeholders-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                        <button type="button" class="placeholder-btn" data-placeholder="[name]">[name]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[username]">[username]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[email]">[email]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[telegram]">[telegram]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[phone]">[phone]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[id]">[id]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[level]">[level]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[syndicate]">[syndicate]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[first_name]">[first_name]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[last_name]">[last_name]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[city]">[city]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[country]">[country]</button>
+                    </div>
+                    <small style="color: var(--text-secondary, #666); font-size: 0.85em;">
+                        💡 Плейсхолдеры будут автоматически заменены на данные каждого получателя при отправке
+                    </small>
+                </div>
+                <textarea name="message" id="broadcast-message" class="form-textarea" rows="10" placeholder="Введите текст сообщения. Используйте плейсхолдеры для персонализации, например: Привет, [name]!" required></textarea>
+            </div>
+            
+            <!-- Кнопка отправки -->
+            <div class="form-section">
+                <button type="submit" class="btn btn-primary" id="send-broadcast-btn">
+                    📢 Отправить рассылку
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Таб: История рассылок -->
+    <div class="admin-tab-content active" data-tab="history">
+        <div class="broadcasts-history-container">
+            <h2>История рассылок</h2>
+            {% if broadcasts_history %}
+        <div class="broadcasts-history-list">
+            {% for broadcast in broadcasts_history %}
+            <div class="broadcast-history-item" data-broadcast-id="{{ broadcast.id }}">
+                <div class="broadcast-header">
+                    <div class="broadcast-info">
+                        <span class="broadcast-date">{{ broadcast.created_at }}</span>
+                        <span class="broadcast-method">
+                            {% if broadcast.delivery_method == 'email' %}
+                                📧 Email
+                            {% else %}
+                                🤖 Telegram
+                            {% endif %}
+                        </span>
+                        <span class="broadcast-recipients">
+                            {% if broadcast.recipient_type == 'all' %}
+                                Всем пользователям
+                            {% else %}
+                                Выбранным пользователям
+                            {% endif %}
+                        </span>
+                        <span class="broadcast-author">
+                            Отправил: {{ broadcast.created_by_username or 'Неизвестно' }}
+                        </span>
+                    </div>
+                    <button class="broadcast-toggle-details" onclick="toggleBroadcastDetails({{ broadcast.id }})">
+                        <span class="toggle-icon">▼</span>
+                    </button>
+                </div>
+                <div class="broadcast-stats">
+                    <span class="stat-item stat-total">
+                        Всего: <strong>{{ broadcast.total_recipients }}</strong>
+                    </span>
+                    <span class="stat-item stat-success">
+                        Успешно: <strong>{{ broadcast.success_count }}</strong>
+                    </span>
+                    {% if broadcast.error_count > 0 %}
+                    <span class="stat-item stat-error">
+                        Ошибок: <strong>{{ broadcast.error_count }}</strong>
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="broadcast-details" id="details-{{ broadcast.id }}" style="display: none;">
+                    {% if broadcast.subject %}
+                    <div class="detail-row">
+                        <strong>Тема:</strong> {{ broadcast.subject }}
+                    </div>
+                    {% endif %}
+                    <div class="detail-row">
+                        <strong>Сообщение:</strong>
+                        <div class="message-preview">{{ broadcast.message }}</div>
+                    </div>
+                    {% if broadcast.errors_parsed %}
+                    <div class="detail-row">
+                        <strong>Ошибки:</strong>
+                        <div class="errors-list">
+                            <ul>
+                                {% for error in broadcast.errors_parsed[:10] %}
+                                <li>{{ error }}</li>
+                                {% endfor %}
+                                {% if broadcast.errors_parsed|length > 10 %}
+                                <li><em>... и еще {{ broadcast.errors_parsed|length - 10 }} ошибок</em></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-history">
+            <p>История рассылок пуста. Отправьте первую рассылку, чтобы она появилась здесь.</p>
+        </div>
+        {% endif %}
+        </div>
+    </div>
+    
+    <!-- Таб: Шаблоны -->
+    <div class="admin-tab-content" data-tab="templates">
+        <div class="templates-tab-header" style="margin-bottom: 20px;">
+            <button type="button" class="btn btn-primary" onclick="showTemplateModal('create')">
+                ➕ Создать шаблон
+            </button>
+        </div>
+        
+        {% if templates %}
+        <div class="templates-list">
+            {% for template in templates %}
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-title">
+                        <h3>{{ template.name }}</h3>
+                        <span class="template-method">
+                            {% if template.delivery_method == 'email' %}
+                                📧 Email
+                            {% else %}
+                                🤖 Telegram
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="template-actions">
+                        <button type="button" class="btn-icon" onclick="showTemplateModal('edit', {{ template.id }})" title="Редактировать">
+                            ✏️
+                        </button>
+                        <form method="POST" action="{{ url_for('admin_broadcasts_templates') }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот шаблон?');">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="template_id" value="{{ template.id }}">
+                            <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+                {% if template.description %}
+                <div class="template-description">{{ template.description }}</div>
+                {% endif %}
+                {% if template.subject %}
+                <div class="template-subject">
+                    <strong>Тема:</strong> {{ template.subject }}
+                </div>
+                {% endif %}
+                <div class="template-message-preview">
+                    <strong>Сообщение:</strong>
+                    <div class="message-text">{{ template.message[:200] }}{% if template.message|length > 200 %}...{% endif %}</div>
+                </div>
+                <div class="template-meta">
+                    <span>Создан: {{ template.created_at }}</span>
+                    {% if template.updated_at != template.created_at %}
+                    <span>Обновлен: {{ template.updated_at }}</span>
+                    {% endif %}
+                    {% if template.created_by_username %}
+                    <span>Автор: {{ template.created_by_username }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-templates">
+            <p>Шаблоны не созданы. Создайте первый шаблон для быстрой отправки рассылок.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальное окно для создания/редактирования шаблона -->
+<div id="template-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title">Создать шаблон</h2>
+            <button type="button" class="modal-close" onclick="closeTemplateModal()">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('admin_broadcasts_templates') }}" id="template-form">
+            <input type="hidden" name="action" id="template-action" value="create">
+            <input type="hidden" name="template_id" id="template-id">
+            
+            <div class="form-group">
+                <label for="template-name" class="form-label">Название шаблона *</label>
+                <input type="text" id="template-name" name="name" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="template-description" class="form-label">Описание</label>
+                <textarea id="template-description" name="description" class="form-textarea" rows="2"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Способ доставки *</label>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="delivery_method" value="email" id="template-email" checked>
+                        <span>📧 Email</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="delivery_method" value="telegram" id="template-telegram">
+                        <span>🤖 Telegram</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group" id="template-subject-group">
+                <label for="template-subject" class="form-label">Тема письма *</label>
+                <input type="text" id="template-subject" name="subject" class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label for="template-message" class="form-label">Текст сообщения *</label>
+                <div style="margin-bottom: 10px;">
+                    <label class="form-label" style="font-size: 0.9em; margin-bottom: 5px;">Доступные плейсхолдеры (нажмите для вставки):</label>
+                    <div class="placeholders-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                        <button type="button" class="placeholder-btn" data-placeholder="[name]">[name]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[username]">[username]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[email]">[email]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[telegram]">[telegram]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[phone]">[phone]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[id]">[id]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[level]">[level]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[syndicate]">[syndicate]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[first_name]">[first_name]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[last_name]">[last_name]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[city]">[city]</button>
+                        <button type="button" class="placeholder-btn" data-placeholder="[country]">[country]</button>
+                    </div>
+                    <small style="color: var(--text-secondary, #666); font-size: 0.85em;">
+                        💡 Плейсхолдеры будут автоматически заменены на данные каждого получателя при отправке
+                    </small>
+                </div>
+                <textarea id="template-message" name="message" class="form-textarea" rows="10" placeholder="Введите текст сообщения. Используйте плейсхолдеры для персонализации, например: Привет, [name]!" required></textarea>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeTemplateModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.broadcasts-form-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: var(--bg-card, #fff);
+    border-radius: 8px;
+    box-shadow: var(--shadow, 0 2px 4px rgba(0,0,0,0.1));
+    border: 1px solid var(--border-color, #e0e0e0);
+    color: var(--text-primary, #333);
+}
+
+.form-section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    color: var(--text-primary, #333);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    color: var(--text-primary, #333);
+}
+
+.radio-label:hover {
+    background-color: var(--bg-secondary, #f5f5f5);
+}
+
+.radio-label input[type="radio"] {
+    margin-right: 10px;
+    margin-top: 2px;
+}
+
+.radio-label small {
+    color: var(--text-secondary, #666);
+}
+
+.checkbox-label {
+    display: block;
+    padding: 8px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    color: var(--text-primary, #333);
+}
+
+.checkbox-label:hover {
+    background-color: var(--bg-secondary, #f5f5f5);
+}
+
+.checkbox-label:has(input:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.checkbox-label input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+}
+
+.form-input, .form-textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    background-color: var(--bg-primary, #fff);
+    color: var(--text-primary, #333);
+    transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+}
+
+.form-input:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--accent-color, #007bff);
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 150px;
+}
+
+.users-list-container {
+    background: var(--bg-primary, #fff);
+    border: 1px solid var(--border-color, #ddd);
+    color: var(--text-primary, #333);
+}
+
+#users-search {
+    padding: 8px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    background-color: var(--bg-primary, #fff);
+    color: var(--text-primary, #333);
+}
+
+#users-search:focus {
+    outline: none;
+    border-color: var(--accent-color, #007bff);
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+}
+
+/* Дополнительные стили для темной темы */
+[data-theme="dark"] .form-section {
+    box-shadow: var(--shadow, 0 2px 4px rgba(0,0,0,0.3));
+}
+
+[data-theme="dark"] .form-input:focus,
+[data-theme="dark"] .form-textarea:focus,
+[data-theme="dark"] #users-search:focus {
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+/* Индикаторы для пользователей */
+.email-indicator {
+    color: var(--success-color, #28a745);
+}
+
+.telegram-indicator {
+    color: #0088cc;
+}
+
+.blocked-indicator {
+    color: var(--error-color, #dc3545);
+}
+
+.warning-text {
+    color: var(--error-color, #dc3545);
+}
+
+[data-theme="dark"] .telegram-indicator {
+    color: #4a9eff;
+}
+
+/* Селектор шаблонов */
+.template-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.template-label {
+    color: var(--text-primary, #333);
+    font-weight: 500;
+}
+
+/* История рассылок */
+.broadcasts-history-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.broadcasts-history-container h2 {
+    color: var(--text-primary, #333);
+    margin-bottom: 20px;
+    font-size: 1.5em;
+}
+
+.broadcasts-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.broadcast-history-item {
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: var(--shadow, 0 2px 4px rgba(0,0,0,0.1));
+    transition: box-shadow 0.2s;
+}
+
+.broadcast-history-item:hover {
+    box-shadow: var(--shadow-lg, 0 4px 6px rgba(0,0,0,0.2));
+}
+
+.broadcast-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.broadcast-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    flex: 1;
+}
+
+.broadcast-date {
+    color: var(--text-secondary, #666);
+    font-size: 0.9em;
+}
+
+.broadcast-method {
+    padding: 4px 8px;
+    background: var(--bg-secondary, #f5f5f5);
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--text-primary, #333);
+}
+
+.broadcast-recipients {
+    color: var(--text-secondary, #666);
+    font-size: 0.9em;
+}
+
+.broadcast-author {
+    color: var(--text-secondary, #666);
+    font-size: 0.85em;
+}
+
+.broadcast-toggle-details {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    color: var(--text-primary, #333);
+    font-size: 1.2em;
+    transition: transform 0.2s;
+}
+
+.broadcast-toggle-details:hover {
+    opacity: 0.7;
+}
+
+.broadcast-toggle-details.active .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.toggle-icon {
+    display: inline-block;
+    transition: transform 0.2s;
+}
+
+.broadcast-stats {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.stat-item {
+    font-size: 0.9em;
+    color: var(--text-secondary, #666);
+}
+
+.stat-item strong {
+    color: var(--text-primary, #333);
+    font-weight: 600;
+}
+
+.stat-success strong {
+    color: var(--success-color, #28a745);
+}
+
+.stat-error strong {
+    color: var(--error-color, #dc3545);
+}
+
+.broadcast-details {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.detail-row {
+    margin-bottom: 15px;
+    color: var(--text-primary, #333);
+}
+
+.detail-row strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-primary, #333);
+}
+
+.message-preview {
+    background: var(--bg-secondary, #f5f5f5);
+    padding: 10px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.9em;
+    color: var(--text-primary, #333);
+}
+
+.errors-list {
+    background: var(--bg-secondary, #f5f5f5);
+    padding: 10px;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.errors-list ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--error-color, #dc3545);
+    font-size: 0.9em;
+}
+
+.errors-list li {
+    margin-bottom: 5px;
+}
+
+.no-history {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary, #666);
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+}
+
+[data-theme="dark"] .message-preview,
+[data-theme="dark"] .errors-list {
+    background: var(--bg-secondary, #2d2d2d);
+}
+
+/* Стили для таба шаблонов */
+.templates-tab-header {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.templates-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.template-card {
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--shadow, 0 2px 4px rgba(0,0,0,0.1));
+    transition: box-shadow 0.2s;
+}
+
+.template-card:hover {
+    box-shadow: var(--shadow-lg, 0 4px 6px rgba(0,0,0,0.2));
+}
+
+.template-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.template-title {
+    flex: 1;
+}
+
+.template-title h3 {
+    margin: 0 0 5px 0;
+    color: var(--text-primary, #333);
+}
+
+.template-method {
+    display: inline-block;
+    padding: 4px 8px;
+    background: var(--bg-secondary, #f5f5f5);
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--text-secondary, #666);
+}
+
+.template-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.template-actions .btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 5px;
+    color: var(--text-primary, #333);
+    transition: opacity 0.2s;
+}
+
+.template-actions .btn-icon:hover {
+    opacity: 0.7;
+}
+
+.template-description {
+    color: var(--text-secondary, #666);
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.template-subject {
+    margin-bottom: 10px;
+    color: var(--text-primary, #333);
+}
+
+.template-message-preview {
+    margin-bottom: 15px;
+    color: var(--text-primary, #333);
+}
+
+.template-message-preview .message-text {
+    background: var(--bg-secondary, #f5f5f5);
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.9em;
+}
+
+.template-meta {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    font-size: 0.85em;
+    color: var(--text-secondary, #666);
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.no-templates {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary, #666);
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+/* Модальное окно */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal[style*="display: flex"] {
+    display: flex !important;
+}
+
+.modal-content {
+    background: var(--bg-card, #fff);
+    border-radius: 8px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg, 0 4px 6px rgba(0,0,0,0.3));
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--text-primary, #333);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: var(--text-primary, #333);
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    opacity: 0.7;
+}
+
+#template-form {
+    padding: 20px;
+}
+
+#template-form .form-group {
+    margin-bottom: 20px;
+}
+
+#template-form .form-label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-primary, #333);
+    font-weight: 500;
+}
+
+#template-form .radio-group {
+    display: flex;
+    gap: 15px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+/* Кнопки плейсхолдеров */
+.placeholder-btn {
+    padding: 5px 10px;
+    font-size: 0.85em;
+    background: var(--bg-secondary, #f5f5f5);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-primary, #333);
+    transition: all 0.2s;
+    font-family: monospace;
+}
+
+.placeholder-btn:hover {
+    background: var(--accent-color, #007bff);
+    color: #fff;
+    border-color: var(--accent-color, #007bff);
+    transform: translateY(-1px);
+}
+
+.placeholder-btn:active {
+    transform: translateY(0);
+}
+
+.placeholders-list {
+    padding: 10px;
+    background: var(--bg-secondary, #f9f9f9);
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #e0e0e0);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Переключение табов (используем делегирование событий)
+    const adminTabs = document.querySelector('.admin-tabs');
+    const tabContents = document.querySelectorAll('.admin-tab-content');
+    
+    if (!adminTabs) return;
+    
+    function activateTab(tabName) {
+        const tabButtons = document.querySelectorAll('.admin-tab-btn');
+        
+        // Управляем кнопками табов (только для тех, что есть в списке)
+        tabButtons.forEach(btn => {
+            if (btn.dataset.tab === tabName) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // Управляем контентом табов (включая таб "send", которого нет в кнопках)
+        tabContents.forEach(content => {
+            if (content.dataset.tab === tabName) {
+                content.classList.add('active');
+            } else {
+                content.classList.remove('active');
+            }
+        });
+
+        // Обновляем URL hash
+        if (tabName === 'send') {
+            history.replaceState(null, '', '#send');
+        } else {
+            history.replaceState(null, '', '#' + tabName);
+        }
+    }
+
+    // Используем делегирование событий на контейнере табов
+    adminTabs.addEventListener('click', function(e) {
+        const btn = e.target.closest('.admin-tab-btn');
+        if (btn && btn.dataset.tab) {
+            e.preventDefault();
+            e.stopPropagation();
+            activateTab(btn.dataset.tab);
+        }
+    });
+
+    // Делаем функцию activateTab доступной глобально для кнопки "Отправить рассылку"
+    window.activateTab = activateTab;
+    
+    const initialHash = window.location.hash ? window.location.hash.substring(1) : '';
+    if (initialHash && document.querySelector(`.admin-tab-btn[data-tab="${initialHash}"]`)) {
+        activateTab(initialHash);
+    } else if (initialHash === 'send') {
+        // Если в URL есть #send, активируем таб отправки (он не в списке табов, но существует)
+        activateTab('send');
+    } else {
+        // По умолчанию показываем историю
+        activateTab('history');
+    }
+    
+    // Обработка вставки плейсхолдеров (делегирование событий)
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('placeholder-btn')) {
+            const placeholder = e.target.dataset.placeholder;
+            if (!placeholder) return;
+            
+            // Определяем, какое текстовое поле активно или видимо
+            const messageTextarea = document.getElementById('broadcast-message');
+            const templateMessageTextarea = document.getElementById('template-message');
+            
+            let targetTextarea = null;
+            
+            // Проверяем, какое поле находится в фокусе или видимо
+            if (templateMessageTextarea && templateMessageTextarea.offsetParent !== null) {
+                // Модальное окно открыто
+                targetTextarea = templateMessageTextarea;
+            } else if (messageTextarea && messageTextarea.offsetParent !== null) {
+                // Основная форма видима
+                targetTextarea = messageTextarea;
+            }
+            
+            // Если ни одно поле не активно, используем то, которое видимо
+            if (!targetTextarea) {
+                if (document.activeElement && (document.activeElement.tagName === 'TEXTAREA')) {
+                    targetTextarea = document.activeElement;
+                } else if (messageTextarea && messageTextarea.offsetParent !== null) {
+                    targetTextarea = messageTextarea;
+                } else if (templateMessageTextarea && templateMessageTextarea.offsetParent !== null) {
+                    targetTextarea = templateMessageTextarea;
+                }
+            }
+            
+            if (targetTextarea) {
+                const start = targetTextarea.selectionStart || 0;
+                const end = targetTextarea.selectionEnd || 0;
+                const text = targetTextarea.value || '';
+                const before = text.substring(0, start);
+                const after = text.substring(end);
+                
+                targetTextarea.value = before + placeholder + after;
+                targetTextarea.focus();
+                const newPos = start + placeholder.length;
+                targetTextarea.setSelectionRange(newPos, newPos);
+            }
+        }
+    });
+    
+    const recipientAll = document.getElementById('recipient-all');
+    const recipientSelected = document.getElementById('recipient-selected');
+    const usersSelection = document.getElementById('users-selection');
+    const deliveryEmail = document.getElementById('delivery-email');
+    const deliveryTelegram = document.getElementById('delivery-telegram');
+    const subjectSection = document.getElementById('subject-section');
+    const subjectInput = document.getElementById('broadcast-subject');
+    const usersSearch = document.getElementById('users-search');
+    const userCheckboxes = document.querySelectorAll('.user-checkbox');
+    const checkboxLabels = document.querySelectorAll('.checkbox-label');
+    
+    // Переключение между "всем" и "выбранным"
+    recipientAll.addEventListener('change', function() {
+        if (this.checked) {
+            usersSelection.style.display = 'none';
+        }
+    });
+    
+    recipientSelected.addEventListener('change', function() {
+        if (this.checked) {
+            usersSelection.style.display = 'block';
+        }
+    });
+    
+    // Переключение способа доставки
+    deliveryEmail.addEventListener('change', function() {
+        if (this.checked) {
+            subjectSection.style.display = 'block';
+            subjectInput.required = true;
+        }
+    });
+    
+    deliveryTelegram.addEventListener('change', function() {
+        if (this.checked) {
+            subjectSection.style.display = 'none';
+            subjectInput.required = false;
+        }
+    });
+    
+    // Поиск пользователей
+    if (usersSearch) {
+        usersSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            checkboxLabels.forEach(label => {
+                const username = label.getAttribute('data-username') || '';
+                const email = label.getAttribute('data-email') || '';
+                const telegram = label.getAttribute('data-telegram') || '';
+                
+                if (username.includes(searchTerm) || email.includes(searchTerm) || telegram.includes(searchTerm)) {
+                    label.style.display = 'block';
+                } else {
+                    label.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // Проверка перед отправкой
+    const form = document.getElementById('broadcast-form');
+    form.addEventListener('submit', function(e) {
+        const deliveryMethod = document.querySelector('input[name="delivery_method"]:checked').value;
+        const recipientType = document.querySelector('input[name="recipient_type"]:checked').value;
+        
+        if (deliveryMethod === 'email' && !subjectInput.value.trim()) {
+            e.preventDefault();
+            alert('Тема письма обязательна для email рассылки');
+            return false;
+        }
+        
+        if (recipientType === 'selected') {
+            const selected = document.querySelectorAll('input[name="selected_users"]:checked');
+            if (selected.length === 0) {
+                e.preventDefault();
+                alert('Выберите хотя бы одного получателя');
+                return false;
+            }
+        }
+        
+        // Показываем подтверждение
+        const message = document.getElementById('broadcast-message').value.trim();
+        if (!message) {
+            e.preventDefault();
+            alert('Введите текст сообщения');
+            return false;
+        }
+        
+        const confirmMessage = `Вы уверены, что хотите отправить рассылку?\n\n` +
+            `Способ доставки: ${deliveryMethod === 'email' ? 'Email' : 'Telegram'}\n` +
+            `Получатели: ${recipientType === 'all' ? 'Все пользователи' : 'Выбранные пользователи'}\n\n` +
+            `Продолжить?`;
+        
+        if (!confirm(confirmMessage)) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Блокируем кнопку отправки
+        const sendBtn = document.getElementById('send-broadcast-btn');
+        sendBtn.disabled = true;
+        sendBtn.textContent = '⏳ Отправка...';
+    });
+    
+    // Функция для переключения деталей рассылки
+    window.toggleBroadcastDetails = function(broadcastId) {
+        const details = document.getElementById('details-' + broadcastId);
+        const toggleBtn = details.previousElementSibling.previousElementSibling.querySelector('.broadcast-toggle-details');
+        
+        if (details.style.display === 'none') {
+            details.style.display = 'block';
+            toggleBtn.classList.add('active');
+        } else {
+            details.style.display = 'none';
+            toggleBtn.classList.remove('active');
+        }
+    };
+    
+    // Обработка выбора шаблона
+    const templateSelect = document.getElementById('template-select');
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                const method = selectedOption.getAttribute('data-method');
+                const subject = selectedOption.getAttribute('data-subject') || '';
+                const message = selectedOption.getAttribute('data-message') || '';
+                
+                // Устанавливаем способ доставки
+                if (method === 'email') {
+                    document.getElementById('delivery-email').checked = true;
+                    deliveryEmail.dispatchEvent(new Event('change'));
+                } else {
+                    document.getElementById('delivery-telegram').checked = true;
+                    deliveryTelegram.dispatchEvent(new Event('change'));
+                }
+                
+                // Заполняем поля
+                if (subject && document.getElementById('broadcast-subject')) {
+                    document.getElementById('broadcast-subject').value = subject;
+                }
+                if (message && document.getElementById('broadcast-message')) {
+                    document.getElementById('broadcast-message').value = message;
+                }
+            }
+        });
+    }
+    
+    // Функции для работы с модальным окном шаблонов
+    let templatesData = {};
+    {% for template in templates %}
+    templatesData[{{ template.id }}] = {
+        name: {{ template.name|tojson }},
+        description: {{ (template.description or '')|tojson }},
+        delivery_method: {{ template.delivery_method|tojson }},
+        subject: {{ (template.subject or '')|tojson }},
+        message: {{ template.message|tojson }}
+    };
+    {% endfor %}
+    
+    window.showTemplateModal = function(action, templateId = null) {
+        const modal = document.getElementById('template-modal');
+        const form = document.getElementById('template-form');
+        const actionInput = document.getElementById('template-action');
+        const idInput = document.getElementById('template-id');
+        const title = document.getElementById('modal-title');
+        const templateSubjectGroup = document.getElementById('template-subject-group');
+        const templateSubjectInput = document.getElementById('template-subject');
+        
+        if (!modal || !form || !actionInput || !idInput || !title || !templateSubjectGroup || !templateSubjectInput) {
+            console.error('Template modal elements not found');
+            return;
+        }
+        
+        if (action === 'create') {
+            actionInput.value = 'create';
+            idInput.value = '';
+            title.textContent = 'Создать шаблон';
+            form.reset();
+            const emailRadio = document.getElementById('template-email');
+            if (emailRadio) emailRadio.checked = true;
+            templateSubjectInput.required = true;
+            templateSubjectGroup.style.display = 'block';
+        } else if (action === 'edit' && templateId) {
+            actionInput.value = 'update';
+            idInput.value = templateId;
+            title.textContent = 'Редактировать шаблон';
+            
+            const template = templatesData[templateId];
+            if (template) {
+                const nameInput = document.getElementById('template-name');
+                const descInput = document.getElementById('template-description');
+                const msgInput = document.getElementById('template-message');
+                if (nameInput) nameInput.value = template.name;
+                if (descInput) descInput.value = template.description || '';
+                if (msgInput) msgInput.value = template.message;
+                
+                if (template.delivery_method === 'email') {
+                    const emailRadio = document.getElementById('template-email');
+                    if (emailRadio) emailRadio.checked = true;
+                    templateSubjectInput.value = template.subject || '';
+                    templateSubjectInput.required = true;
+                    templateSubjectGroup.style.display = 'block';
+                } else {
+                    const telegramRadio = document.getElementById('template-telegram');
+                    if (telegramRadio) telegramRadio.checked = true;
+                    templateSubjectInput.value = '';
+                    templateSubjectInput.required = false;
+                    templateSubjectGroup.style.display = 'none';
+                }
+            }
+        }
+        
+        modal.style.display = 'flex';
+    };
+    
+    window.closeTemplateModal = function() {
+        document.getElementById('template-modal').style.display = 'none';
+    };
+    
+    // Обработка переключения способа доставки в модальном окне
+    const emailRadio = document.getElementById('template-email');
+    const telegramRadio = document.getElementById('template-telegram');
+    const templateSubjectGroup = document.getElementById('template-subject-group');
+    const templateSubjectInput = document.getElementById('template-subject');
+    
+    if (emailRadio && telegramRadio && templateSubjectGroup && templateSubjectInput) {
+        emailRadio.addEventListener('change', function() {
+            if (this.checked) {
+                templateSubjectInput.required = true;
+                templateSubjectGroup.style.display = 'block';
+            }
+        });
+        
+        telegramRadio.addEventListener('change', function() {
+            if (this.checked) {
+                templateSubjectInput.required = false;
+                templateSubjectGroup.style.display = 'none';
+                templateSubjectInput.value = '';
+            }
+        });
+    }
+    
+    // Закрытие модального окна при клике вне его
+    const modal = document.getElementById('template-modal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeTemplateModal();
+            }
+        });
+    }
+    
+    // Обработка успешной отправки формы шаблона
+    const templateForm = document.getElementById('template-form');
+    if (templateForm) {
+        templateForm.addEventListener('submit', function(e) {
+            // Форма отправится, после успешной отправки будет редирект
+            // Можно добавить обработку здесь, если нужно
+        });
+    }
+});
+</script>
+{% endblock %}
