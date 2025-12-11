@@ -139,6 +139,36 @@
                 </div>
             </div>
 
+            <div class="registration-step" data-step="step#">
+                <div class="registration-step-content">
+                    <h3>Обязательства участника</h3>
+                    <p class="text-muted small-note">Перед завершением регистрации подтвердите, что ознакомились с правилами участия.</p>
+                    <div class="registration-commitments">
+                        <div class="registration-commitment">
+                            <p class="registration-commitment-text">Я обязуюсь отправить подарок вовремя как Дед Мороз</p>
+                            <label class="registration-commitment-checkbox">
+                                <input type="checkbox" id="registration-commit-send" data-commitment-checkbox>
+                                <span>Если я этого не сделаю, пусть меня в GWars по жизини считают Последней гнидой</span>
+                            </label>
+                        </div>
+                        <div class="registration-commitment">
+                            <p class="registration-commitment-text">Я осознаю, что есть вероятность Не получить подарок</p>
+                            <label class="registration-commitment-checkbox">
+                                <input type="checkbox" id="registration-commit-receive" data-commitment-checkbox>
+                                <span>Я люблю мир и просто буду знать что именно мой мой Дед Мороз - Последняя гнида</span>
+                            </label>
+                        </div>
+                        <div class="registration-commitment">
+                            <p class="registration-commitment-text">Я всегда помню - что это доброровольная акция и она является инициативой игроков и не имеет отношения к администрации GWars</p>
+                            <label class="registration-commitment-checkbox">
+                                <input type="checkbox" id="registration-commit-voluntary" data-commitment-checkbox>
+                                <span>если забыл - считайте меня дебилом</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="registration-step" data-step="stepfinal">
                 <div class="registration-step-content">
                     <h3>Проверьте данные перед регистрацией</h3>
@@ -232,7 +262,7 @@
         const secondaryBtn = document.getElementById('registration-secondary-btn');
         const tertiaryBtn = document.getElementById('registration-tertiary-btn');
 
-        const stepsOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'step8', 'step9', 'stepfinal'];
+        const stepsOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'step8', 'step9', 'step#', 'stepfinal'];
         const stepElements = new Map();
         modal.querySelectorAll('.registration-step').forEach(step => {
             const key = step.getAttribute('data-step');
@@ -251,6 +281,7 @@
             step7: 'Дополнительный контакт: Telegram',
             step8: 'Дополнительный контакт: WhatsApp',
             step9: 'Дополнительный контакт: Viber',
+            'step#': 'Обязательства участника',
             stepfinal: 'Проверка данных'
         };
 
@@ -630,6 +661,23 @@
             renderStep();
         }
 
+        const commitmentCheckboxes = Array.from(modal.querySelectorAll('[data-commitment-checkbox]')) || [];
+
+        function areCommitmentsChecked() {
+            return commitmentCheckboxes.length > 0 && commitmentCheckboxes.every(box => box && box.checked);
+        }
+
+        function updateCommitmentButtonState() {
+            if (stepsOrder[currentStepIndex] !== 'step#') {
+                return;
+            }
+            if (isBusy) {
+                primaryBtn.disabled = true;
+                return;
+            }
+            primaryBtn.disabled = !areCommitmentsChecked();
+        }
+
         function renderStep() {
             clearError();
             stepElements.forEach((element, key) => {
@@ -757,6 +805,22 @@
                     tertiaryBtn.textContent = 'Не использую';
                     tertiaryBtn.onclick = () => handleNotUsing('viber', '');
                     break;
+                case 'step#':
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = () => {
+                        if (!areCommitmentsChecked()) {
+                            showError('Чтобы продолжить, отметьте все галочки.');
+                            updateCommitmentButtonState();
+                            return;
+                        }
+                        goToStep('stepfinal');
+                    };
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
+                    secondaryBtn.setAttribute('aria-label', 'Назад');
+                    secondaryBtn.title = 'Назад';
+                    secondaryBtn.onclick = () => goToStep('step9');
+                    break;
                 case 'stepfinal':
                     fillInputs();
                     updateSummary();
@@ -769,10 +833,16 @@
                     secondaryBtn.onclick = resetToStart;
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Назад';
-                    tertiaryBtn.onclick = () => goToStep('step9');
+                    tertiaryBtn.onclick = () => goToStep('step#');
                     break;
                 default:
                     primaryBtn.onclick = goToNextStep;
+            }
+
+            if (activeKey === 'step#') {
+                updateCommitmentButtonState();
+            } else if (!isBusy) {
+                primaryBtn.disabled = false;
             }
         }
 
@@ -813,6 +883,14 @@
             }
             openModal(event.currentTarget);
         }
+
+        commitmentCheckboxes.forEach(box => {
+            if (!box) return;
+            box.addEventListener('change', () => {
+                clearError();
+                updateCommitmentButtonState();
+            });
+        });
 
         modalCloseBtn.addEventListener('click', closeModal);
         modal.addEventListener('mousedown', function(evt) {

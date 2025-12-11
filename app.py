@@ -341,6 +341,24 @@ def init_db():
                 # Колонка уже существует, это нормально
                 pass
         
+        # Добавляем поля блокировки пользователя (миграция)
+        try:
+            c.execute('ALTER TABLE users ADD COLUMN is_blocked INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE users ADD COLUMN blocked_by INTEGER')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE users ADD COLUMN blocked_reason TEXT')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE users ADD COLUMN blocked_at TIMESTAMP')
+        except sqlite3.OperationalError:
+            pass
+        
         # Таблица ролей
         c.execute('''
             CREATE TABLE IF NOT EXISTS roles (
@@ -2643,6 +2661,14 @@ def view_profile(user_id):
     user_titles = get_user_titles(user_id)
     user_awards = get_user_awards(user_id)
     
+    # Получаем информацию о заблокировавшем пользователе
+    blocker_info = None
+    user_keys = user.keys()
+    if 'is_blocked' in user_keys and user['is_blocked'] and 'blocked_by' in user_keys and user['blocked_by']:
+        blocker = conn.execute('SELECT user_id, username FROM users WHERE user_id = ?', (user['blocked_by'],)).fetchone()
+        if blocker:
+            blocker_info = dict(blocker)
+    
     conn.close()
     
     # Проверяем, является ли это профилем текущего пользователя (если авторизован)
@@ -2666,7 +2692,7 @@ def view_profile(user_id):
     
     return render_template(
         'view_profile.html',
-        user=user,
+        user=dict(user),
         user_roles=user_roles,
         user_titles=user_titles,
         user_awards=user_awards,
@@ -2676,7 +2702,8 @@ def view_profile(user_id):
         impersonation_active=impersonation_active,
         show_about=show_about,
         bio_to_display=bio_to_display,
-        contact_info_to_display=contact_info_to_display
+        contact_info_to_display=contact_info_to_display,
+        blocker_info=blocker_info
     )
 @app.route('/participants')
 def participants():
@@ -3271,6 +3298,60 @@ def admin_user_edit(user_id):
                 except ValueError:
                     flash('Неверный формат ID звания', 'error')
         
+        # Обработка блокировки/разблокировки пользователя
+        block_action = request.form.get('block_action')
+        if block_action:
+            if block_action == 'block':
+                blocked_reason = request.form.get('blocked_reason', '').strip()
+                if not blocked_reason:
+                    flash('Причина блокировки обязательна', 'error')
+                else:
+                    try:
+                        blocked_by = session['user_id']
+                        blocked_at = datetime.utcnow()
+                        conn.execute('''
+                            UPDATE users SET
+                                is_blocked = 1,
+                                blocked_by = ?,
+                                blocked_reason = ?,
+                                blocked_at = ?
+                            WHERE user_id = ?
+                        ''', (blocked_by, blocked_reason, blocked_at, user_id))
+                        conn.commit()
+                        log_activity(
+                            'admin_user_blocked',
+                            details=f'Пользователь {user_id} заблокирован',
+                            metadata={
+                                'target_user_id': user_id,
+                                'blocked_reason': blocked_reason,
+                                'blocked_by': blocked_by
+                            }
+                        )
+                        flash('Пользователь успешно заблокирован', 'success')
+                    except Exception as e:
+                        log_error(f"Error blocking user: {e}")
+                        flash(f'Ошибка блокировки пользователя: {str(e)}', 'error')
+            elif block_action == 'unblock':
+                try:
+                    conn.execute('''
+                        UPDATE users SET
+                            is_blocked = 0,
+                            blocked_by = NULL,
+                            blocked_reason = NULL,
+                            blocked_at = NULL
+                        WHERE user_id = ?
+                    ''', (user_id,))
+                    conn.commit()
+                    log_activity(
+                        'admin_user_unblocked',
+                        details=f'Пользователь {user_id} разблокирован',
+                        metadata={'target_user_id': user_id}
+                    )
+                    flash('Пользователь успешно разблокирован', 'success')
+                except Exception as e:
+                    log_error(f"Error unblocking user: {e}")
+                    flash(f'Ошибка разблокировки пользователя: {str(e)}', 'error')
+        
         # Обновление основных данных пользователя
         username = request.form.get('username', '').strip()
         level = request.form.get('level', '0')
@@ -3304,6 +3385,13 @@ def admin_user_edit(user_id):
             flash('Имя пользователя обязательно', 'error')
             # Получаем данные для отображения ДО закрытия соединения
             all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
+            # Получаем информацию о заблокировавшем пользователе ДО закрытия соединения
+            blocker_info = None
+            user_keys = user.keys()
+            if 'blocked_by' in user_keys and user['blocked_by']:
+                blocker = conn.execute('SELECT user_id, username FROM users WHERE user_id = ?', (user['blocked_by'],)).fetchone()
+                if blocker:
+                    blocker_info = dict(blocker)
             conn.close()
             user_roles = get_user_roles(user_id)
             user_role_names = [r['name'] for r in user_roles]
@@ -3319,7 +3407,8 @@ def admin_user_edit(user_id):
                                  user_titles=user_titles,
                                  user_title_ids=user_title_ids,
                                  avatar_styles=AVATAR_STYLES,
-                                 available_languages=available_languages)
+                                 available_languages=available_languages,
+                                 blocker_info=blocker_info)
         
         try:
             level_int = int(level) if level else 0
@@ -3331,6 +3420,13 @@ def admin_user_edit(user_id):
             flash('Неверный формат числовых полей', 'error')
             # Получаем данные для отображения ДО закрытия соединения
             all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
+            # Получаем информацию о заблокировавшем пользователе ДО закрытия соединения
+            blocker_info = None
+            user_keys = user.keys()
+            if 'blocked_by' in user_keys and user['blocked_by']:
+                blocker = conn.execute('SELECT user_id, username FROM users WHERE user_id = ?', (user['blocked_by'],)).fetchone()
+                if blocker:
+                    blocker_info = dict(blocker)
             conn.close()
             user_roles = get_user_roles(user_id)
             user_role_names = [r['name'] for r in user_roles]
@@ -3346,7 +3442,8 @@ def admin_user_edit(user_id):
                                  user_titles=user_titles,
                                  user_title_ids=user_title_ids,
                                  avatar_styles=AVATAR_STYLES,
-                                 available_languages=available_languages)
+                                 available_languages=available_languages,
+                                 blocker_info=blocker_info)
         
         try:
             if language not in available_languages:
@@ -3386,6 +3483,13 @@ def admin_user_edit(user_id):
             flash(f'Ошибка обновления пользователя: {str(e)}', 'error')
             # Получаем данные для отображения ДО закрытия соединения
             all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
+            # Получаем информацию о заблокировавшем пользователе ДО закрытия соединения
+            blocker_info = None
+            user_keys = user.keys()
+            if 'blocked_by' in user_keys and user['blocked_by']:
+                blocker = conn.execute('SELECT user_id, username FROM users WHERE user_id = ?', (user['blocked_by'],)).fetchone()
+                if blocker:
+                    blocker_info = dict(blocker)
             conn.close()
             user_roles = get_user_roles(user_id)
             user_role_names = [r['name'] for r in user_roles]
@@ -3401,7 +3505,8 @@ def admin_user_edit(user_id):
                                  user_titles=user_titles,
                                  user_title_ids=user_title_ids,
                                  avatar_styles=AVATAR_STYLES,
-                                 available_languages=available_languages)
+                                 available_languages=available_languages,
+                                 blocker_info=blocker_info)
     
     # GET запрос - получаем данные для отображения
     all_roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
@@ -3410,6 +3515,14 @@ def admin_user_edit(user_id):
     all_titles = get_all_titles()
     user_titles = get_user_titles(user_id)
     user_title_ids = [t['id'] for t in user_titles]
+    
+    # Получаем информацию о заблокировавшем пользователе ДО закрытия соединения
+    blocker_info = None
+    user_keys = user.keys()
+    if 'blocked_by' in user_keys and user['blocked_by']:
+        blocker = conn.execute('SELECT user_id, username FROM users WHERE user_id = ?', (user['blocked_by'],)).fetchone()
+        if blocker:
+            blocker_info = dict(blocker)
     
     conn.close()
     return render_template('admin/user_form.html', 
@@ -3421,7 +3534,8 @@ def admin_user_edit(user_id):
                          user_titles=user_titles,
                          user_title_ids=user_title_ids,
                          avatar_styles=AVATAR_STYLES,
-                         available_languages=available_languages)
+                         available_languages=available_languages,
+                         blocker_info=blocker_info)
 
 @app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
 @require_role('admin')

@@ -84,7 +84,21 @@
                             <td data-label="Контакты">
                                 {% set c = p.contacts %}
                                 {% if c.phone %}
-                                <div><a class="contact-link" href="tel:{{ c.phone }}">{{ c.phone }}</a></div>
+                                <div>
+                                    <a class="contact-link" href="tel:{{ c.phone }}">{{ c.phone }}</a>
+                                    {% set phone_clean = c.phone|replace('+','')|replace(' ','')|replace('-','')|replace('(','')|replace(')','') %}
+                                    {% set telegram_url = 'https://t.me/' ~ phone_clean %}
+                                    <span style="margin-left: 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                        <a class="contact-link" href="{{ telegram_url }}" target="_blank" rel="noopener">Telegram</a>
+                                        <button type="button" 
+                                                class="btn-icon-copy" 
+                                                onclick="copyToClipboard('{{ telegram_url }}', this)"
+                                                title="Копировать URL Telegram"
+                                                style="background: none; border: none; cursor: pointer; padding: 0.25rem; display: inline-flex; align-items: center; color: var(--text-secondary); font-size: 0.9em;">
+                                            📋
+                                        </button>
+                                    </span>
+                                </div>
                                 {% endif %}
                                 {% if c.telegram and c.telegram != 'Не использую' %}
                                 <div><a class="contact-link" href="https://t.me/{{ c.telegram|replace('@','') }}" target="_blank" rel="noopener">Telegram</a></div>
@@ -1093,6 +1107,63 @@ if (assignmentsBtn) {
             assignmentsBtn.textContent = '📦 Создать задания';
         }
     });
+}
+
+// Функция для копирования URL в буфер обмена
+function copyToClipboard(text, button) {
+    if (!text) return;
+    
+    // Используем современный API Clipboard, если доступен
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Визуальная обратная связь
+            const originalText = button.innerHTML;
+            button.innerHTML = '✓';
+            button.style.color = 'var(--success-color, #28a745)';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.color = '';
+            }, 1500);
+        }).catch(err => {
+            console.error('Ошибка копирования:', err);
+            fallbackCopyToClipboard(text, button);
+        });
+    } else {
+        // Fallback для старых браузеров
+        fallbackCopyToClipboard(text, button);
+    }
+}
+
+// Fallback метод копирования
+function fallbackCopyToClipboard(text, button) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '✓';
+            button.style.color = 'var(--success-color, #28a745)';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.color = '';
+            }, 1500);
+        } else {
+            alert('Не удалось скопировать. URL: ' + text);
+        }
+    } catch (err) {
+        console.error('Ошибка копирования:', err);
+        alert('Не удалось скопировать. URL: ' + text);
+    } finally {
+        document.body.removeChild(textArea);
+    }
 }
 
 // Защита от ошибок MutationObserver (может возникать из-за внешних скриптов)
