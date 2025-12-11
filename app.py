@@ -3584,6 +3584,10 @@ def admin_telegram_menu():
                     VALUES (?, ?, ?, ?, 1)
                 ''', (button_text, button_type, action_value, sort_order))
                 conn.commit()
+                # Обновляем команды меню в Telegram
+                token = get_setting('telegram_bot_token', '')
+                if token:
+                    set_telegram_bot_commands(token)
                 flash('Пункт меню успешно добавлен', 'success')
             except Exception as e:
                 log_error(f"Error creating menu item: {e}")
@@ -3609,6 +3613,10 @@ def admin_telegram_menu():
                     WHERE id = ?
                 ''', (button_text, button_type, action_value, sort_order, is_active, menu_id))
                 conn.commit()
+                # Обновляем команды меню в Telegram
+                token = get_setting('telegram_bot_token', '')
+                if token:
+                    set_telegram_bot_commands(token)
                 flash('Пункт меню успешно обновлен', 'success')
             except Exception as e:
                 log_error(f"Error updating menu item: {e}")
@@ -3620,6 +3628,10 @@ def admin_telegram_menu():
                 try:
                     conn.execute('DELETE FROM telegram_bot_menu WHERE id = ?', (menu_id,))
                     conn.commit()
+                    # Обновляем команды меню в Telegram
+                    token = get_setting('telegram_bot_token', '')
+                    if token:
+                        set_telegram_bot_commands(token)
                     flash('Пункт меню успешно удален', 'success')
                 except Exception as e:
                     log_error(f"Error deleting menu item: {e}")
@@ -3785,7 +3797,38 @@ def handle_start_command(chat_id, username, full_text):
         "Перейдите в свой профиль на сайте и запросите код верификации."
     )
     
-    send_telegram_message_with_keyboard(welcome_text, chat_id)
+    # Проверяем, есть ли настроенное меню
+    menu_items = get_telegram_bot_menu()
+    keyboard = None
+    if menu_items:
+        # Формируем inline клавиатуру из меню
+        keyboard = {'inline_keyboard': []}
+        row = []
+        
+        for item in menu_items:
+            button_text = item['button_text']
+            button_type = item['button_type']
+            action = item['action']
+            
+            if button_type == 'command':
+                row.append({'text': button_text, 'callback_data': f'cmd_{action}'})
+            elif button_type == 'url':
+                # Получаем базовый URL сайта
+                base_url = get_base_url()
+                full_url = action if action.startswith('http') else f"{base_url}{action}"
+                row.append({'text': button_text, 'url': full_url})
+            
+            # Добавляем кнопки по 2 в ряд
+            if len(row) >= 2:
+                keyboard['inline_keyboard'].append(row)
+                row = []
+        
+        if row:
+            keyboard['inline_keyboard'].append(row)
+        
+        welcome_text += "\n\n📋 Выберите раздел:"
+    
+    send_telegram_message_with_keyboard(welcome_text, chat_id, keyboard)
     return jsonify({'ok': True})
 
 def handle_start_with_code(chat_id, username, code):
@@ -5545,6 +5588,13 @@ def verify_telegram_bot(token, chat_id=None):
                     log_error(f"Error setting webhook: {e}")
                     # Не критично, продолжаем
                 
+                # Устанавливаем команды меню бота
+                try:
+                    set_telegram_bot_commands(token)
+                except Exception as e:
+                    log_error(f"Error setting bot commands: {e}")
+                    # Не критично, продолжаем
+                
                 # Если указан chat_id, пытаемся отправить тестовое сообщение
                 if chat_id:
                     try:
@@ -5810,6 +5860,64 @@ def get_telegram_bot_menu():
         if conn:
             conn.close()
         return []
+
+def set_telegram_bot_commands(token):
+    """Устанавливает команды меню бота через setMyCommands API"""
+    if not requests or not token:
+        return False
+    
+    try:
+        menu_items = get_telegram_bot_menu()
+        if not menu_items:
+            # Если меню не настроено, устанавливаем базовые команды
+            commands = [
+                {'command': 'start', 'description': 'Начать работу с ботом'},
+                {'command': 'menu', 'description': 'Показать главное меню'},
+                {'command': 'verify', 'description': 'Привязать аккаунт'},
+            ]
+        else:
+            # Формируем команды из меню
+            commands = []
+            for item in menu_items:
+                if item['button_type'] == 'command':
+                    action = item['action']
+                    button_text = item['button_text']
+                    # Создаем команду только для основных действий
+                    if action in ['events', 'assignments', 'faq', 'rules']:
+                        commands.append({
+                            'command': action,
+                            'description': button_text[:32]  # Максимум 32 символа
+                        })
+            
+            # Всегда добавляем базовые команды
+            base_commands = [
+                {'command': 'start', 'description': 'Начать работу с ботом'},
+                {'command': 'menu', 'description': 'Показать главное меню'},
+            ]
+            # Объединяем, избегая дубликатов
+            existing_commands = {cmd['command'] for cmd in commands}
+            for base_cmd in base_commands:
+                if base_cmd['command'] not in existing_commands:
+                    commands.append(base_cmd)
+        
+        # Устанавливаем команды через API
+        api_url = f'https://api.telegram.org/bot{token}/setMyCommands'
+        response = requests.post(api_url, json={'commands': commands}, timeout=10)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('ok'):
+                log_debug(f"Bot commands set successfully: {len(commands)} commands")
+                return True
+            else:
+                log_error(f"Failed to set bot commands: {result.get('description')}")
+                return False
+        else:
+            log_error(f"Error setting bot commands: HTTP {response.status_code}")
+            return False
+    except Exception as e:
+        log_error(f"Error setting Telegram bot commands: {e}")
+        return False
 
 def send_email_via_smtp(to_email, subject, body, html_body=None):
     """Отправляет email через настроенный SMTP сервер"""
