@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Архивные чаты - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="admin-container">
+        <div class="admin-header" style="margin-bottom: 1.5rem;">
+            <div>
+                <h1 style="margin: 0;">📦 Архивные чаты</h1>
+                <p class="text-muted" style="margin: 0.5rem 0 0;">Чаты расформированных пар. Все чаты сохранены навсегда.</p>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="{{ url_for('admin_letters') }}" class="btn btn-secondary">Активные чаты</a>
+                <a href="{{ url_for('admin_panel') }}" class="btn-icon" title="Назад">←</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body" style="overflow-x: auto;">
+                {% if archived_chats %}
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Мероприятие</th>
+                            <th>🎅 Дед Мороз</th>
+                            <th>🎁 Получатель</th>
+                            <th>Сообщений</th>
+                            <th>Последнее сообщение</th>
+                            <th>Расформировано</th>
+                            <th>Кем</th>
+                            <th style="width: 140px;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for chat in archived_chats %}
+                        <tr>
+                            <td data-label="ID">{{ chat.original_assignment_id }}</td>
+                            <td data-label="Мероприятие">{{ chat.event_name }}</td>
+                            <td data-label="Дед Мороз">
+                                <a href="{{ url_for('view_profile', user_id=chat.santa_user_id) }}" target="_blank">
+                                    {{ chat.santa_name }}
+                                </a>
+                            </td>
+                            <td data-label="Получатель">
+                                <a href="{{ url_for('view_profile', user_id=chat.recipient_user_id) }}" target="_blank">
+                                    {{ chat.recipient_name }}
+                                </a>
+                            </td>
+                            <td data-label="Сообщений">{{ chat.message_count }}</td>
+                            <td data-label="Последнее сообщение">
+                                {% if chat.last_message_at %}
+                                    {{ chat.last_message_at }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td data-label="Расформировано">
+                                {% if chat.archived_at %}
+                                    {{ chat.archived_at[:16]|replace('T', ' ') }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td data-label="Кем">
+                                {% if chat.archiver_username %}
+                                    {{ chat.archiver_username }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td data-label="Действия">
+                                <a href="{{ url_for('letter', assignment_id=chat.original_assignment_id, admin=1) }}" 
+                                   class="btn btn-sm btn-primary" 
+                                   style="min-width: 120px;"
+                                   title="Просмотр архивированного чата">
+                                    Открыть чат
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted" style="margin: 0;">Архивных чатов пока нет.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

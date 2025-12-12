@@ -44,7 +44,7 @@
         <!-- Табы -->
         <div class="dashboard-tabs">
             <a href="{{ url_for('dashboard') }}#main" 
-               class="dashboard-tab active" 
+               class="dashboard-tab" 
                data-tab="main">
                 📋 {{ _('Main') }}
             </a>
@@ -77,7 +77,7 @@
         </div>
 
         <!-- Содержимое таба "Основное" -->
-        <div class="dashboard-tab-content active" data-tab="main">
+        <div class="dashboard-tab-content" data-tab="main">
             <div class="profile-info">
                 <div class="info-row">
                     <span class="info-label">{{ _('User ID:') }}</span>
@@ -197,7 +197,13 @@
                     <div class="award-card" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; text-align: center; transition: transform 0.2s, box-shadow 0.2s;">
                         {% if award.image %}
                         <div style="margin-bottom: 1rem;">
-                            <img src="{{ award.image }}" alt="{{ award.title }}" style="max-width: 120px; max-height: 120px; width: auto; height: auto; border-radius: 8px;">
+                            <img src="{{ award.image }}" 
+                                 alt="{{ award.title }}" 
+                                 style="max-width: 120px; max-height: 120px; width: auto; height: auto; border-radius: 8px;"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div style="display: none; font-size: 4rem; line-height: 1;">
+                                {% if award.icon %}{{ award.icon }}{% else %}🎖️{% endif %}
+                            </div>
                         </div>
                         {% elif award.icon %}
                         <div style="margin-bottom: 1rem; font-size: 4rem; line-height: 1;">
@@ -549,27 +555,27 @@ function initDashboardTabs() {
             e.preventDefault();
             const targetTab = this.getAttribute('data-tab');
             if (targetTab) {
-            switchTab(targetTab);
+                switchTab(targetTab);
             }
         });
     });
     
     // Функция для обработки hash
     function handleHash() {
-    const hash = window.location.hash.substring(1); // Убираем #
-    if (hash) {
-        // Проверяем, существует ли таб с таким именем
-        const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === hash);
-        if (tabExists) {
-            switchTab(hash);
+        const hash = window.location.hash.substring(1); // Убираем #
+        if (hash) {
+            // Проверяем, существует ли таб с таким именем
+            const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === hash);
+            if (tabExists) {
+                switchTab(hash);
             } else {
                 // Если таб не найден, показываем первый таб
                 switchTab('main');
+            }
+        } else {
+            // Если hash нет, показываем первый таб
+            switchTab('main');
         }
-    } else {
-        // Если hash нет, показываем первый таб
-        switchTab('main');
-    }
     }
     
     // Проверяем hash при загрузке страницы
@@ -582,9 +588,9 @@ function initDashboardTabs() {
 // Инициализация при загрузке DOM
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initDashboardTabs);
-        } else {
+} else {
     // DOM уже загружен
     initDashboardTabs();
-        }
+}
 </script>
 {% endblock %}

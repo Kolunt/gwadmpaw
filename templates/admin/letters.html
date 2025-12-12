@@ -9,6 +9,10 @@
                 <h1 style="margin: 0;">💬 Переписки участников</h1>
                 <p class="text-muted" style="margin: 0.5rem 0 0;">Список всех чатов между Дедом Морозом и Внучком.</p>
             </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="{{ url_for('admin_letters_archived') }}" class="btn btn-secondary">📦 Архивные чаты</a>
+                <a href="{{ url_for('admin_panel') }}" class="btn-icon" title="Назад">←</a>
+            </div>
         </div>
 
         <div class="card">

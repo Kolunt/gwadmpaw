@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки рейтинга (Цыфорки) - Админ-панель{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>❄️ Настройки рейтинга (Цыфорки)</h1>
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+    
+    <form method="POST" class="settings-form">
+        <div class="settings-section">
+            <p class="text-muted" style="margin-bottom: 1.5rem;">
+                Настройте количество очков, которые начисляются участникам за различные действия.
+            </p>
+
+            <div class="settings-grid">
+                <!-- Контакты -->
+                <div class="setting-card">
+                    <div class="setting-card-header">
+                        <h3 class="setting-card-title">📱 Контактная информация</h3>
+                        <span class="setting-badge">Автоматически</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <p class="setting-hint" style="margin-bottom: 1rem;">
+                            Очки начисляются автоматически при заполнении контактов в профиле
+                        </p>
+                        
+                        {% set rating_telegram = settings_dict.get('rating_contact_telegram', {}) %}
+                        <div class="setting-item">
+                            <label for="rating_contact_telegram" class="setting-label">
+                                Telegram
+                                <small class="setting-hint">Очки за заполненный Telegram</small>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="rating_contact_telegram" 
+                                name="setting_rating_contact_telegram" 
+                                value="{{ rating_telegram.get('value', '1') if rating_telegram else '1' }}"
+                                class="setting-input"
+                                min="0"
+                                step="1"
+                            >
+                        </div>
+                        
+                        {% set rating_whatsapp = settings_dict.get('rating_contact_whatsapp', {}) %}
+                        <div class="setting-item">
+                            <label for="rating_contact_whatsapp" class="setting-label">
+                                WhatsApp
+                                <small class="setting-hint">Очки за заполненный WhatsApp</small>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="rating_contact_whatsapp" 
+                                name="setting_rating_contact_whatsapp" 
+                                value="{{ rating_whatsapp.get('value', '1') if rating_whatsapp else '1' }}"
+                                class="setting-input"
+                                min="0"
+                                step="1"
+                            >
+                        </div>
+                        
+                        {% set rating_viber = settings_dict.get('rating_contact_viber', {}) %}
+                        <div class="setting-item">
+                            <label for="rating_contact_viber" class="setting-label">
+                                Viber
+                                <small class="setting-hint">Очки за заполненный Viber</small>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="rating_contact_viber" 
+                                name="setting_rating_contact_viber" 
+                                value="{{ rating_viber.get('value', '1') if rating_viber else '1' }}"
+                                class="setting-input"
+                                min="0"
+                                step="1"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Мероприятия -->
+                <div class="setting-card">
+                    <div class="setting-card-header">
+                        <h3 class="setting-card-title">🎉 Мероприятия</h3>
+                        <span class="setting-badge">Автоматически</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <p class="setting-hint" style="margin-bottom: 1rem;">
+                            Очки начисляются автоматически при закрытии регистрации на мероприятие
+                        </p>
+                        
+                        {% set rating_registration = settings_dict.get('rating_event_registration', {}) %}
+                        <div class="setting-item">
+                            <label for="rating_event_registration" class="setting-label">
+                                Регистрация на мероприятие
+                                <small class="setting-hint">
+                                    Очки начисляются автоматически всем зарегистрированным участникам, когда администратор закрывает регистрацию на мероприятие (этап "Закрытие регистрации"). 
+                                    Это происходит один раз при переходе мероприятия к этапу проверки участников.
+                                </small>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="rating_event_registration" 
+                                name="setting_rating_event_registration" 
+                                value="{{ rating_registration.get('value', '1') if rating_registration else '1' }}"
+                                class="setting-input"
+                                min="0"
+                                step="1"
+                            >
+                        </div>
+                        
+                        {% set rating_penalty = settings_dict.get('rating_event_review_penalty', {}) %}
+                        <div class="setting-item">
+                            <label for="rating_event_review_penalty" class="setting-label">
+                                Штраф за негативное ревью
+                                <small class="setting-hint">Отрицательное значение (штраф при отклонении участника администратором)</small>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="rating_event_review_penalty" 
+                                name="setting_rating_event_review_penalty" 
+                                value="{{ rating_penalty.get('value', '-2') if rating_penalty else '-2' }}"
+                                class="setting-input"
+                                max="0"
+                                step="1"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Награды -->
+                {% if awards %}
+                <div class="setting-card">
+                    <div class="setting-card-header">
+                        <h3 class="setting-card-title">🏆 Награды</h3>
+                        <span class="setting-badge">При назначении</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <p class="setting-hint" style="margin-bottom: 1rem;">
+                            Очки начисляются при назначении награды пользователю
+                        </p>
+                        
+                        {% for award in awards %}
+                        {% set award_key = 'rating_award_' ~ award.id %}
+                        {% set award_setting = settings_dict.get(award_key, {}) %}
+                        <div class="setting-item">
+                            <label for="{{ award_key }}" class="setting-label">
+                                {{ award.icon or '🏆' }} {{ award.title }}
+                                <small class="setting-hint">Очки за награду "{{ award.title }}"</small>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="{{ award_key }}" 
+                                name="setting_{{ award_key }}" 
+                                value="{{ award_setting.get('value', '0') if award_setting else '0' }}"
+                                class="setting-input"
+                                min="0"
+                                step="1"
+                            >
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Звания -->
+                {% if titles %}
+                <div class="setting-card">
+                    <div class="setting-card-header">
+                        <h3 class="setting-card-title">⭐ Звания</h3>
+                        <span class="setting-badge">При назначении</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <p class="setting-hint" style="margin-bottom: 1rem;">
+                            Очки начисляются при назначении звания пользователю
+                        </p>
+                        
+                        {% for title in titles %}
+                        {% set title_key = 'rating_title_' ~ title.id %}
+                        {% set title_setting = settings_dict.get(title_key, {}) %}
+                        <div class="setting-item">
+                            <label for="{{ title_key }}" class="setting-label">
+                                {{ title.icon or '⭐' }} {{ title.display_name }}
+                                <small class="setting-hint">Очки за звание "{{ title.display_name }}"</small>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="{{ title_key }}" 
+                                name="setting_{{ title_key }}" 
+                                value="{{ title_setting.get('value', '0') if title_setting else '0' }}"
+                                class="setting-input"
+                                min="0"
+                                step="1"
+                            >
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <input type="hidden" name="action" id="form-action" value="save">
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" onclick="document.getElementById('form-action').value='save';">Сохранить настройки</button>
+            <button type="submit" class="btn btn-warning" onclick="if(confirm('Вы уверены? Это пересчитает все уже начисленные очки на основе новых настроек.')) { document.getElementById('form-action').value='update'; } else { return false; }">Обновить и пересчитать</button>
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

@@ -835,6 +835,62 @@ def init_db():
         except sqlite3.OperationalError:
             pass
         
+        # Таблица для архивных чатов (расформированных пар)
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS assignment_chat_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                original_assignment_id INTEGER NOT NULL,
+                event_id INTEGER NOT NULL,
+                santa_user_id INTEGER NOT NULL,
+                recipient_user_id INTEGER NOT NULL,
+                archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                archived_by INTEGER,
+                notes TEXT,
+                FOREIGN KEY (event_id) REFERENCES events(id),
+                FOREIGN KEY (santa_user_id) REFERENCES users(user_id),
+                FOREIGN KEY (recipient_user_id) REFERENCES users(user_id),
+                FOREIGN KEY (archived_by) REFERENCES users(user_id)
+            )
+        ''')
+        
+        # Добавляем поле is_archived в event_assignments для пометки расформированных пар
+        try:
+            c.execute('ALTER TABLE event_assignments ADD COLUMN is_archived INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        
+        # Таблица комментариев администраторов к профилям пользователей
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS user_admin_comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                admin_user_id INTEGER,
+                comment TEXT NOT NULL,
+                is_admin_only INTEGER DEFAULT 0,
+                is_thanks_from_recipient INTEGER DEFAULT 0,
+                assignment_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (admin_user_id) REFERENCES users(user_id),
+                FOREIGN KEY (assignment_id) REFERENCES event_assignments(id)
+            )
+        ''')
+        
+        # Миграция: добавляем новые поля в существующую таблицу
+        try:
+            c.execute('ALTER TABLE user_admin_comments ADD COLUMN is_admin_only INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE user_admin_comments ADD COLUMN is_thanks_from_recipient INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('ALTER TABLE user_admin_comments ADD COLUMN assignment_id INTEGER')
+        except sqlite3.OperationalError:
+            pass
+        
         # Таблица категорий FAQ
         c.execute('''
             CREATE TABLE IF NOT EXISTS faq_categories (
@@ -981,6 +1037,25 @@ def init_db():
             # Игнорируем ошибки миграции
             log_error(f"Migration error (non-critical): {e}")
         
+        # Инициализируем настройки рейтинга по умолчанию
+        try:
+            rating_defaults = [
+                ('rating_contact_telegram', '1', 'Очки за заполненный Telegram', 'rating'),
+                ('rating_contact_whatsapp', '1', 'Очки за заполненный WhatsApp', 'rating'),
+                ('rating_contact_viber', '1', 'Очки за заполненный Viber', 'rating'),
+                ('rating_event_registration', '1', 'Очки за регистрацию на мероприятие (начисляются автоматически всем зарегистрированным участникам при закрытии регистрации администратором)', 'rating'),
+                ('rating_event_review_penalty', '-2', 'Штраф за негативное ревью (отрицательное значение)', 'rating'),
+            ]
+            for key, value, description, category in rating_defaults:
+                existing = c.execute('SELECT key FROM settings WHERE key = ?', (key,)).fetchone()
+                if not existing:
+                    c.execute('''
+                        INSERT INTO settings (key, value, description, category)
+                        VALUES (?, ?, ?, ?)
+                    ''', (key, value, description, category))
+        except Exception as e:
+            log_error(f"Error initializing rating settings: {e}")
+        
         # Создаем системные роли, если их еще нет
         system_roles = [
             ('admin', 'Администратор', 'Полный доступ ко всем функциям системы', 1),
@@ -994,6 +1069,26 @@ def init_db():
                 INSERT OR IGNORE INTO roles (name, display_name, description, is_system)
                 VALUES (?, ?, ?, ?)
             ''', (role_name, display_name, description, is_system))
+        
+        # Инициализируем настройки рейтинга по умолчанию
+        try:
+            rating_defaults = [
+                ('rating_contact_telegram', '1', 'Очки за заполненный Telegram', 'rating'),
+                ('rating_contact_whatsapp', '1', 'Очки за заполненный WhatsApp', 'rating'),
+                ('rating_contact_viber', '1', 'Очки за заполненный Viber', 'rating'),
+                ('rating_event_registration', '1', 'Очки за регистрацию на мероприятие (начисляются автоматически всем зарегистрированным участникам при закрытии регистрации администратором)', 'rating'),
+                ('rating_event_review_penalty', '-2', 'Штраф за негативное ревью (отрицательное значение)', 'rating'),
+            ]
+            for key, value, description, category in rating_defaults:
+                existing = c.execute('SELECT key FROM settings WHERE key = ?', (key,)).fetchone()
+                if not existing:
+                    c.execute('''
+                        INSERT INTO settings (key, value, description, category)
+                        VALUES (?, ?, ?, ?)
+                    ''', (key, value, description, category))
+            conn.commit()
+        except Exception as e:
+            log_error(f"Error initializing rating settings: {e}")
         
         conn.commit()
         conn.close()
@@ -1309,10 +1404,48 @@ def assign_title(user_id, title_id, assigned_by=None):
         return False
     conn = get_db_connection()
     try:
+        # Проверяем, не назначено ли уже это звание
+        existing = conn.execute('''
+            SELECT id FROM user_titles WHERE user_id = ? AND title_id = ?
+        ''', (user_id, title_id)).fetchone()
+        
+        if existing:
+            # Звание уже назначено, не создаем событие повторно
+            conn.close()
+            return True
+        
         conn.execute('''
             INSERT OR REPLACE INTO user_titles (user_id, title_id, assigned_by)
             VALUES (?, ?, ?)
         ''', (user_id, title_id, assigned_by))
+        
+        # Создаем событие снежинки для звания
+        source = f'title:{title_id}'
+        reason = f'Назначено звание (ID: {title_id})'
+        points = get_rating_setting(f'rating_title_{title_id}', 0)
+        
+        if points != 0:
+            # Проверяем, нет ли уже такого события
+            existing_event = conn.execute('''
+                SELECT id, active FROM snowflake_events
+                WHERE user_id = ? AND source = ?
+            ''', (user_id, source)).fetchone()
+            
+            if existing_event:
+                # Обновляем существующее событие
+                conn.execute('''
+                    UPDATE snowflake_events
+                    SET points = ?, active = 1, manual_revoked = 0,
+                        revoked_at = NULL, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (points, existing_event['id']))
+            else:
+                # Создаем новое событие
+                conn.execute('''
+                    INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
+                    VALUES (?, ?, ?, ?, 1, 0)
+                ''', (user_id, source, reason, points))
+        
         conn.commit()
         log_activity(
             'title_assign',
@@ -1337,6 +1470,15 @@ def remove_title(user_id, title_id):
             DELETE FROM user_titles
             WHERE user_id = ? AND title_id = ?
         ''', (user_id, title_id))
+        
+        # Деактивируем событие снежинки для звания
+        source = f'title:{title_id}'
+        conn.execute('''
+            UPDATE snowflake_events
+            SET active = 0, revoked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = ? AND source = ? AND active = 1
+        ''', (user_id, source))
+        
         conn.commit()
         log_activity(
             'title_remove',
@@ -1363,6 +1505,170 @@ def get_user_awards(user_id):
     ''', (user_id,)).fetchall()
     conn.close()
     return [dict(a) for a in awards]
+
+def get_user_admin_comments(user_id, viewer_is_admin=False):
+    """Получает список комментариев к профилю пользователя с учетом прав доступа"""
+    if not user_id:
+        return []
+    conn = get_db_connection()
+    
+    # Если просматривающий - администратор, показываем все комментарии
+    # Иначе показываем только публичные (is_admin_only = 0) и "спасибо от внучка"
+    if viewer_is_admin:
+        comments = conn.execute('''
+            SELECT 
+                c.id,
+                c.user_id,
+                c.admin_user_id,
+                c.comment,
+                c.is_admin_only,
+                c.is_thanks_from_recipient,
+                c.assignment_id,
+                c.created_at,
+                c.updated_at,
+                u.username AS admin_username
+            FROM user_admin_comments c
+            LEFT JOIN users u ON c.admin_user_id = u.user_id
+            WHERE c.user_id = ?
+            ORDER BY c.is_thanks_from_recipient DESC, c.created_at DESC
+        ''', (user_id,)).fetchall()
+    else:
+        comments = conn.execute('''
+            SELECT 
+                c.id,
+                c.user_id,
+                c.admin_user_id,
+                c.comment,
+                c.is_admin_only,
+                c.is_thanks_from_recipient,
+                c.assignment_id,
+                c.created_at,
+                c.updated_at,
+                u.username AS admin_username
+            FROM user_admin_comments c
+            LEFT JOIN users u ON c.admin_user_id = u.user_id
+            WHERE c.user_id = ? AND (c.is_admin_only = 0 OR c.is_thanks_from_recipient = 1)
+            ORDER BY c.is_thanks_from_recipient DESC, c.created_at DESC
+        ''', (user_id,)).fetchall()
+    
+    conn.close()
+    return [dict(c) for c in comments]
+
+def add_user_admin_comment(user_id, admin_user_id, comment, is_admin_only=False):
+    """Добавляет комментарий администратора к профилю пользователя"""
+    if not user_id or not admin_user_id or not comment:
+        return False
+    conn = get_db_connection()
+    try:
+        conn.execute('''
+            INSERT INTO user_admin_comments (user_id, admin_user_id, comment, is_admin_only)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, admin_user_id, comment.strip(), 1 if is_admin_only else 0))
+        conn.commit()
+        log_activity(
+            'admin_comment_add',
+            details=f'Добавлен комментарий к профилю пользователя {user_id}',
+            metadata={'target_user_id': user_id, 'comment_length': len(comment), 'is_admin_only': is_admin_only}
+        )
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error adding admin comment: {e}")
+        conn.close()
+        return False
+
+def add_thanks_comment_from_recipient(user_id, assignment_id, thanks_message):
+    """Добавляет автоматический комментарий "спасибо от внучка" при подтверждении получения подарка"""
+    if not user_id or not assignment_id or not thanks_message:
+        return False
+    conn = get_db_connection()
+    try:
+        # Проверяем, не добавлен ли уже такой комментарий для этого задания
+        existing = conn.execute('''
+            SELECT id FROM user_admin_comments
+            WHERE user_id = ? AND assignment_id = ? AND is_thanks_from_recipient = 1
+        ''', (user_id, assignment_id)).fetchone()
+        
+        if existing:
+            # Обновляем существующий комментарий
+            conn.execute('''
+                UPDATE user_admin_comments
+                SET comment = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (thanks_message.strip(), existing['id']))
+        else:
+            # Создаем новый комментарий
+            conn.execute('''
+                INSERT INTO user_admin_comments (user_id, admin_user_id, comment, is_admin_only, is_thanks_from_recipient, assignment_id)
+                VALUES (?, NULL, ?, 0, 1, ?)
+            ''', (user_id, thanks_message.strip(), assignment_id))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error adding thanks comment: {e}")
+        conn.close()
+        return False
+
+def update_user_admin_comment(comment_id, admin_user_id, comment):
+    """Обновляет комментарий администратора"""
+    if not comment_id or not admin_user_id or not comment:
+        return False
+    conn = get_db_connection()
+    try:
+        # Проверяем, что комментарий принадлежит этому администратору
+        existing = conn.execute('''
+            SELECT admin_user_id FROM user_admin_comments WHERE id = ?
+        ''', (comment_id,)).fetchone()
+        if not existing or existing['admin_user_id'] != admin_user_id:
+            conn.close()
+            return False
+        conn.execute('''
+            UPDATE user_admin_comments 
+            SET comment = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (comment.strip(), comment_id))
+        conn.commit()
+        log_activity(
+            'admin_comment_update',
+            details=f'Обновлен комментарий {comment_id}',
+            metadata={'comment_id': comment_id}
+        )
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error updating admin comment: {e}")
+        conn.close()
+        return False
+
+def delete_user_admin_comment(comment_id, admin_user_id):
+    """Удаляет комментарий администратора (только свой)"""
+    if not comment_id or not admin_user_id:
+        return False
+    conn = get_db_connection()
+    try:
+        # Проверяем, что комментарий принадлежит этому администратору
+        existing = conn.execute('''
+            SELECT admin_user_id, user_id FROM user_admin_comments WHERE id = ?
+        ''', (comment_id,)).fetchone()
+        if not existing or existing['admin_user_id'] != admin_user_id:
+            conn.close()
+            return False
+        target_user_id = existing['user_id']
+        conn.execute('DELETE FROM user_admin_comments WHERE id = ?', (comment_id,))
+        conn.commit()
+        log_activity(
+            'admin_comment_delete',
+            details=f'Удален комментарий {comment_id} к профилю пользователя {target_user_id}',
+            metadata={'comment_id': comment_id, 'target_user_id': target_user_id}
+        )
+        conn.close()
+        return True
+    except Exception as e:
+        log_error(f"Error deleting admin comment: {e}")
+        conn.close()
+        return False
 
 def get_users_with_award(award_id):
     """Получает список пользователей, имеющих указанную награду"""
@@ -1400,10 +1706,48 @@ def assign_award(user_id, award_id, assigned_by=None):
         return False
     conn = get_db_connection()
     try:
+        # Проверяем, не назначена ли уже эта награда
+        existing = conn.execute('''
+            SELECT id FROM user_awards WHERE user_id = ? AND award_id = ?
+        ''', (user_id, award_id)).fetchone()
+        
+        if existing:
+            # Награда уже назначена, не создаем событие повторно
+            conn.close()
+            return True
+        
         conn.execute('''
             INSERT OR REPLACE INTO user_awards (user_id, award_id, assigned_by)
             VALUES (?, ?, ?)
         ''', (user_id, award_id, assigned_by))
+        
+        # Создаем событие снежинки для награды
+        source = f'award:{award_id}'
+        reason = f'Назначена награда (ID: {award_id})'
+        points = get_rating_setting(f'rating_award_{award_id}', 0)
+        
+        if points != 0:
+            # Проверяем, нет ли уже такого события
+            existing_event = conn.execute('''
+                SELECT id, active FROM snowflake_events
+                WHERE user_id = ? AND source = ?
+            ''', (user_id, source)).fetchone()
+            
+            if existing_event:
+                # Обновляем существующее событие
+                conn.execute('''
+                    UPDATE snowflake_events
+                    SET points = ?, active = 1, manual_revoked = 0,
+                        revoked_at = NULL, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (points, existing_event['id']))
+            else:
+                # Создаем новое событие
+                conn.execute('''
+                    INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
+                    VALUES (?, ?, ?, ?, 1, 0)
+                ''', (user_id, source, reason, points))
+        
         conn.commit()
         log_activity(
             'award_assign',
@@ -1428,6 +1772,15 @@ def remove_award(user_id, award_id):
             DELETE FROM user_awards
             WHERE user_id = ? AND award_id = ?
         ''', (user_id, award_id))
+        
+        # Деактивируем событие снежинки для награды
+        source = f'award:{award_id}'
+        conn.execute('''
+            UPDATE snowflake_events
+            SET active = 0, revoked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = ? AND source = ? AND active = 1
+        ''', (user_id, source))
+        
         conn.commit()
         log_activity(
             'award_remove',
@@ -2877,6 +3230,24 @@ def view_profile(user_id):
     bio_to_display = user_bio if show_about else None
     contact_info_to_display = user_contact_info if show_about and is_admin else None
     
+    # Получаем комментарии (с учетом прав доступа)
+    admin_comments = get_user_admin_comments(user_id, viewer_is_admin=is_admin)
+    
+    # Для админа таб комментариев показывается всегда
+    # Для обычного пользователя - только если есть публичные комментарии (спасибо от внучка)
+    if is_admin:
+        has_comments = True  # Админ всегда видит таб комментариев
+    else:
+        # Проверяем, есть ли публичные комментарии (спасибо от внучка)
+        conn = get_db_connection()
+        public_comments_count = conn.execute('''
+            SELECT COUNT(*) as count 
+            FROM user_admin_comments 
+            WHERE user_id = ? AND (is_admin_only = 0 OR is_thanks_from_recipient = 1)
+        ''', (user_id,)).fetchone()
+        conn.close()
+        has_comments = public_comments_count['count'] > 0 if public_comments_count else False
+    
     return render_template(
         'view_profile.html',
         user=dict(user),
@@ -2890,8 +3261,73 @@ def view_profile(user_id):
         show_about=show_about,
         bio_to_display=bio_to_display,
         contact_info_to_display=contact_info_to_display,
-        blocker_info=blocker_info
+        blocker_info=blocker_info,
+        admin_comments=admin_comments,
+        has_comments=has_comments
     )
+
+@app.route('/profile/<int:user_id>/admin-comment', methods=['POST'])
+@require_role('admin')
+def add_admin_comment(user_id):
+    """Добавляет комментарий администратора к профилю пользователя"""
+    if not session.get('user_id'):
+        flash('Необходима авторизация', 'error')
+        return redirect(url_for('login'))
+    
+    admin_user_id = session.get('user_id')
+    comment = request.form.get('comment', '').strip()
+    is_admin_only = request.form.get('is_admin_only') == 'on'
+    
+    if not comment:
+        flash('Комментарий не может быть пустым', 'error')
+        return redirect(url_for('view_profile', user_id=user_id))
+    
+    if add_user_admin_comment(user_id, admin_user_id, comment, is_admin_only=is_admin_only):
+        flash('Комментарий добавлен', 'success')
+    else:
+        flash('Ошибка при добавлении комментария', 'error')
+    
+    return redirect(url_for('view_profile', user_id=user_id) + '#comments')
+
+@app.route('/profile/<int:user_id>/admin-comment/<int:comment_id>/update', methods=['POST'])
+@require_role('admin')
+def update_admin_comment(user_id, comment_id):
+    """Обновляет комментарий администратора"""
+    if not session.get('user_id'):
+        flash('Необходима авторизация', 'error')
+        return redirect(url_for('login'))
+    
+    admin_user_id = session.get('user_id')
+    comment = request.form.get('comment', '').strip()
+    
+    if not comment:
+        flash('Комментарий не может быть пустым', 'error')
+        return redirect(url_for('view_profile', user_id=user_id) + '#comments')
+    
+    if update_user_admin_comment(comment_id, admin_user_id, comment):
+        flash('Комментарий обновлен', 'success')
+    else:
+        flash('Ошибка при обновлении комментария', 'error')
+    
+    return redirect(url_for('view_profile', user_id=user_id) + '#comments')
+
+@app.route('/profile/<int:user_id>/admin-comment/<int:comment_id>/delete', methods=['POST'])
+@require_role('admin')
+def delete_admin_comment(user_id, comment_id):
+    """Удаляет комментарий администратора"""
+    if not session.get('user_id'):
+        flash('Необходима авторизация', 'error')
+        return redirect(url_for('login'))
+    
+    admin_user_id = session.get('user_id')
+    
+    if delete_user_admin_comment(comment_id, admin_user_id):
+        flash('Комментарий удален', 'success')
+    else:
+        flash('Ошибка при удалении комментария', 'error')
+    
+    return redirect(url_for('view_profile', user_id=user_id) + '#comments')
+
 @app.route('/participants')
 def participants():
     """Страница со списком участников"""
@@ -3161,6 +3597,229 @@ def debug():
 def admin_panel():
     """Главная страница админ-панели"""
     return render_template('admin/index.html')
+
+@app.route('/admin/rating-settings', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_rating_settings():
+    """Страница настроек рейтинга (цыфорки)"""
+    conn = get_db_connection()
+    
+    if request.method == 'POST':
+        action = request.form.get('action', 'save')  # 'save' или 'update'
+        
+        # Обновляем настройки рейтинга
+        settings_dict = {}
+        for key in request.form:
+            if key.startswith('setting_'):
+                setting_key = key.replace('setting_', '')
+                if setting_key.startswith('rating_'):
+                    setting_value = request.form.get(key, '0')
+                    settings_dict[setting_key] = setting_value
+        
+        # Получаем все награды и звания для создания настроек
+        awards = conn.execute('SELECT id, title FROM awards').fetchall()
+        titles = conn.execute('SELECT id, display_name FROM titles').fetchall()
+        
+        # Сохраняем настройки
+        for key, value in settings_dict.items():
+            try:
+                # Проверяем, существует ли настройка
+                existing_setting = conn.execute('SELECT key FROM settings WHERE key = ?', (key,)).fetchone()
+                if existing_setting:
+                    # Обновляем существующую настройку
+                    columns_info = conn.execute("PRAGMA table_info(settings)").fetchall()
+                    columns = [col[1] for col in columns_info]
+                    
+                    if 'updated_at' in columns and 'updated_by' in columns:
+                        conn.execute('''
+                            UPDATE settings 
+                            SET value = ?, updated_at = CURRENT_TIMESTAMP, updated_by = ?
+                            WHERE key = ?
+                        ''', (value, session.get('user_id'), key))
+                    elif 'updated_at' in columns:
+                        conn.execute('''
+                            UPDATE settings 
+                            SET value = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE key = ?
+                        ''', (value, key))
+                    else:
+                        conn.execute('''
+                            UPDATE settings 
+                            SET value = ?
+                            WHERE key = ?
+                        ''', (value, key))
+                else:
+                    # Создаем новую настройку
+                    description = ''
+                    if key == 'rating_contact_telegram':
+                        description = 'Очки за заполненный Telegram'
+                    elif key == 'rating_contact_whatsapp':
+                        description = 'Очки за заполненный WhatsApp'
+                    elif key == 'rating_contact_viber':
+                        description = 'Очки за заполненный Viber'
+                    elif key == 'rating_event_registration':
+                        description = 'Очки за регистрацию на мероприятие (начисляются автоматически всем зарегистрированным участникам при закрытии регистрации администратором)'
+                    elif key == 'rating_event_review_penalty':
+                        description = 'Штраф за негативное ревью (отрицательное значение)'
+                    elif key.startswith('rating_award_'):
+                        # Награда
+                        try:
+                            award_id = int(key.replace('rating_award_', ''))
+                            award = next((a for a in awards if a['id'] == award_id), None)
+                            if award:
+                                description = f'Очки за награду: {award["title"]}'
+                        except (ValueError, TypeError):
+                            description = 'Очки за награду'
+                    elif key.startswith('rating_title_'):
+                        # Звание
+                        try:
+                            title_id = int(key.replace('rating_title_', ''))
+                            title = next((t for t in titles if t['id'] == title_id), None)
+                            if title:
+                                description = f'Очки за звание: {title["display_name"]}'
+                        except (ValueError, TypeError):
+                            description = 'Очки за звание'
+                    
+                    columns_info = conn.execute("PRAGMA table_info(settings)").fetchall()
+                    columns = [col[1] for col in columns_info]
+                    
+                    if 'created_at' in columns and 'created_by' in columns and 'updated_at' in columns and 'updated_by' in columns:
+                        conn.execute('''
+                            INSERT INTO settings (key, value, description, category, created_at, created_by, updated_at, updated_by)
+                            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?)
+                        ''', (key, value, description, 'rating', session.get('user_id'), session.get('user_id')))
+                    elif 'updated_at' in columns and 'updated_by' in columns:
+                        conn.execute('''
+                            INSERT INTO settings (key, value, description, category, updated_at, updated_by)
+                            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                        ''', (key, value, description, 'rating', session.get('user_id')))
+                    elif 'updated_at' in columns:
+                        conn.execute('''
+                            INSERT INTO settings (key, value, description, category, updated_at)
+                            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                        ''', (key, value, description, 'rating'))
+                    else:
+                        conn.execute('''
+                            INSERT INTO settings (key, value, description, category)
+                            VALUES (?, ?, ?, ?)
+                        ''', (key, value, description, 'rating'))
+            except Exception as e:
+                log_error(f"Error updating rating setting {key}: {e}")
+        
+        conn.commit()
+        
+        # Если действие "update", пересчитываем все события
+        if action == 'update':
+            try:
+                updated_count = recalculate_all_snowflake_events(conn, settings_dict)
+                conn.commit()
+                flash(f'Настройки сохранены и все очки пересчитаны. Обновлено/создано событий: {updated_count}', 'success')
+            except Exception as e:
+                log_error(f"Error recalculating snowflake events: {e}")
+                import traceback
+                log_error(traceback.format_exc())
+                flash('Настройки сохранены, но произошла ошибка при пересчете очков: ' + str(e), 'error')
+        else:
+            flash('Настройки рейтинга успешно сохранены', 'success')
+        
+        conn.close()
+        return redirect(url_for('admin_rating_settings'))
+    
+    # Получаем все настройки рейтинга
+    rating_settings = conn.execute('''
+        SELECT * FROM settings 
+        WHERE category = 'rating' OR key LIKE 'rating_%'
+        ORDER BY key
+    ''').fetchall()
+    
+    # Создаем словарь для быстрого доступа к настройкам
+    settings_dict = {}
+    for setting in rating_settings:
+        settings_dict[setting['key']] = dict(setting)
+    
+    # Получаем все награды и звания для настройки очков
+    awards = conn.execute('''
+        SELECT id, title, icon FROM awards ORDER BY sort_order, title
+    ''').fetchall()
+    
+    titles = conn.execute('''
+        SELECT id, name, display_name, icon FROM titles ORDER BY is_system DESC, display_name
+    ''').fetchall()
+    
+    # Инициализируем настройки для наград и званий, если их еще нет
+    for award in awards:
+        key = f'rating_award_{award["id"]}'
+        if key not in settings_dict:
+            # Создаем настройку с дефолтным значением 0
+            try:
+                columns_info = conn.execute("PRAGMA table_info(settings)").fetchall()
+                columns = [col[1] for col in columns_info]
+                description = f'Очки за награду: {award["title"]}'
+                
+                if 'created_at' in columns and 'created_by' in columns and 'updated_at' in columns and 'updated_by' in columns:
+                    conn.execute('''
+                        INSERT INTO settings (key, value, description, category, created_at, created_by, updated_at, updated_by)
+                        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?)
+                    ''', (key, '0', description, 'rating', session.get('user_id'), session.get('user_id')))
+                elif 'updated_at' in columns and 'updated_by' in columns:
+                    conn.execute('''
+                        INSERT INTO settings (key, value, description, category, updated_at, updated_by)
+                        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                    ''', (key, '0', description, 'rating', session.get('user_id')))
+                elif 'updated_at' in columns:
+                    conn.execute('''
+                        INSERT INTO settings (key, value, description, category, updated_at)
+                        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ''', (key, '0', description, 'rating'))
+                else:
+                    conn.execute('''
+                        INSERT INTO settings (key, value, description, category)
+                        VALUES (?, ?, ?, ?)
+                    ''', (key, '0', description, 'rating'))
+                settings_dict[key] = {'key': key, 'value': '0', 'description': description}
+            except Exception as e:
+                log_error(f"Error initializing rating setting for award {award['id']}: {e}")
+    
+    for title in titles:
+        key = f'rating_title_{title["id"]}'
+        if key not in settings_dict:
+            # Создаем настройку с дефолтным значением 0
+            try:
+                columns_info = conn.execute("PRAGMA table_info(settings)").fetchall()
+                columns = [col[1] for col in columns_info]
+                description = f'Очки за звание: {title["display_name"]}'
+                
+                if 'created_at' in columns and 'created_by' in columns and 'updated_at' in columns and 'updated_by' in columns:
+                    conn.execute('''
+                        INSERT INTO settings (key, value, description, category, created_at, created_by, updated_at, updated_by)
+                        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?)
+                    ''', (key, '0', description, 'rating', session.get('user_id'), session.get('user_id')))
+                elif 'updated_at' in columns and 'updated_by' in columns:
+                    conn.execute('''
+                        INSERT INTO settings (key, value, description, category, updated_at, updated_by)
+                        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+                    ''', (key, '0', description, 'rating', session.get('user_id')))
+                elif 'updated_at' in columns:
+                    conn.execute('''
+                        INSERT INTO settings (key, value, description, category, updated_at)
+                        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ''', (key, '0', description, 'rating'))
+                else:
+                    conn.execute('''
+                        INSERT INTO settings (key, value, description, category)
+                        VALUES (?, ?, ?, ?)
+                    ''', (key, '0', description, 'rating'))
+                settings_dict[key] = {'key': key, 'value': '0', 'description': description}
+            except Exception as e:
+                log_error(f"Error initializing rating setting for title {title['id']}: {e}")
+    
+    conn.commit()
+    conn.close()
+    
+    return render_template('admin/rating_settings.html', 
+                         settings_dict=settings_dict,
+                         awards=awards,
+                         titles=titles)
 
 @app.route('/admin/broadcasts')
 @require_role('admin')
@@ -4150,8 +4809,9 @@ def admin_users():
     """Управление пользователями"""
     conn = get_db_connection()
     users = conn.execute('''
-        SELECT u.*, 
-               GROUP_CONCAT(r.display_name, ', ') as roles
+        SELECT u.*,
+               GROUP_CONCAT(r.display_name, ', ') as roles,
+               (SELECT COUNT(*) FROM user_admin_comments WHERE user_id = u.user_id) as comments_count
         FROM users u
         LEFT JOIN user_roles ur ON u.user_id = ur.user_id
         LEFT JOIN roles r ON ur.role_id = r.id
@@ -5200,6 +5860,8 @@ def admin_settings():
                         category = 'integrations'
                     elif key.startswith('telegram_'):
                         category = 'integrations'
+                    elif key.startswith('rating_'):
+                        category = 'rating'
                     
                     # Получаем описание настройки, если оно есть
                     description = ''
@@ -5251,9 +5913,10 @@ def admin_settings():
         conn.close()
         return redirect(url_for('admin_settings'))
     
-    # Получаем все настройки, сгруппированные по категориям
+    # Получаем все настройки, сгруппированные по категориям (исключаем rating - она в отдельной странице)
     settings = conn.execute('''
         SELECT * FROM settings 
+        WHERE category != 'rating' OR category IS NULL
         ORDER BY category, key
     ''').fetchall()
     
@@ -5264,6 +5927,9 @@ def admin_settings():
     for setting in settings:
         setting_dict = dict(setting)
         category = setting['category'] or 'general'
+        # Пропускаем категорию rating - она в отдельной странице
+        if category == 'rating':
+            continue
         if category not in settings_by_category:
             settings_by_category[category] = []
         settings_by_category[category].append(setting_dict)
@@ -6726,6 +7392,14 @@ def get_setting(key, default=None):
         log_error(f"Error getting setting {key}: {e}")
         return default
 
+def get_rating_setting(key, default=1):
+    """Получает настройку рейтинга как целое число"""
+    try:
+        value = get_setting(key, str(default))
+        return int(value) if value else default
+    except (ValueError, TypeError):
+        return default
+
 def set_setting(key, value, description=None, category='general'):
     """Устанавливает значение настройки"""
     conn = get_db_connection()
@@ -7319,7 +7993,7 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
                 'assigned_by': row['assigned_by'] if 'assigned_by' in row.keys() else None
             }
         
-        # Получаем старые assignment_id для переноса сообщений
+        # Получаем старые назначения для проверки наличия сообщений
         old_assignments_map = {}
         old_assignments_rows = conn.execute('''
             SELECT id, santa_user_id, recipient_user_id
@@ -7330,7 +8004,58 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
             key = (row['santa_user_id'], row['recipient_user_id'])
             old_assignments_map[key] = row['id']
         
-        conn.execute('DELETE FROM event_assignments WHERE event_id = ?', (event_id,))
+        # Определяем, какие назначения нужно удалить
+        # НЕ удаляем назначения, у которых есть сообщения (чаты) - они сохраняются навсегда для админа
+        # Удаляем все старые назначения без сообщений, даже если для той же пары будет создано новое назначение
+        new_pairs_set = set(assignments)
+        
+        # Проверяем все старые назначения и удаляем те, у которых нет сообщений
+        # НЕ удаляем архивированные назначения - они уже в архиве
+        deleted_count = 0
+        kept_count = 0
+        archived_count = 0
+        for row in old_assignments_rows:
+            santa_id = row['santa_user_id']
+            recipient_id = row['recipient_user_id']
+            assignment_id = row['id']
+            
+            # Проверяем, архивировано ли назначение
+            assignment_check = conn.execute('''
+                SELECT is_archived FROM event_assignments WHERE id = ?
+            ''', (assignment_id,)).fetchone()
+            is_archived = assignment_check and ('is_archived' in assignment_check.keys() and assignment_check['is_archived'] == 1)
+            
+            if is_archived:
+                # Архивированное назначение - не трогаем
+                archived_count += 1
+                log_debug(f"Skipping archived assignment_id {assignment_id} for pair ({santa_id}, {recipient_id})")
+                continue
+            
+            # Проверяем, есть ли сообщения у этого назначения
+            message_count = conn.execute('''
+                SELECT COUNT(*) as cnt FROM letter_messages WHERE assignment_id = ?
+            ''', (assignment_id,)).fetchone()
+            
+            if message_count and message_count['cnt'] > 0:
+                # Есть сообщения - НЕ удаляем, сохраняем чат навсегда
+                kept_count += 1
+                log_debug(f"Keeping assignment_id {assignment_id} for pair ({santa_id}, {recipient_id}) with {message_count['cnt']} messages - chat preserved for admin")
+            else:
+                # Нет сообщений - удаляем, даже если для этой пары будет создано новое назначение
+                conn.execute('''
+                    DELETE FROM event_assignments 
+                    WHERE id = ?
+                ''', (assignment_id,))
+                deleted_count += 1
+                log_debug(f"Deleted assignment_id {assignment_id} for pair ({santa_id}, {recipient_id}) - no messages")
+        
+        if deleted_count > 0:
+            log_debug(f"Deleted {deleted_count} old assignments without messages")
+        if kept_count > 0:
+            log_debug(f"Kept {kept_count} old assignments with messages - chats preserved permanently for admin")
+        if archived_count > 0:
+            log_debug(f"Skipped {archived_count} archived assignments")
+        
         locked_map = {}
         if locked_pairs:
             for entry in locked_pairs:
@@ -7349,10 +8074,22 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
                     continue
                 locked_map[santa] = recipient
 
+        # Создаем новые назначения для всех пар из нового распределения
+        # НЕ переносим сообщения - создаем новый чат, даже если для этой пары уже был чат
+        # Но проверяем, не была ли эта пара уже расформирована (архивирована)
         data = []
-        assignment_id_mapping = {}  # Старый ID -> Новый ID для переноса сообщений
         for santa, recipient in assignments:
-            # Проверяем, есть ли старые данные для этой пары
+            # Проверяем, есть ли архивированное назначение для этой пары
+            archived_check = conn.execute('''
+                SELECT id FROM assignment_chat_history
+                WHERE event_id = ? AND santa_user_id = ? AND recipient_user_id = ?
+                ORDER BY archived_at DESC
+                LIMIT 1
+            ''', (event_id, santa, recipient)).fetchone()
+            
+            if archived_check:
+                log_debug(f"Creating new assignment for pair ({santa}, {recipient}) - previous chat was archived (history_id: {archived_check['id']})")
+            # Проверяем, есть ли старые данные для этой пары (для сохранения статуса отправки/получения)
             old_data = existing_data_map.get((santa, recipient), {})
             
             # Определяем locked статус
@@ -7365,28 +8102,49 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
             assignment_locked_flag = 1 if assignment_locked else (old_data.get('assignment_locked', 0))
             
             # Сохраняем старые данные о отправке/получении, если они есть
+            # НО: создаем новое назначение, даже если для этой пары уже было назначение
             santa_sent_at = old_data.get('santa_sent_at')
             santa_send_info = old_data.get('santa_send_info')
             recipient_received_at = old_data.get('recipient_received_at')
             recipient_thanks_message = old_data.get('recipient_thanks_message')
             recipient_receipt_image = old_data.get('recipient_receipt_image')
-            assigned_at = old_data.get('assigned_at') or datetime.now().isoformat()
-            assigned_by_final = old_data.get('assigned_by') or assigned_by
+            assigned_at = datetime.now().isoformat()  # Всегда новая дата назначения для нового чата
+            assigned_by_final = assigned_by  # Всегда новый назначивший для нового чата
             
-            data.append((
-                event_id, santa, recipient, assigned_by_final, locked_flag, assignment_locked_flag,
-                santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image,
-                assigned_at
-            ))
+            # Проверяем, существует ли уже активное (не архивированное) назначение для этой пары
+            existing_active = conn.execute('''
+                SELECT id, is_archived FROM event_assignments
+                WHERE event_id = ? AND santa_user_id = ? AND recipient_user_id = ? AND (is_archived = 0 OR is_archived IS NULL)
+            ''', (event_id, santa, recipient)).fetchone()
             
-            # Сохраняем маппинг старых assignment_id на пару (santa, recipient) для переноса сообщений
-            old_key = (santa, recipient)
-            if old_key in old_assignments_map:
-                assignment_id_mapping[old_assignments_map[old_key]] = (santa, recipient)
+            if existing_active:
+                # Активное назначение уже существует - обновляем его вместо создания нового
+                # (запрос уже фильтрует по is_archived = 0 или NULL)
+                existing_id = existing_active['id']
+                conn.execute('''
+                    UPDATE event_assignments
+                    SET assigned_by = ?, locked = ?, assignment_locked = ?,
+                        santa_sent_at = ?, santa_send_info = ?, recipient_received_at = ?,
+                        recipient_thanks_message = ?, recipient_receipt_image = ?,
+                        assigned_at = ?, is_archived = 0
+                    WHERE id = ?
+                ''', (
+                    assigned_by_final, locked_flag, assignment_locked_flag,
+                    santa_sent_at, santa_send_info, recipient_received_at,
+                    recipient_thanks_message, recipient_receipt_image,
+                    assigned_at, existing_id
+                ))
+                log_debug(f"Updated existing assignment_id {existing_id} for pair ({santa}, {recipient})")
+            else:
+                # Новое назначение - добавляем в список для вставки
+                data.append((
+                    event_id, santa, recipient, assigned_by_final, locked_flag, assignment_locked_flag,
+                    santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image,
+                    assigned_at
+                ))
         
-        # Вставляем новые назначения по одному, чтобы получить их ID для переноса сообщений
+        # Вставляем новые назначения - всегда создаем новые, даже если для пары уже был чат
         cursor = conn.cursor()
-        new_assignments_id_map = {}  # (santa, recipient) -> новый assignment_id
         for assignment_data in data:
             cursor.execute('''
                 INSERT INTO event_assignments (
@@ -7399,19 +8157,9 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
             new_assignment_id = cursor.lastrowid
             santa = assignment_data[1]
             recipient = assignment_data[2]
-            new_assignments_id_map[(santa, recipient)] = new_assignment_id
+            log_debug(f"Created new assignment_id {new_assignment_id} for pair ({santa}, {recipient}) - new chat created")
         
-        # Переносим сообщения на новые assignment_id
-        if assignment_id_mapping:
-            for old_id, pair_key in assignment_id_mapping.items():
-                if pair_key in new_assignments_id_map:
-                    new_id = new_assignments_id_map[pair_key]
-                    conn.execute('''
-                        UPDATE letter_messages
-                        SET assignment_id = ?
-                        WHERE assignment_id = ?
-                    ''', (new_id, old_id))
-                    log_debug(f"Transferred messages from old assignment_id {old_id} to new assignment_id {new_id} for pair {pair_key}")
+        # НЕ переносим сообщения - каждый раз создается новый чат
         
         conn.commit()
         log_activity(
@@ -7469,9 +8217,12 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
         return False, str(e)
 
 def get_user_assignments(user_id):
-    """Получает задания пользователя (где он Дед Мороз и где Внучка)"""
+    """Получает задания пользователя (где он Дед Мороз и где Внучка)
+    Показывает только последнее назначение для каждой пары в рамках мероприятия
+    """
     conn = get_db_connection()
     # Получаем задания, где пользователь Дед Мороз
+    # Используем подзапрос для получения только последнего назначения для каждой пары
     as_santa_rows = conn.execute('''
         SELECT 
             ea.*,
@@ -7502,6 +8253,16 @@ def get_user_assignments(user_id):
         LEFT JOIN event_registration_details rd
             ON rd.event_id = ea.event_id AND rd.user_id = ea.recipient_user_id
         WHERE ea.santa_user_id = ?
+          AND ea.is_archived = 0
+          AND ea.id = (
+              SELECT id FROM event_assignments ea2
+              WHERE ea2.event_id = ea.event_id
+                AND ea2.santa_user_id = ea.santa_user_id
+                AND ea2.recipient_user_id = ea.recipient_user_id
+                AND ea2.is_archived = 0
+              ORDER BY ea2.assigned_at DESC, ea2.id DESC
+              LIMIT 1
+          )
         ORDER BY ea.assigned_at DESC
     ''', (user_id,)).fetchall()
     
@@ -7540,6 +8301,16 @@ def get_user_assignments(user_id):
         LEFT JOIN event_registration_details rd
             ON rd.event_id = ea.event_id AND rd.user_id = ea.recipient_user_id
         WHERE ea.recipient_user_id = ?
+          AND ea.is_archived = 0
+          AND ea.id = (
+              SELECT id FROM event_assignments ea2
+              WHERE ea2.event_id = ea.event_id
+                AND ea2.santa_user_id = ea.santa_user_id
+                AND ea2.recipient_user_id = ea.recipient_user_id
+                AND ea2.is_archived = 0
+              ORDER BY ea2.assigned_at DESC, ea2.id DESC
+              LIMIT 1
+          )
         ORDER BY ea.assigned_at DESC
     ''', (user_id,)).fetchall()
     
@@ -7625,6 +8396,7 @@ def get_admin_letter_assignments():
             FROM letter_messages
             GROUP BY assignment_id
         ) lm ON lm.assignment_id = ea.id
+        WHERE ea.is_archived = 0
         ORDER BY
             CASE WHEN lm.last_message_at IS NULL THEN 1 ELSE 0 END,
             lm.last_message_at DESC,
@@ -7825,6 +8597,14 @@ def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_
             receipt_relative_path
         ))
         conn.commit()
+        
+        # Добавляем автоматический комментарий "спасибо от внучка" в профиль получателя
+        assignment_data = conn.execute('SELECT recipient_user_id FROM event_assignments WHERE id = ?', (assignment_id,)).fetchone()
+        if assignment_data:
+            recipient_id = assignment_data['recipient_user_id']
+            thanks_comment = f"Спасибо от внучка: {thank_you_message}" if thank_you_message else "Спасибо от внучка: Подарок получен!"
+            add_thanks_comment_from_recipient(recipient_id, assignment_id, thanks_comment)
+        
         return True, 'Получение подарка подтверждено'
     except Exception as e:
         log_error(f"Error marking assignment received (id={assignment_id}): {e}")
@@ -9800,7 +10580,8 @@ def admin_event_distribution_positive_view(event_id):
             END as has_sent_indicator
         FROM event_assignments ea
         WHERE ea.event_id = ?
-            ORDER BY ea.assigned_at ASC, ea.id ASC
+          AND ea.is_archived = 0
+        ORDER BY ea.assigned_at ASC, ea.id ASC
         ''', (event_id,)).fetchall()
         conn_assignments.close()
 
@@ -9836,6 +10617,12 @@ def admin_event_distribution_positive_view(event_id):
                 'assignment_locked': assignment_locked_flag
             })
 
+        # Определяем, какие участники имеют пары (сформированы)
+        participants_with_pairs = set()
+        for pair in saved_pairs:
+            participants_with_pairs.add(pair['santa_id'])
+            participants_with_pairs.add(pair['recipient_id'])
+        
         distribution_url = url_for('admin_event_distribution_positive_generate', event_id=event_id)
         distribution_save_url = url_for('admin_event_distribution_positive_save', event_id=event_id)
 
@@ -9845,6 +10632,7 @@ def admin_event_distribution_positive_view(event_id):
             distribution_type='positive',
             participants=participants_data,
             participants_count=len(participants_data),
+            participants_with_pairs=participants_with_pairs,
             distribution_generate_url=distribution_url,
             distribution_save_url=distribution_save_url,
             distribution_create_assignments_url=url_for('admin_event_distribution_positive_create_assignments', event_id=event_id),
@@ -9906,20 +10694,63 @@ def admin_event_distribution_positive_unassign(event_id):
 
     conn = get_db_connection()
     try:
-        cursor = conn.execute('''
-            DELETE FROM event_assignments
-            WHERE event_id = ? AND santa_user_id = ?
-        ''', (event_id, santa_id))
-        if cursor.rowcount == 0:
+        # Получаем информацию о назначении перед удалением
+        assignment = conn.execute('''
+            SELECT id, santa_user_id, recipient_user_id
+            FROM event_assignments
+            WHERE event_id = ? AND santa_user_id = ? AND is_archived = 0
+        ''', (event_id, santa_id)).fetchone()
+        
+        if not assignment:
             conn.close()
             return jsonify({'success': False, 'error': 'Задание для выбранного участника не найдено'}), 404
+        
+        assignment_id = assignment['id']
+        recipient_id = assignment['recipient_user_id']
+        
+        # Проверяем, есть ли сообщения в чате
+        message_count = conn.execute('''
+            SELECT COUNT(*) as cnt FROM letter_messages WHERE assignment_id = ?
+        ''', (assignment_id,)).fetchone()
+        
+        has_messages = message_count and message_count['cnt'] > 0
+        
+        # Если есть сообщения, сохраняем чат в архив
+        if has_messages:
+            user_id = session.get('user_id')
+            conn.execute('''
+                INSERT INTO assignment_chat_history (
+                    original_assignment_id, event_id, santa_user_id, recipient_user_id,
+                    archived_at, archived_by
+                )
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+            ''', (assignment_id, event_id, santa_id, recipient_id, user_id))
+            log_debug(f"Archived chat for assignment_id {assignment_id} (pair: {santa_id} -> {recipient_id}) with {message_count['cnt']} messages")
+        
+        # Помечаем назначение как архивированное вместо удаления
+        conn.execute('''
+            UPDATE event_assignments
+            SET is_archived = 1
+            WHERE id = ?
+        ''', (assignment_id,))
+        
         conn.commit()
+        
+        action_msg = 'Задание отменено. Чат сохранён в архиве.' if has_messages else 'Задание отменено. Пара снова доступна для редактирования.'
+        
         log_activity(
             'assignment_removed',
             details=f'Задание отменено для мероприятия #{event_id} (Дед Мороз #{santa_id})',
-            metadata={'event_id': event_id, 'santa_user_id': santa_id}
+            metadata={
+                'event_id': event_id,
+                'santa_user_id': santa_id,
+                'recipient_user_id': recipient_id,
+                'assignment_id': assignment_id,
+                'chat_archived': has_messages,
+                'messages_count': message_count['cnt'] if has_messages else 0
+            }
         )
-        return jsonify({'success': True, 'message': 'Задание отменено. Пара снова доступна для редактирования.'})
+        return jsonify({'success': True, 'message': action_msg, 'chat_archived': has_messages})
     except Exception as e:
         conn.rollback()
         log_error(f"Error removing assignment for event {event_id}, santa {santa_id}: {e}")
@@ -10136,6 +10967,7 @@ def admin_event_distribution_positive_generate(event_id):
             END as has_sent_indicator
         FROM event_assignments ea
         WHERE ea.event_id = ?
+          AND ea.is_archived = 0
     ''', (event_id,)).fetchall()
     conn_existing.close()
     
@@ -11067,7 +11899,61 @@ def letter():
 
     accessible_assignments = []
     if admin_override:
+        # Для админа показываем активные чаты
         accessible_assignments = get_admin_letter_assignments()
+        
+        # Также добавляем архивированные чаты, если запрашивается конкретный assignment_id
+        if assignment_id:
+            conn = get_db_connection()
+            archived_chat = conn.execute('''
+                SELECT original_assignment_id, event_id, santa_user_id, recipient_user_id
+                FROM assignment_chat_history
+                WHERE original_assignment_id = ?
+            ''', (assignment_id,)).fetchone()
+            conn.close()
+            
+            if archived_chat:
+                # Получаем информацию об архивированном чате
+                conn = get_db_connection()
+                archived_info = conn.execute('''
+                    SELECT
+                        ea.*,
+                        e.name AS event_name,
+                        santa.username AS santa_username,
+                        santa.first_name AS santa_first_name,
+                        santa.last_name AS santa_last_name,
+                        santa.middle_name AS santa_middle_name,
+                        COALESCE(sd.country, santa.country) AS santa_country,
+                        COALESCE(sd.city, santa.city) AS santa_city,
+                        recipient.username AS recipient_username,
+                        COALESCE(rd.last_name, recipient.last_name) AS recipient_last_name,
+                        COALESCE(rd.first_name, recipient.first_name) AS recipient_first_name,
+                        COALESCE(rd.middle_name, recipient.middle_name) AS recipient_middle_name,
+                        COALESCE(rd.postal_code, recipient.postal_code) AS recipient_postal_code,
+                        COALESCE(rd.country, recipient.country) AS recipient_country,
+                        COALESCE(rd.city, recipient.city) AS recipient_city,
+                        COALESCE(rd.street, recipient.street) AS recipient_street,
+                        COALESCE(rd.house, recipient.house) AS recipient_house,
+                        COALESCE(rd.building, recipient.building) AS recipient_building,
+                        COALESCE(rd.apartment, recipient.apartment) AS recipient_apartment,
+                        rd.bio AS recipient_bio
+                    FROM event_assignments ea
+                    JOIN events e ON ea.event_id = e.id
+                    JOIN users santa ON ea.santa_user_id = santa.user_id
+                    JOIN users recipient ON ea.recipient_user_id = recipient.user_id
+                    LEFT JOIN event_registration_details rd
+                        ON rd.event_id = ea.event_id AND rd.user_id = ea.recipient_user_id
+                    LEFT JOIN event_registration_details sd
+                        ON sd.event_id = ea.event_id AND sd.user_id = ea.santa_user_id
+                    WHERE ea.id = ?
+                ''', (assignment_id,)).fetchone()
+                conn.close()
+                
+                if archived_info:
+                    archived_dict = dict(archived_info)
+                    archived_dict['chat_role'] = 'admin'
+                    archived_dict['is_archived'] = True
+                    accessible_assignments.append(archived_dict)
     else:
         user_assignments = get_user_assignments(user_id_int)
         for assignment in user_assignments:
@@ -11348,6 +12234,66 @@ def assignments():
             assignments_by_event[event_id]['as_recipient'] = assignment
     
     return render_template('assignments.html', assignments_by_event=assignments_by_event)
+@app.route('/admin/letters/archived')
+@require_role('admin')
+def admin_letters_archived():
+    """Просмотр архивных чатов (расформированных пар)"""
+    conn = get_db_connection()
+    try:
+        archived_chats = conn.execute('''
+            SELECT
+                ach.*,
+                e.name AS event_name,
+                e.id AS event_id,
+                santa.username AS santa_username,
+                santa.first_name AS santa_first_name,
+                santa.last_name AS santa_last_name,
+                santa.middle_name AS santa_middle_name,
+                recipient.username AS recipient_username,
+                COALESCE(rd.last_name, recipient.last_name) AS recipient_last_name,
+                COALESCE(rd.first_name, recipient.first_name) AS recipient_first_name,
+                COALESCE(rd.middle_name, recipient.middle_name) AS recipient_middle_name,
+                archiver.username AS archiver_username,
+                (SELECT COUNT(*) FROM letter_messages WHERE assignment_id = ach.original_assignment_id) AS message_count,
+                (SELECT MAX(created_at) FROM letter_messages WHERE assignment_id = ach.original_assignment_id) AS last_message_at
+            FROM assignment_chat_history ach
+            JOIN events e ON ach.event_id = e.id
+            JOIN users santa ON ach.santa_user_id = santa.user_id
+            JOIN users recipient ON ach.recipient_user_id = recipient.user_id
+            LEFT JOIN event_registration_details rd
+                ON rd.event_id = ach.event_id AND rd.user_id = ach.recipient_user_id
+            LEFT JOIN users archiver ON ach.archived_by = archiver.user_id
+            ORDER BY ach.archived_at DESC
+        ''').fetchall()
+        conn.close()
+        
+        archived_data = []
+        for row in archived_chats:
+            archived_data.append({
+                'id': row['id'],
+                'original_assignment_id': row['original_assignment_id'],
+                'event_id': row['event_id'],
+                'event_name': row['event_name'],
+                'santa_user_id': row['santa_user_id'],
+                'santa_username': row['santa_username'],
+                'santa_name': f"{row['santa_last_name'] or ''} {row['santa_first_name'] or ''} {row['santa_middle_name'] or ''}".strip() or row['santa_username'],
+                'recipient_user_id': row['recipient_user_id'],
+                'recipient_username': row['recipient_username'],
+                'recipient_name': f"{row['recipient_last_name'] or ''} {row['recipient_first_name'] or ''} {row['recipient_middle_name'] or ''}".strip() or row['recipient_username'],
+                'archived_at': row['archived_at'],
+                'archived_by': row['archived_by'],
+                'archiver_username': row['archiver_username'],
+                'notes': row['notes'],
+                'message_count': row['message_count'] or 0,
+                'last_message_at': row['last_message_at']
+            })
+        
+        return render_template('admin/letters_archived.html', archived_chats=archived_data)
+    except Exception as e:
+        log_error(f"Error loading archived chats: {e}")
+        flash('Ошибка при загрузке архивных чатов', 'error')
+        return redirect(url_for('admin_letters'))
+
 @app.route('/admin/letters')
 @require_role('admin')
 def admin_letters():
@@ -11464,26 +12410,28 @@ def _sync_contact_snowflakes(conn, user_row):
     for source, label, reason in _SNOWFLAKE_CONTACT_SOURCES:
         contact_value = _normalize_contact_value(user_row.get(source))
         event = existing_map.get(source)
+        # Получаем настройку очков для этого контакта
+        points = get_rating_setting(f'rating_contact_{source}', 1)
         if contact_value:
             if not event:
                 conn.execute(
                     '''
                     INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
-                    VALUES (?, ?, ?, 1, 1, 0)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     ''',
-                    (user_id, source, reason, 1)
+                    (user_id, source, reason, points, 1, 0)
                 )
             elif not event['active'] and not event['manual_revoked']:
                 conn.execute(
                     '''
                     UPDATE snowflake_events
                     SET active = 1,
-                        points = 1,
+                        points = ?,
                         revoked_at = NULL,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     ''',
-                    (event['id'],)
+                    (points, event['id'])
                 )
         else:
             if event and event['active'] and not event['manual_revoked']:
@@ -11502,6 +12450,8 @@ def _sync_contact_snowflakes(conn, user_row):
 def _ensure_registration_bonus_event(conn, event_id, user_id):
     source = f'event:{event_id}:registration_bonus'
     reason = f'Регистрация закрыта: мероприятие #{event_id}'
+    # Получаем настройку очков за регистрацию
+    points = get_rating_setting('rating_event_registration', 1)
     existing = conn.execute(
         '''
         SELECT id, active, manual_revoked
@@ -11514,28 +12464,30 @@ def _ensure_registration_bonus_event(conn, event_id, user_id):
         conn.execute(
             '''
             INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
-            VALUES (?, ?, ?, 1, 1, 0)
+            VALUES (?, ?, ?, ?, ?, ?)
             ''',
-            (user_id, source, reason, 1)
+            (user_id, source, reason, points, 1, 0)
         )
     elif not existing['active']:
         conn.execute(
             '''
             UPDATE snowflake_events
             SET active = 1,
-                points = 1,
+                points = ?,
                 manual_revoked = 0,
                 revoked_at = NULL,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             ''',
-            (existing['id'],)
+            (points, existing['id'])
         )
 
 
 def _set_review_penalty(conn, event_id, user_id, apply_penalty=True):
     source = f'event:{event_id}:review_penalty'
     reason = f'Негативное ревью: мероприятие #{event_id}'
+    # Получаем настройку штрафа за негативное ревью (отрицательное значение)
+    penalty_points = get_rating_setting('rating_event_review_penalty', -2)
     existing = conn.execute(
         '''
         SELECT id, active, manual_revoked
@@ -11550,22 +12502,22 @@ def _set_review_penalty(conn, event_id, user_id, apply_penalty=True):
             conn.execute(
                 '''
                 INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
-                VALUES (?, ?, ?, -2, 1, 0)
+                VALUES (?, ?, ?, ?, ?, ?)
                 ''',
-                (user_id, source, reason, -2)
+                (user_id, source, reason, penalty_points, 1, 0)
             )
         elif not existing['manual_revoked']:
             conn.execute(
                 '''
                 UPDATE snowflake_events
                 SET active = 1,
-                    points = -2,
+                    points = ?,
                     manual_revoked = 0,
                     revoked_at = NULL,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 ''',
-                (existing['id'],)
+                (penalty_points, existing['id'])
             )
     else:
         if existing and existing['active']:
@@ -11599,7 +12551,203 @@ def _get_snowflake_source_label(source):
                 return f'Бонус за регистрацию (мероприятие #{event_id})' if event_id else 'Бонус за регистрацию'
             if suffix == 'review_penalty':
                 return f'Негативное ревью (мероприятие #{event_id})' if event_id else 'Негативное ревью'
+    if source.startswith('award:'):
+        try:
+            award_id = int(source.replace('award:', ''))
+            conn = get_db_connection()
+            award = conn.execute('SELECT title FROM awards WHERE id = ?', (award_id,)).fetchone()
+            conn.close()
+            if award:
+                return f'Награда: {award["title"]}'
+        except (ValueError, TypeError):
+            pass
+        return 'Награда'
+    if source.startswith('title:'):
+        try:
+            title_id = int(source.replace('title:', ''))
+            conn = get_db_connection()
+            title = conn.execute('SELECT display_name FROM titles WHERE id = ?', (title_id,)).fetchone()
+            conn.close()
+            if title:
+                return f'Звание: {title["display_name"]}'
+        except (ValueError, TypeError):
+            pass
+        return 'Звание'
     return source
+
+def recalculate_all_snowflake_events(conn, settings_dict):
+    """Пересчитывает все существующие события snowflake_events на основе новых настроек"""
+    # Получаем все активные события
+    events = conn.execute('''
+        SELECT id, user_id, source, points, active, manual_revoked
+        FROM snowflake_events
+        WHERE active = 1
+    ''').fetchall()
+    
+    updated_count = 0
+    created_count = 0
+    created_count = 0
+    
+    # Обрабатываем существующие события
+    for event in events:
+        source = event['source']
+        new_points = None
+        
+        # Определяем новые очки на основе source
+        if source in ('telegram', 'whatsapp', 'viber'):
+            # Контакты
+            setting_key = f'rating_contact_{source}'
+            if setting_key in settings_dict:
+                new_points = int(settings_dict[setting_key])
+        elif source.startswith('event:'):
+            parts = source.split(':')
+            if len(parts) >= 3:
+                suffix = parts[2]
+                if suffix == 'registration_bonus':
+                    # Регистрация на мероприятие
+                    if 'rating_event_registration' in settings_dict:
+                        new_points = int(settings_dict['rating_event_registration'])
+                elif suffix == 'review_penalty':
+                    # Штраф за негативное ревью
+                    if 'rating_event_review_penalty' in settings_dict:
+                        new_points = int(settings_dict['rating_event_review_penalty'])
+        elif source.startswith('award:'):
+            # Награда
+            try:
+                award_id = int(source.replace('award:', ''))
+                setting_key = f'rating_award_{award_id}'
+                if setting_key in settings_dict:
+                    new_points = int(settings_dict[setting_key])
+                    log_debug(f"Found award event: source={source}, award_id={award_id}, setting_key={setting_key}, new_points={new_points}")
+            except (ValueError, TypeError) as e:
+                log_error(f"Error parsing award source {source}: {e}")
+                pass
+        elif source.startswith('title:'):
+            # Звание
+            try:
+                title_id = int(source.replace('title:', ''))
+                setting_key = f'rating_title_{title_id}'
+                if setting_key in settings_dict:
+                    new_points = int(settings_dict[setting_key])
+            except (ValueError, TypeError):
+                pass
+        
+        # Обновляем очки, если они изменились
+        if new_points is not None and new_points != event['points']:
+            conn.execute('''
+                UPDATE snowflake_events
+                SET points = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (new_points, event['id']))
+            updated_count += 1
+    
+    # Создаем события для наград, которые назначены, но событий еще нет
+    for key, value in settings_dict.items():
+        if key.startswith('rating_award_'):
+            try:
+                award_id = int(key.replace('rating_award_', ''))
+                points = int(value)
+                
+                # Получаем всех пользователей с этой наградой
+                users_with_award = conn.execute('''
+                    SELECT DISTINCT user_id FROM user_awards WHERE award_id = ?
+                ''', (award_id,)).fetchall()
+                
+                log_debug(f"Found {len(users_with_award)} users with award {award_id}, points={points}")
+                
+                for user_row in users_with_award:
+                    user_id = user_row['user_id']
+                    source = f'award:{award_id}'
+                    
+                    # Проверяем, есть ли уже событие
+                    existing = conn.execute('''
+                        SELECT id, active FROM snowflake_events
+                        WHERE user_id = ? AND source = ?
+                    ''', (user_id, source)).fetchone()
+                    
+                    if not existing:
+                        # Создаем новое событие
+                        reason = f'Назначена награда (ID: {award_id})'
+                        conn.execute('''
+                            INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
+                            VALUES (?, ?, ?, ?, 1, 0)
+                        ''', (user_id, source, reason, points))
+                        created_count += 1
+                        log_debug(f"Created new event for user {user_id}, award {award_id}, points {points}")
+                    elif existing['active']:
+                        # Обновляем существующее активное событие, если очки изменились
+                        old_points_row = conn.execute('SELECT points FROM snowflake_events WHERE id = ?', (existing['id'],)).fetchone()
+                        if old_points_row and old_points_row['points'] != points:
+                            conn.execute('''
+                                UPDATE snowflake_events
+                                SET points = ?, updated_at = CURRENT_TIMESTAMP
+                                WHERE id = ?
+                            ''', (points, existing['id']))
+                            updated_count += 1
+                            log_debug(f"Updated active event {existing['id']} for user {user_id}, award {award_id}: {old_points_row['points']} -> {points}")
+                    elif not existing['active']:
+                        # Активируем и обновляем существующее неактивное событие
+                        conn.execute('''
+                            UPDATE snowflake_events
+                            SET points = ?, active = 1, manual_revoked = 0,
+                                revoked_at = NULL, updated_at = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                        ''', (points, existing['id']))
+                        updated_count += 1
+                        log_debug(f"Reactivated event {existing['id']} for user {user_id}, award {award_id}, points {points}")
+            except (ValueError, TypeError) as e:
+                log_error(f"Error processing award setting {key}: {e}")
+        
+        elif key.startswith('rating_title_'):
+            try:
+                title_id = int(key.replace('rating_title_', ''))
+                points = int(value)
+                
+                # Получаем всех пользователей с этим званием
+                users_with_title = conn.execute('''
+                    SELECT DISTINCT user_id FROM user_titles WHERE title_id = ?
+                ''', (title_id,)).fetchall()
+                
+                for user_row in users_with_title:
+                    user_id = user_row['user_id']
+                    source = f'title:{title_id}'
+                    
+                    # Проверяем, есть ли уже событие
+                    existing = conn.execute('''
+                        SELECT id, active FROM snowflake_events
+                        WHERE user_id = ? AND source = ?
+                    ''', (user_id, source)).fetchone()
+                    
+                    if not existing:
+                        # Создаем новое событие (даже если points = 0, чтобы было событие для будущих обновлений)
+                        reason = f'Назначено звание (ID: {title_id})'
+                        conn.execute('''
+                            INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
+                            VALUES (?, ?, ?, ?, 1, 0)
+                        ''', (user_id, source, reason, points))
+                        created_count += 1
+                    elif existing['active'] and existing['id']:
+                        # Обновляем существующее активное событие
+                        conn.execute('''
+                            UPDATE snowflake_events
+                            SET points = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                        ''', (points, existing['id']))
+                        updated_count += 1
+                    elif not existing['active']:
+                        # Активируем и обновляем существующее неактивное событие
+                        conn.execute('''
+                            UPDATE snowflake_events
+                            SET points = ?, active = 1, manual_revoked = 0,
+                                revoked_at = NULL, updated_at = CURRENT_TIMESTAMP
+                            WHERE id = ?
+                        ''', (points, existing['id']))
+                        updated_count += 1
+            except (ValueError, TypeError) as e:
+                log_error(f"Error processing title setting {key}: {e}")
+    
+    log_debug(f"Recalculated {updated_count} snowflake events, created {created_count} new events")
+    return updated_count + created_count
 
 
 

@@ -97,6 +97,10 @@
                             Последний вход
                             <span class="sort-indicator">⇅</span>
                         </th>
+                        <th class="sortable" data-column="7" data-sort="none">
+                            Комментарии
+                            <span class="sort-indicator">⇅</span>
+                        </th>
                         <th>Действия</th>
                     </tr>
                 </thead>
@@ -106,7 +110,8 @@
                         data-username="{{ user.username|lower }}" 
                         data-level="{{ user.level or '' }}" 
                         data-synd="{{ user.synd or '' }}" 
-                        data-roles="{{ (user.roles or 'Нет ролей')|lower }}">
+                        data-roles="{{ (user.roles or 'Нет ролей')|lower }}"
+                        data-comments="{{ user.comments_count or 0 }}">
                         <td data-label="ID">{{ user.user_id }}</td>
                         <td data-label="Имя">{{ user.username }}</td>
                         <td data-label="Уровень">{{ user.level or 'N/A' }}</td>
@@ -114,6 +119,17 @@
                         <td data-label="Роли">{{ user.roles or 'Нет ролей' }}</td>
                         <td data-label="Дата регистрации">{{ user.created_at or 'N/A' }}</td>
                         <td data-label="Последний вход">{{ user.last_login or 'N/A' }}</td>
+                        <td data-label="Комментарии">
+                            {% if user.comments_count and user.comments_count > 0 %}
+                                <a href="{{ url_for('view_profile', user_id=user.user_id) }}#comments" 
+                                   class="comments-badge" 
+                                   title="Просмотреть комментарии">
+                                    💬 {{ user.comments_count }}
+                                </a>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
                         <td data-label="Действия">
                             <div style="display: flex; gap: 0.5rem; align-items: center;">
                                 <a href="{{ url_for('admin_user_edit', user_id=user.user_id) }}" class="btn-icon" title="Редактировать">✏️</a>
@@ -336,12 +352,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const synd = String(row.dataset.synd || '').toLowerCase();
             const roles = row.dataset.roles || '';
             
+            const comments = String(row.dataset.comments || '0');
+            
             const searchMatch = !searchTerm || 
                 userId.includes(searchTerm) ||
                 username.includes(searchTerm) ||
                 level.includes(searchTerm) ||
                 synd.includes(searchTerm) ||
-                roles.includes(searchTerm);
+                roles.includes(searchTerm) ||
+                comments.includes(searchTerm);
             
             const filterMatch = 
                 (!filters.id || userId.includes(filters.id)) &&
