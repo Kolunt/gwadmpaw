@@ -1360,6 +1360,25 @@ function renderPairs(pairs, options = {}) {
                     // Обновляем статус участников на основе оставшихся пар
                     updateParticipantsStatus(remainingPairs);
                     
+                    // Обновляем счетчик таба "Сформировано" на основе оставшихся пар
+                    const formedCountEl = document.getElementById('tab-count-formed');
+                    if (formedCountEl) {
+                        formedCountEl.textContent = remainingPairs.length;
+                    }
+                    
+                    // Обновляем счетчик таба "Несформировано"
+                    const totalParticipants = document.querySelectorAll('.participants-table tbody tr.participant-row').length;
+                    const unformedCountEl = document.getElementById('tab-count-unformed');
+                    if (unformedCountEl) {
+                        const participantsWithPairs = new Set();
+                        remainingPairs.forEach(pair => {
+                            participantsWithPairs.add(pair.santa_id);
+                            participantsWithPairs.add(pair.recipient_id);
+                        });
+                        const unformedCount = totalParticipants - participantsWithPairs.size;
+                        unformedCountEl.textContent = Math.max(0, unformedCount);
+                    }
+                    
                     // Обновляем поиск и счетчики
                     performPairsSearch();
                     
