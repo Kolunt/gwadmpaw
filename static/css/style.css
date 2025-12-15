@@ -5221,6 +5221,11 @@ html.dark .avatar-candidate-img {
     background-color: #28a745;
 }
 
+/* Класс для скрытия элементов */
+.hidden {
+    display: none !important;
+}
+
 .faq-question h3 {
     margin: 0;
     font-size: 1.1rem;

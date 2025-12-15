@@ -8078,6 +8078,7 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
         # НЕ переносим сообщения - создаем новый чат, даже если для этой пары уже был чат
         # Но проверяем, не была ли эта пара уже расформирована (архивирована)
         data = []
+        updated_count = 0
         for santa, recipient in assignments:
             # Проверяем, есть ли архивированное назначение для этой пары
             archived_check = conn.execute('''
@@ -8093,11 +8094,13 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
             old_data = existing_data_map.get((santa, recipient), {})
             
             # Определяем locked статус
+            # Замок устанавливается только если пара явно указана в locked_pairs
+            # Если пара не в locked_pairs, то замок снимается (locked_flag = 0)
             locked_flag = 0
             if assignment_locked or locked_map.get(santa) == recipient:
                 locked_flag = 1
-            elif old_data.get('locked'):
-                locked_flag = 1
+            # НЕ сохраняем старый locked статус, если пара не в locked_pairs
+            # Это позволяет снимать замки с пар
             
             assignment_locked_flag = 1 if assignment_locked else (old_data.get('assignment_locked', 0))
             
@@ -8112,14 +8115,16 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
             assigned_by_final = assigned_by  # Всегда новый назначивший для нового чата
             
             # Проверяем, существует ли уже активное (не архивированное) назначение для этой пары
+            # ВАЖНО: проверяем ВСЕ записи, включая те, у которых есть сообщения (они не были удалены)
             existing_active = conn.execute('''
                 SELECT id, is_archived FROM event_assignments
-                WHERE event_id = ? AND santa_user_id = ? AND recipient_user_id = ? AND (is_archived = 0 OR is_archived IS NULL)
+                WHERE event_id = ? AND santa_user_id = ? AND recipient_user_id = ? 
+                  AND (is_archived = 0 OR is_archived IS NULL)
             ''', (event_id, santa, recipient)).fetchone()
             
             if existing_active:
                 # Активное назначение уже существует - обновляем его вместо создания нового
-                # (запрос уже фильтрует по is_archived = 0 или NULL)
+                # Это предотвращает UNIQUE constraint violation
                 existing_id = existing_active['id']
                 conn.execute('''
                     UPDATE event_assignments
@@ -8134,6 +8139,7 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
                     recipient_thanks_message, recipient_receipt_image,
                     assigned_at, existing_id
                 ))
+                updated_count += 1
                 log_debug(f"Updated existing assignment_id {existing_id} for pair ({santa}, {recipient})")
             else:
                 # Новое назначение - добавляем в список для вставки
@@ -8144,20 +8150,80 @@ def save_event_assignments(event_id, assignments, assigned_by, locked_pairs=None
                 ))
         
         # Вставляем новые назначения - всегда создаем новые, даже если для пары уже был чат
+        # Но сначала еще раз проверяем, что записи не существует (на случай race condition)
         cursor = conn.cursor()
         for assignment_data in data:
-            cursor.execute('''
-                INSERT INTO event_assignments (
-                    event_id, santa_user_id, recipient_user_id, assigned_by, locked, assignment_locked,
-                    santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image,
-                    assigned_at
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', assignment_data)
-            new_assignment_id = cursor.lastrowid
-            santa = assignment_data[1]
-            recipient = assignment_data[2]
-            log_debug(f"Created new assignment_id {new_assignment_id} for pair ({santa}, {recipient}) - new chat created")
+            event_id_check, santa, recipient = assignment_data[0], assignment_data[1], assignment_data[2]
+            
+            # Дополнительная проверка перед вставкой - на случай если запись появилась между проверкой и вставкой
+            final_check = conn.execute('''
+                SELECT id FROM event_assignments
+                WHERE event_id = ? AND santa_user_id = ? AND recipient_user_id = ? 
+                  AND (is_archived = 0 OR is_archived IS NULL)
+            ''', (event_id_check, santa, recipient)).fetchone()
+            
+            if final_check:
+                # Запись появилась - обновляем её вместо создания новой
+                existing_id = final_check['id']
+                locked_flag = assignment_data[4]
+                assignment_locked_flag = assignment_data[5]
+                conn.execute('''
+                    UPDATE event_assignments
+                    SET assigned_by = ?, locked = ?, assignment_locked = ?,
+                        santa_sent_at = ?, santa_send_info = ?, recipient_received_at = ?,
+                        recipient_thanks_message = ?, recipient_receipt_image = ?,
+                        assigned_at = ?, is_archived = 0
+                    WHERE id = ?
+                ''', (
+                    assignment_data[3], locked_flag, assignment_locked_flag,
+                    assignment_data[6], assignment_data[7], assignment_data[8],
+                    assignment_data[9], assignment_data[10],
+                    assignment_data[11], existing_id
+                ))
+                updated_count += 1
+                log_debug(f"Updated existing assignment_id {existing_id} for pair ({santa}, {recipient}) - found during final check")
+            else:
+                # Записи нет - создаем новую
+                try:
+                    cursor.execute('''
+                        INSERT INTO event_assignments (
+                            event_id, santa_user_id, recipient_user_id, assigned_by, locked, assignment_locked,
+                            santa_sent_at, santa_send_info, recipient_received_at, recipient_thanks_message, recipient_receipt_image,
+                            assigned_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', assignment_data)
+                    new_assignment_id = cursor.lastrowid
+                    log_debug(f"Created new assignment_id {new_assignment_id} for pair ({santa}, {recipient}) - new chat created")
+                except sqlite3.IntegrityError as e:
+                    # Если все же возникла ошибка UNIQUE constraint - пытаемся обновить существующую запись
+                    if 'UNIQUE constraint' in str(e):
+                        log_debug(f"UNIQUE constraint error for pair ({santa}, {recipient}), attempting to update existing record")
+                        existing_final = conn.execute('''
+                            SELECT id FROM event_assignments
+                            WHERE event_id = ? AND santa_user_id = ? AND recipient_user_id = ?
+                        ''', (event_id_check, santa, recipient)).fetchone()
+                        if existing_final:
+                            existing_id = existing_final['id']
+                            conn.execute('''
+                                UPDATE event_assignments
+                                SET assigned_by = ?, locked = ?, assignment_locked = ?,
+                                    santa_sent_at = ?, santa_send_info = ?, recipient_received_at = ?,
+                                    recipient_thanks_message = ?, recipient_receipt_image = ?,
+                                    assigned_at = ?, is_archived = 0
+                                WHERE id = ?
+                            ''', (
+                                assignment_data[3], assignment_data[4], assignment_data[5],
+                                assignment_data[6], assignment_data[7], assignment_data[8],
+                                assignment_data[9], assignment_data[10],
+                                assignment_data[11], existing_id
+                            ))
+                            updated_count += 1
+                            log_debug(f"Updated existing assignment_id {existing_id} for pair ({santa}, {recipient}) - after UNIQUE constraint error")
+                        else:
+                            raise  # Если записи нет, но ошибка UNIQUE - это странно, пробрасываем дальше
+                    else:
+                        raise  # Другие ошибки пробрасываем дальше
         
         # НЕ переносим сообщения - каждый раз создается новый чат
         
@@ -10580,7 +10646,7 @@ def admin_event_distribution_positive_view(event_id):
             END as has_sent_indicator
         FROM event_assignments ea
         WHERE ea.event_id = ?
-          AND ea.is_archived = 0
+          AND (ea.is_archived = 0 OR ea.is_archived IS NULL)
         ORDER BY ea.assigned_at ASC, ea.id ASC
         ''', (event_id,)).fetchall()
         conn_assignments.close()
@@ -10623,6 +10689,9 @@ def admin_event_distribution_positive_view(event_id):
             participants_with_pairs.add(pair['santa_id'])
             participants_with_pairs.add(pair['recipient_id'])
         
+        # Считаем незакрепленные пары (без замков) для вкладки "unformed"
+        unformed_pairs_count = len([p for p in saved_pairs if not p.get('locked', False)])
+        
         distribution_url = url_for('admin_event_distribution_positive_generate', event_id=event_id)
         distribution_save_url = url_for('admin_event_distribution_positive_save', event_id=event_id)
 
@@ -10633,6 +10702,7 @@ def admin_event_distribution_positive_view(event_id):
             participants=participants_data,
             participants_count=len(participants_data),
             participants_with_pairs=participants_with_pairs,
+            unformed_pairs_count=unformed_pairs_count,
             distribution_generate_url=distribution_url,
             distribution_save_url=distribution_save_url,
             distribution_create_assignments_url=url_for('admin_event_distribution_positive_create_assignments', event_id=event_id),
@@ -10727,16 +10797,18 @@ def admin_event_distribution_positive_unassign(event_id):
             ''', (assignment_id, event_id, santa_id, recipient_id, user_id))
             log_debug(f"Archived chat for assignment_id {assignment_id} (pair: {santa_id} -> {recipient_id}) with {message_count['cnt']} messages")
         
-        # Помечаем назначение как архивированное вместо удаления
+        # При расформировании снимаем замок и оставляем пару активной (не архивируем)
+        # Это позволяет видеть расформированные пары на вкладке "unformed" и перетаскивать их
+        # Также устанавливаем is_archived = 0, чтобы пара была видна при загрузке страницы
         conn.execute('''
             UPDATE event_assignments
-            SET is_archived = 1
+            SET locked = 0, assignment_locked = 0, is_archived = 0
             WHERE id = ?
         ''', (assignment_id,))
         
         conn.commit()
         
-        action_msg = 'Задание отменено. Чат сохранён в архиве.' if has_messages else 'Задание отменено. Пара снова доступна для редактирования.'
+        action_msg = 'Пара расформирована. Чат сохранён в архиве.' if has_messages else 'Пара расформирована. Пара снова доступна для редактирования.'
         
         log_activity(
             'assignment_removed',
@@ -10764,8 +10836,27 @@ def admin_event_distribution_positive_generate(event_id):
     group_by_country = bool(request_data.get('group_by_country'))
     locked_pairs_raw = request_data.get('locked_pairs') or []
     assignment_locked_santas_raw = request_data.get('assignment_locked_santas') or []
+    participant_ids_filter = request_data.get('participant_ids')  # Список ID участников для фильтрации
+    unformed_only = bool(request_data.get('unformed_only', False))  # Флаг для формирования только из несформированных
+    
     conn = get_db_connection()
-    participants = conn.execute('''
+    
+    # Если нужно формировать только из несформированных участников, получаем список участников с парами
+    excluded_user_ids = set()
+    if unformed_only or participant_ids_filter:
+        # Получаем участников, у которых уже есть пары
+        existing_assignments = conn.execute('''
+            SELECT DISTINCT santa_user_id, recipient_user_id
+            FROM event_assignments
+            WHERE event_id = ? AND is_archived = 0
+        ''', (event_id,)).fetchall()
+        
+        for assignment in existing_assignments:
+            excluded_user_ids.add(assignment['santa_user_id'])
+            excluded_user_ids.add(assignment['recipient_user_id'])
+    
+    # Формируем запрос с учетом фильтров
+    query = '''
         SELECT 
             er.user_id,
             u.username,
@@ -10777,8 +10868,25 @@ def admin_event_distribution_positive_generate(event_id):
         LEFT JOIN event_registration_details d ON d.event_id = er.event_id AND d.user_id = er.user_id
         WHERE er.event_id = ?
           AND epa.approved = 1
-        ORDER BY u.username COLLATE NOCASE
-    ''', (event_id,)).fetchall()
+    '''
+    params = [event_id]
+    
+    # Добавляем фильтры
+    if participant_ids_filter:
+        # Фильтруем по переданным ID
+        placeholders = ','.join(['?'] * len(participant_ids_filter))
+        query += f' AND er.user_id IN ({placeholders})'
+        params.extend(participant_ids_filter)
+    elif unformed_only:
+        # Исключаем участников с парами
+        if excluded_user_ids:
+            placeholders = ','.join(['?'] * len(excluded_user_ids))
+            query += f' AND er.user_id NOT IN ({placeholders})'
+            params.extend(excluded_user_ids)
+    
+    query += ' ORDER BY u.username COLLATE NOCASE'
+    
+    participants = conn.execute(query, tuple(params)).fetchall()
     conn.close()
 
     if not participants or len(participants) < 2:
