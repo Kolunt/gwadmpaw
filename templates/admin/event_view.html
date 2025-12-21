@@ -35,6 +35,53 @@
             {% endif %}
         </div>
         
+        <div class="event-info-section">
+            <h3>🔔 Настройки рейтинга (Бубенчики)</h3>
+            <div class="info-row">
+                <span class="info-label">За регистрацию:</span>
+                <span class="info-value">
+                    {% if event.rating_registration is not none %}
+                        <strong>{{ event.rating_registration }}</strong> <span class="text-muted">(индивидуальная настройка)</span>
+                    {% else %}
+                        {{ global_rating_registration }} <span class="text-muted">(глобальная настройка)</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">За неотправленный подарок:</span>
+                <span class="info-value">
+                    {% if event.rating_gift_not_sent is not none %}
+                        <strong>{{ event.rating_gift_not_sent }}</strong> <span class="text-muted">(индивидуальная настройка)</span>
+                    {% else %}
+                        {{ global_rating_gift_not_sent }} <span class="text-muted">(глобальная настройка)</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">За отправленный подарок:</span>
+                <span class="info-value">
+                    {% if event.rating_gift_sent is not none %}
+                        <strong>{{ event.rating_gift_sent }}</strong> <span class="text-muted">(индивидуальная настройка)</span>
+                    {% else %}
+                        {{ global_rating_gift_sent }} <span class="text-muted">(глобальная настройка)</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Коэффициент за очередность:</span>
+                <span class="info-value">
+                    {% if event.rating_order_coefficient is not none %}
+                        <strong>{{ event.rating_order_coefficient }}</strong> <span class="text-muted">(индивидуальная настройка)</span>
+                    {% else %}
+                        <span class="text-muted">Не задан</span>
+                    {% endif %}
+                </span>
+            </div>
+            <p class="form-hint" style="margin-top: 0.5rem; font-size: 0.875rem;">
+                Чтобы изменить настройки, нажмите "Редактировать"
+            </p>
+        </div>
+        
         <div class="event-stages-section">
             <h3>Этапы мероприятия</h3>
             

@@ -22,7 +22,7 @@
                         <tr>
                             <th style="width: 5rem;">Место</th>
                             <th>Участник</th>
-                            <th style="width: 8rem;">Снежинки</th>
+                            <th style="width: 8rem;">Бубенчики</th>
                             {% if is_admin %}
                             <th style="width: 10rem;">Действия</th>
                             {% endif %}
@@ -45,8 +45,8 @@
                                     {{ row.username or ('ID ' ~ row.user_id) }}
                                 </a>
                             </td>
-                            <td data-label="Снежинки">
-                                <strong>{{ row.rating }}</strong>
+                            <td data-label="Бубенчики">
+                                <strong>{{ row.rating|format_rating }}</strong>
                             </td>
                             {% if is_admin %}
                             <td data-label="Действия">

@@ -5,7 +5,7 @@
 {% block content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>❄️ Настройки рейтинга (Цыфорки)</h1>
+        <h1>🔔 Настройки рейтинга (Цыфорки)</h1>
         <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
     </div>
     
@@ -15,8 +15,29 @@
                 Настройте количество очков, которые начисляются участникам за различные действия.
             </p>
 
-            <div class="settings-grid">
-                <!-- Контакты -->
+            <!-- Табы -->
+            <div class="settings-tabs">
+                <a href="#contacts" class="settings-tab active" data-tab="contacts">
+                    📱 Контакты
+                </a>
+                <a href="#events" class="settings-tab" data-tab="events">
+                    🎉 Мероприятия
+                </a>
+                {% if awards %}
+                <a href="#awards" class="settings-tab" data-tab="awards">
+                    🏆 Награды
+                </a>
+                {% endif %}
+                {% if titles %}
+                <a href="#titles" class="settings-tab" data-tab="titles">
+                    ⭐ Звания
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Содержимое табов -->
+            <!-- Таб: Контакты -->
+            <div class="settings-tab-content active" data-tab="contacts">
                 <div class="setting-card">
                     <div class="setting-card-header">
                         <h3 class="setting-card-title">📱 Контактная информация</h3>
@@ -39,7 +60,6 @@
                                 name="setting_rating_contact_telegram" 
                                 value="{{ rating_telegram.get('value', '1') if rating_telegram else '1' }}"
                                 class="setting-input"
-                                min="0"
                                 step="1"
                             >
                         </div>
@@ -56,7 +76,6 @@
                                 name="setting_rating_contact_whatsapp" 
                                 value="{{ rating_whatsapp.get('value', '1') if rating_whatsapp else '1' }}"
                                 class="setting-input"
-                                min="0"
                                 step="1"
                             >
                         </div>
@@ -73,14 +92,15 @@
                                 name="setting_rating_contact_viber" 
                                 value="{{ rating_viber.get('value', '1') if rating_viber else '1' }}"
                                 class="setting-input"
-                                min="0"
                                 step="1"
                             >
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Мероприятия -->
+            <!-- Таб: Мероприятия -->
+            <div class="settings-tab-content" data-tab="events">
                 <div class="setting-card">
                     <div class="setting-card-header">
                         <h3 class="setting-card-title">🎉 Мероприятия</h3>
@@ -106,32 +126,54 @@
                                 name="setting_rating_event_registration" 
                                 value="{{ rating_registration.get('value', '1') if rating_registration else '1' }}"
                                 class="setting-input"
-                                min="0"
                                 step="1"
                             >
                         </div>
                         
-                        {% set rating_penalty = settings_dict.get('rating_event_review_penalty', {}) %}
+                        {% set rating_gift_not_sent = settings_dict.get('rating_event_gift_not_sent', {}) %}
                         <div class="setting-item">
-                            <label for="rating_event_review_penalty" class="setting-label">
-                                Штраф за негативное ревью
-                                <small class="setting-hint">Отрицательное значение (штраф при отклонении участника администратором)</small>
+                            <label for="rating_event_gift_not_sent" class="setting-label">
+                                Бубенчики за неотправленный подарок
+                                <small class="setting-hint">
+                                    Очки начисляются автоматически участникам, которые на момент закрытия регистрации не отправили подарок (не отметили "Отправил подарок"). 
+                                    Если мероприятие продлевается (регистрация открывается снова), бубенчики снимаются и начисляются заново при новом закрытии.
+                                </small>
                             </label>
                             <input 
                                 type="number" 
-                                id="rating_event_review_penalty" 
-                                name="setting_rating_event_review_penalty" 
-                                value="{{ rating_penalty.get('value', '-2') if rating_penalty else '-2' }}"
+                                id="rating_event_gift_not_sent" 
+                                name="setting_rating_event_gift_not_sent" 
+                                value="{{ rating_gift_not_sent.get('value', '0') if rating_gift_not_sent else '0' }}"
                                 class="setting-input"
-                                max="0"
+                                step="1"
+                            >
+                        </div>
+                        
+                        {% set rating_gift_sent = settings_dict.get('rating_event_gift_sent', {}) %}
+                        <div class="setting-item">
+                            <label for="rating_event_gift_sent" class="setting-label">
+                                Бубенчики за отправленный подарок
+                                <small class="setting-hint">
+                                    Очки начисляются автоматически участникам, которые на момент закрытия регистрации отправили подарок (отметили "Отправил подарок"). 
+                                    Если мероприятие продлевается (регистрация открывается снова), бубенчики снимаются и начисляются заново при новом закрытии.
+                                </small>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="rating_event_gift_sent" 
+                                name="setting_rating_event_gift_sent" 
+                                value="{{ rating_gift_sent.get('value', '0') if rating_gift_sent else '0' }}"
+                                class="setting-input"
                                 step="1"
                             >
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Награды -->
-                {% if awards %}
+            <!-- Таб: Награды -->
+            {% if awards %}
+            <div class="settings-tab-content" data-tab="awards">
                 <div class="setting-card">
                     <div class="setting-card-header">
                         <h3 class="setting-card-title">🏆 Награды</h3>
@@ -156,17 +198,18 @@
                                 name="setting_{{ award_key }}" 
                                 value="{{ award_setting.get('value', '0') if award_setting else '0' }}"
                                 class="setting-input"
-                                min="0"
                                 step="1"
                             >
                         </div>
                         {% endfor %}
                     </div>
                 </div>
-                {% endif %}
+            </div>
+            {% endif %}
 
-                <!-- Звания -->
-                {% if titles %}
+            <!-- Таб: Звания -->
+            {% if titles %}
+            <div class="settings-tab-content" data-tab="titles">
                 <div class="setting-card">
                     <div class="setting-card-header">
                         <h3 class="setting-card-title">⭐ Звания</h3>
@@ -191,15 +234,14 @@
                                 name="setting_{{ title_key }}" 
                                 value="{{ title_setting.get('value', '0') if title_setting else '0' }}"
                                 class="setting-input"
-                                min="0"
                                 step="1"
                             >
                         </div>
                         {% endfor %}
                     </div>
                 </div>
-                {% endif %}
             </div>
+            {% endif %}
         </div>
         
         <input type="hidden" name="action" id="form-action" value="save">
@@ -207,9 +249,68 @@
         <div class="form-actions">
             <button type="submit" class="btn btn-primary" onclick="document.getElementById('form-action').value='save';">Сохранить настройки</button>
             <button type="submit" class="btn btn-warning" onclick="if(confirm('Вы уверены? Это пересчитает все уже начисленные очки на основе новых настроек.')) { document.getElementById('form-action').value='update'; } else { return false; }">Обновить и пересчитать</button>
+            <form method="POST" action="{{ url_for('admin_rating_settings_fix_points') }}" style="display: inline;" onsubmit="return confirm('Исправить значения points в базе данных? Это преобразует все строковые значения в числа.');">
+                <button type="submit" class="btn btn-outline-warning">Исправить данные в БД</button>
+            </form>
             <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
 </div>
-{% endblock %}
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.settings-tab');
+    const tabContents = document.querySelectorAll('.settings-tab-content');
+    
+    // Функция переключения табов
+    function switchTab(tabName) {
+        // Убираем активный класс у всех табов и контента
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Активируем выбранный таб и контент
+        const selectedTab = document.querySelector(`.settings-tab[data-tab="${tabName}"]`);
+        const selectedContent = document.querySelector(`.settings-tab-content[data-tab="${tabName}"]`);
+        
+        if (selectedTab && selectedContent) {
+            selectedTab.classList.add('active');
+            selectedContent.classList.add('active');
+            
+            // Обновляем URL без перезагрузки страницы
+            if (window.location.hash !== '#' + tabName) {
+                window.history.replaceState(null, '', '#' + tabName);
+            }
+        }
+    }
+    
+    // Обработчик клика на табы
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetTab = this.getAttribute('data-tab');
+            switchTab(targetTab);
+        });
+    });
+    
+    // Проверяем hash в URL при загрузке страницы
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+        const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === hash);
+        if (tabExists) {
+            switchTab(hash);
+        }
+    }
+    
+    // Обработчик изменения hash
+    window.addEventListener('hashchange', function() {
+        const newHash = window.location.hash.substring(1);
+        if (newHash) {
+            const tabExists = Array.from(tabs).some(t => t.getAttribute('data-tab') === newHash);
+            if (tabExists) {
+                switchTab(newHash);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

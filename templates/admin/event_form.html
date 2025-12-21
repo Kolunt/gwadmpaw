@@ -64,6 +64,83 @@
         </div>
         
         <div class="form-section">
+            <h3>🔔 Настройки рейтинга (Бубенчики)</h3>
+            <p class="form-hint">Настройте количество бубенчиков для этого мероприятия. Если не указано, будут использоваться глобальные настройки из раздела "Настройки рейтинга".</p>
+            
+            <div class="form-group">
+                <label for="rating_registration" class="form-label">
+                    Бубенчики за регистрацию на мероприятие
+                    <span class="optional">(опционально)</span>
+                </label>
+                <input 
+                    type="number" 
+                    id="rating_registration" 
+                    name="rating_registration" 
+                    value="{{ event.rating_registration if event and event.rating_registration is not none else '' }}"
+                    class="form-input"
+                    step="1"
+                    placeholder="Использовать глобальную настройку"
+                >
+                <small class="form-hint">Очки начисляются автоматически всем зарегистрированным участникам при закрытии регистрации</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="rating_gift_not_sent" class="form-label">
+                    Бубенчики за неотправленный подарок
+                    <span class="optional">(опционально)</span>
+                </label>
+                <input 
+                    type="number" 
+                    id="rating_gift_not_sent" 
+                    name="rating_gift_not_sent" 
+                    value="{{ event.rating_gift_not_sent if event and event.rating_gift_not_sent is not none else '' }}"
+                    class="form-input"
+                    step="1"
+                    placeholder="Использовать глобальную настройку"
+                >
+                <small class="form-hint">Очки начисляются участникам, которые не отправили подарок на момент закрытия регистрации</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="rating_gift_sent" class="form-label">
+                    Бубенчики за отправленный подарок
+                    <span class="optional">(опционально)</span>
+                </label>
+                <input 
+                    type="number" 
+                    id="rating_gift_sent" 
+                    name="rating_gift_sent" 
+                    value="{{ event.rating_gift_sent if event and event.rating_gift_sent is not none else '' }}"
+                    class="form-input"
+                    step="1"
+                    placeholder="Использовать глобальную настройку"
+                >
+                <small class="form-hint">Очки начисляются участникам, которые отправили подарок на момент закрытия регистрации</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="rating_order_coefficient" class="form-label">
+                    Коэффициент за очередность отправки подарка
+                    <span class="optional">(опционально)</span>
+                </label>
+                <input 
+                    type="number" 
+                    id="rating_order_coefficient" 
+                    name="rating_order_coefficient" 
+                    value="{{ event.rating_order_coefficient if event and event.rating_order_coefficient is not none else '' }}"
+                    class="form-input"
+                    step="0.1"
+                    min="0"
+                    placeholder="Например: 1"
+                >
+                <small class="form-hint">
+                    Бубенчики начисляются по формуле: (количество_участников - порядковый_номер + 1) × коэффициент.
+                    Например, при 158 участниках и коэффициенте 1: первый получит 158 бубенчиков, последний — 1.
+                </small>
+            </div>
+        </div>
+        
+        <div class="form-section">
             <h3>Этапы мероприятия</h3>
             <p class="form-hint">Настройте даты и время для каждого этапа. Этапы с пометкой <span class="required">*</span> обязательны.</p>
             

@@ -88,6 +88,26 @@ def format_gender(value):
 
     return value_str or 'Не указан'
 
+@app.template_filter('format_rating')
+def format_rating(value):
+    """Форматирует рейтинг: целые числа без десятичных, дробные с одним знаком после запятой"""
+    try:
+        rating_float = float(value)
+        # Проверяем, является ли число целым (с учетом погрешности float)
+        # Используем более надежную проверку
+        rounded = round(rating_float, 1)
+        if abs(rating_float - rounded) < 0.0001 and rounded % 1 == 0:
+            return str(int(rounded))
+        else:
+            # Форматируем с одним знаком после запятой
+            formatted = f"{rating_float:.1f}"
+            # Убираем .0 в конце, если есть
+            if formatted.endswith('.0'):
+                return formatted[:-2]
+            return formatted.rstrip('0').rstrip('.') if '.' in formatted else formatted
+    except (ValueError, TypeError):
+        return str(value)
+
 LETTER_UPLOAD_RELATIVE = 'uploads/letter_attachments'
 LETTER_UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads', 'letter_attachments')
 ASSIGNMENT_RECEIPT_RELATIVE = 'uploads/assignment_receipts'
@@ -643,6 +663,23 @@ def init_db():
             c.execute('ALTER TABLE events ADD COLUMN deleted_at TIMESTAMP')
         except sqlite3.OperationalError:
             pass  # Колонка уже существует
+        # Миграция: добавляем поля для индивидуальных настроек рейтинга мероприятия
+        try:
+            c.execute('ALTER TABLE events ADD COLUMN rating_registration INTEGER')
+        except sqlite3.OperationalError:
+            pass  # Колонка уже существует
+        try:
+            c.execute('ALTER TABLE events ADD COLUMN rating_gift_not_sent INTEGER')
+        except sqlite3.OperationalError:
+            pass  # Колонка уже существует
+        try:
+            c.execute('ALTER TABLE events ADD COLUMN rating_gift_sent INTEGER')
+        except sqlite3.OperationalError:
+            pass  # Колонка уже существует
+        try:
+            c.execute('ALTER TABLE events ADD COLUMN rating_order_coefficient REAL')
+        except sqlite3.OperationalError:
+            pass  # Колонка уже существует
         
         # Таблица этапов мероприятий
         c.execute('''
@@ -712,7 +749,7 @@ def init_db():
         except sqlite3.OperationalError:
             pass
         
-        # Таблица начислений «снежинок»
+        # Таблица начислений «бубенчиков»
         c.execute('''
             CREATE TABLE IF NOT EXISTS snowflake_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -732,6 +769,49 @@ def init_db():
         try:
             c.execute('ALTER TABLE snowflake_events ADD COLUMN points INTEGER NOT NULL DEFAULT 1')
         except sqlite3.OperationalError:
+            pass
+        # Миграция: изменяем тип points на REAL для поддержки десятичных значений
+        # В SQLite нельзя напрямую изменить тип колонки, но можно создать новую таблицу
+        try:
+            # Проверяем, есть ли уже колонка points и какой у неё тип
+            c.execute('PRAGMA table_info(snowflake_events)')
+            columns = c.fetchall()
+            points_col = next((col for col in columns if col[1] == 'points'), None)
+            if points_col:
+                col_type = points_col[2].upper()
+                if col_type == 'INTEGER':
+                    log_debug("Migrating points column from INTEGER to REAL")
+                    # Создаем временную таблицу с REAL для points
+                    c.execute('''
+                        CREATE TABLE snowflake_events_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            source TEXT NOT NULL,
+                            reason TEXT NOT NULL,
+                            points REAL NOT NULL DEFAULT 1,
+                            active INTEGER DEFAULT 1,
+                            manual_revoked INTEGER DEFAULT 0,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            revoked_at TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users(user_id),
+                            UNIQUE(user_id, source)
+                        )
+                    ''')
+                    # Копируем данные
+                    c.execute('''
+                        INSERT INTO snowflake_events_new 
+                        SELECT id, user_id, source, reason, CAST(points AS REAL) as points, active, manual_revoked, created_at, updated_at, revoked_at
+                        FROM snowflake_events
+                    ''')
+                    # Удаляем старую таблицу
+                    c.execute('DROP TABLE snowflake_events')
+                    # Переименовываем новую таблицу
+                    c.execute('ALTER TABLE snowflake_events_new RENAME TO snowflake_events')
+                    log_debug("Points column migration completed successfully")
+        except sqlite3.OperationalError as e:
+            # Если миграция не удалась, продолжаем работу
+            log_debug(f"Points column migration skipped: {e}")
             pass
         try:
             c.execute('ALTER TABLE snowflake_events ADD COLUMN manual_revoked INTEGER DEFAULT 0')
@@ -1044,7 +1124,8 @@ def init_db():
                 ('rating_contact_whatsapp', '1', 'Очки за заполненный WhatsApp', 'rating'),
                 ('rating_contact_viber', '1', 'Очки за заполненный Viber', 'rating'),
                 ('rating_event_registration', '1', 'Очки за регистрацию на мероприятие (начисляются автоматически всем зарегистрированным участникам при закрытии регистрации администратором)', 'rating'),
-                ('rating_event_review_penalty', '-2', 'Штраф за негативное ревью (отрицательное значение)', 'rating'),
+                ('rating_event_gift_not_sent', '0', 'Очки за неотправленный подарок (начисляются автоматически участникам, которые на момент закрытия регистрации не отправили подарок)', 'rating'),
+                ('rating_event_gift_sent', '0', 'Очки за отправленный подарок (начисляются автоматически участникам, которые на момент закрытия регистрации отправили подарок)', 'rating'),
             ]
             for key, value, description, category in rating_defaults:
                 existing = c.execute('SELECT key FROM settings WHERE key = ?', (key,)).fetchone()
@@ -1077,7 +1158,8 @@ def init_db():
                 ('rating_contact_whatsapp', '1', 'Очки за заполненный WhatsApp', 'rating'),
                 ('rating_contact_viber', '1', 'Очки за заполненный Viber', 'rating'),
                 ('rating_event_registration', '1', 'Очки за регистрацию на мероприятие (начисляются автоматически всем зарегистрированным участникам при закрытии регистрации администратором)', 'rating'),
-                ('rating_event_review_penalty', '-2', 'Штраф за негативное ревью (отрицательное значение)', 'rating'),
+                ('rating_event_gift_not_sent', '0', 'Очки за неотправленный подарок (начисляются автоматически участникам, которые на момент закрытия регистрации не отправили подарок)', 'rating'),
+                ('rating_event_gift_sent', '0', 'Очки за отправленный подарок (начисляются автоматически участникам, которые на момент закрытия регистрации отправили подарок)', 'rating'),
             ]
             for key, value, description, category in rating_defaults:
                 existing = c.execute('SELECT key FROM settings WHERE key = ?', (key,)).fetchone()
@@ -1419,7 +1501,7 @@ def assign_title(user_id, title_id, assigned_by=None):
             VALUES (?, ?, ?)
         ''', (user_id, title_id, assigned_by))
         
-        # Создаем событие снежинки для звания
+        # Создаем событие бубенчика для звания
         source = f'title:{title_id}'
         reason = f'Назначено звание (ID: {title_id})'
         points = get_rating_setting(f'rating_title_{title_id}', 0)
@@ -1471,7 +1553,7 @@ def remove_title(user_id, title_id):
             WHERE user_id = ? AND title_id = ?
         ''', (user_id, title_id))
         
-        # Деактивируем событие снежинки для звания
+        # Деактивируем событие бубенчика для звания
         source = f'title:{title_id}'
         conn.execute('''
             UPDATE snowflake_events
@@ -1721,7 +1803,7 @@ def assign_award(user_id, award_id, assigned_by=None):
             VALUES (?, ?, ?)
         ''', (user_id, award_id, assigned_by))
         
-        # Создаем событие снежинки для награды
+        # Создаем событие бубенчика для награды
         source = f'award:{award_id}'
         reason = f'Назначена награда (ID: {award_id})'
         points = get_rating_setting(f'rating_award_{award_id}', 0)
@@ -1773,7 +1855,7 @@ def remove_award(user_id, award_id):
             WHERE user_id = ? AND award_id = ?
         ''', (user_id, award_id))
         
-        # Деактивируем событие снежинки для награды
+        # Деактивируем событие бубенчика для награды
         source = f'award:{award_id}'
         conn.execute('''
             UPDATE snowflake_events
@@ -3598,6 +3680,51 @@ def admin_panel():
     """Главная страница админ-панели"""
     return render_template('admin/index.html')
 
+@app.route('/admin/rating-settings/fix-points', methods=['POST'])
+@require_role('admin')
+def admin_rating_settings_fix_points():
+    """Исправляет значения points в snowflake_events, преобразуя строки в числа"""
+    conn = get_db_connection()
+    try:
+        # Получаем все события с points как строками
+        events = conn.execute('''
+            SELECT id, points FROM snowflake_events
+            WHERE typeof(points) = 'text' OR points IS NULL
+        ''').fetchall()
+        
+        fixed_count = 0
+        for event in events:
+            try:
+                # Преобразуем points в int
+                old_points = event['points']
+                if old_points is None:
+                    new_points = 0
+                else:
+                    new_points = int(old_points)
+                
+                # Обновляем запись
+                conn.execute('''
+                    UPDATE snowflake_events
+                    SET points = ?
+                    WHERE id = ?
+                ''', (new_points, event['id']))
+                fixed_count += 1
+            except (ValueError, TypeError) as e:
+                log_error(f"Error fixing points for event {event['id']}: {e}")
+                continue
+        
+        conn.commit()
+        flash(f'Исправлено записей: {fixed_count}', 'success')
+    except Exception as e:
+        log_error(f"Error fixing points: {e}")
+        conn.rollback()
+        flash('Ошибка при исправлении данных: ' + str(e), 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('admin_rating_settings'))
+
+
 @app.route('/admin/rating-settings', methods=['GET', 'POST'])
 @require_role('admin')
 def admin_rating_settings():
@@ -3659,8 +3786,10 @@ def admin_rating_settings():
                         description = 'Очки за заполненный Viber'
                     elif key == 'rating_event_registration':
                         description = 'Очки за регистрацию на мероприятие (начисляются автоматически всем зарегистрированным участникам при закрытии регистрации администратором)'
-                    elif key == 'rating_event_review_penalty':
-                        description = 'Штраф за негативное ревью (отрицательное значение)'
+                    elif key == 'rating_event_gift_not_sent':
+                        description = 'Очки за неотправленный подарок (начисляются автоматически участникам, которые на момент закрытия регистрации не отправили подарок)'
+                    elif key == 'rating_event_gift_sent':
+                        description = 'Очки за отправленный подарок (начисляются автоматически участникам, которые на момент закрытия регистрации отправили подарок)'
                     elif key.startswith('rating_award_'):
                         # Награда
                         try:
@@ -7830,6 +7959,10 @@ def create_participant_approvals_for_event(event_id):
     """Создает записи для ревью участников при закрытии регистрации"""
     conn = get_db_connection()
     try:
+        # При закрытии регистрации сначала снимаем все бубенчики за отправленный/неотправленный подарок
+        # (на случай продления мероприятия - они будут начислены заново)
+        _revoke_gift_events(conn, event_id)
+        
         # Получаем всех зарегистрированных участников
         registrations = conn.execute('''
             SELECT user_id FROM event_registrations WHERE event_id = ?
@@ -7843,6 +7976,13 @@ def create_participant_approvals_for_event(event_id):
                 VALUES (?, ?, 0)
             ''', (event_id, reg['user_id']))
             _ensure_registration_bonus_event(conn, event_id, reg['user_id'])
+            # Начисляем бубенчики за неотправленный подарок, если подарок не отправлен
+            _ensure_gift_not_sent_event(conn, event_id, reg['user_id'])
+            # Начисляем бубенчики за отправленный подарок, если подарок отправлен
+            _ensure_gift_sent_event(conn, event_id, reg['user_id'])
+        
+        # Начисляем бубенчики за очередность отправки подарка для всех участников, которые отправили
+        _ensure_order_bonus_events(conn, event_id)
         
         conn.commit()
         log_debug(f"Created participant approvals for event {event_id}")
@@ -8556,12 +8696,16 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
             ).strip()
         previous_info = assignment['santa_send_info']
         updated_existing = bool(previous_info)
+        was_already_sent = bool(assignment['santa_sent_at'])
+        
         conn.execute('''
             UPDATE event_assignments
             SET santa_sent_at = CURRENT_TIMESTAMP,
                 santa_send_info = ?
             WHERE id = ?
         ''', (send_info, assignment_id))
+        
+        # Бубенчики за очередность начисляются при закрытии регистрации, а не при отправке
         if updated_existing:
             chat_message = (
                 f"Внучок! Данные для получения изменились: {send_info}"
@@ -10254,6 +10398,16 @@ def admin_event_create():
         award_id = request.form.get('award_id', '').strip()
         award_id = int(award_id) if award_id else None
         
+        # Получаем настройки рейтинга
+        rating_registration = request.form.get('rating_registration', '').strip()
+        rating_registration = int(rating_registration) if rating_registration else None
+        rating_gift_not_sent = request.form.get('rating_gift_not_sent', '').strip()
+        rating_gift_not_sent = int(rating_gift_not_sent) if rating_gift_not_sent else None
+        rating_gift_sent = request.form.get('rating_gift_sent', '').strip()
+        rating_gift_sent = int(rating_gift_sent) if rating_gift_sent else None
+        rating_order_coefficient = request.form.get('rating_order_coefficient', '').strip()
+        rating_order_coefficient = float(rating_order_coefficient) if rating_order_coefficient else None
+        
         if not name:
             flash('Название мероприятия обязательно', 'error')
             conn = get_db_connection()
@@ -10265,9 +10419,9 @@ def admin_event_create():
         try:
             # Создаем мероприятие
             cursor = conn.execute('''
-                INSERT INTO events (name, description, created_by, award_id)
-                VALUES (?, ?, ?, ?)
-            ''', (name, description, session.get('user_id'), award_id))
+                INSERT INTO events (name, description, created_by, award_id, rating_registration, rating_gift_not_sent, rating_gift_sent, rating_order_coefficient)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (name, description, session.get('user_id'), award_id, rating_registration, rating_gift_not_sent, rating_gift_sent, rating_order_coefficient))
             event_id = cursor.lastrowid
             
             # Создаем этапы
@@ -10386,7 +10540,18 @@ def admin_event_view(event_id):
     # Преобразуем event в словарь для корректной работы в шаблоне
     event_dict = dict(event) if event else {}
     
-    return render_template('admin/event_view.html', event=event_dict, stages_with_info=stages_with_info, current_stage=current_stage)
+    # Получаем глобальные настройки рейтинга для сравнения
+    global_rating_registration = get_rating_setting('rating_event_registration', 1)
+    global_rating_gift_not_sent = get_rating_setting('rating_event_gift_not_sent', 0)
+    global_rating_gift_sent = get_rating_setting('rating_event_gift_sent', 0)
+    
+    return render_template('admin/event_view.html', 
+                         event=event_dict, 
+                         stages_with_info=stages_with_info, 
+                         current_stage=current_stage,
+                         global_rating_registration=global_rating_registration,
+                         global_rating_gift_not_sent=global_rating_gift_not_sent,
+                         global_rating_gift_sent=global_rating_gift_sent)
 
 
 @app.route('/admin/events/<int:event_id>/participants')
@@ -11506,7 +11671,6 @@ def admin_event_participant_confirm(event_id):
                 approved_by = excluded.approved_by,
                 notes = NULL
         ''', (event_id, user_id_int, session.get('user_id')))
-        _set_review_penalty(conn, event_id, user_id_int, apply_penalty=False)
         conn.commit()
         conn.close()
 
@@ -11610,7 +11774,6 @@ def admin_event_participant_reject(event_id):
                 approved_by = excluded.approved_by,
                 notes = excluded.notes
         ''', (event_id, user_id_int, session.get('user_id'), reason or None))
-        _set_review_penalty(conn, event_id, user_id_int, apply_penalty=True)
         conn.commit()
         conn.close()
 
@@ -11808,6 +11971,16 @@ def admin_event_edit(event_id):
         award_id = request.form.get('award_id', '').strip()
         award_id = int(award_id) if award_id else None
         
+        # Получаем настройки рейтинга
+        rating_registration = request.form.get('rating_registration', '').strip()
+        rating_registration = int(rating_registration) if rating_registration else None
+        rating_gift_not_sent = request.form.get('rating_gift_not_sent', '').strip()
+        rating_gift_not_sent = int(rating_gift_not_sent) if rating_gift_not_sent else None
+        rating_gift_sent = request.form.get('rating_gift_sent', '').strip()
+        rating_gift_sent = int(rating_gift_sent) if rating_gift_sent else None
+        rating_order_coefficient = request.form.get('rating_order_coefficient', '').strip()
+        rating_order_coefficient = float(rating_order_coefficient) if rating_order_coefficient else None
+        
         if not name:
             flash('Название мероприятия обязательно', 'error')
             awards = conn.execute('SELECT id, title FROM awards ORDER BY sort_order, title').fetchall()
@@ -11815,13 +11988,17 @@ def admin_event_edit(event_id):
             return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
         
         try:
+            # Получаем старые настройки рейтинга до обновления
+            old_event = conn.execute('SELECT rating_registration, rating_gift_not_sent, rating_gift_sent, rating_order_coefficient FROM events WHERE id = ?', (event_id,)).fetchone()
+            
             previous_end = None
             # Обновляем мероприятие
             conn.execute('''
                 UPDATE events 
-                SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP, award_id = ?
+                SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP, award_id = ?,
+                    rating_registration = ?, rating_gift_not_sent = ?, rating_gift_sent = ?, rating_order_coefficient = ?
                 WHERE id = ?
-            ''', (name, description, award_id, event_id))
+            ''', (name, description, award_id, rating_registration, rating_gift_not_sent, rating_gift_sent, rating_order_coefficient, event_id))
             
             # Обновляем этапы
             for stage in EVENT_STAGES:
@@ -11907,6 +12084,43 @@ def admin_event_edit(event_id):
                           1 if stage['required'] else 0, 1 if not stage['required'] else 0))
                 
                 previous_end = end_datetime or previous_end
+            
+            # Если изменились настройки рейтинга, обновляем существующие события
+            if old_event:
+                # Обновляем события регистрации
+                old_reg = old_event['rating_registration']
+                if (old_reg is None) != (rating_registration is None) or (old_reg is not None and old_reg != rating_registration):
+                    source = f'event:{event_id}:registration_bonus'
+                    new_points = rating_registration if rating_registration is not None else get_rating_setting('rating_event_registration', 1)
+                    conn.execute('''
+                        UPDATE snowflake_events
+                        SET points = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE source = ? AND active = 1
+                    ''', (new_points, source))
+                
+                # Обновляем события неотправленного подарка
+                old_not_sent = old_event['rating_gift_not_sent']
+                if (old_not_sent is None) != (rating_gift_not_sent is None) or (old_not_sent is not None and old_not_sent != rating_gift_not_sent):
+                    source = f'event:{event_id}:gift_not_sent'
+                    new_points = rating_gift_not_sent if rating_gift_not_sent is not None else get_rating_setting('rating_event_gift_not_sent', 0)
+                    if new_points != 0:
+                        conn.execute('''
+                            UPDATE snowflake_events
+                            SET points = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE source = ? AND active = 1
+                        ''', (new_points, source))
+                
+                # Обновляем события отправленного подарка
+                old_sent = old_event['rating_gift_sent']
+                if (old_sent is None) != (rating_gift_sent is None) or (old_sent is not None and old_sent != rating_gift_sent):
+                    source = f'event:{event_id}:gift_sent'
+                    new_points = rating_gift_sent if rating_gift_sent is not None else get_rating_setting('rating_event_gift_sent', 0)
+                    if new_points != 0:
+                        conn.execute('''
+                            UPDATE snowflake_events
+                            SET points = ?, updated_at = CURRENT_TIMESTAMP
+                            WHERE source = ? AND active = 1
+                        ''', (new_points, source))
             
             conn.commit()
             flash('Мероприятие успешно обновлено', 'success')
@@ -12498,7 +12712,7 @@ def _normalize_multiline_text(value, max_length=None):
 
 
 def _sync_contact_snowflakes(conn, user_row):
-    """Синхронизирует записи о снежинках с актуальными контактами пользователя."""
+    """Синхронизирует записи о бубенчиках с актуальными контактами пользователя."""
     if not isinstance(user_row, dict):
         user_row = dict(user_row)
     user_id = user_row.get('user_id')
@@ -12558,8 +12772,12 @@ def _sync_contact_snowflakes(conn, user_row):
 def _ensure_registration_bonus_event(conn, event_id, user_id):
     source = f'event:{event_id}:registration_bonus'
     reason = f'Регистрация закрыта: мероприятие #{event_id}'
-    # Получаем настройку очков за регистрацию
-    points = get_rating_setting('rating_event_registration', 1)
+    # Получаем настройку очков за регистрацию: сначала из настроек мероприятия, если не задано - из глобальных
+    event_row = conn.execute('SELECT rating_registration FROM events WHERE id = ?', (event_id,)).fetchone()
+    if event_row and event_row['rating_registration'] is not None:
+        points = int(event_row['rating_registration'])
+    else:
+        points = get_rating_setting('rating_event_registration', 1)
     existing = conn.execute(
         '''
         SELECT id, active, manual_revoked
@@ -12591,11 +12809,31 @@ def _ensure_registration_bonus_event(conn, event_id, user_id):
         )
 
 
-def _set_review_penalty(conn, event_id, user_id, apply_penalty=True):
-    source = f'event:{event_id}:review_penalty'
-    reason = f'Негативное ревью: мероприятие #{event_id}'
-    # Получаем настройку штрафа за негативное ревью (отрицательное значение)
-    penalty_points = get_rating_setting('rating_event_review_penalty', -2)
+def _ensure_gift_not_sent_event(conn, event_id, user_id):
+    """Создает или активирует событие бубенчика за неотправленный подарок при закрытии регистрации"""
+    source = f'event:{event_id}:gift_not_sent'
+    reason = f'Неотправленный подарок при закрытии регистрации: мероприятие #{event_id}'
+    # Получаем настройку очков за неотправленный подарок: сначала из настроек мероприятия, если не задано - из глобальных
+    event_row = conn.execute('SELECT rating_gift_not_sent FROM events WHERE id = ?', (event_id,)).fetchone()
+    if event_row and event_row['rating_gift_not_sent'] is not None:
+        points = int(event_row['rating_gift_not_sent'])
+    else:
+        points = get_rating_setting('rating_event_gift_not_sent', 0)
+    
+    # Если очки = 0, не создаем событие
+    if points == 0:
+        return
+    
+    # Проверяем, есть ли у пользователя назначение и не отправлен ли подарок
+    assignment = conn.execute('''
+        SELECT id, santa_sent_at FROM event_assignments
+        WHERE event_id = ? AND santa_user_id = ?
+    ''', (event_id, user_id)).fetchone()
+    
+    # Если нет назначения или подарок уже отправлен - не начисляем
+    if not assignment or assignment['santa_sent_at']:
+        return
+    
     existing = conn.execute(
         '''
         SELECT id, active, manual_revoked
@@ -12604,42 +12842,202 @@ def _set_review_penalty(conn, event_id, user_id, apply_penalty=True):
         ''',
         (user_id, source)
     ).fetchone()
+    
+    if not existing:
+        conn.execute(
+            '''
+            INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''',
+            (user_id, source, reason, points, 1, 0)
+        )
+    elif not existing['active']:
+        conn.execute(
+            '''
+            UPDATE snowflake_events
+            SET active = 1,
+                points = ?,
+                manual_revoked = 0,
+                revoked_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            ''',
+            (points, existing['id'])
+        )
 
-    if apply_penalty:
+
+def _ensure_gift_sent_event(conn, event_id, user_id):
+    """Создает или активирует событие бубенчика за отправленный подарок при закрытии регистрации"""
+    source = f'event:{event_id}:gift_sent'
+    reason = f'Отправленный подарок при закрытии регистрации: мероприятие #{event_id}'
+    # Получаем настройку очков за отправленный подарок: сначала из настроек мероприятия, если не задано - из глобальных
+    event_row = conn.execute('SELECT rating_gift_sent FROM events WHERE id = ?', (event_id,)).fetchone()
+    if event_row and event_row['rating_gift_sent'] is not None:
+        points = int(event_row['rating_gift_sent'])
+    else:
+        points = get_rating_setting('rating_event_gift_sent', 0)
+    
+    # Если очки = 0, не создаем событие
+    if points == 0:
+        return
+    
+    # Проверяем, есть ли у пользователя назначение и отправлен ли подарок
+    assignment = conn.execute('''
+        SELECT id, santa_sent_at FROM event_assignments
+        WHERE event_id = ? AND santa_user_id = ?
+    ''', (event_id, user_id)).fetchone()
+    
+    # Если нет назначения или подарок не отправлен - не начисляем
+    if not assignment or not assignment['santa_sent_at']:
+        return
+    
+    existing = conn.execute(
+        '''
+        SELECT id, active, manual_revoked
+        FROM snowflake_events
+        WHERE user_id = ? AND source = ?
+        ''',
+        (user_id, source)
+    ).fetchone()
+    
+    if not existing:
+        conn.execute(
+            '''
+            INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''',
+            (user_id, source, reason, points, 1, 0)
+        )
+    elif not existing['active']:
+        conn.execute(
+            '''
+            UPDATE snowflake_events
+            SET active = 1,
+                points = ?,
+                manual_revoked = 0,
+                revoked_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            ''',
+            (points, existing['id'])
+        )
+
+
+def _ensure_order_bonus_events(conn, event_id):
+    """Создает или обновляет события бубенчиков за очередность отправки подарка для всех участников при закрытии регистрации"""
+    source = f'event:{event_id}:order_bonus'
+    
+    # Получаем настройки мероприятия
+    event_row = conn.execute('SELECT rating_order_coefficient FROM events WHERE id = ?', (event_id,)).fetchone()
+    if not event_row or event_row['rating_order_coefficient'] is None or event_row['rating_order_coefficient'] == 0:
+        # Коэффициент не задан или равен 0, не начисляем
+        return
+    
+    coefficient = float(event_row['rating_order_coefficient'])
+    
+    # Получаем общее количество участников мероприятия на момент закрытия регистрации (с назначениями)
+    total_participants = conn.execute('''
+        SELECT COUNT(DISTINCT santa_user_id) as total
+        FROM event_assignments
+        WHERE event_id = ?
+    ''', (event_id,)).fetchone()
+    
+    if not total_participants or total_participants['total'] == 0:
+        return
+    
+    total = total_participants['total']
+    
+    # Получаем всех участников, которые отправили подарки, отсортированных по времени отправки
+    sent_assignments = conn.execute('''
+        SELECT DISTINCT santa_user_id, santa_sent_at
+        FROM event_assignments
+        WHERE event_id = ? AND santa_sent_at IS NOT NULL
+        ORDER BY santa_sent_at ASC
+    ''', (event_id,)).fetchall()
+    
+    if not sent_assignments:
+        return
+    
+    # Начисляем бубенчики каждому участнику в порядке отправки
+    for idx, assignment in enumerate(sent_assignments, start=1):
+        user_id = assignment['santa_user_id']
+        order_num = idx
+        
+        # Вычисляем бубенчики: (общее_количество - порядковый_номер + 1) * коэффициент
+        points = float((total - order_num + 1) * coefficient)
+        
+        if points <= 0:
+            continue
+        
+        reason = f'Очередность отправки подарка: {order_num}-й из {total} (мероприятие #{event_id})'
+        
+        # Проверяем, есть ли уже событие
+        existing = conn.execute('''
+            SELECT id, active, manual_revoked
+            FROM snowflake_events
+            WHERE user_id = ? AND source = ?
+        ''', (user_id, source)).fetchone()
+        
         if not existing:
-            conn.execute(
-                '''
+            # Создаем новое событие
+            conn.execute('''
                 INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
-                VALUES (?, ?, ?, ?, ?, ?)
-                ''',
-                (user_id, source, reason, penalty_points, 1, 0)
-            )
-        elif not existing['manual_revoked']:
-            conn.execute(
-                '''
+                VALUES (?, ?, ?, ?, 1, 0)
+            ''', (user_id, source, reason, points))
+        elif not existing['active']:
+            # Активируем и обновляем существующее неактивное событие
+            conn.execute('''
                 UPDATE snowflake_events
                 SET active = 1,
                     points = ?,
+                    reason = ?,
                     manual_revoked = 0,
                     revoked_at = NULL,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-                ''',
-                (penalty_points, existing['id'])
-            )
-    else:
-        if existing and existing['active']:
-            conn.execute(
-                '''
+            ''', (points, reason, existing['id']))
+        else:
+            # Обновляем существующее активное событие, если очки изменились
+            conn.execute('''
                 UPDATE snowflake_events
-                SET active = 0,
-                    revoked_at = CURRENT_TIMESTAMP,
-                    updated_at = CURRENT_TIMESTAMP,
-                    manual_revoked = CASE WHEN manual_revoked THEN manual_revoked ELSE 0 END
+                SET points = ?,
+                    reason = ?,
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-                ''',
-                (existing['id'],)
-            )
+            ''', (points, reason, existing['id']))
+
+
+def _revoke_gift_events(conn, event_id):
+    """Снимает бубенчики за отправленный/неотправленный подарок и за очередность при продлении мероприятия"""
+    # Снимаем бубенчики за неотправленный подарок
+    source_not_sent = f'event:{event_id}:gift_not_sent'
+    conn.execute('''
+        UPDATE snowflake_events
+        SET active = 0,
+            revoked_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE source = ? AND active = 1
+    ''', (source_not_sent,))
+    
+    # Снимаем бубенчики за отправленный подарок
+    source_sent = f'event:{event_id}:gift_sent'
+    conn.execute('''
+        UPDATE snowflake_events
+        SET active = 0,
+            revoked_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE source = ? AND active = 1
+    ''', (source_sent,))
+    
+    # Снимаем бубенчики за очередность отправки
+    source_order = f'event:{event_id}:order_bonus'
+    conn.execute('''
+        UPDATE snowflake_events
+        SET active = 0,
+            revoked_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE source = ? AND active = 1
+    ''', (source_order,))
 
 
 def _get_snowflake_source_label(source):
@@ -12657,8 +13055,12 @@ def _get_snowflake_source_label(source):
             suffix = parts[2]
             if suffix == 'registration_bonus':
                 return f'Бонус за регистрацию (мероприятие #{event_id})' if event_id else 'Бонус за регистрацию'
-            if suffix == 'review_penalty':
-                return f'Негативное ревью (мероприятие #{event_id})' if event_id else 'Негативное ревью'
+            if suffix == 'gift_not_sent':
+                return f'Неотправленный подарок (мероприятие #{event_id})' if event_id else 'Неотправленный подарок'
+            if suffix == 'gift_sent':
+                return f'Отправленный подарок (мероприятие #{event_id})' if event_id else 'Отправленный подарок'
+            if suffix == 'order_bonus':
+                return f'Очередность отправки подарка (мероприятие #{event_id})' if event_id else 'Очередность отправки подарка'
     if source.startswith('award:'):
         try:
             award_id = int(source.replace('award:', ''))
@@ -12715,10 +13117,10 @@ def recalculate_all_snowflake_events(conn, settings_dict):
                     # Регистрация на мероприятие
                     if 'rating_event_registration' in settings_dict:
                         new_points = int(settings_dict['rating_event_registration'])
-                elif suffix == 'review_penalty':
-                    # Штраф за негативное ревью
-                    if 'rating_event_review_penalty' in settings_dict:
-                        new_points = int(settings_dict['rating_event_review_penalty'])
+                elif suffix == 'gift_not_sent':
+                    # Неотправленный подарок
+                    if 'rating_event_gift_not_sent' in settings_dict:
+                        new_points = int(settings_dict['rating_event_gift_not_sent'])
         elif source.startswith('award:'):
             # Награда
             try:
@@ -12884,6 +13286,8 @@ def user_rating():
             _sync_contact_snowflakes(conn, user_row)
         conn.commit()
 
+        # Получаем все события для расчета рейтинга (фильтрация по active и manual_revoked будет в Python)
+        # Это нужно, чтобы не пропустить события из-за проблем с типами данных в SQLite
         events = conn.execute('''
             SELECT id, user_id, source, reason, points, active, manual_revoked
             FROM snowflake_events
@@ -12891,18 +13295,69 @@ def user_rating():
     finally:
         conn.close()
 
-    events_by_user = defaultdict(lambda: {'points': 0})
+    events_by_user = defaultdict(lambda: {'points': 0.0, 'events': []})
     for event in events:
-        if event['active']:
-            events_by_user[event['user_id']]['points'] += event['points']
+        # Преобразуем Row в dict для удобной работы
+        event_dict = dict(event) if not isinstance(event, dict) else event
+        
+        # Проверяем active: событие должно быть активным
+        active = event_dict.get('active')
+        # Преобразуем active в число для надежной проверки
+        try:
+            active_int = int(active) if active is not None else 0
+        except (ValueError, TypeError):
+            active_int = 0
+        
+        if active_int != 1:
+            continue
+        
+        # Проверяем manual_revoked: событие не должно быть вручную отозвано
+        manual_revoked = event_dict.get('manual_revoked', 0)
+        try:
+            manual_revoked_int = int(manual_revoked) if manual_revoked is not None else 0
+        except (ValueError, TypeError):
+            manual_revoked_int = 0
+        
+        if manual_revoked_int != 0:
+            continue
+        
+        # Преобразуем points в float, чтобы поддерживать десятичные значения
+        try:
+            points = float(event_dict['points']) if event_dict['points'] is not None else 0.0
+        except (ValueError, TypeError):
+            points = 0.0
+        events_by_user[event_dict['user_id']]['points'] += points
+        events_by_user[event_dict['user_id']]['events'].append({
+            'source': event_dict['source'],
+            'points': points,
+            'reason': event_dict['reason']
+        })
+        events_by_user[event['user_id']]['events'].append({
+            'source': event['source'],
+            'points': points,
+            'reason': event['reason']
+        })
 
     rating_rows = []
     for user_row in user_rows:
+        if user_row['user_id'] in events_by_user:
+            rating_value = events_by_user[user_row['user_id']]['points']
+            # Отладочная информация для пользователей с отрицательным рейтингом
+            if rating_value < 0 and user_row['user_id'] in [342, 347, 384]:
+                log_debug(f"User {user_row['user_id']} ({user_row['username']}): rating={rating_value} (type={type(rating_value).__name__}), events={events_by_user[user_row['user_id']]['events']}")
+        else:
+            rating_value = 0.0
+        # Преобразуем rating_value в float для поддержки десятичных значений
+        final_rating = float(rating_value) if rating_value is not None else 0.0
         rating_rows.append({
             'user_id': user_row['user_id'],
             'username': user_row['username'],
-            'rating': events_by_user[user_row['user_id']]['points'] if user_row['user_id'] in events_by_user else 0,
+            'rating': final_rating,
         })
+        
+        # Отладочная информация для проверки десятичных значений
+        if final_rating != int(final_rating) and user_row['user_id'] in [342, 347, 384]:
+            log_debug(f"User {user_row['user_id']} ({user_row['username']}): decimal rating={final_rating} (type={type(final_rating).__name__})")
 
     rating_rows.sort(key=lambda item: (-item['rating'], item['username'].lower() if item['username'] else ''))
 
@@ -12945,7 +13400,16 @@ def admin_rating_detail(user_id):
     for event in events:
         event['source_label'] = _get_snowflake_source_label(event['source'])
 
-    active_count = sum(event['points'] for event in events if event['active'])
+    active_count = 0.0
+    for event in events:
+        active = event['active']
+        if active == 1 or active == '1' or (isinstance(active, bool) and active):
+            try:
+                # Преобразуем points в float, чтобы поддерживать десятичные значения
+                points = float(event['points']) if event['points'] is not None else 0.0
+            except (ValueError, TypeError):
+                points = 0.0
+            active_count += points
     return render_template(
         'admin/rating_detail.html',
         user=user_dict,
@@ -12966,7 +13430,7 @@ def admin_rating_event_annul(event_id):
 
         user_id = event['user_id']
         if event['manual_revoked'] and not event['active']:
-            flash('Снежинка уже аннулирована.', 'info')
+            flash('Бубенчик уже аннулирован.', 'info')
         else:
             conn.execute('''
                 UPDATE snowflake_events
@@ -12977,8 +13441,8 @@ def admin_rating_event_annul(event_id):
                 WHERE id = ?
             ''', (event_id,))
             conn.commit()
-            log_activity('snowflake_annul', details=f'Аннулирована снежинка #{event_id}', metadata={'event_id': event_id, 'target_user_id': user_id})
-            flash('Снежинка аннулирована.', 'success')
+            log_activity('snowflake_annul', details=f'Аннулирован бубенчик #{event_id}', metadata={'event_id': event_id, 'target_user_id': user_id})
+            flash('Бубенчик аннулирован.', 'success')
     finally:
         conn.close()
 
@@ -13005,8 +13469,8 @@ def admin_rating_event_restore(event_id):
             WHERE id = ?
         ''', (event_id,))
         conn.commit()
-        log_activity('snowflake_restore', details=f'Восстановлена снежинка #{event_id}', metadata={'event_id': event_id, 'target_user_id': user_id})
-        flash('Снежинка восстановлена.', 'success')
+        log_activity('snowflake_restore', details=f'Восстановлен бубенчик #{event_id}', metadata={'event_id': event_id, 'target_user_id': user_id})
+        flash('Бубенчик восстановлен.', 'success')
     finally:
         conn.close()
 

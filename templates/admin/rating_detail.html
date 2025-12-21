@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Снежинки - {{ user.username or ('ID ' ~ user.user_id) }}{% endblock %}
+{% block title %}Бубенчики - {{ user.username or ('ID ' ~ user.user_id) }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
     <div class="admin-container">
         <div class="admin-header">
             <div>
-                <h1>❄️ Снежинки участника</h1>
+                <h1>🔔 Бубенчики участника</h1>
                 <p class="text-muted" style="margin: 0;">
                     {{ user.username or ('ID ' ~ user.user_id) }} · ID {{ user.user_id }}
                 </p>
@@ -19,7 +19,7 @@
         </div>
 
         <div class="event-view-card">
-            <h2 style="margin-bottom: 1rem;">Итоговые снежинки: {{ active_count }}</h2>
+            <h2 style="margin-bottom: 1rem;">Итоговые бубенчики: {{ active_count }}</h2>
 
             {% if events %}
             <div class="table-container">
@@ -28,7 +28,7 @@
                         <tr>
                             <th>Источник</th>
                             <th>Причина</th>
-                            <th style="width: 7rem;">Снежинок</th>
+                            <th style="width: 7rem;">Бубенчиков</th>
                             <th style="width: 8rem;">Статус</th>
                             <th style="width: 11rem;">Выдано</th>
                             <th style="width: 11rem;">Обновлено</th>
@@ -45,7 +45,7 @@
                             <td data-label="Причина">
                                 {{ event.reason }}
                             </td>
-                            <td data-label="Снежинок">
+                            <td data-label="Бубенчиков">
                                 <strong class="{% if event.points < 0 %}text-danger{% elif event.points > 0 %}text-success{% endif %}">
                                     {{ event.points }}
                                 </strong>
@@ -70,12 +70,12 @@
                             </td>
                             <td data-label="Действия">
                                 {% if event.active %}
-                                <form method="post" action="{{ url_for('admin_rating_event_annul', event_id=event.id) }}" onsubmit="return confirm('Аннулировать снежинку?');">
+                                <form method="post" action="{{ url_for('admin_rating_event_annul', event_id=event.id) }}" onsubmit="return confirm('Аннулировать бубенчик?');">
                                     <button type="submit" class="btn btn-outline-danger btn-sm">Аннулировать</button>
                                 </form>
                                 {% else %}
                                     {% if event.manual_revoked %}
-                                    <form method="post" action="{{ url_for('admin_rating_event_restore', event_id=event.id) }}" onsubmit="return confirm('Восстановить снежинку?');">
+                                    <form method="post" action="{{ url_for('admin_rating_event_restore', event_id=event.id) }}" onsubmit="return confirm('Восстановить бубенчик?');">
                                         <button type="submit" class="btn btn-outline-success btn-sm">Восстановить</button>
                                     </form>
                                     {% else %}
@@ -90,7 +90,7 @@
             </div>
             {% else %}
             <div class="empty-state">
-                <p>Для этого участника пока нет записей о снежинках.</p>
+                <p>Для этого участника пока нет записей о бубенчиках.</p>
             </div>
             {% endif %}
         </div>
