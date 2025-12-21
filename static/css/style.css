@@ -1226,6 +1226,39 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
+.btn-outline-primary {
+    background-color: transparent;
+    color: var(--accent-color);
+    border: 2px solid var(--accent-color);
+    transition: all 0.2s ease;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    padding: 0.5rem 1.25rem;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--accent-color);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    text-decoration: none;
+}
+
+[data-theme="dark"] .btn-outline-primary {
+    background-color: transparent;
+    color: var(--accent-color-dark);
+    border: 2px solid var(--accent-color-dark);
+}
+
+[data-theme="dark"] .btn-outline-primary:hover {
+    background-color: var(--accent-color-dark);
+    color: #0f172a;
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
+}
+
 .btn-large {
     padding: 1rem 2rem;
     font-size: 1.1rem;
@@ -2105,6 +2138,56 @@ body {
     
     .pagination-item-ellipsis {
         padding: 0 0.25rem;
+    }
+}
+
+/* Стили для пагинации на странице рейтинга */
+.rating-pagination {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.rating-pagination .btn {
+    min-width: 120px;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+.rating-pagination .btn-outline-primary {
+    border-width: 2px;
+}
+
+.rating-pagination .btn-outline-secondary {
+    border-width: 2px;
+}
+
+.rating-pagination-info {
+    padding: 0 1rem;
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .rating-pagination {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .rating-pagination .btn {
+        width: 100%;
+        max-width: 200px;
+    }
+    
+    .rating-pagination-info {
+        order: -1;
+        width: 100%;
+        text-align: center;
+        padding: 0.5rem 0;
     }
 }
 

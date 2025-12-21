@@ -817,6 +817,24 @@ def init_db():
             c.execute('ALTER TABLE snowflake_events ADD COLUMN manual_revoked INTEGER DEFAULT 0')
         except sqlite3.OperationalError:
             pass
+        
+        # Добавляем индексы для ускорения запросов рейтинга
+        try:
+            c.execute('CREATE INDEX IF NOT EXISTS idx_snowflake_events_user_id ON snowflake_events(user_id)')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('CREATE INDEX IF NOT EXISTS idx_snowflake_events_active ON snowflake_events(active)')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('CREATE INDEX IF NOT EXISTS idx_snowflake_events_manual_revoked ON snowflake_events(manual_revoked)')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute('CREATE INDEX IF NOT EXISTS idx_snowflake_events_rating ON snowflake_events(active, manual_revoked, user_id)')
+        except sqlite3.OperationalError:
+            pass
         try:
             c.execute('ALTER TABLE snowflake_events ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP')
         except sqlite3.OperationalError:
@@ -13272,96 +13290,75 @@ def user_rating():
     else:
         is_admin = False
 
+    # Параметры пагинации
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    
+    # Ограничиваем per_page разумными значениями
+    per_page = min(max(per_page, 10), 200)
+    page = max(1, page)
+
     conn = get_db_connection()
     try:
-        user_rows = [
-            dict(row) for row in conn.execute('''
-                SELECT user_id, username, telegram, whatsapp, viber
-                FROM users
-                ORDER BY LOWER(username)
-            ''').fetchall()
-        ]
-
-        for user_row in user_rows:
-            _sync_contact_snowflakes(conn, user_row)
-        conn.commit()
-
-        # Получаем все события для расчета рейтинга (фильтрация по active и manual_revoked будет в Python)
-        # Это нужно, чтобы не пропустить события из-за проблем с типами данных в SQLite
-        events = conn.execute('''
-            SELECT id, user_id, source, reason, points, active, manual_revoked
-            FROM snowflake_events
-        ''').fetchall()
+        # Оптимизация: используем SQL агрегацию с JOIN для получения рейтинга и пользователей
+        # Сортируем по рейтингу (убывание) и имени (возрастание)
+        rating_query = '''
+            SELECT 
+                u.user_id,
+                u.username,
+                COALESCE(SUM(CAST(se.points AS REAL)), 0.0) as total_points
+            FROM users u
+            LEFT JOIN snowflake_events se ON u.user_id = se.user_id
+                AND (se.active = 1 OR CAST(se.active AS INTEGER) = 1)
+                AND (se.manual_revoked IS NULL OR se.manual_revoked = 0 OR CAST(se.manual_revoked AS INTEGER) = 0)
+            GROUP BY u.user_id, u.username
+            ORDER BY total_points DESC, LOWER(u.username) ASC
+        '''
+        
+        # Получаем общее количество пользователей для пагинации
+        total_count = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
+        
+        # Вычисляем смещение для пагинации
+        offset = (page - 1) * per_page
+        
+        # Получаем данные с пагинацией
+        # Используем параметризованный запрос для безопасности
+        rating_rows_raw = conn.execute(
+            rating_query + ' LIMIT ? OFFSET ?', 
+            (per_page, offset)
+        ).fetchall()
+        
     finally:
         conn.close()
 
-    events_by_user = defaultdict(lambda: {'points': 0.0, 'events': []})
-    for event in events:
-        # Преобразуем Row в dict для удобной работы
-        event_dict = dict(event) if not isinstance(event, dict) else event
-        
-        # Проверяем active: событие должно быть активным
-        active = event_dict.get('active')
-        # Преобразуем active в число для надежной проверки
-        try:
-            active_int = int(active) if active is not None else 0
-        except (ValueError, TypeError):
-            active_int = 0
-        
-        if active_int != 1:
-            continue
-        
-        # Проверяем manual_revoked: событие не должно быть вручную отозвано
-        manual_revoked = event_dict.get('manual_revoked', 0)
-        try:
-            manual_revoked_int = int(manual_revoked) if manual_revoked is not None else 0
-        except (ValueError, TypeError):
-            manual_revoked_int = 0
-        
-        if manual_revoked_int != 0:
-            continue
-        
-        # Преобразуем points в float, чтобы поддерживать десятичные значения
-        try:
-            points = float(event_dict['points']) if event_dict['points'] is not None else 0.0
-        except (ValueError, TypeError):
-            points = 0.0
-        events_by_user[event_dict['user_id']]['points'] += points
-        events_by_user[event_dict['user_id']]['events'].append({
-            'source': event_dict['source'],
-            'points': points,
-            'reason': event_dict['reason']
-        })
-        events_by_user[event['user_id']]['events'].append({
-            'source': event['source'],
-            'points': points,
-            'reason': event['reason']
-        })
-
+    # Преобразуем результаты
     rating_rows = []
-    for user_row in user_rows:
-        if user_row['user_id'] in events_by_user:
-            rating_value = events_by_user[user_row['user_id']]['points']
-            # Отладочная информация для пользователей с отрицательным рейтингом
-            if rating_value < 0 and user_row['user_id'] in [342, 347, 384]:
-                log_debug(f"User {user_row['user_id']} ({user_row['username']}): rating={rating_value} (type={type(rating_value).__name__}), events={events_by_user[user_row['user_id']]['events']}")
-        else:
-            rating_value = 0.0
-        # Преобразуем rating_value в float для поддержки десятичных значений
-        final_rating = float(rating_value) if rating_value is not None else 0.0
-        rating_rows.append({
-            'user_id': user_row['user_id'],
-            'username': user_row['username'],
-            'rating': final_rating,
-        })
-        
-        # Отладочная информация для проверки десятичных значений
-        if final_rating != int(final_rating) and user_row['user_id'] in [342, 347, 384]:
-            log_debug(f"User {user_row['user_id']} ({user_row['username']}): decimal rating={final_rating} (type={type(final_rating).__name__})")
+    for row in rating_rows_raw:
+        try:
+            rating_rows.append({
+                'user_id': row['user_id'],
+                'username': row['username'],
+                'rating': float(row['total_points']) if row['total_points'] is not None else 0.0,
+            })
+        except (ValueError, TypeError):
+            continue
 
-    rating_rows.sort(key=lambda item: (-item['rating'], item['username'].lower() if item['username'] else ''))
+    # Вычисляем информацию о пагинации
+    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+    has_prev = page > 1
+    has_next = page < total_pages
 
-    resp = make_response(render_template('rating.html', rating_rows=rating_rows, is_admin=is_admin))
+    resp = make_response(render_template(
+        'rating.html', 
+        rating_rows=rating_rows, 
+        is_admin=is_admin,
+        page=page,
+        per_page=per_page,
+        total_count=total_count,
+        total_pages=total_pages,
+        has_prev=has_prev,
+        has_next=has_next
+    ))
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'

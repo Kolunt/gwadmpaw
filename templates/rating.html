@@ -8,14 +8,19 @@
         <div class="admin-header">
             <div>
                 <h1>🏆 Рейтинг участников</h1>
-                <p class="text-muted" style="margin: 0;">
-                    Каждая заполненная контактная информация (Telegram, WhatsApp, Viber) добавляет +1 к рейтингу.
-                </p>
             </div>
         </div>
 
         <div class="event-view-card">
             {% if rating_rows %}
+            <div class="table-info" style="margin-bottom: 1rem;">
+                <span>
+                    Показано: <strong>{{ rating_rows|length }}</strong> из <strong>{{ total_count }}</strong>
+                    {% if total_pages > 1 %}
+                        (Страница {{ page }} из {{ total_pages }})
+                    {% endif %}
+                </span>
+            </div>
             <div class="table-container">
                 <table class="admin-table">
                     <thead>
@@ -29,11 +34,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% set current_place = 0 %}
+                        {% set current_place = (page - 1) * per_page %}
                         {% set previous_score = None %}
                         {% for row in rating_rows %}
                             {% if previous_score != row.rating %}
-                                {% set current_place = loop.index %}
+                                {% set current_place = (page - 1) * per_page + loop.index %}
                                 {% set previous_score = row.rating %}
                             {% endif %}
                         <tr>
@@ -60,6 +65,30 @@
                     </tbody>
                 </table>
             </div>
+            
+            {% if total_pages > 1 %}
+            <div class="rating-pagination">
+                {% if has_prev %}
+                <a href="{{ url_for('user_rating', page=page-1, per_page=per_page) }}" class="btn btn-outline-primary">
+                    ← Назад
+                </a>
+                {% else %}
+                <span class="btn btn-outline-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">← Назад</span>
+                {% endif %}
+                
+                <span class="rating-pagination-info">
+                    Страница {{ page }} из {{ total_pages }}
+                </span>
+                
+                {% if has_next %}
+                <a href="{{ url_for('user_rating', page=page+1, per_page=per_page) }}" class="btn btn-outline-primary">
+                    Вперёд →
+                </a>
+                {% else %}
+                <span class="btn btn-outline-secondary" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;">Вперёд →</span>
+                {% endif %}
+            </div>
+            {% endif %}
             {% else %}
             <div class="empty-state">
                 <p>Пока нечего отображать.</p>
