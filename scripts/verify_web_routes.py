@@ -137,6 +137,14 @@ def main() -> int:
     for method, path in admin:
         check('admin', method, path, 200)
 
+    responsive_paths = ['/', '/contacts', '/admin/', '/assignments', '/letter']
+    for path in responsive_paths:
+        resp = client.get(path, follow_redirects=False)
+        if resp.status_code == 200:
+            body = resp.get_data(as_text=True)
+            if 'width=device-width' not in body:
+                errors.append(f'responsive {path} → missing viewport meta')
+
     if errors:
         print(f'FAIL: {len(errors)} route(s), {ok} OK')
         for err in errors:

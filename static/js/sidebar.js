@@ -10,9 +10,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Проверка, мобильная ли версия
+    // Drawer-сайдбар на экранах до 1024px (mobile + tablet)
+    const MOBILE_MAX = 1024;
     function isMobile() {
-        return window.innerWidth <= 768;
+        return window.innerWidth < MOBILE_MAX;
     }
     
     // Открытие сайдбара

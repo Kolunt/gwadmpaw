@@ -9,15 +9,15 @@
         <div class="admin-header">
             <div>
                 <h1>✉️ Письмо Деду Морозу</h1>
-                <p class="text-muted" style="margin: 0;">Мероприятие: {{ letter.event_name }}</p>
+                <p class="text-muted mb-0">Мероприятие: {{ letter.event_name }}</p>
             </div>
             <a href="{{ url_for('assignments.assignments') }}" class="btn btn-secondary">← Вернуться к заданиям</a>
         </div>
 
         {% if available_letters|length > 1 %}
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <div class="card-body" style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                <span class="text-muted" style="align-self: center;">Другие чаты:</span>
+        <div class="card letter-switcher-panel">
+            <div class="card-body letter-switcher-body">
+                <span class="text-muted letter-switcher-label">Другие чаты:</span>
                 {% for item in available_letters %}
                 <a 
                     href="{{ url_for('assignments.letter', assignment_id=item.assignment_id) }}"
@@ -36,131 +36,33 @@
         </div>
         {% endif %}
 
-        <div class="event-view-card" style="max-width: 960px; margin: 0 auto;">
-            <style>
-                .letter-switcher-btn {
-                    background: rgba(46, 125, 50, 0.12);
-                    border: 1px solid rgba(46, 125, 50, 0.35);
-                    color: #1b5e20;
-                    transition: all 0.2s ease;
-                }
-                .letter-switcher-btn:hover,
-                .letter-switcher-btn:focus {
-                    background: rgba(46, 125, 50, 0.22);
-                    color: #1b5e20;
-                    border-color: rgba(46, 125, 50, 0.55);
-                }
-                .letter-switcher-btn.is-active {
-                    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
-                    border-color: #2e7d32;
-                    color: #ffffff;
-                    box-shadow: 0 8px 18px rgba(27, 94, 32, 0.35);
-                }
-                .letter-switcher-btn.is-active:hover,
-                .letter-switcher-btn.is-active:focus {
-                    color: #ffffff;
-                    border-color: #1b5e20;
-                }
-                .chat-wrapper {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1.25rem;
-                }
-                .chat-message {
-                    max-width: 72%;
-                    padding: 1rem 1.25rem;
-                    border-radius: 16px;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-                    position: relative;
-                    line-height: 1.55;
-                }
-                .chat-message::after {
-                    content: "";
-                    position: absolute;
-                    width: 12px;
-                    height: 12px;
-                    background: inherit;
-                    bottom: -6px;
-                    transform: rotate(45deg);
-                }
-                .message-grandchild {
-                    align-self: flex-start;
-                    background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
-                    color: white;
-                }
-                .message-grandchild::after {
-                    left: 24px;
-                }
-                .message-santa {
-                    align-self: flex-end;
-                    background: linear-gradient(135deg, #f7f7fb 0%, #ebefff 100%);
-                    border: 1px solid rgba(102, 126, 234, 0.18);
-                    color: #364152;
-                }
-                .message-santa::after {
-                    right: 24px;
-                    border-left: 1px solid rgba(102, 126, 234, 0.18);
-                    border-bottom: 1px solid rgba(102, 126, 234, 0.18);
-                }
-                .chat-wrapper.role-grandchild .message-grandchild {
-                    align-self: flex-end;
-                }
-                .chat-wrapper.role-grandchild .message-grandchild::after {
-                    left: auto;
-                    right: 24px;
-                }
-                .chat-wrapper.role-grandchild .message-santa {
-                    align-self: flex-start;
-                }
-                .chat-wrapper.role-grandchild .message-santa::after {
-                    right: auto;
-                    left: 24px;
-                }
-                .chat-meta {
-                    display: block;
-                    font-size: 0.85rem;
-                    opacity: 0.8;
-                    margin-top: 0.75rem;
-                }
-                .chat-attachment {
-                    margin-top: 0.75rem;
-                    border-radius: 14px;
-                    overflow: hidden;
-                    background: rgba(255, 255, 255, 0.08);
-                }
-                .chat-attachment img {
-                    display: block;
-                    width: 100%;
-                    height: auto;
-                }
-            </style>
-
+        <div class="event-view-card letter-page-card">
             {% set wrapper_role = 'grandchild' if user_role == 'grandchild' else 'santa' %}
             <div class="chat-wrapper role-{{ wrapper_role }}" id="chat-thread">
                 <div class="chat-message message-grandchild">
                     <strong>✨ {{ letter.grandchild.first_name }}:</strong>
-                    <div style="margin-top: 0.5rem;">
+                    <div class="chat-message-body">
                         <p>Здравствуй, Дедушка Мороз! Меня зовут <strong>{{ letter.grandchild.first_name }}</strong>, а полностью <strong>{{ letter.grandchild.full_name }}</strong>. Пишу тебе из <strong>{{ letter.grandchild.address }}</strong>. Весь год я вёл себя хорошо, заботился о родных и друзьях, сделал много хорошего и с нетерпением жду волшебства и чудес, которые ты даришь всем детям.</p>
 
-                        <p>Несколько слов о себе: <span style="white-space: pre-wrap;">{{ letter.grandchild.bio }}</span></p>
+                        <p>Несколько слов о себе: <span class="chat-message-body-pre">{{ letter.grandchild.bio }}</span></p>
 
                         <p>Спасибо тебе за всё, что ты делаешь! Желаю тебе крепкого здоровья и счастья. Надеюсь, что в следующем году я снова смогу написать тебе письмо и поделиться своими новыми достижениями!</p>
 
-                        <p style="margin-top: 1.5rem;">С любовью, <strong>{{ letter.grandchild.first_name }}</strong></p>
+                        <p class="chat-signoff">С любовью, <strong>{{ letter.grandchild.first_name }}</strong></p>
                     </div>
                     <span class="chat-meta">{{ letter.date }}</span>
                 </div>
 
                 <div class="chat-message message-santa">
                     <strong>🎅 Дед Мороз:</strong>
-                    <div style="margin-top: 0.5rem;">
+                    <div class="chat-message-body">
                         <p>Здравствуй, мой дорогой внучок! Пишет тебе Дед Мороз из России, город Великий Устюг — своей официальной резиденции. Я забочусь о том, чтобы чудеса и тепло доходили до каждого сердца, и очень рад, что ты со мной.</p>
 
                         <p>Помни, что самое важное — сохранять доброту в душе, заботиться о близких и верить в чудеса. Тогда они обязательно сбудутся!</p>
 
                         <p>Вскоре я найду способ прислать тебе подарок и сообщу координаты 👌</p>
 
-                        <p style="margin-top: 1.5rem;">С любовью, твой <strong>Дед Мороз</strong></p>
+                        <p class="chat-signoff">С любовью, твой <strong>Дед Мороз</strong></p>
                     </div>
                     <span class="chat-meta">{{ letter.date }}</span>
                 </div>
@@ -175,7 +77,7 @@
                         {% endif %}
                     </strong>
                     {% if msg.message %}
-                    <div style="margin-top: 0.5rem; white-space: pre-wrap;">{{ msg.message | e | replace('\n', '<br>') | safe }}</div>
+                    <div class="chat-message-body chat-message-body-pre">{{ msg.message | e | replace('\n', '<br>') | safe }}</div>
                     {% endif %}
                     {% if msg.attachment_url %}
                     <div class="chat-attachment">
@@ -191,42 +93,41 @@
                 {% endfor %}
             </div>
 
-            <div class="card" style="margin-top: 2rem;">
+            <div class="card letter-compose-card">
                 <div class="card-body">
-                    <h3 style="margin-top: 0;">{% if event_finished and not admin_view %}Переписка завершена{% else %}Продолжить переписку{% endif %}</h3>
+                    <h3 class="letter-compose-title">{% if event_finished and not admin_view %}Переписка завершена{% else %}Продолжить переписку{% endif %}</h3>
                     {% if admin_view %}
-                    <p class="text-muted" style="margin-bottom: 0;">
+                    <p class="text-muted mb-0">
                         Вы просматриваете переписку как администратор. Сообщения доступны только для чтения.
                     </p>
                     {% if admin_letters_url %}
-                    <p style="margin-top: 1rem;">
+                    <p class="mt-1">
                         <a href="{{ admin_letters_url }}" class="btn btn-outline-secondary btn-sm">← К списку переписок</a>
                     </p>
                     {% endif %}
                     {% elif event_finished %}
-                    <p class="text-muted" style="margin-bottom: 0;">
+                    <p class="text-muted mb-0">
                         Мероприятие завершено. Переписка доступна только для чтения.
                     </p>
                     {% else %}
-                    <p class="text-muted" style="margin-bottom: 1rem;">
+                    <p class="text-muted mb-1">
                         {% if user_role == 'santa' %}
                             Вы общаетесь как <strong>Дед Мороз</strong>. Сообщения от внучка добавляет ваш получатель.
                         {% else %}
                             Вы общаетесь как <strong>Внучок</strong>. Сообщения от Деда Мороза добавляет ваш даритель.
                         {% endif %}
                     </p>
-                    <form id="letter-form" method="POST" action="{{ url_for('assignments.letter', assignment_id=assignment.id) }}" enctype="multipart/form-data" style="display: grid; gap: 1rem;">
+                    <form id="letter-form" method="POST" action="{{ url_for('assignments.letter', assignment_id=assignment.id) }}" enctype="multipart/form-data" class="letter-form">
         {{ csrf_input() }}
                         <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
                         <textarea
                             name="message"
                             id="letter-message-input"
-                            class="setting-input"
-                            style="min-height: 120px; resize: vertical;"
+                            class="setting-input letter-textarea"
                             placeholder="{% if user_role == 'santa' %}Напишите ответ Деда Мороза...{% else %}Напишите письмо Деду Морозу...{% endif %}"
                         ></textarea>
-                        <div style="display: grid; gap: 0.5rem;">
-                            <label for="letter-attachment-input" class="text-muted" style="font-weight: 600;">Изображение (необязательно)</label>
+                        <div class="letter-attachment-group">
+                            <label for="letter-attachment-input" class="text-muted fw-semibold">Изображение (необязательно)</label>
                             <input
                                 type="file"
                                 name="attachment"
@@ -234,9 +135,9 @@
                                 accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
                                 class="setting-input"
                             >
-                            <span class="text-muted" style="font-size: 0.85rem;">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
+                            <span class="text-muted letter-attachment-hint">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
                         </div>
-                        <button type="submit" class="btn btn-primary" style="justify-self: flex-start;">Отправить сообщение</button>
+                        <button type="submit" class="btn btn-primary letter-submit-btn">Отправить сообщение</button>
                     </form>
                     {% endif %}
                 </div>
@@ -268,4 +169,3 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 {% endblock %}
-
