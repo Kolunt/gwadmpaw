@@ -48,7 +48,7 @@ pip3.10 install --user -r requirements.txt
 
 5. **Перезагрузите веб-приложение** через панель управления
 
-**Важно**: Домен уже настроен в `app.py` как `gwadm.pythonanywhere.com`. Если ваш домен отличается, измените `GWARS_HOST` в файле `app.py`.
+**Важно**: Карта доменов GWars настраивается в админке (**Настройки → Интеграции → GWars**) или в `settings.gwars_domain_map`. Подробнее: [GWARS_DOMAINS.md](GWARS_DOMAINS.md).
 
 ## Обновление проекта
 
@@ -90,8 +90,8 @@ gwadmpaw/
 
 1. Пользователь нажимает "Войти через GWars"
 2. Происходит редирект на `https://www.gwars.io/cross-server-login.php` с параметрами:
-   - `site_id=4`
-   - `url=https://yourdomain.pythonanywhere.com/login`
+   - `site_id` — по текущему домену (для `gwadm.ru` это `3`, см. [GWARS_DOMAINS.md](GWARS_DOMAINS.md))
+   - `url=https://{текущий-домен}/login`
 3. GWars проверяет авторизацию пользователя
 4. Если пользователь авторизован, GWars перенаправляет на `/login` с параметрами:
    - `sign` - подпись (md5(password + username + user_id))

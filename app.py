@@ -22,11 +22,21 @@ except ImportError:
     requests = None
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 import traceback
+
+from gwars_domains import (
+    DEFAULT_GWARS_DOMAIN_MAP,
+    build_gwars_login_url,
+    is_local_dev_host,
+    parse_domain_map,
+    serialize_domain_map,
+)
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['VERSION'] = __version__
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 EVENT_TIME_OFFSET_HOURS = 0
 try:
@@ -280,8 +290,6 @@ except Exception as e:
 
 # Константы для GWars авторизации
 GWARS_PASSWORD = "deadmoroz"
-GWARS_HOST = "gwadm.pythonanywhere.com"
-GWARS_SITE_ID = 4
 
 # ID администраторов по умолчанию
 ADMIN_USER_IDS = [283494, 240139]
@@ -1079,6 +1087,7 @@ def init_db():
             ('dadata_enabled', '0', 'Dadata интеграция включена', 'integrations'),
             ('dadata_verified', '0', 'Dadata ключи проверены', 'integrations'),
             ('site_url', '', 'Базовый URL сайта (для Telegram бота и ссылок)', 'integrations'),
+            ('gwars_domain_map', json.dumps(DEFAULT_GWARS_DOMAIN_MAP, ensure_ascii=False), 'Карта доменов-зеркал GWars (JSON)', 'integrations'),
         ]
         
         for key, value, description, category in default_settings:
@@ -1093,7 +1102,32 @@ def init_db():
                     WHERE key = ? AND (value IS NULL OR value = '' OR value LIKE '/static/uploads/%')
                 ''', (value, key))
         
-        # Удаляем устаревшие настройки GWars, если они присутствуют
+        # Миграция устаревших настроек GWars в gwars_domain_map
+        existing_map = c.execute(
+            'SELECT value FROM settings WHERE key = ?', ('gwars_domain_map',)
+        ).fetchone()
+        legacy_host = c.execute(
+            'SELECT value FROM settings WHERE key = ?', ('gwars_host',)
+        ).fetchone()
+        legacy_site_id = c.execute(
+            'SELECT value FROM settings WHERE key = ?', ('gwars_site_id',)
+        ).fetchone()
+
+        if not existing_map or not existing_map['value']:
+            if legacy_host and legacy_host['value'] and legacy_site_id and legacy_site_id['value']:
+                try:
+                    migrated_map = [{
+                        'host': legacy_host['value'].strip().lower(),
+                        'site_id': int(legacy_site_id['value']),
+                        'primary': True,
+                    }]
+                    c.execute(
+                        'UPDATE settings SET value = ? WHERE key = ?',
+                        (json.dumps(migrated_map, ensure_ascii=False), 'gwars_domain_map'),
+                    )
+                except (TypeError, ValueError):
+                    pass
+
         c.execute('DELETE FROM settings WHERE key IN (?, ?)', ('gwars_host', 'gwars_site_id'))
         
         # Инициализация дефолтного меню бота
@@ -2567,28 +2601,15 @@ def login():
             # После авторизации пользователь будет редиректиться на production, 
             # где можно будет протестировать функционал
             
-            # Определяем, работаем ли мы локально
-            is_local = request.host in ['127.0.0.1:5000', 'localhost:5000', '127.0.0.1', 'localhost']
-            
+            is_local = is_local_dev_host(request.host)
+            domain_map = load_gwars_domain_map()
+            gwars_login_url = build_gwars_login_url(
+                request.host,
+                is_local=is_local,
+                domain_map=domain_map,
+            )
             if is_local:
-                # При локальной разработке используем production URL для callback
-                # Это необходимо, так как GWars не принимает localhost
-                callback_url = f"https://{GWARS_HOST}/login"
-                log_debug(f"Local development detected. Using production callback URL: {callback_url}")
-                log_debug("After GWars authorization, you'll be redirected to production server.")
-                log_debug("You can then manually navigate to localhost:5000 for local testing.")
-            else:
-                # На production используем текущий домен
-                if 'pythonanywhere.com' in request.host:
-                    callback_url = f"https://{request.host}/login"
-                else:
-                    callback_url = f"{request.scheme}://{request.host}/login"
-            
-            # Редиректим на GWars для авторизации
-            # Если пользователь авторизован в GWars, он получит параметры (sign, user_id и т.д.)
-            # и будет авторизован в нашей системе (флаг gwars_auth_attempt будет очищен при успешной авторизации)
-            # Если не авторизован, вернется без параметров, и мы покажем страницу /gwars-required
-            gwars_login_url = f"https://www.gwars.io/cross-server-login.php?site_id={GWARS_SITE_ID}&url={quote(callback_url)}"
+                log_debug(f"Local development detected. GWars login URL: {gwars_login_url}")
             return redirect(gwars_login_url)
         
         # Логируем все полученные параметры для отладки
@@ -5957,6 +5978,15 @@ def admin_settings():
                 setting_values = request.form.getlist(key)
                 setting_value = setting_values[-1] if setting_values else request.form.get(key, '0')
                 settings_dict[setting_key] = setting_value
+
+        if 'gwars_domain_map' in settings_dict:
+            try:
+                validated_map = parse_domain_map(settings_dict['gwars_domain_map'])
+                settings_dict['gwars_domain_map'] = serialize_domain_map(validated_map)
+            except ValueError as exc:
+                flash(f'Ошибка в карте доменов GWars: {exc}', 'error')
+                conn.close()
+                return redirect(url_for('admin_settings') + '#integrations-gwars')
         
         # Сохраняем настройки
         for key, value in settings_dict.items():
@@ -6006,6 +6036,8 @@ def admin_settings():
                     elif key.startswith('smtp_'):
                         category = 'integrations'
                     elif key.startswith('telegram_'):
+                        category = 'integrations'
+                    elif key == 'gwars_domain_map':
                         category = 'integrations'
                     elif key.startswith('rating_'):
                         category = 'rating'
@@ -6197,7 +6229,8 @@ def admin_settings():
                              system_roles=system_roles,
                              system_titles=system_titles,
                              all_titles=all_titles,
-                             bot_menu_items=bot_menu_items)
+                             bot_menu_items=bot_menu_items,
+                             gwars_domain_entries=load_gwars_domain_map())
     except Exception as e:
         log_error(f"Error rendering admin/settings.html: {e}")
         import traceback
@@ -7538,6 +7571,17 @@ def get_setting(key, default=None):
     except Exception as e:
         log_error(f"Error getting setting {key}: {e}")
         return default
+
+
+def load_gwars_domain_map():
+    """Загружает карту доменов GWars из настроек с fallback на дефолт."""
+    raw = get_setting('gwars_domain_map', '')
+    if raw:
+        try:
+            return parse_domain_map(raw)
+        except ValueError as exc:
+            log_error(f"Invalid gwars_domain_map in settings: {exc}")
+    return list(DEFAULT_GWARS_DOMAIN_MAP)
 
 def get_rating_setting(key, default=1):
     """Получает настройку рейтинга как целое число"""
@@ -9886,7 +9930,13 @@ def event_unregister(event_id):
 @app.route('/gwars-required')
 def gwars_required():
     """Страница с сообщением о необходимости авторизации в GWars"""
-    return render_template('gwars_required.html')
+    domain_map = load_gwars_domain_map()
+    gwars_login_url = build_gwars_login_url(
+        request.host,
+        is_local=is_local_dev_host(request.host),
+        domain_map=domain_map,
+    )
+    return render_template('gwars_required.html', gwars_login_url=gwars_login_url)
 
 @app.route('/faq')
 def faq():

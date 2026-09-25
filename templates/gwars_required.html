@@ -12,11 +12,7 @@
                 Вы должны быть авторизованы в игре, прежде чем пользоваться этим сервисом.
             </p>
             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                {% set callback_url = request.scheme + '://' + request.host + '/login' %}
-                {% if 'pythonanywhere.com' in request.host %}
-                    {% set callback_url = 'https://' + request.host + '/login' %}
-                {% endif %}
-                <a href="https://www.gwars.io/cross-server-login.php?site_id=4&url={{ callback_url|urlencode }}" class="btn btn-primary btn-large">
+                <a href="{{ gwars_login_url }}" class="btn btn-primary btn-large">
                     Войти через GWars
                 </a>
                 <a href="https://www.gwars.io/" target="_blank" class="btn btn-secondary btn-large">
@@ -35,4 +31,3 @@
     </div>
 </div>
 {% endblock %}
-

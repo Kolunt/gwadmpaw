@@ -13,4 +13,5 @@ ENV/
 .DS_Store
 *.log
 static/uploads/
+pa_export/
 

@@ -70,6 +70,9 @@
                     <button type="button" class="integration-subtab" data-integration="telegram">
                         🤖 Telegram
                     </button>
+                    <button type="button" class="integration-subtab" data-integration="gwars">
+                        ⚔️ GWars
+                    </button>
                 </div>
                 
                 <!-- Содержимое подтабов -->
@@ -432,6 +435,41 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Содержимое подтаба GWars -->
+                <div class="integration-content" data-integration="gwars">
+                    <div class="settings-section">
+                        <h2 class="settings-section-title">⚔️ Домены-зеркала GWars</h2>
+                        <p style="color: var(--text-secondary, #666); margin-bottom: 1rem;">
+                            Для каждого домена укажите <code>site_id</code> из кабинета GWars.
+                            Callback URL для домена: <code>https://&lt;домен&gt;/login</code>
+                        </p>
+                        <input type="hidden" id="gwars_domain_map" name="setting_gwars_domain_map" value="">
+                        <div style="overflow-x: auto; margin-bottom: 1rem;">
+                            <table class="admin-table" id="gwars-domain-table" style="width: 100%; min-width: 520px;">
+                                <thead>
+                                    <tr>
+                                        <th>Домен</th>
+                                        <th>site_id</th>
+                                        <th>Primary</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gwars-domain-rows">
+                                    {% for entry in gwars_domain_entries %}
+                                    <tr class="gwars-domain-row">
+                                        <td><input type="text" class="setting-input gwars-host-input" value="{{ entry.host }}" placeholder="gwadm.ru"></td>
+                                        <td><input type="number" min="1" class="setting-input gwars-site-id-input" value="{{ entry.site_id }}" style="width: 100px;"></td>
+                                        <td style="text-align: center;"><input type="radio" name="gwars_domain_primary_row" class="gwars-primary-radio" {% if entry.primary %}checked{% endif %}></td>
+                                        <td><button type="button" class="btn btn-secondary btn-sm gwars-remove-row">Удалить</button></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-secondary" id="gwars-add-row">➕ Добавить домен</button>
                     </div>
                 </div>
             </div>
@@ -1185,7 +1223,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Проверяем, является ли это подтабом интеграций (формат: integrations-telegram, integrations-smtp, integrations-dadata)
         if (hash.startsWith('integrations-')) {
             const integration = hash.replace('integrations-', '');
-            if (['dadata', 'smtp', 'telegram'].includes(integration)) {
+            if (['dadata', 'smtp', 'telegram', 'gwars'].includes(integration)) {
                 // Сначала активируем таб "integrations"
                 switchTab('integrations');
                 // Затем активируем подтаб с небольшой задержкой, чтобы убедиться, что таб активирован
@@ -1266,7 +1304,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const hash = window.location.hash.substring(1);
         if (hash && hash.startsWith('integrations-')) {
             const integration = hash.replace('integrations-', '');
-            if (['dadata', 'smtp', 'telegram'].includes(integration)) {
+            if (['dadata', 'smtp', 'telegram', 'gwars'].includes(integration)) {
                 // Проверяем, что подтаб действительно активен
                 const selectedContent = document.querySelector(`.integration-content[data-integration="${integration}"]`);
                 if (selectedContent && !selectedContent.classList.contains('active')) {
@@ -1288,6 +1326,70 @@ document.addEventListener('DOMContentLoaded', function() {
             switchIntegrationTab(integration);
         });
     });
+
+    const gwarsDomainTable = document.getElementById('gwars-domain-rows');
+    const gwarsDomainMapInput = document.getElementById('gwars_domain_map');
+    const gwarsAddRowBtn = document.getElementById('gwars-add-row');
+
+    function createGwarsDomainRow(host = '', siteId = '', isPrimary = false) {
+        const row = document.createElement('tr');
+        row.className = 'gwars-domain-row';
+        row.innerHTML = `
+            <td><input type="text" class="setting-input gwars-host-input" value="${host}" placeholder="gwadm.ru"></td>
+            <td><input type="number" min="1" class="setting-input gwars-site-id-input" value="${siteId}" style="width: 100px;"></td>
+            <td style="text-align: center;"><input type="radio" name="gwars_domain_primary_row" class="gwars-primary-radio" ${isPrimary ? 'checked' : ''}></td>
+            <td><button type="button" class="btn btn-secondary btn-sm gwars-remove-row">Удалить</button></td>
+        `;
+        return row;
+    }
+
+    function serializeGwarsDomainMap() {
+        if (!gwarsDomainTable || !gwarsDomainMapInput) {
+            return;
+        }
+        const rows = gwarsDomainTable.querySelectorAll('.gwars-domain-row');
+        const entries = [];
+        rows.forEach(row => {
+            const host = row.querySelector('.gwars-host-input')?.value.trim().toLowerCase();
+            const siteId = parseInt(row.querySelector('.gwars-site-id-input')?.value || '0', 10);
+            const isPrimary = row.querySelector('.gwars-primary-radio')?.checked;
+            if (!host) {
+                return;
+            }
+            entries.push({ host, site_id: siteId, primary: !!isPrimary });
+        });
+        gwarsDomainMapInput.value = JSON.stringify(entries);
+    }
+
+    if (gwarsAddRowBtn && gwarsDomainTable) {
+        gwarsAddRowBtn.addEventListener('click', function() {
+            const hasPrimary = gwarsDomainTable.querySelector('.gwars-primary-radio:checked');
+            gwarsDomainTable.appendChild(createGwarsDomainRow('', '', !hasPrimary));
+        });
+
+        gwarsDomainTable.addEventListener('click', function(event) {
+            const removeBtn = event.target.closest('.gwars-remove-row');
+            if (!removeBtn) {
+                return;
+            }
+            const row = removeBtn.closest('.gwars-domain-row');
+            const wasPrimary = row?.querySelector('.gwars-primary-radio')?.checked;
+            row?.remove();
+            if (wasPrimary) {
+                const firstRadio = gwarsDomainTable.querySelector('.gwars-primary-radio');
+                if (firstRadio) {
+                    firstRadio.checked = true;
+                }
+            }
+        });
+    }
+
+    const settingsForm = document.querySelector('.settings-form');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', function() {
+            serializeGwarsDomainMap();
+        });
+    }
     
     
     // Обработка проверки Dadata API
