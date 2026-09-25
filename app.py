@@ -24,6 +24,8 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 import traceback
+import threading
+import time
 
 from gwars_domains import (
     DEFAULT_GWARS_DOMAIN_MAP,
@@ -297,6 +299,7 @@ ADMIN_USER_IDS = [283494, 240139]
 # Инициализация базы данных
 _db_initialized = False
 _db_path = None
+_db_init_lock = threading.Lock()
 
 def get_db_path():
     """Определяет путь к базе данных"""
@@ -311,9 +314,27 @@ def get_db_path():
             _db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database.db')
     return _db_path
 
+def _database_is_ready():
+    """Проверяет, что БД уже инициализирована и доступна для чтения."""
+    conn = None
+    try:
+        conn = sqlite3.connect(get_db_path(), timeout=30)
+        conn.execute('SELECT 1 FROM settings LIMIT 1')
+        return True
+    except Exception:
+        return False
+    finally:
+        if conn:
+            conn.close()
+
+
 def init_db():
     """Инициализирует базу данных, создавая таблицы если их нет"""
     global _db_initialized
+    if _db_initialized:
+        return
+
+    conn = None
     try:
         db_path = get_db_path()
         log_debug(f"Initializing database at: {db_path}")
@@ -323,7 +344,8 @@ def init_db():
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
         
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path, timeout=30)
+        conn.execute('PRAGMA journal_mode=WAL')
         c = conn.cursor()
         
         # Таблица пользователей
@@ -1225,12 +1247,21 @@ def init_db():
             log_error(f"Error initializing rating settings: {e}")
         
         conn.commit()
-        conn.close()
         _db_initialized = True
         log_debug(f"Database initialized successfully at: {db_path}")
+    except sqlite3.OperationalError as e:
+        if 'locked' in str(e).lower() and _database_is_ready():
+            _db_initialized = True
+            log_debug("Database already initialized by another worker")
+        else:
+            log_error(f"Error initializing database: {e}")
+            raise
     except Exception as e:
         log_error(f"Error initializing database: {e}")
         raise
+    finally:
+        if conn:
+            conn.close()
 
 def generate_unique_avatar_seed(user_id):
     """Генерирует уникальный seed для аватара пользователя"""
@@ -1285,14 +1316,35 @@ def get_user_avatar_url(user, size=128):
     return get_avatar_url(user['avatar_seed'], style, size)
 def ensure_db():
     """Убеждается, что база данных инициализирована"""
-    if not _db_initialized:
-        init_db()
+    global _db_initialized
+    if _db_initialized:
+        return
+    with _db_init_lock:
+        if _db_initialized:
+            return
+        for attempt in range(5):
+            try:
+                init_db()
+                return
+            except sqlite3.OperationalError as e:
+                if 'locked' not in str(e).lower():
+                    raise
+                if _database_is_ready():
+                    _db_initialized = True
+                    return
+                if attempt < 4:
+                    time.sleep(0.25 * (attempt + 1))
+                    continue
+                raise
+
+
 def get_db_connection():
     """Получает соединение с базой данных"""
     ensure_db()  # Убеждаемся, что БД инициализирована
     db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA journal_mode=WAL')
     return conn
 
 # ========== Система ролей и прав доступа ==========
@@ -13570,9 +13622,11 @@ def assignment_mark_received(assignment_id):
 
 # Инициализируем БД при импорте модуля (для WSGI)
 try:
-    init_db()
+    ensure_db()
 except Exception as e:
     log_error(f"Failed to initialize database on startup: {e}")
+    if _database_is_ready():
+        _db_initialized = True
 
 @app.errorhandler(404)
 def handle_not_found(error):
