@@ -1306,10 +1306,16 @@ a.event-card-footer-link:focus-visible {
 
 .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--layout-gap);
     max-width: none;
     margin: 0;
+}
+
+@media (min-width: 1024px) {
+    .features-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 
 .feature-card {
@@ -5127,8 +5133,7 @@ html.dark .avatar-candidate-img {
     }
 
     .stats-grid,
-    .events-grid,
-    .features-grid {
+    .events-grid {
         grid-template-columns: 1fr;
     }
 

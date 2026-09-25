@@ -25,7 +25,9 @@
 
 На tablet (768–1023) основные сетки (`stats-grid`, `events-grid`, `admin-grid`, `contacts-grid`, `assignments-grid`) — **2 колонки**.
 
-На mobile (≤767) — **1 колонка**.
+На mobile (≤767) — **1 колонка** (кроме `features-grid` на главной — всегда **2×2**, на desktop **4 в ряд**).
+
+`features-grid` (главная): **2 колонки** (&lt;1024px), **4 колонки** (≥1024px).
 
 ## Стили страниц
 

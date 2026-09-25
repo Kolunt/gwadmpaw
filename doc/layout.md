@@ -35,6 +35,10 @@
 - Узкий контент только точечно: `.form-container`, `.layout-inner`, `.profile-card`, `.letter-page-card`.
 - Hero на главной (`.hero-section`) — на всю высоту области контента: `min-height: calc(100dvh - 60px)`.
 
+## Features (главная)
+
+`.features-grid` — 4 карточки: **2×2** на узких экранах (`repeat(2, 1fr)`), **4 в ряд** на desktop (≥1024px).
+
 ## Блок «Перейти к мероприятиям»
 
 `.section-footer` в секции events — `padding-top: var(--layout-section-gap)`, снизу `--layout-inner`, `border-top` отделяет от сетки карточек.
