@@ -36,9 +36,14 @@ from gwars_domains import (
 )
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-insecure-key')
 app.config['VERSION'] = __version__
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+if os.environ.get('SECRET_KEY'):
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 EVENT_TIME_OFFSET_HOURS = 0
 try:

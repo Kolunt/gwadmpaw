@@ -5,6 +5,7 @@ After=network.target
 [Service]
 WorkingDirectory=/home/deploy/gwadm
 Environment=PATH=/home/deploy/gwadm/venv/bin
+EnvironmentFile=-/home/deploy/gwadm/.env
 ExecStart=/home/deploy/gwadm/venv/bin/gunicorn --workers 2 --threads 4 --bind 127.0.0.1:8000 --timeout 120 app:app
 Restart=always
 RestartSec=3

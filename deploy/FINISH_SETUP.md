@@ -36,7 +36,21 @@ https://gwadm.ru/login
 
 Карта доменов в приложении: админка → **Настройки → Интеграции → GWars** или см. [GWARS_DOMAINS.md](../GWARS_DOMAINS.md).
 
-## 4. Telegram и cron
+## 4. SECRET_KEY (сессии Flask)
+
+Без фиксированного `SECRET_KEY` при нескольких воркерах gunicorn авторизация «вылетает» между запросами.
+
+```bash
+cd ~/gwadm
+cp .env.example .env
+python3 -c "import secrets; print('SECRET_KEY=' + secrets.token_hex(32))" >> .env
+# или отредактируйте .env вручную
+cp deploy/gwadm-user.service ~/.config/systemd/user/gwadm.service
+systemctl --user daemon-reload
+systemctl --user restart gwadm
+```
+
+## 5. Telegram и cron
 
 В админке: **Настройки → Интеграции** — «Проверить подключение» у бота (обновит webhook).
 
@@ -46,7 +60,7 @@ https://gwadm.ru/login
 https://gwadm.ru/cron/run?token=ВАШ_ТОКЕН
 ```
 
-## Проверка
+## 6. Проверка
 
 ```bash
 systemctl --user status gwadm
