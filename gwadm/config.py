@@ -65,3 +65,10 @@ def warn_insecure_defaults() -> None:
         logging.getLogger(__name__).warning(
             'SECRET_KEY is not set; sessions are not secure across restarts.'
         )
+
+LETTER_UPLOAD_RELATIVE = 'uploads/letter_attachments'
+ASSIGNMENT_RECEIPT_RELATIVE = 'uploads/assignment_receipts'
+ALLOWED_LETTER_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+LETTER_UPLOAD_FOLDER = str(ROOT_DIR / 'static' / 'uploads' / 'letter_attachments')
+ASSIGNMENT_RECEIPT_FOLDER = str(ROOT_DIR / 'static' / 'uploads' / 'assignment_receipts')
+

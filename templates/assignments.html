@@ -33,7 +33,7 @@
                             <h3 style="margin: 0; color: white;">Вы - Дед Мороз</h3>
                         </div>
                         <div style="margin-bottom: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                            <form method="GET" action="{{ url_for('letter') }}">
+                            <form method="GET" action="{{ url_for('assignments.letter') }}">
                                 <input type="hidden" name="assignment_id" value="{{ event_data.as_santa.get('id') }}">
                                 <button type="submit" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">➡️Переписка✉️‼️</button>
                             </form>
@@ -81,7 +81,7 @@
                             <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Информация об отправке:</strong><br>{{ event_data.as_santa.get('santa_send_info') }}</p>
                             {% endif %}
                             {% if not event_finished %}
-                            <form method="POST" action="{{ url_for('assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 0.75rem; display: grid; gap: 0.5rem;">
+                            <form method="POST" action="{{ url_for('assignments.assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 0.75rem; display: grid; gap: 0.5rem;">
                                 <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.85); font-weight: 600;">Информация об отправке</label>
                                 <textarea
                                     id="send_info_{{ event_data.as_santa.get('id') }}"
@@ -132,7 +132,7 @@
                         {% endif %}
                         {% else %}
                         {% if not event_finished %}
-                        <form method="POST" action="{{ url_for('assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 1rem;">
+                        <form method="POST" action="{{ url_for('assignments.assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 1rem;">
                             <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-weight: 600;">Информация об отправке</label>
                             <textarea 
                                 id="send_info_{{ event_data.as_santa.get('id') }}"
@@ -168,7 +168,7 @@
                             <h3 style="margin: 0; color: white;">Вы - Внучок</h3>
                         </div>
                         <div style="margin-bottom: 1.25rem;">
-                            <form method="GET" action="{{ url_for('letter') }}">
+                            <form method="GET" action="{{ url_for('assignments.letter') }}">
                                 <input type="hidden" name="assignment_id" value="{{ event_data.as_recipient.get('id') }}">
                                 <button type="submit" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">➡️Переписка✉️‼️</button>
                             </form>
@@ -200,7 +200,7 @@
                                 {% endif %}
                                 {% else %}
                                 {% if not event_finished %}
-                                <form method="POST" action="{{ url_for('assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" style="display: grid; gap: 0.75rem; margin-top: 0.5rem;">
+                                <form method="POST" action="{{ url_for('assignments.assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" style="display: grid; gap: 0.75rem; margin-top: 0.5rem;">
                                     <div>
                                     <label for="thank_you_{{ event_data.as_recipient.get('id') }}" style="font-weight: 600;">Сообщение благодарности</label>
                                         <textarea

@@ -10,7 +10,7 @@
                 <h1>✉️ Письмо Деду Морозу</h1>
                 <p class="text-muted" style="margin: 0;">Мероприятие: {{ letter.event_name }}</p>
             </div>
-            <a href="{{ url_for('assignments') }}" class="btn btn-secondary">← Вернуться к заданиям</a>
+            <a href="{{ url_for('assignments.assignments') }}" class="btn btn-secondary">← Вернуться к заданиям</a>
         </div>
 
         {% if available_letters|length > 1 %}
@@ -19,7 +19,7 @@
                 <span class="text-muted" style="align-self: center;">Другие чаты:</span>
                 {% for item in available_letters %}
                 <a 
-                    href="{{ url_for('letter', assignment_id=item.assignment_id) }}"
+                    href="{{ url_for('assignments.letter', assignment_id=item.assignment_id) }}"
                     class="btn btn-sm letter-switcher-btn {% if assignment.id == item.assignment_id %}is-active{% endif %}"
                 >
                     {% if item.role == 'admin' %}
@@ -214,7 +214,7 @@
                             Вы общаетесь как <strong>Внучок</strong>. Сообщения от Деда Мороза добавляет ваш даритель.
                         {% endif %}
                     </p>
-                    <form id="letter-form" method="POST" action="{{ url_for('letter', assignment_id=assignment.id) }}" enctype="multipart/form-data" style="display: grid; gap: 1rem;">
+                    <form id="letter-form" method="POST" action="{{ url_for('assignments.letter', assignment_id=assignment.id) }}" enctype="multipart/form-data" style="display: grid; gap: 1rem;">
                         <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
                         <textarea
                             name="message"
