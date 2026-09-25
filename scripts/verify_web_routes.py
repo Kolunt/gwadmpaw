@@ -145,6 +145,13 @@ def main() -> int:
             if 'width=device-width' not in body:
                 errors.append(f'responsive {path} → missing viewport meta')
 
+    for path in ('/', '/admin/'):
+        resp = client.get(path, follow_redirects=False)
+        if resp.status_code == 200:
+            body = resp.get_data(as_text=True)
+            if 'layout-main' not in body:
+                errors.append(f'layout {path} → missing layout-main wrapper')
+
     if errors:
         print(f'FAIL: {len(errors)} route(s), {ok} OK')
         for err in errors:

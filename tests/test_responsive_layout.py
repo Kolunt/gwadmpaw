@@ -59,3 +59,32 @@ def test_letter_chat_styles_externalized(client):
         body = response.get_data(as_text=True)
         assert 'letter-switcher-btn' in body
         assert '.chat-wrapper' not in body
+
+
+def test_layout_main_on_home(client):
+    body = client.get('/').get_data(as_text=True)
+    assert 'layout-main' in body
+
+
+def test_layout_main_on_admin(client):
+    client.get('/login/dev')
+    body = client.get('/admin/').get_data(as_text=True)
+    assert 'layout-main' in body
+
+
+def test_home_stats_section_no_nested_container(client):
+    body = client.get('/').get_data(as_text=True)
+    match = re.search(
+        r'<section class="stats-section[^"]*">(.*?)</section>',
+        body,
+        re.DOTALL,
+    )
+    assert match is not None
+    assert 'class="container"' not in match.group(1)
+
+
+def test_container_class_not_used_as_page_wrapper(client):
+    """`.container` is aliased to layout-main; page wrappers use layout-main."""
+    for path in ('/', '/contacts'):
+        body = client.get(path).get_data(as_text=True)
+        assert 'class="layout-main"' in body

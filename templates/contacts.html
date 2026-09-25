@@ -6,7 +6,6 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <div class="contacts-container">
         <div class="contacts-header">
             <h1>Контакты</h1>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
@@ -135,7 +134,6 @@
             <p>Контакты пока не добавлены</p>
         </div>
         {% endif %}
-    </div>
 </div>
 
 {% endblock %}

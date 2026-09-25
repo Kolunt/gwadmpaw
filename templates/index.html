@@ -33,8 +33,7 @@
 </section>
 
 <!-- Statistics Section -->
-<section class="stats-section">
-    <div class="container">
+<section class="stats-section layout-section">
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-icon">👥</div>
@@ -58,13 +57,11 @@
                 </div>
             </div>
         </div>
-    </div>
 </section>
 
 <!-- Events Section -->
 {% if events_with_stages %}
-<section class="events-section">
-    <div class="container">
+<section class="events-section layout-section">
         <h2 class="section-title">Мероприятия</h2>
         <div class="events-grid">
             {% for item in events_with_stages[:3] %}
@@ -122,13 +119,11 @@
             <a href="{{ url_for('events.events') }}" class="btn btn-primary">Перейти к мероприятиям</a>
         </div>
         {% endif %}
-    </div>
 </section>
 {% endif %}
 
 <!-- Features Section -->
-<section class="features-section">
-    <div class="container">
+<section class="features-section layout-section">
         <h2 class="section-title">Как это работает?</h2>
         <div class="features-grid">
             <div class="feature-card">
@@ -160,13 +155,11 @@
                 </p>
             </div>
         </div>
-    </div>
 </section>
 
 <!-- CTA Section -->
 {% if not session.user_id %}
-<section class="cta-section">
-    <div class="container">
+<section class="cta-section layout-section">
         <div class="cta-content">
             <h2 class="cta-title">Готовы начать?</h2>
             <p class="cta-description">
@@ -176,7 +169,6 @@
                 Войти через GWars
             </a>
         </div>
-    </div>
 </section>
 {% endif %}
 {% endblock %}

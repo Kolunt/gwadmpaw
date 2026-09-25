@@ -2,6 +2,8 @@
 
 Единые breakpoints и поведение layout для публичного сайта и админки.
 
+Токены и классы full-width layout (`layout-main`, `--layout-inner`) — в [layout.md](layout.md).
+
 ## Breakpoints
 
 | Зона | Ширина | Сайдбар |
