@@ -47,6 +47,19 @@
 
 Цвета accent подставляются из настроек сайта (`base.html` → `:root`).
 
+## Карточки мероприятий (главная)
+
+В `.event-card-home` статус мероприятия — иконка справа от названия:
+
+| Состояние | Класс | Иконка | Условие |
+|-----------|-------|--------|---------|
+| Идёт | `.event-status-active` | зелёный `●` | `current_stage` есть, `is_event_finished()` — false |
+| Завершено | `.event-status-finished` | красный `✕` | `is_event_finished()` — true |
+
+Название текущего этапа — в атрибуте `title` у зелёного индикатора. Мероприятия без начавшихся этапов индикатор не показывают.
+
+Логика: [`gwadm/services/events.py`](../gwadm/services/events.py) (`is_event_finished`), данные на главной — [`gwadm/blueprints/public.py`](../gwadm/blueprints/public.py).
+
 ## Связанные документы
 
 - [responsive.md](responsive.md) — breakpoints, drawer, адаптивные таблицы

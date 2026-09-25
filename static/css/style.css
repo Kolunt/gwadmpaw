@@ -3230,6 +3230,26 @@ body {
     letter-spacing: 0.5px;
 }
 
+.event-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.event-status-active {
+    color: var(--success-color);
+}
+
+.event-status-finished {
+    color: var(--error-color);
+}
+
 .badge-active,
 .event-stage-badge.badge-active {
     background-color: #28a745;

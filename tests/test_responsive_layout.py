@@ -88,3 +88,12 @@ def test_container_class_not_used_as_page_wrapper(client):
     for path in ('/', '/contacts'):
         body = client.get(path).get_data(as_text=True)
         assert 'class="layout-main"' in body
+
+
+def test_home_event_cards_use_status_indicators(client):
+    body = client.get('/').get_data(as_text=True)
+    if 'event-card-home' not in body:
+        return
+    assert 'event-status-indicator' in body
+    assert 'event-status-active' in body or 'event-status-finished' in body
+    assert 'event-stage-badge' not in body

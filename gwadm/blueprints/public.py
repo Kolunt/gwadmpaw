@@ -10,6 +10,7 @@ from flask import Blueprint, make_response, render_template, request, session
 from gwadm.db import get_db_connection
 from gwadm.logging_config import log_debug, log_error
 from gwadm.services.avatars import get_avatar_url
+from gwadm.services.events import is_event_finished
 from gwadm.services.events_stages import (
     EVENT_STAGES,
     get_current_event_stage,
@@ -124,6 +125,7 @@ def index():
     for item in events_with_stages:
         event = item['event']
         item['registrations_count'] = get_event_registrations_count(event['id'])
+        item['event_finished'] = is_event_finished(event['id'])
 
     project_name = get_setting('project_name', 'Анонимные Деды Морозы')
 

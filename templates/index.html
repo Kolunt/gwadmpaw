@@ -68,13 +68,10 @@
             <div class="event-card-home">
                 <div class="event-card-header-home">
                     <h3 class="event-card-title">{{ item.event.name }}</h3>
-                    {% if item.current_stage %}
-                    <span class="event-stage-badge 
-                        {% if item.current_stage.info.status == 'active' %}badge-active
-                        {% elif item.current_stage.info.status == 'upcoming' %}badge-upcoming
-                        {% else %}badge-past{% endif %}">
-                        {{ item.current_stage.info.display_name }}
-                    </span>
+                    {% if item.event_finished %}
+                    <span class="event-status-indicator event-status-finished" title="Завершено" aria-label="Мероприятие завершено">✕</span>
+                    {% elif item.current_stage %}
+                    <span class="event-status-indicator event-status-active" title="{{ item.display_stage_name or item.current_stage.info.name }}" aria-label="Мероприятие идёт">●</span>
                     {% endif %}
                 </div>
                 {% if item.next_stage %}
