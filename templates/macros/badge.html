@@ -1,0 +1,74 @@
+{% macro status_badge(status) -%}
+{% if status == 'Онлайн' %}
+<span class="status-badge status-online">{{ status }}</span>
+{% elif status == 'Был сегодня' %}
+<span class="status-badge status-today">{{ status }}</span>
+{% else %}
+<span class="status-badge status-offline">{{ status }}</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro title_badge_icon(title) -%}
+{% set raw_title_icon = title.icon|default('')|trim %}
+{% if raw_title_icon %}
+{% set title_icon_symbol = raw_title_icon.split(' ')[0] %}
+{% else %}
+{% set title_icon_symbol = '🏆' %}
+{% endif %}
+<a href="{{ url_for('meta.title_view', title_id=title.id) }}"
+   class="title-icon-link"
+   title="{{ title.display_name }}">
+    <span class="title-badge-icon"
+          style="background-color: {{ title.color }}20; border-color: {{ title.color }}; color: {{ title.color }};">
+        {{ title_icon_symbol }}
+    </span>
+</a>
+{%- endmacro %}
+
+{% macro award_badge_icon(award) -%}
+{% set raw_award_icon = award.icon|default('')|trim %}
+{% if raw_award_icon %}
+{% set award_icon_symbol = raw_award_icon.split(' ')[0] %}
+{% else %}
+{% set award_icon_symbol = '🎖️' %}
+{% endif %}
+<a href="{{ url_for('meta.award_view', award_id=award.id) }}"
+   class="award-icon-link"
+   title="{{ award.title }}">
+    {% if award.image %}
+    <img src="{{ award.image }}" alt="{{ award.title }}" class="award-badge-image">
+    {% else %}
+    <span class="award-badge-icon">{{ award_icon_symbol }}</span>
+    {% endif %}
+</a>
+{%- endmacro %}
+
+{% macro profile_badges(user_roles, user_titles, user_awards, show_default_role=false) -%}
+{% if user_roles %}
+    {% for role in user_roles %}
+        {% if role.display_name|lower != 'пользователь' %}
+        <a href="{{ url_for('meta.role_view', role_name=role.name) }}" class="role-badge role-badge-link">
+            {{ role.display_name }}
+        </a>
+        {% endif %}
+    {% endfor %}
+{% elif show_default_role %}
+<span class="role-badge">Пользователь</span>
+{% endif %}
+{% if user_titles %}
+    {% for title in user_titles %}
+    {{ title_badge_icon(title) }}
+    {% endfor %}
+{% endif %}
+{% if user_awards %}
+    {% for award in user_awards %}
+    {{ award_badge_icon(award) }}
+    {% endfor %}
+{% endif %}
+{%- endmacro %}
+
+{% macro title_badge_label(title) -%}
+<span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
+    {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
+</span>
+{%- endmacro %}

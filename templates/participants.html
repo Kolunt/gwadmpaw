@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from 'macros/avatar.html' import avatar %}
+{% from 'macros/badge.html' import status_badge %}
 
 {% block title %}Участники - Анонимные Деды Морозы{% endblock %}
 
@@ -59,22 +61,14 @@
                     data-roles="{{ (participant.roles or 'Пользователь')|lower }}">
                     <td data-label="Никнейм в GWars">
                         <div class="participant-name-cell">
-                            {% if participant.avatar_seed %}
-                            <img src="{{ get_avatar_url(participant.avatar_seed, participant.avatar_style or 'avataaars', 32) }}" alt="Аватар {{ participant.username }}" class="avatar-small">
-                            {% endif %}
+                            {{ avatar(participant, size=32) }}
                             <a href="{{ url_for('profile.view_profile', user_id=participant.user_id) }}" class="participant-link">
                                 <strong>{{ participant.username }}</strong>
                             </a>
                         </div>
                     </td>
                     <td data-label="Статус">
-                        {% if participant.status == 'Онлайн' %}
-                            <span class="status-badge status-online">{{ participant.status }}</span>
-                        {% elif participant.status == 'Был сегодня' %}
-                            <span class="status-badge status-today">{{ participant.status }}</span>
-                        {% else %}
-                            <span class="status-badge status-offline">{{ participant.status }}</span>
-                        {% endif %}
+                        {{ status_badge(participant.status) }}
                     </td>
                     <td data-label="Роль">
                         {% if participant.roles %}

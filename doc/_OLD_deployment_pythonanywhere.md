@@ -1,3 +1,10 @@
+# УСТАРЕЛО — не использовать для новых деплоев
+
+**Неактуально с 2025-09-25** — production перенесён на VPS `gwadm.ru` (gunicorn + nginx).
+Актуальный гайд: [deployment.md](deployment.md).
+
+---
+
 # Инструкция по развертыванию на PythonAnywhere
 
 ## Развертывание на gwadm.pythonanywhere.com

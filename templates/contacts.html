@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from 'macros/avatar.html' import avatar %}
+{% from 'macros/badge.html' import title_badge_label %}
 
 {% block title %}Контакты - Анонимные Деды Морозы{% endblock %}
 
@@ -20,11 +22,7 @@
                 {% for user in admins_moderators %}
                 <div class="contact-card user-contact-card">
                     <div class="contact-avatar">
-                        {% if user.avatar_seed %}
-                            <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars', 64) }}" alt="{{ user.username }}" class="avatar-medium">
-                        {% else %}
-                            <span class="avatar-placeholder">👤</span>
-                        {% endif %}
+                        {{ avatar(user, size=64, css_class='avatar-medium') }}
                     </div>
                     <div class="contact-info">
                         <h3>
@@ -82,11 +80,7 @@
                 {% for user in users_with_titles %}
                 <div class="contact-card user-contact-card">
                     <div class="contact-avatar">
-                        {% if user.avatar_seed %}
-                            <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars', 64) }}" alt="{{ user.username }}" class="avatar-medium">
-                        {% else %}
-                            <span class="avatar-placeholder">👤</span>
-                        {% endif %}
+                        {{ avatar(user, size=64, css_class='avatar-medium') }}
                     </div>
                     <div class="contact-info">
                         <h3>
@@ -94,9 +88,7 @@
                         </h3>
                         <div class="contact-badges">
                             {% for title in user.titles %}
-                                <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
-                                    {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
-                                </span>
+                                {{ title_badge_label(title) }}
                             {% endfor %}
                         </div>
                         <div class="contact-details">

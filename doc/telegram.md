@@ -38,7 +38,7 @@ https://yourdomain.com/telegram/webhook
 
 В поле **"Базовый URL сайта"** укажите **канонический** адрес сайта (например: `https://gwadm.ru`). Это нужно для формирования ссылок в боте и webhook.
 
-Зеркала GWars (несколько доменов для входа) на Telegram не влияют: бот всегда использует `site_url`, а не домен, с которого пользователь зашёл через GWars. См. [GWARS_DOMAINS.md](GWARS_DOMAINS.md).
+Зеркала GWars (несколько доменов для входа) на Telegram не влияют: бот всегда использует `site_url`, а не домен, с которого пользователь зашёл через GWars. См. [gwars_domains.md](gwars_domains.md).
 
 ## Для пользователей
 
@@ -151,7 +151,7 @@ https://yourdomain.com/telegram/webhook
   - `telegram_enabled` - включена ли интеграция
   - `telegram_verified` - проверен ли бот
   - `site_url` - канонический базовый URL сайта (для бота и ссылок)
-  - `gwars_domain_map` - карта доменов GWars (см. [GWARS_DOMAINS.md](GWARS_DOMAINS.md))
+  - `gwars_domain_map` - карта доменов GWars (см. [gwars_domains.md](gwars_domains.md))
 
 ### API endpoints
 

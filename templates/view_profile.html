@@ -1,70 +1,19 @@
 {% extends "base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
+{% from 'macros/avatar.html' import profile_avatar %}
+{% from 'macros/badge.html' import profile_badges %}
 {% block title %}Профиль {{ user.username }} - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
     <div class="profile-card">
         <div class="profile-header">
-            {% if user.avatar_seed %}
-            <div class="profile-avatar">
-                <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars') }}" alt="Аватар {{ user.username }}" class="avatar-large">
-            </div>
-            {% endif %}
+            {{ profile_avatar(user) }}
             <div class="profile-header-info">
                 <h2>{{ user.username }}</h2>
                 <div class="profile-badges">
-                    {% if user_roles %}
-                        {% for role in user_roles %}
-                            {% if role.display_name|lower != 'пользователь' %}
-                                <a href="{{ url_for('meta.role_view', role_name=role.name) }}" class="role-badge role-badge-link">
-                                    {{ role.display_name }}
-                                </a>
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-                    {% if user_titles %}
-                        {% for title in user_titles %}
-                            {% set raw_title_icon = title.icon|default('')|trim %}
-                            {% if raw_title_icon %}
-                                {% set title_icon_symbol = raw_title_icon.split(' ')[0] %}
-                            {% else %}
-                                {% set title_icon_symbol = '🏆' %}
-                            {% endif %}
-                            <a href="{{ url_for('meta.title_view', title_id=title.id) }}"
-                               class="title-icon-link"
-                               title="{{ title.display_name }}">
-                                <span class="title-badge-icon"
-                                      style="background-color: {{ title.color }}20; border-color: {{ title.color }}; color: {{ title.color }};">
-                                    {{ title_icon_symbol }}
-                                </span>
-                            </a>
-                        {% endfor %}
-                    {% endif %}
-                    {% if user_awards %}
-                        {% for award in user_awards %}
-                            {% set raw_award_icon = award.icon|default('')|trim %}
-                            {% if raw_award_icon %}
-                                {% set award_icon_symbol = raw_award_icon.split(' ')[0] %}
-                            {% else %}
-                                {% set award_icon_symbol = '🎖️' %}
-                            {% endif %}
-                            <a href="{{ url_for('meta.award_view', award_id=award.id) }}"
-                               class="award-icon-link"
-                               title="{{ award.title }}">
-                                {% if award.image %}
-                                    <img src="{{ award.image }}"
-                                         alt="{{ award.title }}"
-                                         class="award-badge-image">
-                                {% else %}
-                                    <span class="award-badge-icon">
-                                        {{ award_icon_symbol }}
-                                    </span>
-                                {% endif %}
-                            </a>
-                        {% endfor %}
-                    {% endif %}
+                    {{ profile_badges(user_roles, user_titles, user_awards) }}
                 </div>
             </div>
         </div>
@@ -286,19 +235,19 @@
         {% if user_awards %}
         <div class="dashboard-tab-content" data-tab="awards">
             <div class="profile-info">
-                <div class="awards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                <div class="awards-grid profile-awards-grid">
                     {% for award in user_awards %}
-                    <div class="award-card" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; text-align: center; transition: transform 0.2s, box-shadow 0.2s;">
+                    <div class="award-card profile-award-card">
                         {% if award.image %}
-                        <a href="{{ url_for('meta.award_view', award_id=award.id) }}" style="display: inline-block; margin-bottom: 1rem;">
-                            <img src="{{ award.image }}" alt="{{ award.title }}" style="max-width: 120px; max-height: 120px; width: auto; height: auto; border-radius: 8px;">
+                        <a href="{{ url_for('meta.award_view', award_id=award.id) }}" class="award-card-link">
+                            <img src="{{ award.image }}" alt="{{ award.title }}" class="award-card-image">
                         </a>
                         {% elif award.icon %}
-                        <a href="{{ url_for('meta.award_view', award_id=award.id) }}" style="display: inline-block; margin-bottom: 1rem; font-size: 4rem; line-height: 1; text-decoration: none;">
+                        <a href="{{ url_for('meta.award_view', award_id=award.id) }}" class="award-card-link award-card-link-icon">
                             {{ award.icon }}
                         </a>
                         {% endif %}
-                        <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">
+                        <h3 class="award-card-title">
                             <a href="{{ url_for('meta.award_view', award_id=award.id) }}" class="award-name-link">
                                 {% if award.icon and not award.image %}{{ award.icon }} {% endif %}{{ award.title }}
                             </a>
@@ -422,40 +371,24 @@
             <div class="profile-info">
                 <h3 class="section-subtitle">Комментарии</h3>
                 {% if is_admin %}
-                <p style="color: var(--text-secondary, #666); margin-bottom: 1.5rem; font-size: 0.9em;">
+                <p class="comment-intro">
                     Комментарии администраторов видны только администраторам (если отмечено "Только для администраторов"). Комментарии "спасибо от внучка" видны всем.
                 </p>
                 
-                <!-- Форма добавления нового комментария (только для администраторов) -->
-                <div style="margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-secondary, #f5f5f5); border-radius: 8px; border: 1px solid var(--border-color, #e0e0e0);">
-                    <h4 style="margin-top: 0; margin-bottom: 1rem; color: var(--text-primary);">Добавить комментарий</h4>
+                <div class="comment-form-section">
+                    <h4 class="comment-form-title">Добавить комментарий</h4>
                     <form method="POST" action="{{ url_for('profile.add_admin_comment', user_id=user.user_id) }}">
         {{ csrf_input() }}
-                        <textarea 
-                            name="comment" 
-                            rows="4" 
-                            required
-                            placeholder="Введите комментарий..."
-                            style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px; font-family: inherit; font-size: 0.95rem; resize: vertical; background: var(--bg-card, #fff); color: var(--text-primary);"
-                        ></textarea>
-                        <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <input 
-                                type="checkbox" 
-                                id="is_admin_only" 
-                                name="is_admin_only"
-                                style="width: auto; margin: 0;"
-                            >
-                            <label for="is_admin_only" style="margin: 0; color: var(--text-primary); cursor: pointer;">
-                                Только для администраторов
-                            </label>
+                        <textarea name="comment" rows="4" required placeholder="Введите комментарий..." class="comment-textarea"></textarea>
+                        <div class="comment-checkbox-row">
+                            <input type="checkbox" id="is_admin_only" name="is_admin_only">
+                            <label for="is_admin_only">Только для администраторов</label>
                         </div>
-                        <button type="submit" class="btn btn-primary" style="margin-top: 0.75rem;">
-                            Добавить комментарий
-                        </button>
+                        <button type="submit" class="btn btn-primary comment-submit-btn">Добавить комментарий</button>
                     </form>
                 </div>
                 {% else %}
-                <p style="color: var(--text-secondary, #666); margin-bottom: 1.5rem; font-size: 0.9em;">
+                <p class="comment-intro">
                     Здесь отображаются комментарии "спасибо от внучка" при подтверждении получения подарка.
                 </p>
                 {% endif %}
@@ -464,18 +397,18 @@
                 {% if admin_comments %}
                 <div class="comments-list">
                     {% for comment in admin_comments %}
-                    <div class="comment-item" style="margin-bottom: 1.5rem; padding: 1.25rem; background: var(--bg-card, #fff); border: 1px solid var(--border-color, #e0e0e0); border-radius: 8px; border-left: 4px solid {% if comment.is_thanks_from_recipient %}var(--success-color, #28a745){% elif comment.is_admin_only %}var(--warning-color, #ffc107){% else %}var(--accent-color, #007bff){% endif %};">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                    <div class="comment-item{% if comment.is_thanks_from_recipient %} comment-item--thanks{% elif comment.is_admin_only %} comment-item--admin-only{% endif %}">
+                        <div class="comment-header">
                             <div>
                                 {% if comment.is_thanks_from_recipient %}
-                                <strong style="color: var(--text-primary);">🎁 Спасибо от внучка</strong>
+                                <strong class="comment-author">🎁 Спасибо от внучка</strong>
                                 {% else %}
-                                <strong style="color: var(--text-primary);">{{ comment.admin_username or 'Администратор' }}</strong>
+                                <strong class="comment-author">{{ comment.admin_username or 'Администратор' }}</strong>
                                 {% if comment.is_admin_only %}
-                                <span style="color: var(--warning-color, #ffc107); font-size: 0.85em; margin-left: 0.5rem;">🔒 Только для администраторов</span>
+                                <span class="comment-admin-only-label">🔒 Только для администраторов</span>
                                 {% endif %}
                                 {% endif %}
-                                <span style="color: var(--text-secondary, #666); font-size: 0.85em; margin-left: 0.5rem;">
+                                <span class="comment-date">
                                     {% set created_at_str = comment.created_at|string %}
                                     {% if ' ' in created_at_str %}
                                         {% set date_time_parts = created_at_str.split(' ') %}
@@ -495,46 +428,30 @@
                                         {{ comment.created_at }}
                                     {% endif %}
                                     {% if comment.updated_at and comment.updated_at != comment.created_at %}
-                                        <span style="margin-left: 0.5rem; color: var(--text-secondary, #999);">(изменен)</span>
+                                        <span class="comment-edited">(изменен)</span>
                                     {% endif %}
                                 </span>
                             </div>
                             {% if is_admin and comment.admin_user_id == session.get('user_id') and not comment.is_thanks_from_recipient %}
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button 
-                                    type="button" 
-                                    class="btn btn-sm btn-secondary" 
-                                    onclick="editComment({{ comment.id }}, {{ comment.user_id }})"
-                                    style="font-size: 0.85rem; padding: 0.4rem 0.75rem;">
+                            <div class="comment-actions">
+                                <button type="button" class="btn btn-sm btn-secondary comment-action-btn" onclick="editComment({{ comment.id }}, {{ comment.user_id }})">
                                     ✏️ Редактировать
                                 </button>
-                                <form 
-                                    method="POST" 
-                                    action="{{ url_for('profile.delete_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}" 
-                                    style="display: inline;"
-                                    onsubmit="return confirm('Вы уверены, что хотите удалить этот комментарий?');">
+                                <form method="POST" action="{{ url_for('profile.delete_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}" class="inline-form" onsubmit="return confirm('Вы уверены, что хотите удалить этот комментарий?');">
         {{ csrf_input() }}
-                                    <button type="submit" class="btn btn-sm btn-danger" style="font-size: 0.85rem; padding: 0.4rem 0.75rem;">
-                                        🗑️ Удалить
-                                    </button>
+                                    <button type="submit" class="btn btn-sm btn-danger comment-action-btn">🗑️ Удалить</button>
                                 </form>
                             </div>
                             {% endif %}
                         </div>
-                        <div id="comment-text-{{ comment.id }}" style="color: var(--text-primary); white-space: pre-wrap; word-wrap: break-word;">
+                        <div id="comment-text-{{ comment.id }}" class="comment-body">
                             {{ comment.comment }}
                         </div>
-                        <!-- Форма редактирования (скрыта по умолчанию) -->
-                        <div id="comment-edit-{{ comment.id }}" style="display: none; margin-top: 1rem;">
+                        <div id="comment-edit-{{ comment.id }}" class="comment-edit-form">
                             <form method="POST" action="{{ url_for('profile.update_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}">
         {{ csrf_input() }}
-                                <textarea 
-                                    name="comment" 
-                                    rows="4" 
-                                    required
-                                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px; font-family: inherit; font-size: 0.95rem; resize: vertical; background: var(--bg-card, #fff); color: var(--text-primary);"
-                                >{{ comment.comment }}</textarea>
-                                <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+                                <textarea name="comment" rows="4" required class="comment-textarea">{{ comment.comment }}</textarea>
+                                <div class="comment-edit-actions">
                                     <button type="submit" class="btn btn-primary btn-sm">
                                         Сохранить
                                     </button>
@@ -548,7 +465,7 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary, #666);">
+                <div class="empty-state comments-empty">
                     <p>Комментариев пока нет</p>
                 </div>
                 {% endif %}

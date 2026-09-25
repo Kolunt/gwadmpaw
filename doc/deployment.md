@@ -1,6 +1,47 @@
-# Завершение настройки gwadm.ru
+# Развёртывание gwadm.ru (production)
 
-Полный гайд: [doc/deployment.md](../doc/deployment.md).
+Краткий чеклист на сервере — [deploy/FINISH_SETUP.md](../deploy/FINISH_SETUP.md).
+Ниже — полное описание окружения и процедур.
+
+## Окружение
+
+| Параметр | Значение |
+|----------|----------|
+| Домен | https://gwadm.ru |
+| Сервер | VPS, пользователь `deploy` |
+| Приложение | `/home/deploy/gwadm` |
+| systemd | user unit `gwadm.service` (`deploy/gwadm-user.service`) |
+| БД | `~/gwadm/database.db` (см. [database.md](database.md)) |
+| GWars site_id | `3` (см. [gwars_domains.md](gwars_domains.md)) |
+
+## Локальная разработка
+
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+python app.py
+```
+
+Проверка: `python -m pytest -q`, `python scripts/smoke_check.py`.
+
+## Деплой на прод
+
+```bash
+git push
+ssh gwadmpaw-prod "cd ~/gwadm && git pull && systemctl --user restart gwadm"
+bash ~/gwadm/scripts/post_deploy_smoke.sh
+journalctl --user -u gwadm -n 20
+```
+
+Nginx reload нужен только после изменения `deploy/nginx-gwadm.conf`.
+
+## PWA / Service Worker
+
+При релизе с изменениями в `static/` обновите `CACHE_NAME` в [`static/sw.js`](../static/sw.js) — синхронно с версией в [`version.py`](../version.py) (например `gwadmpaw-v1.28.0`). Иначе клиенты могут кэшировать старый CSS/JS.
+
+---
+
+# Завершение настройки gwadm.ru
 
 Приложение и данные уже на сервере. Остался **один шаг с sudo** (nginx + HTTPS).
 
@@ -36,7 +77,7 @@ https://gwadm.ru/login
 
 При необходимости добавьте также `https://www.gwadm.ru/login`.
 
-Карта доменов в приложении: админка → **Настройки → Интеграции → GWars** или см. [doc/gwars_domains.md](../doc/gwars_domains.md).
+Карта доменов в приложении: админка → **Настройки → Интеграции → GWars** или см. [gwars_domains.md](gwars_domains.md).
 
 **GWARS_PASSWORD** (подписи callback `/login`) — обязательно в `~/gwadm/.env` на проде:
 

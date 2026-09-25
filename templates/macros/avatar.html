@@ -1,0 +1,21 @@
+{% macro avatar(user, size=40, css_class='avatar-small', lazy=true) -%}
+{% if user.avatar_seed %}
+<img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars', size) }}"
+     alt="{{ user.username }}"
+     class="{{ css_class }} avatar-size-{{ size }}"
+     {% if lazy %}loading="lazy"{% endif %}
+     decoding="async"
+     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+<span class="{{ css_class }} avatar-fallback avatar-size-{{ size }}" style="display:none;">👤</span>
+{% else %}
+<span class="{{ css_class }} avatar-placeholder avatar-size-{{ size }}">👤</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro profile_avatar(user) -%}
+{% if user.avatar_seed %}
+<div class="profile-avatar">
+    <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars') }}" alt="Аватар {{ user.username }}" class="avatar-large">
+</div>
+{% endif %}
+{%- endmacro %}

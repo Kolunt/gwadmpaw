@@ -104,11 +104,11 @@
 
 | ID | Задача | Статус | Зависит от |
 |----|--------|--------|------------|
-| R-601 | Jinja macros: `avatar.html`, `user_row.html`, `badge.html` | todo | R-209 |
-| R-602 | Вынести JS из `admin/settings.html` → `static/js/admin-settings.js` | todo | R-207 |
-| R-603 | Убрать дубли inline-стилей в dashboard / view_profile / title_view | todo | R-601 |
-| R-604 | PWA: стратегия кэша only same-origin; документировать bump `CACHE_NAME` | todo | частично done |
-| R-605 | Разбить `style.css` на модули или секции с комментариями-якорями | todo | — |
+| R-601 | Jinja macros: `avatar.html`, `user_row.html`, `badge.html` | done | R-209 |
+| R-602 | Вынести JS из `admin/settings.html` → `static/js/admin-settings.js` | done | R-207 |
+| R-603 | Убрать дубли inline-стилей в dashboard / view_profile / title_view | done | R-601 |
+| R-604 | PWA: стратегия кэша only same-origin; документировать bump `CACHE_NAME` | done | частично done |
+| R-605 | Разбить `style.css` на модули или секции с комментариями-якорями | done | — |
 
 ---
 
@@ -116,8 +116,8 @@
 
 | ID | Задача | Статус | Зависит от |
 |----|--------|--------|------------|
-| R-701 | Обновить `README.md` под gwadm.ru, актуальная версия, ссылки на GWARS_DOMAINS | todo | — |
-| R-702 | Объединить `DEPLOYMENT.md` и `deploy/FINISH_SETUP.md` или явно пометить legacy PA | todo | — |
+| R-701 | Обновить `README.md` под gwadm.ru, актуальная версия, ссылки на GWARS_DOMAINS | done | — |
+| R-702 | Объединить `_OLD_deployment_pythonanywhere.md` и `deploy/FINISH_SETUP.md` или явно пометить legacy PA | done | — |
 | R-703 | `GET /health` — 200 + версия, без БД или с лёгкой проверкой | done | R-106 |
 | R-704 | systemd timer для backup БД + ротация (вместо только cron-job.org) | todo | R-102 |
 | R-705 | Мониторинг: алерт при 5xx, место на диске (аватары-кэш растёт) | todo | R-703 |
@@ -205,3 +205,5 @@ gwadmpaw/
 | 2025-09-25 | R-401–R-405, R-501–R-506, R-703: CSRF, uploads audit, cron env-only, nginx rate limit/headers, pytest+CI, `/health` |
 | 2025-09-25 | R-004: `database.db.backup*` убраны из git, расширен `.gitignore` (pytest cache, `_download_pa_export.py`) |
 | 2025-09-25 | R-104: `migrations/` + `schema_version`, runner в `gwadm/migrations/runner.py`, legacy bootstrap для прода |
+| 2025-09-25 | R-601–R-605: Jinja macros, admin-settings.js, CSS cleanup, PWA CACHE_NAME, style.css reorder |
+| 2025-09-25 | R-701–R-702: документация в `doc/`, README под gwadm.ru, PA-гайд в `_OLD_*` |

@@ -1,0 +1,24 @@
+{% from 'macros/avatar.html' import avatar %}
+
+{% macro user_assignment_row(user, cta_class='btn btn-outline-primary btn-sm', cta_text='Открыть') -%}
+<tr>
+    <td data-label="Пользователь">
+        <div class="user-row-cell">
+            {{ avatar(user, size=40) }}
+            <div>
+                <div class="user-row-name">{{ user.username }}</div>
+                {% if user.last_login %}
+                <div class="text-muted user-row-meta">Последний вход: {{ user.last_login }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </td>
+    <td data-label="Уровень">{{ user.level or '—' }}</td>
+    <td data-label="Синдикат">{{ user.synd or '—' }}</td>
+    <td data-label="Назначил">{{ user.assigned_by_username or '—' }}</td>
+    <td data-label="Дата назначения">{{ user.assigned_at or '—' }}</td>
+    <td data-label="Профиль">
+        <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}" class="{{ cta_class }}">{{ cta_text }}</a>
+    </td>
+</tr>
+{%- endmacro %}

@@ -1,26 +1,27 @@
 {% extends "base.html" %}
+{% from 'macros/user_row.html' import user_assignment_row %}
 
 {% block title %}{{ title.display_name }} — Звания{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
     <div class="admin-container">
-        <div class="admin-header" style="margin-bottom: 1.5rem;">
+        <div class="admin-header admin-header-spaced">
             <div>
-                <h1 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <h1 class="admin-title-row">
                     <span class="title-icon-large" style="color: {{ title.color }};">
                         {% if title.icon %}{{ title.icon }}{% else %}🏆{% endif %}
                     </span>
                     {{ title.display_name }}
                 </h1>
                 {% if title.description %}
-                <p class="text-muted" style="margin: 0.5rem 0 0; max-width: 720px;">{{ title.description }}</p>
+                <p class="text-muted admin-description">{{ title.description }}</p>
                 {% endif %}
             </div>
         </div>
 
         <div class="card">
-            <div class="card-body" style="overflow-x: auto;">
+            <div class="card-body card-body-scroll">
                 {% if users %}
                 <table class="admin-table">
                     <thead>
@@ -30,47 +31,17 @@
                             <th>Синдикат</th>
                             <th>Назначил</th>
                             <th>Дата назначения</th>
-                            <th style="width: 120px;">Профиль</th>
+                            <th class="col-profile-action">Профиль</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users %}
-                        <tr>
-                            <td data-label="Пользователь">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    {% if user.avatar_seed %}
-                                        <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars', 40) }}"
-                                             alt="{{ user.username }}"
-                                             class="avatar-small"
-                                             style="width: 40px; height: 40px; margin-right: 0;"
-                                             loading="lazy"
-                                             decoding="async"
-                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-                                        <span class="avatar-small avatar-fallback" style="display:none; width: 40px; height: 40px; margin-right: 0; align-items: center; justify-content: center; font-size: 1.25rem; background: var(--bg-secondary); border-radius: 50%; border: 2px solid var(--border-color);">👤</span>
-                                    {% else %}
-                                        <span class="avatar-small" style="width: 40px; height: 40px; margin-right: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; background: var(--bg-secondary);">👤</span>
-                                    {% endif %}
-                                    <div>
-                                        <div style="font-weight: 600;">{{ user.username }}</div>
-                                        {% if user.last_login %}
-                                        <div class="text-muted" style="font-size: 0.85rem;">Последний вход: {{ user.last_login }}</div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </td>
-                            <td data-label="Уровень">{{ user.level or '—' }}</td>
-                            <td data-label="Синдикат">{{ user.synd or '—' }}</td>
-                            <td data-label="Назначил">{{ user.assigned_by_username or '—' }}</td>
-                            <td data-label="Дата назначения">{{ user.assigned_at or '—' }}</td>
-                            <td data-label="Профиль">
-                                <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}" class="btn btn-outline-primary btn-sm">Открыть</a>
-                            </td>
-                        </tr>
+                        {{ user_assignment_row(user) }}
                         {% endfor %}
                     </tbody>
                 </table>
                 {% else %}
-                <p class="text-muted" style="margin: 0;">Пользователи с этим званием пока не найдены.</p>
+                <p class="text-muted empty-inline">Пользователи с этим званием пока не найдены.</p>
                 {% endif %}
             </div>
         </div>

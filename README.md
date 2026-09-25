@@ -1,164 +1,64 @@
 # Анонимные Деды Морозы
 
-**Версия: 1.20.0**
+**Версия: 1.28.0** · production: [gwadm.ru](https://gwadm.ru)
 
-Тестовый проект для авторизации через GWars на PythonAnywhere.
+Веб-приложение для организации «Анонимных Дедов Морозов» с авторизацией через GWars.
 
-## Технологии
-
-- **Backend**: Flask (Python)
-- **Frontend**: HTML/CSS/JavaScript с мобильной адаптацией и dark/light mode
-- **База данных**: SQLite
-
-## Установка локально
+## Быстрый старт (локально)
 
 ```bash
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 python app.py
 ```
 
-Приложение будет доступно по адресу `http://localhost:5000`
+Проверка: `python -m pytest -q`, `python scripts/smoke_check.py`.
 
-### Проверка перед деплоем
+## Документация
 
-```bash
-pip install -r requirements-dev.txt
-python -m pytest -q
-python scripts/smoke_check.py
-python scripts/verify_gwars_domains.py
-python scripts/verify_gwars_signatures.py
-```
+| Документ | Описание |
+|----------|----------|
+| [doc/deployment.md](doc/deployment.md) | Развёртывание и обновление на gwadm.ru |
+| [doc/gwars_domains.md](doc/gwars_domains.md) | Карта доменов GWars, site_id |
+| [doc/database.md](doc/database.md) | SQLite, миграции, бэкапы |
+| [doc/telegram.md](doc/telegram.md) | Telegram-бот и webhook |
+| [doc/lottery.md](doc/lottery.md) | Механизм жеребьёвки |
+| [doc/refactoring_backlog.md](doc/refactoring_backlog.md) | Бэклог рефакторинга |
+| [deploy/FINISH_SETUP.md](deploy/FINISH_SETUP.md) | Чеклист настройки на сервере |
+
+Устаревший гайд PythonAnywhere: [doc/_OLD_deployment_pythonanywhere.md](doc/_OLD_deployment_pythonanywhere.md) (неактуален с 2025-09-25).
 
 ## Конфигурация
 
-Настройки загружаются из переменных окружения (модуль [`gwadm/config.py`](gwadm/config.py)). Шаблон для `.env` на сервере: [`.env.example`](.env.example).
+Переменные окружения — [`gwadm/config.py`](gwadm/config.py), шаблон [`.env.example`](.env.example).
 
 | Переменная | Назначение |
 |------------|------------|
 | `SECRET_KEY` | Ключ сессий Flask (обязательно на проде) |
-| `GWARS_PASSWORD` | Пароль подписей GWars (**обязательно на проде**) |
-| `ENABLE_DEV_LOGIN` | `0` на проде — отключить `/login/dev` (по умолчанию: вкл. только в dev) |
-| `DATABASE_PATH` | Путь к файлу SQLite |
-| `CRON_SECRET_TOKEN` | Защита endpoint `/cron/run` (**обязательно на проде**) |
-| `FLASK_ENV` / `FLASK_DEBUG` | Режим prod/dev и уровень логов |
-| `EVENT_TIME_OFFSET_HOURS` | Смещение «сейчас» для этапов мероприятий |
+| `GWARS_PASSWORD` | Пароль подписей GWars (обязательно на проде) |
+| `CRON_SECRET_TOKEN` | Защита `/cron/run` (обязательно на проде) |
+| `ENABLE_DEV_LOGIN` | `0` на проде — отключить `/login/dev` |
+| `DATABASE_PATH` | Путь к SQLite |
 
-Слой приложения: [`gwadm/factory.py`](gwadm/factory.py) (`create_app()`), [`gwadm/extensions.py`](gwadm/extensions.py), [`gwadm/i18n.py`](gwadm/i18n.py), [`gwadm/db.py`](gwadm/db.py), [`gwadm/logging_config.py`](gwadm/logging_config.py), [`gwadm/csrf.py`](gwadm/csrf.py). Entry point для gunicorn: `app:app` (корневой [`app.py`](app.py) вызывает `create_app()`).
-
-**Безопасность:** все POST-формы и `fetch()` защищены CSRF-токеном (`X-CSRF-Token` / `_csrf_token`). Загрузки изображений проходят проверку расширения, размера (до 5 МБ) и magic bytes ([`gwadm/services/uploads.py`](gwadm/services/uploads.py)). На проде после обновления [`deploy/nginx-gwadm.conf`](deploy/nginx-gwadm.conf): `sudo nginx -t && sudo systemctl reload nginx`.
-
-## Развертывание на PythonAnywhere
-
-📖 **Подробная инструкция по развертыванию на gwadm.pythonanywhere.com** находится в файле [DEPLOYMENT.md](DEPLOYMENT.md)
-
-### ⚠️ Важно: названия репозитория и папки
-
-- **Репозиторий GitHub**: `gwadmpaw`
-- **Папка на PythonAnywhere**: `gwadm`
-
-### Краткая инструкция:
-
-1. **Клонируйте репозиторий** на PythonAnywhere с указанием имени папки:
-```bash
-cd ~
-git clone https://github.com/Kolunt/gwadmpaw.git gwadm
-```
-
-2. **Установите зависимости**:
-```bash
-cd ~/gwadm
-pip3.10 install --user -r requirements.txt
-```
-
-3. **Настройте WSGI файл** (см. [DEPLOYMENT.md](DEPLOYMENT.md) для подробностей)
-
-4. **Настройте Static files** в разделе Web панели управления
-
-5. **Перезагрузите веб-приложение** через панель управления
-
-**Важно**: Карта доменов GWars настраивается в админке (**Настройки → Интеграции → GWars**) или в `settings.gwars_domain_map`. Подробнее: [GWARS_DOMAINS.md](GWARS_DOMAINS.md).
-
-## Обновление проекта
-
-Для обновления кода на сервере:
-
-```bash
-cd ~/gwadm
-git pull origin main
-# Если появились новые зависимости:
-pip3.10 install --user -r requirements.txt
-# Затем перезагрузите веб-приложение через панель управления
-```
-
-📖 **Подробная инструкция по обновлению** находится в [DEPLOYMENT.md](DEPLOYMENT.md#обновление-проекта)
-
-## Структура проекта
+## Структура
 
 ```
 gwadmpaw/
-├── app.py              # Entry point: create_app(); gunicorn app:app
-├── gwadm/              # Пакет приложения
-│   ├── factory.py      # create_app(), jinja filters, context, errors
-│   ├── extensions.py   # Babel, регистрация blueprints
-│   ├── i18n.py         # Локализация
-│   ├── config.py       # Настройки из env
-│   ├── db.py           # SQLite, ensure_db, get_db_connection
-│   ├── logging_config.py
-│   ├── decorators.py   # require_login, require_role
-│   ├── services/       # gwars_signatures, gwars_auth, events, assignments, telegram, …
-│   └── blueprints/     # auth, meta, public, profile, events, assignments, admin/, integrations
-├── gwars_domains.py    # Shim → gwadm.services.gwars_domains
-├── tests/              # pytest (conftest + unit/smoke tests)
-├── scripts/
-│   ├── smoke_check.py
-│   ├── verify_gwars_domains.py
-│   ├── verify_gwars_signatures.py
-│   └── post_deploy_smoke.sh
-├── requirements.txt
-├── requirements-dev.txt
-├── database.db         # SQLite (создаётся автоматически)
-├── templates/
-└── static/
+├── gwadm/              # Пакет приложения (factory, blueprints, services)
+├── migrations/         # Версионированные миграции SQLite
+├── templates/macros/   # Jinja macros (avatar, badge, csrf, …)
+├── static/             # CSS, JS, PWA (sw.js)
+├── tests/              # pytest
+├── doc/                # Документация
+├── scripts/            # smoke_check, post_deploy_smoke, verify_*
+└── app.py              # Entry point: gunicorn app:app
 ```
 
-## Авторизация через GWars
+## Обновление на проде
 
-### Как это работает:
+```bash
+cd ~/gwadm && git pull && systemctl --user restart gwadm
+bash ~/gwadm/scripts/post_deploy_smoke.sh
+```
 
-1. Пользователь открывает `/login` (landing) и нажимает «Войти через GWars» → `/login/go`
-2. На мобильных сначала показывается подсказка «открыть в браузере» (можно продолжить в этом окне)
-3. `/login/go` редиректит на `https://www.gwars.io/cross-server-login.php` с параметрами:
-   - `site_id` — по текущему домену (для `gwadm.ru` это `3`, см. [GWARS_DOMAINS.md](GWARS_DOMAINS.md))
-   - `url=https://{текущий-домен}/login`
-3. GWars проверяет авторизацию пользователя
-4. Если пользователь авторизован, GWars перенаправляет на `/login` (callback) с параметрами:
-   - `sign` - подпись (md5(password + username + user_id))
-   - `name` - имя пользователя
-   - `user_id` - ID пользователя
-   - `level` - уровень бойца
-   - `synd` - синдикат
-   - `sign2` - вторая подпись (md5(password + level + synd + user_id))
-   - `has_passport`, `has_mobile`, `old_passport` - флаги
-   - `sign3` - третья подпись (первые 10 символов md5)
-   - `usersex` - пол пользователя
-   - `sign4` - подпись даты (первые 10 символов md5)
-5. Приложение проверяет все подписи для безопасности
-6. Если подписи верны, пользователь авторизуется и данные сохраняются в БД
-
-## Особенности
-
-- ✅ Полная проверка всех подписей (sign, sign2, sign3, sign4)
-- ✅ Защита от подделки данных через проверку подписей
-- ✅ Сохранение пользователей в SQLite базе данных
-- ✅ Адаптивный дизайн для мобильных устройств
-- ✅ Dark/Light mode с сохранением выбора в localStorage
-- ✅ Современный и чистый UI
-
-## Безопасность
-
-- Все подписи проверяются на сервере
-- `GWARS_PASSWORD` задаётся в `.env` на проде; в debug-страницах пароль не показывается
-- Данные пользователя сохраняются в БД после успешной проверки
-- Сессии используются для управления авторизацией
-
-Маршруты вынесены в blueprints: `events`, `assignments`, `admin`, `integrations`; точка входа — `app.py` + `gwadm.create_app()`.
+Подробнее: [doc/deployment.md](doc/deployment.md).
