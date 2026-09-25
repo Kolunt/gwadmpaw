@@ -33,6 +33,20 @@
 - Узкий контент только точечно: `.form-container`, `.layout-inner`, `.profile-card`, `.letter-page-card`.
 - Hero на главной (`.hero-section`) — на всю высоту области контента: `min-height: calc(100dvh - 60px)`.
 
+## Hero (главная)
+
+Секция `.hero-section` на `/`:
+
+| Свойство | Значение |
+|----------|----------|
+| Высота | `min-height: calc(100dvh - 60px)` — вся область под navbar |
+| Градиент | 4 остановки на базе `--accent-color` / `--accent-hover` + `color-mix` |
+| Анимация | `@keyframes hero-gradient-shift`, 20s, `ease`, `infinite` |
+| Механика | `background-size: 400% 400%` + сдвиг `background-position` |
+| Доступность | при `prefers-reduced-motion: reduce` — статичный градиент, без анимации |
+
+Цвета accent подставляются из настроек сайта (`base.html` → `:root`).
+
 ## Связанные документы
 
 - [responsive.md](responsive.md) — breakpoints, drawer, адаптивные таблицы

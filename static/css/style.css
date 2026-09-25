@@ -997,8 +997,28 @@ body {
 
 /* Auth container */
 /* Landing Page Styles */
+@keyframes hero-gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
 .hero-section {
-    background: linear-gradient(135deg, var(--accent-color) 0%, rgba(0, 123, 255, 0.8) 100%);
+    background: linear-gradient(
+        -45deg,
+        var(--accent-color),
+        color-mix(in srgb, var(--accent-color) 65%, var(--accent-hover)),
+        color-mix(in srgb, var(--accent-hover) 55%, #007bff),
+        var(--accent-color)
+    );
+    background-size: 400% 400%;
+    animation: hero-gradient-shift 20s ease infinite;
     color: white;
     padding: var(--layout-inner);
     text-align: center;
@@ -1011,6 +1031,18 @@ body {
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-section {
+        animation: none;
+        background: linear-gradient(
+            135deg,
+            var(--accent-color) 0%,
+            color-mix(in srgb, var(--accent-color) 45%, #007bff) 100%
+        );
+        background-size: auto;
+    }
 }
 
 .hero-content {
