@@ -35,6 +35,10 @@
 - Узкий контент только точечно: `.form-container`, `.layout-inner`, `.profile-card`, `.letter-page-card`.
 - Hero на главной (`.hero-section`) — на всю высоту области контента: `min-height: calc(100dvh - 60px)`.
 
+## Блок «Перейти к мероприятиям»
+
+`.section-footer` в секции events — `padding-top: var(--layout-section-gap)`, снизу `--layout-inner`, `border-top` отделяет от сетки карточек.
+
 ## Статистика (главная)
 
 Три метрики (участники, онлайн, мероприятия) — один блок `.stats-bar` с тремя `.stats-bar-item`, разделёнными `border`. На mobile (≤768px) — колонка.

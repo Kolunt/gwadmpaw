@@ -1275,7 +1275,8 @@ body {
 .section-footer {
     text-align: center;
     margin: 0;
-    padding: var(--layout-inner);
+    padding: var(--layout-section-gap) var(--layout-inner) var(--layout-inner);
+    border-top: 1px solid var(--border-color);
 }
 
 /* Features Section */
