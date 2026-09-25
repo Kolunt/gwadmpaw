@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 """
-Скрипт для периодических задач (cron jobs)
-Запускается через cron на PythonAnywhere
+Периодические задачи: очистка кодов Telegram, логов, резервное копирование SQLite.
 
-Задачи:
-- Очистка истекших кодов верификации Telegram
-- Очистка старых логов (опционально)
-- Резервное копирование базы данных (опционально)
+Запуск: `python cron_tasks.py`, `python scripts/backup_db.py`, systemd timer, или HTTP `/cron/run`.
 """
 
 import os
+import shutil
 import sys
 import sqlite3
 from datetime import datetime, timedelta
@@ -19,8 +16,12 @@ project_path = os.path.dirname(os.path.abspath(__file__))
 if project_path not in sys.path:
     sys.path.insert(0, project_path)
 
+from gwadm.config import BACKUP_DIR, DATABASE_PATH
 from gwadm.db import ensure_db, get_db_connection
 from gwadm.logging_config import log_debug, log_error
+
+BACKUP_RETENTION_COUNT = 7
+BACKUP_FILENAME_PREFIX = 'database_'
 
 def cleanup_expired_verification_codes():
     """Очищает истекшие коды верификации Telegram"""
@@ -70,43 +71,43 @@ def cleanup_old_activity_logs(days=90):
             conn.close()
         return 0
 
-def backup_database():
-    """Создает резервную копию базы данных"""
+def _list_backup_files(backup_dir: str) -> list[tuple[float, str]]:
+    backup_files = []
+    for name in os.listdir(backup_dir):
+        if not name.startswith(BACKUP_FILENAME_PREFIX) or not name.endswith('.db'):
+            continue
+        file_path = os.path.join(backup_dir, name)
+        if os.path.isfile(file_path):
+            backup_files.append((os.path.getmtime(file_path), file_path))
+    backup_files.sort(reverse=True)
+    return backup_files
+
+
+def backup_database() -> bool:
+    """Create a timestamped SQLite backup in BACKUP_DIR and rotate old copies."""
     try:
-        db_path = os.path.join(project_path, 'database.db')
+        db_path = DATABASE_PATH
         if not os.path.exists(db_path):
-            log_debug("Database file not found, skipping backup")
+            log_debug(f"Database file not found at {db_path}, skipping backup")
             return False
-        
-        # Создаем имя файла бэкапа с датой и временем
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_path = os.path.join(project_path, f'database.db.backup_{timestamp}')
-        
-        # Копируем файл базы данных
-        import shutil
+
+        backup_dir = BACKUP_DIR
+        os.makedirs(backup_dir, exist_ok=True)
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        backup_path = os.path.join(backup_dir, f'{BACKUP_FILENAME_PREFIX}{timestamp}.db')
         shutil.copy2(db_path, backup_path)
-        
-        # Удаляем старые бэкапы (оставляем только последние 7)
-        backup_files = []
-        for file in os.listdir(project_path):
-            if file.startswith('database.db.backup_') and file.endswith('.backup') == False:
-                file_path = os.path.join(project_path, file)
-                if os.path.isfile(file_path):
-                    backup_files.append((os.path.getmtime(file_path), file_path))
-        
-        # Сортируем по времени модификации (новые первыми)
-        backup_files.sort(reverse=True)
-        
-        # Удаляем старые бэкапы, оставляя только последние 7
-        if len(backup_files) > 7:
-            for _, old_backup in backup_files[7:]:
+
+        backup_files = _list_backup_files(backup_dir)
+        if len(backup_files) > BACKUP_RETENTION_COUNT:
+            for _, old_backup in backup_files[BACKUP_RETENTION_COUNT:]:
                 try:
                     os.remove(old_backup)
                     log_debug(f"Removed old backup: {os.path.basename(old_backup)}")
-                except Exception as e:
+                except OSError as e:
                     log_error(f"Error removing old backup {old_backup}: {e}")
-        
-        log_debug(f"Database backup created: {os.path.basename(backup_path)}")
+
+        log_debug(f"Database backup created: {backup_path}")
         return True
     except Exception as e:
         log_error(f"Error creating database backup: {e}")

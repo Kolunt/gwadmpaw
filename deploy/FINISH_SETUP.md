@@ -103,7 +103,20 @@ sudo nginx -t && sudo systemctl reload nginx
 curl -sI https://gwadm.ru/ | grep -i x-frame
 ```
 
-## 7. Проверка
+## 7. Backup БД (systemd timer)
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp ~/gwadm/deploy/gwadm-backup.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now gwadm-backup.timer
+systemctl --user start gwadm-backup.service
+ls -la ~/gwadm/backups/
+```
+
+Подробнее: [doc/database.md](../doc/database.md).
+
+## 8. Проверка
 
 ```bash
 systemctl --user status gwadm

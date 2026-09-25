@@ -32,6 +32,16 @@ def _resolve_database_path() -> str:
 
 DATABASE_PATH = _resolve_database_path()
 
+
+def _resolve_backup_dir() -> str:
+    explicit = os.environ.get('BACKUP_DIR', '').strip()
+    if explicit:
+        return explicit
+    return str(Path(DATABASE_PATH).resolve().parent / 'backups')
+
+
+BACKUP_DIR = _resolve_backup_dir()
+
 AVATAR_CACHE_DIR = str(ROOT_DIR / 'static' / 'uploads' / 'avatars' / 'cache')
 
 

@@ -163,35 +163,39 @@ def get_db_connection():
 *.sqlite3
 ```
 
-### Рекомендации по резервному копированию
+### Резервное копирование
 
-Файлы `database.db.backup*` храните локально или на сервере вне git — они в [`.gitignore`](.gitignore) и не должны попадать в репозиторий.
+На production (gwadm.ru) бэкапы создаются **ежедневно** через user systemd timer `gwadm-backup.timer`.
 
-#### На PythonAnywhere
+| Параметр | Значение |
+|----------|----------|
+| Скрипт | [`scripts/backup_db.py`](../scripts/backup_db.py) → `backup_database()` в [`cron_tasks.py`](../cron_tasks.py) |
+| Каталог | `~/gwadm/backups/` (или `BACKUP_DIR` в `.env`) |
+| Имя файла | `database_YYYYMMDD_HHMMSS.db` |
+| Ротация | последние **7** копий |
 
-1. **Через консоль:**
+**Установка timer** (один раз на сервере):
+
 ```bash
-cd ~/gwadm
-cp database.db database.db.backup
+mkdir -p ~/.config/systemd/user
+cp ~/gwadm/deploy/gwadm-backup.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now gwadm-backup.timer
 ```
 
-2. **Через веб-интерфейс:**
-- Files → `~/gwadm/database.db` → Download
+Ручной прогон: `systemctl --user start gwadm-backup.service` или `python scripts/backup_db.py`.
 
-3. **Автоматическое резервное копирование:**
-```bash
-# Создать скрипт для ежедневного бэкапа
-cd ~/gwadm
-cp database.db backups/database_$(date +%Y%m%d).db
-```
+Альтернатива: HTTP `GET /cron/run?token=...&backup=1` (тот же `backup_database()`).
+
+Каталог `backups/` в [`.gitignore`](../.gitignore). Старые `database.db.backup_*` в корне репо можно удалить вручную после перехода на timer.
 
 #### Локально
 
-```powershell
-# Windows PowerShell
-Copy-Item database.db database.db.backup
+```bash
+python scripts/backup_db.py
+```
 
-# Или с датой
+```powershell
 Copy-Item database.db "database_$(Get-Date -Format 'yyyyMMdd').db"
 ```
 

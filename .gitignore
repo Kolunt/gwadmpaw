@@ -17,6 +17,7 @@ pa_export/
 .env
 database.db.backup*
 database.db.backup_*.bak
+backups/
 .pytest_cache/
 pytest-cache-files-*/
 _download_pa_export.py

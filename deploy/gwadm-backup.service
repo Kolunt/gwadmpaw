@@ -1,0 +1,13 @@
+[Unit]
+Description=GWADM SQLite database backup
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/deploy/gwadm
+Environment=PATH=/home/deploy/gwadm/venv/bin
+EnvironmentFile=-/home/deploy/gwadm/.env
+ExecStart=/home/deploy/gwadm/venv/bin/python /home/deploy/gwadm/scripts/backup_db.py
+
+[Install]
+WantedBy=default.target

@@ -35,6 +35,20 @@ journalctl --user -u gwadm -n 20
 
 Nginx reload нужен только после изменения `deploy/nginx-gwadm.conf`.
 
+## Резервное копирование БД
+
+Ежедневный backup через user systemd timer (см. [database.md](database.md)):
+
+```bash
+cp ~/gwadm/deploy/gwadm-backup.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now gwadm-backup.timer
+systemctl --user start gwadm-backup.service
+ls -la ~/gwadm/backups/
+```
+
+Опционально в `~/gwadm/.env`: `BACKUP_DIR=/path/to/backups`.
+
 ## PWA / Service Worker
 
 При релизе с изменениями в `static/` обновите `CACHE_NAME` в [`static/sw.js`](../static/sw.js) — синхронно с версией в [`version.py`](../version.py) (например `gwadmpaw-v1.28.0`). Иначе клиенты могут кэшировать старый CSS/JS.
