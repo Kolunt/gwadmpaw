@@ -17,6 +17,6 @@ echo "Checking mobile interstitial"
 curl -sfI "${BASE_URL}/login/go" -H "User-Agent: iPhone" | head -n1 | grep -q '200'
 
 echo "Checking cron without token"
-curl -sfI "${BASE_URL}/cron/run" | head -n1 | grep -q '401'
+curl -sI "${BASE_URL}/cron/run" | head -n1 | grep -q '401'
 
 echo "OK: post_deploy_smoke passed"
