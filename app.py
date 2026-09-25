@@ -13626,7 +13626,7 @@ try:
 except Exception as e:
     log_error(f"Failed to initialize database on startup: {e}")
     if _database_is_ready():
-        _db_initialized = True
+        globals()['_db_initialized'] = True
 
 @app.errorhandler(404)
 def handle_not_found(error):
