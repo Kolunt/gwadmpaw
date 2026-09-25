@@ -12,7 +12,7 @@
 | `--layout-padding-x` | `0` | Горизонтальный padding обёртки страницы |
 | `--layout-padding-y` | `0` | Вертикальный padding обёртки страницы |
 | `--layout-inner` | `0.75rem` (12px) | Внутренний padding карточек, заголовков секций |
-| `--layout-section-gap` | `1.5rem` (24px) | Зазор между hero и stats на главной |
+| `--layout-section-gap` | `1.5rem` (24px) | Равный зазор между соседними секциями в `.layout-main` |
 | `--layout-narrow` | `48rem` | Узкий контент (формы, письма, login) |
 
 ## Классы
@@ -27,7 +27,8 @@
 
 ## Правила
 
-- Межсекционные gap и margin — **0**; разделение блоков — `border` на карточках.
+- Межсекционные gap в сетках — **0**; разделение ячеек — `border` на карточках.
+- Между соседними `<section>` в `.layout-main` — `margin-top: var(--layout-section-gap)` (главная: hero → stats → events → features → CTA).
 - `.main-content`, `.layout-main`, page shells — `padding-block: 0` (включая mobile breakpoints).
 - Navbar (60px) и sidebar (250px на desktop) не меняются; отступ под navbar задаёт `.content-wrapper { margin-top: 60px }`.
 - Карточки и плитки: `border-radius: 0`, `padding: var(--layout-inner)`.
@@ -36,7 +37,7 @@
 
 ## Статистика (главная)
 
-Три метрики (участники, онлайн, мероприятия) — один блок `.stats-bar` с тремя `.stats-bar-item`, разделёнными `border`. На mobile (≤768px) — колонка. Отступ от hero: `.hero-section + .stats-section { margin-top: var(--layout-section-gap) }`.
+Три метрики (участники, онлайн, мероприятия) — один блок `.stats-bar` с тремя `.stats-bar-item`, разделёнными `border`. На mobile (≤768px) — колонка.
 
 ## Hero (главная)
 

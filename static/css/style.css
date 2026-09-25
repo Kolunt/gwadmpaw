@@ -373,6 +373,10 @@ body {
     padding-block: 0;
 }
 
+.layout-main > section + section {
+    margin-top: var(--layout-section-gap);
+}
+
 .dashboard-container > h1,
 .admin-container > h1,
 .faq-container > h1 {
@@ -1079,10 +1083,6 @@ body {
 }
 
 /* Statistics Section */
-.hero-section + .stats-section {
-    margin-top: var(--layout-section-gap);
-}
-
 .stats-section {
     padding: 0;
     margin: 0;
