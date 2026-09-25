@@ -90,17 +90,17 @@ pip3.10 install --user -r requirements.txt
 
 ```
 gwadmpaw/
-├── app.py              # Маршруты; entry point gunicorn app:app
+├── app.py              # Entry point: create_app(); gunicorn app:app
 ├── gwadm/              # Пакет приложения
-│   ├── factory.py      # create_app()
-│   ├── extensions.py   # Babel, hook для blueprints
+│   ├── factory.py      # create_app(), jinja filters, context, errors
+│   ├── extensions.py   # Babel, регистрация blueprints
 │   ├── i18n.py         # Локализация
 │   ├── config.py       # Настройки из env
 │   ├── db.py           # SQLite, ensure_db, get_db_connection
 │   ├── logging_config.py
 │   ├── decorators.py   # require_login, require_role
-│   ├── services/       # avatars, awards, events_stages, profile_comments, gwars_auth, roles, settings, titles, activity
-│   └── blueprints/     # auth, meta, public, profile (dashboard, edit, view)
+│   ├── services/       # events, assignments, telegram, rating, permissions, …
+│   └── blueprints/     # auth, meta, public, profile, events, assignments, admin/, integrations
 ├── gwars_domains.py    # Shim → gwadm.services.gwars_domains
 ├── scripts/
 │   ├── smoke_check.py
