@@ -1232,7 +1232,25 @@ body {
 }
 
 .event-card-footer-home.simplified-footer {
-    justify-content: space-between;
+    justify-content: center;
+}
+
+a.event-card-footer-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+a.event-card-footer-link:hover,
+a.event-card-footer-link:focus {
+    background-color: var(--bg-secondary);
+    outline: none;
+}
+
+a.event-card-footer-link:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: -2px;
 }
 
 .event-countdown-home {

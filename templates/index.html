@@ -97,13 +97,12 @@
                     </div>
                 </div>
                 {% endif %}
-                <div class="event-card-footer-home simplified-footer">
+                <a href="{{ url_for('events.event_view', event_id=item.event.id) }}" class="event-card-footer-home simplified-footer event-card-footer-link" aria-label="Открыть мероприятие {{ item.event.name }}">
                     <div class="participant-count-icon">
                         <span class="participant-count">{{ item.registrations_count }}</span>
                         <span class="participant-label">участников</span>
                     </div>
-                    <a href="{{ url_for('events.events') }}" class="btn btn-sm btn-outline">Подробнее</a>
-                </div>
+                </a>
             </div>
             {% endfor %}
         </div>
