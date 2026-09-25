@@ -28,5 +28,7 @@ def init_extensions(app: Flask) -> None:
 
 
 def register_blueprints(app: Flask) -> None:
-    """Register blueprints (R-202+). Routes remain in app.py until then."""
-    pass
+    """Register application blueprints."""
+    from gwadm.blueprints.meta import bp as meta_bp
+
+    app.register_blueprint(meta_bp)

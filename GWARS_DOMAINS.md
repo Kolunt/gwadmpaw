@@ -48,7 +48,7 @@
 3. Callback URL всегда строится как `https://{текущий-host}/login` (на проде).
 4. Редирект на `https://www.gwars.io/cross-server-login.php?site_id=...&url=...`.
 
-Логика в модуле `gwars_domains.py`.
+Логика в модуле `gwadm/services/gwars_domains.py` (корневой `gwars_domains.py` — обратносовместимый re-export).
 
 ## Telegram и site_url
 

@@ -54,6 +54,16 @@ def main() -> int:
         if "gwars.io" not in location:
             errors.append(f"GET /login Location missing gwars.io: {location}")
 
+    response = client.get("/avatars/image?seed=test&style=avataaars&size=40")
+    if response.status_code not in (200, 302):
+        errors.append(
+            f"GET /avatars/image expected 200 or 302, got {response.status_code}"
+        )
+    elif response.status_code == 200:
+        content_type = response.headers.get("Content-Type", "")
+        if not content_type.startswith(("image/png", "image/svg+xml")):
+            errors.append(f"GET /avatars/image unexpected Content-Type: {content_type}")
+
     if errors:
         for err in errors:
             print(f"FAIL: {err}")

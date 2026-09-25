@@ -7,7 +7,7 @@ import threading
 import time
 from contextlib import contextmanager
 
-from gwars_domains import DEFAULT_GWARS_DOMAIN_MAP
+from gwadm.services.gwars_domains import DEFAULT_GWARS_DOMAIN_MAP
 
 from gwadm.config import ADMIN_USER_IDS, DATABASE_PATH
 from gwadm.logging_config import log_debug, log_error

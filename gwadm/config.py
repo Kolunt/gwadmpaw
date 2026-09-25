@@ -32,6 +32,8 @@ def _resolve_database_path() -> str:
 
 DATABASE_PATH = _resolve_database_path()
 
+AVATAR_CACHE_DIR = str(ROOT_DIR / 'static' / 'uploads' / 'avatars' / 'cache')
+
 
 def is_production() -> bool:
     """True when running with production settings (SECRET_KEY or FLASK_ENV=production)."""
