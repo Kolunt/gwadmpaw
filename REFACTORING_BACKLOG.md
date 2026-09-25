@@ -54,7 +54,7 @@
 | R-208 | Blueprint `integrations` — Telegram webhook, Dadata verify, cron | done | R-201 |
 | R-209 | Blueprint `meta` — `/avatars/image`, titles/awards/roles public views | done | R-201 |
 | R-210 | Сервисный слой: `services/gwars_auth.py`, `services/avatars.py`, `services/telegram.py` | done | R-202, R-209 |
-| R-211 | Удалить дубли debug-логики sign/sign3; один модуль `gwars_signatures.py` | todo | R-202 |
+| R-211 | Удалить дубли debug-логики sign/sign3; один модуль `gwars_signatures.py` | done | `gwadm/services/gwars_signatures.py`, `scripts/verify_gwars_signatures.py` |
 
 **Критерий готовности:** нет маршрутов в корневом `app.py`; импорты циклически не ломаются; `cron_tasks.py` импортирует из `db.py`, не из монолита.
 
@@ -153,6 +153,7 @@ gwadmpaw/
 │   │   └── integrations.py
 │   ├── services/
 │   │   ├── gwars_auth.py
+│   │   ├── gwars_signatures.py
 │   │   ├── gwars_domains.py  # перенос из корня
 │   │   ├── avatars.py
 │   │   └── telegram.py
@@ -199,3 +200,4 @@ gwadmpaw/
 | 2025-09-25 | R-001, R-101, R-102, R-105: пакет `gwadm/` (config, db, logging), smoke_check, документация |
 | 2025-09-25 | R-103: `ensure_db()` только при старте (app import, cron), guard в `get_db_connection()` |
 | 2025-09-25 | R-106, R-201, R-002: `create_app()` factory, extensions, i18n; Babel 4.x fix |
+| 2025-09-25 | R-211: `gwars_signatures.py` — compute/verify sign*, debug helpers; auth.py без inline hashlib |

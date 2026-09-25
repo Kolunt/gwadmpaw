@@ -1,19 +1,21 @@
 """GWars authentication routes."""
 
-import hashlib
 import traceback
 from datetime import datetime
-from urllib.parse import quote, unquote, unquote_plus, unquote_to_bytes
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
-from gwadm.config import ADMIN_USER_IDS, GWARS_PASSWORD, is_debug
+from gwadm.config import ADMIN_USER_IDS, is_debug
 from gwadm.db import ensure_db, get_db_connection
 from gwadm.logging_config import log_debug, log_error
 from gwadm.services.activity import log_activity
 from gwadm.services.avatars import generate_unique_avatar_seed
-from gwadm.services.gwars_auth import (
-    finalize_user_login,
+from gwadm.services.gwars_auth import finalize_user_login
+from gwadm.services.gwars_signatures import (
+    build_sign3_debug_info,
+    build_sign_debug_info,
+    decode_gwars_name,
+    extract_name_encoded_from_request,
     verify_sign,
     verify_sign2,
     verify_sign3,
@@ -47,19 +49,6 @@ def login_dev():
     has_mobile = 1
     old_passport = 0
     usersex = "0"
-    
-    # Генерируем правильные подписи для тестовых данных
-    from urllib.parse import quote
-    name_encoded = quote(name.encode('cp1251'), safe='')
-    
-    # Вычисляем подписи
-    sign = hashlib.md5((GWARS_PASSWORD.encode('utf-8') + name.encode('cp1251') + str(user_id).encode('utf-8'))).hexdigest()
-    sign2 = hashlib.md5((GWARS_PASSWORD + str(level) + str(round(float(synd))) + str(user_id)).encode('utf-8')).hexdigest()
-    sign3 = hashlib.md5((GWARS_PASSWORD.encode('utf-8') + name.encode('cp1251') + str(user_id).encode('utf-8') + str(has_passport).encode('utf-8') + str(has_mobile).encode('utf-8') + str(old_passport).encode('utf-8'))).hexdigest()[:10]
-    
-    from datetime import datetime
-    today = datetime.now().strftime('%Y-%m-%d')
-    sign4 = hashlib.md5((today + sign3 + GWARS_PASSWORD).encode('utf-8')).hexdigest()[:10]
     
     # Сохраняем пользователя в БД
     conn = get_db_connection()
@@ -214,61 +203,14 @@ def login():
         sign = request.args.get('sign', '')
         user_id = request.args.get('user_id', '')
         
-        # ВАЖНО: Flask автоматически декодирует URL параметры, но нам нужен оригинальный закодированный вариант
-        # Получаем оригинальное значение из query string напрямую
-        try:
-            query_string_raw = request.query_string
-            query_string = query_string_raw.decode('utf-8', errors='replace')
-        except:
-            query_string = request.query_string.decode('utf-8') if request.query_string else ''
-        
-        name_encoded = None
-        # Пробуем извлечь name из query string
-        if query_string:
-            for param in query_string.split('&'):
-                if param.startswith('name='):
-                    name_encoded = param.split('=', 1)[1]  # Берем все после первого =
-                    break
-        
-        # Если не получилось получить из query_string, пробуем через request.args (но это уже декодированное)
-        if not name_encoded or name_encoded == '':
-            name_encoded = request.args.get('name', '')
-            # Если получили через args, значит оно уже декодировано, нужно закодировать обратно для проверки
-            if name_encoded:
-                name_encoded_for_comparison = quote(name_encoded, safe='')
-            else:
-                name_encoded_for_comparison = ''
-        else:
-            name_encoded_for_comparison = name_encoded
-        
-        # Пробуем декодировать разными способами
-        # ВАЖНО: GWars использует CP1251 (Windows-1251) для кодирования русских символов!
-        name = name_encoded if name_encoded else ''
-        name_latin1 = None
-        name_cp1251 = None
-        if name_encoded:
-            try:
-                # Сначала пробуем CP1251 (Windows-1251) - это основная кодировка для русских символов
-                name_cp1251 = unquote_plus(name_encoded, encoding='cp1251')
-                name = name_cp1251  # Используем CP1251 как основной вариант
-            except:
-                try:
-                    name = unquote_plus(name_encoded, encoding='utf-8')
-                except:
-                    try:
-                        name = unquote_plus(name_encoded, encoding='latin1')
-                        name_latin1 = name
-                    except:
-                        name = name_encoded
-                        name_latin1 = name_encoded
-            
-            # Если CP1251 декодирование не сработало, пробуем еще раз
-            if not name_cp1251:
-                try:
-                    name_cp1251 = unquote_plus(name_encoded, encoding='cp1251')
-                except:
-                    name_cp1251 = None
-        
+        name_encoded = extract_name_encoded_from_request(request)
+        name_info = decode_gwars_name(name_encoded, request.args.get('name', ''))
+        name = name_info['name']
+        name_cp1251 = name_info['name_cp1251']
+        name_latin1 = name_info['name_latin1']
+        if not name_encoded and name_info['name_encoded']:
+            name_encoded = name_info['name_encoded']
+
         level = request.args.get('level', '0')
         synd = request.args.get('synd', '0')
         sign2 = request.args.get('sign2', '')
@@ -278,13 +220,7 @@ def login():
         sign3 = request.args.get('sign3', '')
         usersex = request.args.get('usersex', '')
         sign4 = request.args.get('sign4', '')
-        
-        # Если name пустое, пробуем получить из request.args напрямую
-        if not name or name == '':
-            name = request.args.get('name', '')
-            if name:
-                name_encoded = name  # Если получили через args, значит оно уже декодировано
-        
+
         # Если нет параметров, проверяем, вернулся ли пользователь с GWars без авторизации
         if not sign or not user_id:
             # Проверяем, есть ли в сессии флаг о попытке авторизации через GWars
@@ -333,106 +269,15 @@ def login():
             log_debug(f"  sign2={sign2}")
             log_debug(f"Full URL: {request.url}")
             log_debug(f"Query string (raw bytes): {request.query_string}")
-            log_debug(f"Query string (decoded): {query_string}")
             log_debug(f"All args: {dict(request.args)}")
         
         # Проверяем подписи (пробуем оба варианта - с декодированным и закодированным именем)
         if not verify_sign(name, user_id, sign, name_encoded):
-            # Вместо редиректа, сразу показываем страницу отладки
-            # Это позволит увидеть информацию даже если логи не работают
             flash('Ошибка проверки подписи sign. Смотрите информацию ниже.', 'error')
-            
-            # Вычисляем все варианты для отображения
-            # ВАЖНО: Правильный способ - использовать оригинальные байты из URL!
-            variant_bytes = None
-            if name_encoded:
-                try:
-                    name_bytes = unquote_to_bytes(name_encoded)
-                    variant_bytes = hashlib.md5(
-                        GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8')
-                    ).hexdigest()
-                except:
-                    pass
-            
-            variant1 = hashlib.md5((GWARS_PASSWORD + name + str(user_id)).encode('utf-8')).hexdigest()
-            variant2 = hashlib.md5((GWARS_PASSWORD + name_encoded + str(user_id)).encode('utf-8')).hexdigest()
-            variant3 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name).encode('utf-8')).hexdigest()
-            variant4 = hashlib.md5((GWARS_PASSWORD + str(user_id) + name_encoded).encode('utf-8')).hexdigest()
-            
-            # Пробуем CP1251
-            try:
-                if not name_cp1251:
-                    name_cp1251 = unquote(name_encoded, encoding='cp1251') if name_encoded else None
-                if name_cp1251:
-                    variant5 = hashlib.md5((GWARS_PASSWORD + name_cp1251 + str(user_id)).encode('utf-8')).hexdigest()
-                else:
-                    variant5 = None
-            except:
-                name_cp1251 = None
-                variant5 = None
-            
-            # Пробуем latin1 с байтами (правильный способ!)
-            variant_latin1_bytes = None
-            try:
-                if not name_latin1:
-                    name_latin1 = unquote(name_encoded, encoding='latin1') if name_encoded else None
-                if name_latin1:
-                    name_latin1_bytes = name_latin1.encode('latin1')
-                    variant_latin1_bytes = hashlib.md5(
-                        GWARS_PASSWORD.encode('utf-8') + name_latin1_bytes + str(user_id).encode('utf-8')
-                    ).hexdigest()
-            except:
-                name_latin1 = None
-                variant_latin1_bytes = None
-            
-            # Пробуем с именем как оно пришло через request.args (уже декодированное)
-            name_from_args = request.args.get('name', '')
-            variant7 = None
-            if name_from_args and name_from_args != name:
-                variant7 = hashlib.md5((GWARS_PASSWORD + name_from_args + str(user_id)).encode('utf-8')).hexdigest()
-            
-            # Пробуем с пустым именем (если имя пустое)
-            variant8 = None
-            variant9 = None
-            if not name or name == '':
-                variant8 = hashlib.md5((GWARS_PASSWORD + '' + str(user_id)).encode('utf-8')).hexdigest()
-                variant9 = hashlib.md5((GWARS_PASSWORD + str(user_id) + '').encode('utf-8')).hexdigest()
-            
-            expected_sign2 = hashlib.md5(
-                (GWARS_PASSWORD + str(level) + str(round(float(synd))) + str(user_id)).encode('utf-8')
-            ).hexdigest()
-            
-            debug_info = {
-                'received_params': dict(request.args),
-                'password': GWARS_PASSWORD,
-                'encoded_name': name_encoded if name_encoded else 'EMPTY',
-                'decoded_name': name if name else 'EMPTY',
-                'decoded_name_cp1251': name_cp1251 if name_cp1251 else 'N/A',
-                'decoded_name_latin1': name_latin1 if name_latin1 else 'N/A',
-                'name_from_args': name_from_args if name_from_args else 'EMPTY',
-                'user_id': user_id,
-                'query_string': query_string,
-                'full_url': request.url,
-                'variant_bytes': variant_bytes if variant_bytes else 'N/A',
-                'variant1': variant1,
-                'variant2': variant2,
-                'variant3': variant3,
-                'variant4': variant4,
-                'variant5': variant5 if variant5 else 'N/A',
-                'variant_latin1_bytes': variant_latin1_bytes if variant_latin1_bytes else 'N/A',
-                'received_sign': sign,
-                'sign_match_bytes': variant_bytes == sign if variant_bytes else False,
-                'sign_match_v1': variant1 == sign,
-                'sign_match_v2': variant2 == sign,
-                'sign_match_v3': variant3 == sign,
-                'sign_match_v4': variant4 == sign,
-                'sign_match_v5': variant5 == sign if variant5 else False,
-                'sign_match_latin1_bytes': variant_latin1_bytes == sign if variant_latin1_bytes else False,
-                'expected_sign2': expected_sign2,
-                'received_sign2': sign2,
-                'sign2_match': expected_sign2 == sign2,
-            }
-            
+            debug_info = build_sign_debug_info(
+                request, name, name_encoded, name_cp1251, name_latin1,
+                user_id, sign, sign2, level, synd,
+            )
             return render_template('debug.html', debug_info=debug_info)
         
         if not verify_sign2(level, synd, user_id, sign2):
@@ -440,48 +285,11 @@ def login():
             return redirect(url_for('public.index'))
         
         if not verify_sign3(name, user_id, has_passport, has_mobile, old_passport, sign3, name_encoded):
-            # Показываем страницу отладки для sign3
             flash('Ошибка проверки подписи sign3. Смотрите информацию ниже.', 'error')
-            
-            # Вычисляем варианты sign3 для отладки
-            sign3_variant_bytes = None
-            if name_encoded:
-                try:
-                    name_bytes = unquote_to_bytes(name_encoded)
-                    sign3_variant_bytes = hashlib.md5(
-                        GWARS_PASSWORD.encode('utf-8') + name_bytes + str(user_id).encode('utf-8') + 
-                        str(has_passport).encode('utf-8') + str(has_mobile).encode('utf-8') + str(old_passport).encode('utf-8')
-                    ).hexdigest()[:10]
-                except:
-                    pass
-            
-            sign3_variant_decoded = hashlib.md5(
-                (GWARS_PASSWORD + name + str(user_id) + str(has_passport) + str(has_mobile) + str(old_passport)).encode('utf-8')
-            ).hexdigest()[:10]
-            
-            # Вычисляем sign4 варианты
-            today = datetime.now().strftime("%Y-%m-%d")
-            sign4_variant1 = hashlib.md5((today + sign3 + GWARS_PASSWORD).encode('utf-8')).hexdigest()[:10]
-            
-            debug_info = {
-                'received_params': dict(request.args),
-                'password': GWARS_PASSWORD,
-                'encoded_name': name_encoded if name_encoded else 'EMPTY',
-                'decoded_name': name if name else 'EMPTY',
-                'user_id': user_id,
-                'has_passport': has_passport,
-                'has_mobile': has_mobile,
-                'old_passport': old_passport,
-                'sign3_received': sign3,
-                'sign3_variant_bytes': sign3_variant_bytes if sign3_variant_bytes else 'N/A',
-                'sign3_variant_decoded': sign3_variant_decoded,
-                'sign3_match_bytes': sign3_variant_bytes == sign3 if sign3_variant_bytes else False,
-                'sign3_match_decoded': sign3_variant_decoded == sign3,
-                'sign4_received': sign4,
-                'sign4_variant1': sign4_variant1,
-                'sign4_match': sign4_variant1 == sign4,
-            }
-            
+            debug_info = build_sign3_debug_info(
+                request, name, name_encoded, user_id,
+                has_passport, has_mobile, old_passport, sign3, sign4,
+            )
             return render_template('debug_sign3.html', debug_info=debug_info)
         
         if not verify_sign4(sign3, sign4):

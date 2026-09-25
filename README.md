@@ -24,6 +24,7 @@ python app.py
 ```bash
 python scripts/smoke_check.py
 python scripts/verify_gwars_domains.py
+python scripts/verify_gwars_signatures.py
 ```
 
 ## Конфигурация
@@ -99,12 +100,13 @@ gwadmpaw/
 │   ├── db.py           # SQLite, ensure_db, get_db_connection
 │   ├── logging_config.py
 │   ├── decorators.py   # require_login, require_role
-│   ├── services/       # events, assignments, telegram, rating, permissions, …
+│   ├── services/       # gwars_signatures, gwars_auth, events, assignments, telegram, …
 │   └── blueprints/     # auth, meta, public, profile, events, assignments, admin/, integrations
 ├── gwars_domains.py    # Shim → gwadm.services.gwars_domains
 ├── scripts/
 │   ├── smoke_check.py
-│   └── verify_gwars_domains.py
+│   ├── verify_gwars_domains.py
+│   └── verify_gwars_signatures.py
 ├── requirements.txt
 ├── database.db         # SQLite (создаётся автоматически)
 ├── templates/
