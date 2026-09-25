@@ -62,14 +62,14 @@ if ! echo "${health_json}" | grep -q "\"version\":\"${expected_version}\""; then
   exit 1
 fi
 
-echo "Checking nginx proxy ${NGINX_URL}/health"
-nginx_body="$(curl -sf "${NGINX_URL}/health")"
-if ! echo "${nginx_body}" | grep -q '"status":"ok"'; then
-  echo "FAIL: nginx proxy health check failed"
+echo "Checking public URL ${PUBLIC_URL}/health (nginx + TLS)"
+public_body="$(curl -sf "${PUBLIC_URL}/health")"
+if ! echo "${public_body}" | grep -q '"status":"ok"'; then
+  echo "FAIL: public health check failed for ${PUBLIC_URL}/health"
   exit 1
 fi
-if ! echo "${nginx_body}" | grep -q "\"version\":\"${expected_version}\""; then
-  echo "FAIL: nginx /health version mismatch"
+if ! echo "${public_body}" | grep -q "\"version\":\"${expected_version}\""; then
+  echo "FAIL: public /health version mismatch"
   exit 1
 fi
 
