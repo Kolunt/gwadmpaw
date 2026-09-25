@@ -7,8 +7,8 @@
     <div class="admin-header">
         <h1>Управление ролями</h1>
         <div style="display: flex; gap: 0.5rem;">
-            <a href="{{ url_for('admin_role_create') }}" class="btn-icon" title="Создать роль">➕</a>
-            <a href="{{ url_for('admin_panel') }}" class="btn-icon" title="Назад">←</a>
+            <a href="{{ url_for('admin.admin_role_create') }}" class="btn-icon" title="Создать роль">➕</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn-icon" title="Назад">←</a>
         </div>
     </div>
     
@@ -102,8 +102,8 @@
                     <td data-label="Действия">
                         {% if not role.is_system %}
                         <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <a href="{{ url_for('admin_role_edit', role_id=role.id) }}" class="btn-icon" title="Редактировать">✏️</a>
-                            <form method="POST" action="{{ url_for('admin_role_delete', role_id=role.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту роль?');">
+                            <a href="{{ url_for('admin.admin_role_edit', role_id=role.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                            <form method="POST" action="{{ url_for('admin.admin_role_delete', role_id=role.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту роль?');">
                                 <button type="submit" class="btn-icon" title="Удалить" style="background-color: var(--error-color); border-color: var(--error-color); color: white;">🗑️</button>
                             </form>
                         </div>

@@ -10,7 +10,7 @@
             <button type="button" class="btn btn-primary" onclick="activateTab('send')" style="white-space: nowrap;">
                 📢 Отправить рассылку
             </button>
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
         </div>
     </div>
     
@@ -53,7 +53,7 @@
                 </div>
             </div>
             
-            <form method="POST" action="{{ url_for('admin_broadcasts_send') }}" id="broadcast-form">
+            <form method="POST" action="{{ url_for('admin.admin_broadcasts_send') }}" id="broadcast-form">
             <!-- Выбор получателей -->
             <div class="form-section">
                 <h2>Получатели</h2>
@@ -273,7 +273,7 @@
                         <button type="button" class="btn-icon" onclick="showTemplateModal('edit', {{ template.id }})" title="Редактировать">
                             ✏️
                         </button>
-                        <form method="POST" action="{{ url_for('admin_broadcasts_templates') }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот шаблон?');">
+                        <form method="POST" action="{{ url_for('admin.admin_broadcasts_templates') }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот шаблон?');">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="template_id" value="{{ template.id }}">
                             <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
@@ -319,7 +319,7 @@
             <h2 id="modal-title">Создать шаблон</h2>
             <button type="button" class="modal-close" onclick="closeTemplateModal()">&times;</button>
         </div>
-        <form method="POST" action="{{ url_for('admin_broadcasts_templates') }}" id="template-form">
+        <form method="POST" action="{{ url_for('admin.admin_broadcasts_templates') }}" id="template-form">
             <input type="hidden" name="action" id="template-action" value="create">
             <input type="hidden" name="template_id" id="template-id">
             

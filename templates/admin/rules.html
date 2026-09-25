@@ -9,13 +9,13 @@
             <h1>Управление правилами</h1>
             <div style="display: flex; gap: 0.5rem;">
                 {% if not has_rules %}
-                <form method="POST" action="{{ url_for('admin_rules_init_defaults') }}" style="display: inline;">
+                <form method="POST" action="{{ url_for('admin.admin_rules_init_defaults') }}" style="display: inline;">
                     <button type="submit" class="btn btn-secondary" onclick="return confirm('Инициализировать дефолтные правила? Существующие правила будут перезаписаны.');">
                         Инициализировать дефолтные правила
                     </button>
                 </form>
                 {% endif %}
-                <a href="{{ url_for('admin_rules_edit') }}" class="btn btn-primary">Редактировать правила</a>
+                <a href="{{ url_for('admin.admin_rules_edit') }}" class="btn btn-primary">Редактировать правила</a>
             </div>
         </div>
         

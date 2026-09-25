@@ -6,7 +6,7 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if event %}Редактирование мероприятия{% else %}Создание мероприятия{% endif %}</h1>
-        <a href="{{ url_for('admin_events') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">← Назад</a>
     </div>
     
     <form method="POST" class="event-form">
@@ -206,7 +206,7 @@
             <button type="submit" class="btn btn-primary">
                 {% if event %}Сохранить изменения{% else %}Создать мероприятие{% endif %}
             </button>
-            <a href="{{ url_for('admin_events') }}" class="btn btn-secondary">Отмена</a>
+            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
 </div>

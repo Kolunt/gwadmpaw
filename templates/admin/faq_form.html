@@ -6,7 +6,7 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if faq_item %}Редактирование FAQ{% else %}Создание нового FAQ вопроса{% endif %}</h1>
-        <a href="{{ url_for('admin_faq') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_faq') }}" class="btn btn-secondary">← Назад</a>
     </div>
     
     <div class="form-container">
@@ -40,7 +40,7 @@
                         <option value="general" {% if faq_item and faq_item.category == 'general' %}selected{% endif %}>Общие вопросы</option>
                     {% endif %}
                 </select>
-                <small>Если нужной категории нет, <a href="{{ url_for('admin_faq') }}#categories">создайте её</a></small>
+                <small>Если нужной категории нет, <a href="{{ url_for('admin.admin_faq') }}#categories">создайте её</a></small>
             </div>
             
             <div class="form-group">
@@ -64,7 +64,7 @@
                 <button type="submit" class="btn btn-primary">
                     {% if faq_item %}Сохранить изменения{% else %}Создать вопрос{% endif %}
                 </button>
-                <a href="{{ url_for('admin_faq') }}" class="btn btn-secondary">Отмена</a>
+                <a href="{{ url_for('admin.admin_faq') }}" class="btn btn-secondary">Отмена</a>
             </div>
         </form>
     </div>

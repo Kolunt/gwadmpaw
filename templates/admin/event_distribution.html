@@ -10,8 +10,8 @@
             <p class="text-muted" style="margin: 0;">{{ event.name }}</p>
         </div>
         <div class="event-header-actions">
-            <a href="{{ url_for('admin_event_view', event_id=event.id) }}" class="btn-icon" title="Назад к мероприятию">←</a>
-            <a href="{{ url_for('admin_event_participants', event_id=event.id) }}" class="btn-icon" title="Участники (админ)">👥</a>
+            <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn-icon" title="Назад к мероприятию">←</a>
+            <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn-icon" title="Участники (админ)">👥</a>
         </div>
     </div>
 
@@ -28,13 +28,13 @@
 
     {# Табы для фильтрации участников - всегда видимы #}
     <div class="tabs-container">
-        <a href="{{ url_for('admin_event_distribution_positive_view', event_id=event.id) }}?tab=all" class="tab-button {% if not request.args.get('tab') or request.args.get('tab') == 'all' %}active{% endif %}" data-tab="all" onclick="return switchParticipantsTab('all', arguments[0])">
+        <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}?tab=all" class="tab-button {% if not request.args.get('tab') or request.args.get('tab') == 'all' %}active{% endif %}" data-tab="all" onclick="return switchParticipantsTab('all', arguments[0])">
             Все <span class="tab-count" id="tab-count-all">{{ participants_count }}</span>
         </a>
-        <a href="{{ url_for('admin_event_distribution_positive_view', event_id=event.id) }}?tab=formed" class="tab-button {% if request.args.get('tab') == 'formed' %}active{% endif %}" data-tab="formed" onclick="return switchParticipantsTab('formed', arguments[0])">
+        <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}?tab=formed" class="tab-button {% if request.args.get('tab') == 'formed' %}active{% endif %}" data-tab="formed" onclick="return switchParticipantsTab('formed', arguments[0])">
             Сформировано <span class="tab-count" id="tab-count-formed">{{ (participants_with_pairs|list|length) }}</span>
         </a>
-        <a href="{{ url_for('admin_event_distribution_positive_view', event_id=event.id) }}?tab=unformed" class="tab-button {% if request.args.get('tab') == 'unformed' %}active{% endif %}" data-tab="unformed" onclick="return switchParticipantsTab('unformed', arguments[0])">
+        <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}?tab=unformed" class="tab-button {% if request.args.get('tab') == 'unformed' %}active{% endif %}" data-tab="unformed" onclick="return switchParticipantsTab('unformed', arguments[0])">
             Несформировано <span class="tab-count" id="tab-count-unformed">{{ unformed_pairs_count|default(0) }}</span>
         </a>
     </div>

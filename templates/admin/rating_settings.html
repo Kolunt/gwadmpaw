@@ -6,7 +6,7 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>🔔 Настройки рейтинга (Цыфорки)</h1>
-        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
     </div>
     
     <form method="POST" class="settings-form">
@@ -249,10 +249,10 @@
         <div class="form-actions">
             <button type="submit" class="btn btn-primary" onclick="document.getElementById('form-action').value='save';">Сохранить настройки</button>
             <button type="submit" class="btn btn-warning" onclick="if(confirm('Вы уверены? Это пересчитает все уже начисленные очки на основе новых настроек.')) { document.getElementById('form-action').value='update'; } else { return false; }">Обновить и пересчитать</button>
-            <form method="POST" action="{{ url_for('admin_rating_settings_fix_points') }}" style="display: inline;" onsubmit="return confirm('Исправить значения points в базе данных? Это преобразует все строковые значения в числа.');">
+            <form method="POST" action="{{ url_for('admin.admin_rating_settings_fix_points') }}" style="display: inline;" onsubmit="return confirm('Исправить значения points в базе данных? Это преобразует все строковые значения в числа.');">
                 <button type="submit" class="btn btn-outline-warning">Исправить данные в БД</button>
             </form>
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Отмена</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
 </div>

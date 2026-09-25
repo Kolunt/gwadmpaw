@@ -70,12 +70,12 @@
                             </td>
                             <td data-label="Действия">
                                 {% if event.active %}
-                                <form method="post" action="{{ url_for('admin_rating_event_annul', event_id=event.id) }}" onsubmit="return confirm('Аннулировать бубенчик?');">
+                                <form method="post" action="{{ url_for('admin.admin_rating_event_annul', event_id=event.id) }}" onsubmit="return confirm('Аннулировать бубенчик?');">
                                     <button type="submit" class="btn btn-outline-danger btn-sm">Аннулировать</button>
                                 </form>
                                 {% else %}
                                     {% if event.manual_revoked %}
-                                    <form method="post" action="{{ url_for('admin_rating_event_restore', event_id=event.id) }}" onsubmit="return confirm('Восстановить бубенчик?');">
+                                    <form method="post" action="{{ url_for('admin.admin_rating_event_restore', event_id=event.id) }}" onsubmit="return confirm('Восстановить бубенчик?');">
                                         <button type="submit" class="btn btn-outline-success btn-sm">Восстановить</button>
                                     </form>
                                     {% else %}

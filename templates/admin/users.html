@@ -6,7 +6,7 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>Участники и роли</h1>
-        <a href="{{ url_for('admin_panel') }}" class="btn-icon" title="Назад">←</a>
+        <a href="{{ url_for('admin.admin_panel') }}" class="btn-icon" title="Назад">←</a>
     </div>
 
     <div class="admin-tabs">
@@ -21,7 +21,7 @@
     <div class="admin-tab-content active" data-tab="users">
         <div class="tab-section-header">
             <h2>Список участников</h2>
-            <a href="{{ url_for('admin_user_create') }}" class="btn-icon" title="Создать пользователя">➕</a>
+            <a href="{{ url_for('admin.admin_user_create') }}" class="btn-icon" title="Создать пользователя">➕</a>
         </div>
 
         <div class="table-controls">
@@ -132,12 +132,12 @@
                         </td>
                         <td data-label="Действия">
                             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <a href="{{ url_for('admin_user_edit', user_id=user.user_id) }}" class="btn-icon" title="Редактировать">✏️</a>
-                                <a href="{{ url_for('admin_user_roles', user_id=user.user_id) }}" class="btn-icon" title="Роли">🔐</a>
-                                <a href="{{ url_for('admin_user_titles', user_id=user.user_id) }}" class="btn-icon" title="Звания">🏆</a>
+                                <a href="{{ url_for('admin.admin_user_edit', user_id=user.user_id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                <a href="{{ url_for('admin.admin_user_roles', user_id=user.user_id) }}" class="btn-icon" title="Роли">🔐</a>
+                                <a href="{{ url_for('admin.admin_user_titles', user_id=user.user_id) }}" class="btn-icon" title="Звания">🏆</a>
                                 {% if user.user_id != session.user_id %}
                                 <form method="POST"
-                                      action="{{ url_for('admin_user_delete', user_id=user.user_id) }}"
+                                      action="{{ url_for('admin.admin_user_delete', user_id=user.user_id) }}"
                                       style="display: inline;"
                                       onsubmit="return confirm('Удалить пользователя {{ user.username }} (ID {{ user.user_id }})? Действие необратимо.');">
                                     <button type="submit"
@@ -160,7 +160,7 @@
     <div class="admin-tab-content" data-tab="roles">
         <div class="tab-section-header">
             <h2>Роли</h2>
-            <a href="{{ url_for('admin_role_create') }}" class="btn-icon" title="Создать роль">➕</a>
+            <a href="{{ url_for('admin.admin_role_create') }}" class="btn-icon" title="Создать роль">➕</a>
         </div>
 
         <div class="table-controls">
@@ -252,8 +252,8 @@
                         <td data-label="Действия">
                             {% if not role.is_system %}
                             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <a href="{{ url_for('admin_role_edit', role_id=role.id) }}" class="btn-icon" title="Редактировать">✏️</a>
-                                <form method="POST" action="{{ url_for('admin_role_delete', role_id=role.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту роль?');">
+                                <a href="{{ url_for('admin.admin_role_edit', role_id=role.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                <form method="POST" action="{{ url_for('admin.admin_role_delete', role_id=role.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту роль?');">
                                     <button type="submit" class="btn-icon" title="Удалить" style="background-color: var(--error-color); border-color: var(--error-color); color: white;">🗑️</button>
                                 </form>
                             </div>

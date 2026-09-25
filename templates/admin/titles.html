@@ -7,8 +7,8 @@
     <div class="admin-header">
         <h1>Управление званиями</h1>
         <div>
-            <a href="{{ url_for('admin_title_create') }}" class="btn btn-primary">Создать звание</a>
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+            <a href="{{ url_for('admin.admin_title_create') }}" class="btn btn-primary">Создать звание</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
         </div>
     </div>
     
@@ -59,8 +59,8 @@
                     <td data-label="Дата создания">{{ title.created_at or 'N/A' }}</td>
                     <td data-label="Действия">
                         {% if not title.is_system %}
-                        <a href="{{ url_for('admin_title_edit', title_id=title.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
-                        <form method="POST" action="{{ url_for('admin_title_delete', title_id=title.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это звание?');">
+                        <a href="{{ url_for('admin.admin_title_edit', title_id=title.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
+                        <form method="POST" action="{{ url_for('admin.admin_title_delete', title_id=title.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это звание?');">
                             <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
                         </form>
                         {% else %}

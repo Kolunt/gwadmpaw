@@ -6,7 +6,7 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if category %}Редактирование категории FAQ{% else %}Создание новой категории FAQ{% endif %}</h1>
-        <a href="{{ url_for('admin_faq') }}#categories" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_faq') }}#categories" class="btn btn-secondary">← Назад</a>
     </div>
     
     <div class="form-container">
@@ -60,7 +60,7 @@
                 <button type="submit" class="btn btn-primary">
                     {% if category %}Сохранить изменения{% else %}Создать категорию{% endif %}
                 </button>
-                <a href="{{ url_for('admin_faq') }}#categories" class="btn btn-secondary">Отмена</a>
+                <a href="{{ url_for('admin.admin_faq') }}#categories" class="btn btn-secondary">Отмена</a>
             </div>
         </form>
     </div>

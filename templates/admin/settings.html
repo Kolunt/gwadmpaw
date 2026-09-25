@@ -6,7 +6,7 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>Настройки системы</h1>
-        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
     </div>
     
     <form method="POST" class="settings-form" enctype="multipart/form-data">
@@ -15,7 +15,7 @@
             {% for category, settings in settings_by_category.items() %}
             {% if category != 'design' and category != 'modals' %}
             <a 
-                href="{{ url_for('admin_settings') }}#{{ category }}"
+                href="{{ url_for('admin.admin_settings') }}#{{ category }}"
                 class="settings-tab {% if loop.first %}active{% endif %}"
                 data-tab="{{ category }}"
             >
@@ -30,21 +30,21 @@
             {% endif %}
             {% endfor %}
             <a 
-                href="{{ url_for('admin_settings') }}#design"
+                href="{{ url_for('admin.admin_settings') }}#design"
                 class="settings-tab"
                 data-tab="design"
             >
                 🎨 Дизайн
             </a>
             <a 
-                href="{{ url_for('admin_settings') }}#localization"
+                href="{{ url_for('admin.admin_settings') }}#localization"
                 class="settings-tab"
                 data-tab="localization"
             >
                 🌐 Локализация
             </a>
             <a 
-                href="{{ url_for('admin_settings') }}#modals"
+                href="{{ url_for('admin.admin_settings') }}#modals"
                 class="settings-tab"
                 data-tab="modals"
             >
@@ -572,7 +572,7 @@
                         <small class="setting-hint">Создание и редактирование званий для пользователей</small>
                         
                         <div style="margin-top: 1rem; margin-bottom: 1rem;">
-                            <a href="{{ url_for('admin_title_create') }}" class="btn btn-primary" style="display: inline-block;">
+                            <a href="{{ url_for('admin.admin_title_create') }}" class="btn btn-primary" style="display: inline-block;">
                                 ➕ Создать звание
                             </a>
                         </div>
@@ -624,8 +624,8 @@
                                         <td data-label="Действия">
                                             {% if not title.is_system %}
                                             <div style="display: flex; gap: 0.5rem;">
-                                                <a href="{{ url_for('admin_title_edit', title_id=title.id) }}" class="btn-icon" title="Редактировать">✏️</a>
-                                                <form method="POST" action="{{ url_for('admin_title_delete', title_id=title.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это звание?');">
+                                                <a href="{{ url_for('admin.admin_title_edit', title_id=title.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                                <form method="POST" action="{{ url_for('admin.admin_title_delete', title_id=title.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это звание?');">
                                                     <button type="submit" class="btn-icon" title="Удалить" style="background-color: var(--error-color); color: white;">🗑️</button>
                                                 </form>
                                             </div>
@@ -1149,7 +1149,7 @@
         
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Сохранить настройки</button>
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Отмена</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">Отмена</a>
         </div>
     </form>
 </div>
@@ -1417,7 +1417,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('api_key', apiKey);
             formData.append('secret_key', secretKey);
             
-            fetch('{{ url_for("verify_dadata") }}', {
+            fetch('{{ url_for("integrations.verify_dadata") }}', {
                 method: 'POST',
                 body: formData
             })
@@ -1496,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('use_tls', useTls ? '1' : '0');
             formData.append('from_email', fromEmail);
             
-            const verifySmtpUrl = {{ url_for("verify_smtp")|tojson|safe }};
+            const verifySmtpUrl = {{ url_for("integrations.verify_smtp")|tojson|safe }};
             fetch(verifySmtpUrl, {
                 method: 'POST',
                 body: formData
@@ -1578,7 +1578,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('chat_id', chatId);
             }
             
-            const verifyTelegramUrl = {{ url_for("verify_telegram")|tojson|safe }};
+            const verifyTelegramUrl = {{ url_for("integrations.verify_telegram")|tojson|safe }};
             fetch(verifyTelegramUrl, {
                 method: 'POST',
                 body: formData
@@ -1856,7 +1856,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <button type="button" onclick="closeMenuModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">&times;</button>
         </div>
         
-        <form id="menu-form" method="POST" action="{{ url_for('admin_telegram_menu') }}">
+        <form id="menu-form" method="POST" action="{{ url_for('admin.admin_telegram_menu') }}">
             <input type="hidden" name="action" id="menu-action" value="create">
             <input type="hidden" name="menu_id" id="menu-id">
             
@@ -1946,7 +1946,7 @@ function loadBotMenu() {
                 <div class="bot-menu-item-actions">
                     ${statusBadge}
                     <button type="button" class="btn btn-secondary" onclick="editMenuItem(${item.id})" style="padding: 0.5rem 1rem;">✏️</button>
-                    <form method="POST" action="{{ url_for('admin_telegram_menu') }}" style="display: inline;" onsubmit="return confirm('Удалить этот пункт меню?');">
+                    <form method="POST" action="{{ url_for('admin.admin_telegram_menu') }}" style="display: inline;" onsubmit="return confirm('Удалить этот пункт меню?');">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="menu_id" value="${item.id}">
                         <button type="submit" class="btn btn-secondary" style="padding: 0.5rem 1rem;">🗑️</button>

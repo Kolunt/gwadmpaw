@@ -10,8 +10,8 @@
                 <p class="text-muted" style="margin: 0.5rem 0 0;">Чаты расформированных пар. Все чаты сохранены навсегда.</p>
             </div>
             <div style="display: flex; gap: 0.5rem;">
-                <a href="{{ url_for('admin_letters') }}" class="btn btn-secondary">Активные чаты</a>
-                <a href="{{ url_for('admin_panel') }}" class="btn-icon" title="Назад">←</a>
+                <a href="{{ url_for('admin.admin_letters') }}" class="btn btn-secondary">Активные чаты</a>
+                <a href="{{ url_for('admin.admin_panel') }}" class="btn-icon" title="Назад">←</a>
             </div>
         </div>
 
@@ -70,7 +70,7 @@
                                 {% endif %}
                             </td>
                             <td data-label="Действия">
-                                <a href="{{ url_for('letter', assignment_id=chat.original_assignment_id, admin=1) }}" 
+                                <a href="{{ url_for('assignments.letter', assignment_id=chat.original_assignment_id, admin=1) }}" 
                                    class="btn btn-sm btn-primary" 
                                    style="min-width: 120px;"
                                    title="Просмотр архивированного чата">

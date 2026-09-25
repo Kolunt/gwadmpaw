@@ -6,17 +6,17 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>Управление FAQ</h1>
-        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
     </div>
     
     <!-- Табы -->
     <div class="faq-admin-tabs">
-        <a href="{{ url_for('admin_faq') }}#items" 
+        <a href="{{ url_for('admin.admin_faq') }}#items" 
            class="faq-admin-tab {% if not request.args.get('tab') or request.args.get('tab') == 'items' %}active{% endif %}" 
            data-tab="items">
             📋 Вопросы
         </a>
-        <a href="{{ url_for('admin_faq') }}#categories" 
+        <a href="{{ url_for('admin.admin_faq') }}#categories" 
            class="faq-admin-tab {% if request.args.get('tab') == 'categories' %}active{% endif %}" 
            data-tab="categories">
             🏷️ Категории
@@ -27,7 +27,7 @@
     <div class="faq-admin-tab-content {% if not request.args.get('tab') or request.args.get('tab') == 'items' %}active{% endif %}" data-tab="items">
         <div class="admin-header">
             <div></div>
-            <a href="{{ url_for('admin_faq_create') }}" class="btn btn-primary">Создать вопрос</a>
+            <a href="{{ url_for('admin.admin_faq_create') }}" class="btn btn-primary">Создать вопрос</a>
         </div>
         
         <div class="table-container">
@@ -72,8 +72,8 @@
                         </td>
                         <td data-label="Действия">
                             <div class="table-action-group">
-                                <a href="{{ url_for('admin_faq_edit', faq_id=item.id) }}" class="btn-icon" title="Редактировать">✏️</a>
-                                <form method="POST" action="{{ url_for('admin_faq_delete', faq_id=item.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить этот вопрос?');">
+                                <a href="{{ url_for('admin.admin_faq_edit', faq_id=item.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                <form method="POST" action="{{ url_for('admin.admin_faq_delete', faq_id=item.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить этот вопрос?');">
                                     <button type="submit" class="btn-icon btn-icon-danger" title="Удалить">🗑️</button>
                                 </form>
                             </div>
@@ -83,7 +83,7 @@
                     {% if not faq_items %}
                     <tr>
                         <td colspan="8" class="text-center text-muted">
-                            Нет вопросов. <a href="{{ url_for('admin_faq_create') }}">Создать первый вопрос</a>
+                            Нет вопросов. <a href="{{ url_for('admin.admin_faq_create') }}">Создать первый вопрос</a>
                         </td>
                     </tr>
                     {% endif %}
@@ -96,7 +96,7 @@
     <div class="faq-admin-tab-content {% if request.args.get('tab') == 'categories' %}active{% endif %}" data-tab="categories">
         <div class="admin-header">
             <div></div>
-            <a href="{{ url_for('admin_faq_category_create') }}" class="btn btn-primary">Создать категорию</a>
+            <a href="{{ url_for('admin.admin_faq_category_create') }}" class="btn btn-primary">Создать категорию</a>
         </div>
         
         <div class="table-container">
@@ -149,8 +149,8 @@
                         </td>
                         <td data-label="Действия">
                             <div class="table-action-group">
-                                <a href="{{ url_for('admin_faq_category_edit', category_id=category.id) }}" class="btn-icon" title="Редактировать">✏️</a>
-                                <form method="POST" action="{{ url_for('admin_faq_category_delete', category_id=category.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');">
+                                <a href="{{ url_for('admin.admin_faq_category_edit', category_id=category.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                <form method="POST" action="{{ url_for('admin.admin_faq_category_delete', category_id=category.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');">
                                     <button type="submit" class="btn-icon btn-icon-danger" title="Удалить">🗑️</button>
                                 </form>
                             </div>
@@ -160,7 +160,7 @@
                     {% if not faq_categories %}
                     <tr>
                         <td colspan="10" class="text-center text-muted">
-                            Нет категорий. <a href="{{ url_for('admin_faq_category_create') }}">Создать первую категорию</a>
+                            Нет категорий. <a href="{{ url_for('admin.admin_faq_category_create') }}">Создать первую категорию</a>
                         </td>
                     </tr>
                     {% endif %}
