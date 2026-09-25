@@ -392,3 +392,166 @@ def delete_admin_comment(user_id, comment_id):
         flash('Ошибка при удалении комментария', 'error')
 
     return redirect(url_for('profile.view_profile', user_id=user_id) + '#comments')
+
+from gwadm.services.events import get_missing_required_fields
+
+@bp.route('/api/profile/data', methods=['GET'])
+@require_login
+def api_profile_data():
+    """API endpoint для получения текущих данных профиля пользователя"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'Необходимо авторизоваться'}), 401
+    
+    conn = get_db_connection()
+    try:
+        # Логируем для отладки
+        log_debug(f"api_profile_data: Fetching data for user_id={user_id}")
+        
+        user = conn.execute('''
+            SELECT email, phone, telegram, whatsapp, viber,
+                   last_name, first_name, middle_name,
+                   postal_code, country, city, street, house, building, apartment,
+                   bio
+            FROM users 
+            WHERE user_id = ?
+        ''', (user_id,)).fetchone()
+        
+        if not user:
+            conn.close()
+            log_error(f"api_profile_data: User {user_id} not found in database")
+            return jsonify({'error': 'Пользователь не найден'}), 404
+        
+        # Логируем полученные данные для отладки
+        log_debug(f"api_profile_data: User {user_id} data: email={user['email']}, phone={user['phone']}, telegram={user['telegram']}")
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'email': user['email'] or '',
+                'phone': user['phone'] or '',
+                'telegram': user['telegram'] or '',
+                'whatsapp': user['whatsapp'] or '',
+                'viber': user['viber'] or '',
+                'last_name': user['last_name'] or '',
+                'first_name': user['first_name'] or '',
+                'middle_name': user['middle_name'] or '',
+                'postal_code': user['postal_code'] or '',
+                'country': user['country'] or '',
+                'city': user['city'] or '',
+                'street': user['street'] or '',
+                'house': user['house'] or '',
+                'building': user['building'] or '',
+                'apartment': user['apartment'] or '',
+                'bio': user['bio'] or ''
+            }
+        })
+    except Exception as e:
+        log_error(f"Error getting profile data for user_id={user_id}: {e}")
+        log_error(traceback.format_exc())
+        conn.close()
+        return jsonify({'error': f'Ошибка получения данных: {str(e)}'}), 500
+
+@bp.route('/api/profile/update', methods=['POST'])
+@require_login
+def api_profile_update():
+    """API endpoint для обновления профиля через AJAX"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Необходимо авторизоваться'}), 401
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'Нет данных'}), 400
+    
+    conn = get_db_connection()
+    try:
+        # Обновляем только переданные поля
+        update_fields = []
+        update_values = []
+        
+        if 'last_name' in data:
+            update_fields.append('last_name = ?')
+            update_values.append(data['last_name'].strip())
+        if 'first_name' in data:
+            update_fields.append('first_name = ?')
+            update_values.append(data['first_name'].strip())
+        if 'middle_name' in data:
+            update_fields.append('middle_name = ?')
+            update_values.append(data['middle_name'].strip())
+        if 'postal_code' in data:
+            update_fields.append('postal_code = ?')
+            update_values.append(data['postal_code'].strip())
+        if 'country' in data:
+            update_fields.append('country = ?')
+            update_values.append(data['country'].strip())
+        if 'city' in data:
+            update_fields.append('city = ?')
+            update_values.append(data['city'].strip())
+        if 'street' in data:
+            update_fields.append('street = ?')
+            update_values.append(data['street'].strip())
+        if 'house' in data:
+            update_fields.append('house = ?')
+            update_values.append(data['house'].strip())
+        if 'building' in data:
+            update_fields.append('building = ?')
+            update_values.append(data['building'].strip())
+        if 'apartment' in data:
+            update_fields.append('apartment = ?')
+            update_values.append(data['apartment'].strip())
+        if 'email' in data:
+            update_fields.append('email = ?')
+            update_values.append(data['email'].strip())
+        if 'phone' in data:
+            update_fields.append('phone = ?')
+            update_values.append(data['phone'].strip())
+        if 'telegram' in data:
+            update_fields.append('telegram = ?')
+            update_values.append(data['telegram'].strip())
+        if 'whatsapp' in data:
+            update_fields.append('whatsapp = ?')
+            update_values.append(data['whatsapp'].strip())
+        if 'viber' in data:
+            update_fields.append('viber = ?')
+            update_values.append(data['viber'].strip())
+        if 'bio' in data:
+            update_fields.append('bio = ?')
+            update_values.append(data['bio'].strip())
+        
+        if not update_fields:
+            return jsonify({'success': False, 'error': 'Нет полей для обновления'}), 400
+        
+        # Логируем для отладки
+        log_debug(f"api_profile_update: Updating user_id={user_id}, fields: {', '.join(update_fields)}")
+        
+        update_values.append(user_id)
+        update_query = f'''
+            UPDATE users 
+            SET {', '.join(update_fields)}
+            WHERE user_id = ?
+        '''
+        conn.execute(update_query, update_values)
+        conn.commit()
+        
+        # Проверяем, что обновление прошло успешно
+        verify_user = conn.execute('SELECT email, phone, telegram FROM users WHERE user_id = ?', (user_id,)).fetchone()
+        if verify_user:
+            log_debug(f"api_profile_update: Verified update for user_id={user_id}: email={verify_user['email']}, phone={verify_user['phone']}, telegram={verify_user['telegram']}")
+        
+        # Проверяем, все ли обязательные поля заполнены
+        missing_fields = get_missing_required_fields(user_id)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Данные успешно обновлены',
+            'missing_fields': missing_fields
+        }), 200
+    except Exception as e:
+        log_error(f"Ошибка обновления профиля через API: {e}")
+        return jsonify({'success': False, 'error': 'Ошибка при обновлении данных'}), 500
+    finally:
+        conn.close()
+

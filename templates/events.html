@@ -8,7 +8,7 @@
         <div class="admin-header">
             <h1>Мероприятия</h1>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin_events') }}" class="btn btn-primary">Управление мероприятиями</a>
+            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-primary">Управление мероприятиями</a>
             {% endif %}
         </div>
         
@@ -30,7 +30,7 @@
                     {% set current_stage = item.current_stage %}
                     <tr>
                         <td data-label="Название">
-                            <a href="{{ url_for('event_view', event_id=event.id) }}" class="event-name-link">{{ event.name }}</a>
+                            <a href="{{ url_for('events.event_view', event_id=event.id) }}" class="event-name-link">{{ event.name }}</a>
                         </td>
                         <td data-label="Участники">
                             {{ item.registrations_count }}
@@ -66,20 +66,20 @@
                                 {% if session.user_id %}
                                     {% if item.needs_confirmation and item.registration_open %}
                                         <form method="POST"
-                                              action="{{ url_for('event_register', event_id=event.id) }}"
+                                              action="{{ url_for('events.event_register', event_id=event.id) }}"
                                               class="register-form"
                                               data-event-id="{{ event.id }}">
                                             <button type="submit" class="btn btn-sm btn-primary">Подтвердить</button>
                                         </form>
                                     {% elif item.registration_open %}
                                         {% if item.is_registered %}
-                                            <form method="POST" action="{{ url_for('event_unregister', event_id=event.id) }}"
+                                            <form method="POST" action="{{ url_for('events.event_unregister', event_id=event.id) }}"
                                                   onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');">
                                                 <button type="submit" class="btn-icon btn-icon-danger" title="Отменить участие" aria-label="Отменить участие">❌</button>
                                             </form>
                                         {% else %}
                                             <form method="POST"
-                                                  action="{{ url_for('event_register', event_id=event.id) }}"
+                                                  action="{{ url_for('events.event_register', event_id=event.id) }}"
                                                   class="register-form"
                                                   data-event-id="{{ event.id }}">
                                                 <button type="submit" class="btn-icon btn-icon-success" title="Записаться" aria-label="Записаться">✅</button>
@@ -89,7 +89,7 @@
                                         <span class="text-muted small">Регистрация закрыта</span>
                                     {% endif %}
                                 {% endif %}
-                                <a href="{{ url_for('event_view', event_id=event.id) }}" class="btn-icon" title="Просмотр" aria-label="Просмотр">👁️</a>
+                                <a href="{{ url_for('events.event_view', event_id=event.id) }}" class="btn-icon" title="Просмотр" aria-label="Просмотр">👁️</a>
                             </div>
                         </td>
                     </tr>
@@ -101,7 +101,7 @@
         <div class="empty-state">
             <p>Мероприятия пока не созданы</p>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin_event_create') }}" class="btn btn-primary">Создать первое мероприятие</a>
+            <a href="{{ url_for('admin.admin_event_create') }}" class="btn btn-primary">Создать первое мероприятие</a>
             {% endif %}
         </div>
         {% endif %}

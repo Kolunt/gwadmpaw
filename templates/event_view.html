@@ -9,8 +9,8 @@
             <h1>{{ event.name }}</h1>
             <div class="event-header-actions">
                 {% if is_admin %}
-                <a href="{{ url_for('admin_event_distribution_positive_view', event_id=event.id) }}" class="btn-icon" title="Распределение (позитив)">&#127922;</a>
-                <a href="{{ url_for('admin_event_participants', event_id=event.id) }}" class="btn-icon" title="Участники (админ)">&#128101;</a>
+                <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}" class="btn-icon" title="Распределение (позитив)">&#127922;</a>
+                <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn-icon" title="Участники (админ)">&#128101;</a>
                 {% endif %}
             </div>
         </div>
@@ -126,7 +126,7 @@
                                 <p>Этап основной регистрации начался. Пожалуйста, подтвердите актуальность своих данных.</p>
                             </div>
                             <form method="POST"
-                                  action="{{ url_for('event_register', event_id=event.id) }}"
+                                  action="{{ url_for('events.event_register', event_id=event.id) }}"
                                   class="register-form"
                                   data-event-id="{{ event.id }}">
                                 <button type="submit" class="btn btn-primary btn-large">Подтвердить участие</button>
@@ -137,7 +137,7 @@
                             <div class="alert alert-success">
                                 <strong>✓ Вы зарегистрированы на это мероприятие!</strong>
                             </div>
-                            <form method="POST" action="{{ url_for('event_unregister', event_id=event.id) }}" 
+                            <form method="POST" action="{{ url_for('events.event_unregister', event_id=event.id) }}" 
                                   onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');">
                                 <button type="submit" class="btn btn-danger">Отменить регистрацию</button>
                             </form>
@@ -146,7 +146,7 @@
                     {% else %}
                         <div class="event-info-section">
                             <form method="POST"
-                                  action="{{ url_for('event_register', event_id=event.id) }}"
+                                  action="{{ url_for('events.event_register', event_id=event.id) }}"
                                   class="register-form"
                                   data-event-id="{{ event.id }}">
                                 <button type="submit" class="btn btn-primary btn-large">Зарегистрироваться на мероприятие</button>
@@ -192,7 +192,7 @@
                 <h3>Участники ({{ participants_total_count|default(registrations_count) }})</h3>
                 {% if is_admin %}
                 <div style="margin-bottom: 1rem;">
-                    <a href="{{ url_for('admin_event_participants', event_id=event.id) }}" class="btn btn-secondary">
+                    <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn btn-secondary">
                         Просмотреть участников (админ)
                     </a>
                 </div>
@@ -223,7 +223,7 @@
                         <ul class="pagination-list">
                             {% if participants_has_prev is defined and participants_has_prev %}
                             <li class="pagination-item">
-                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=(participants_page|default(1))-1) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
+                                <a href="{{ url_for('events.event_view', event_id=event.id, participants_page=(participants_page|default(1))-1) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
                                     ← Предыдущая
                                 </a>
                             </li>
@@ -241,7 +241,7 @@
                             
                             {% if start_participants_page > 1 %}
                             <li class="pagination-item">
-                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=1) }}" class="pagination-link">1</a>
+                                <a href="{{ url_for('events.event_view', event_id=event.id, participants_page=1) }}" class="pagination-link">1</a>
                             </li>
                             {% if start_participants_page > 2 %}
                             <li class="pagination-item pagination-item-ellipsis">
@@ -255,7 +255,7 @@
                                 {% if p == current_participants_page %}
                                 <span class="pagination-link pagination-link-active" aria-current="page">{{ p }}</span>
                                 {% else %}
-                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=p) }}" class="pagination-link">{{ p }}</a>
+                                <a href="{{ url_for('events.event_view', event_id=event.id, participants_page=p) }}" class="pagination-link">{{ p }}</a>
                                 {% endif %}
                             </li>
                             {% endfor %}
@@ -267,13 +267,13 @@
                             </li>
                             {% endif %}
                             <li class="pagination-item">
-                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=participants_total_pages) }}" class="pagination-link">{{ participants_total_pages }}</a>
+                                <a href="{{ url_for('events.event_view', event_id=event.id, participants_page=participants_total_pages) }}" class="pagination-link">{{ participants_total_pages }}</a>
                             </li>
                             {% endif %}
                             
                             {% if participants_has_next is defined and participants_has_next %}
                             <li class="pagination-item">
-                                <a href="{{ url_for('event_view', event_id=event.id, participants_page=current_participants_page+1) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
+                                <a href="{{ url_for('events.event_view', event_id=event.id, participants_page=current_participants_page+1) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
                                     Следующая →
                                 </a>
                             </li>
