@@ -2,7 +2,7 @@
 
 from flask import session
 
-from gwadm.config import is_production
+from gwadm.config import is_dev_login_enabled, is_production
 from gwadm.db import get_db_connection
 from gwadm.i18n import _, get_locale
 from gwadm.logging_config import log_error
@@ -90,6 +90,7 @@ def register_context_processors(app):
     def inject_common_flags():
         return {
             'is_production': is_production(),
+            'is_dev_login_enabled': is_dev_login_enabled(),
             'app_config': app.config,
         }
 

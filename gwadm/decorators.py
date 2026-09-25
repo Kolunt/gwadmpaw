@@ -2,7 +2,7 @@
 
 from functools import wraps
 
-from flask import flash, redirect, session, url_for
+from flask import flash, redirect, request, session, url_for
 
 from gwadm.services.roles import has_any_role, has_role
 
@@ -16,7 +16,7 @@ def require_role(role_name):
             if not has_role(user_id, role_name):
                 if not user_id:
                     flash('Для доступа к этой странице необходимо авторизоваться', 'error')
-                    return redirect(url_for('public.index'))
+                    return redirect(url_for('auth.login', next=request.path))
                 flash('У вас нет прав для доступа к этой странице', 'error')
                 return redirect(url_for('profile.dashboard'))
             return f(*args, **kwargs)
@@ -33,7 +33,7 @@ def require_any_role(*role_names):
             if not has_any_role(user_id, role_names):
                 if not user_id:
                     flash('Для доступа к этой странице необходимо авторизоваться', 'error')
-                    return redirect(url_for('public.index'))
+                    return redirect(url_for('auth.login', next=request.path))
                 flash('У вас нет прав для доступа к этой странице', 'error')
                 return redirect(url_for('profile.dashboard'))
             return f(*args, **kwargs)
@@ -47,6 +47,6 @@ def require_login(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             flash('Для доступа к этой странице необходимо авторизоваться', 'error')
-            return redirect(url_for('public.index'))
+            return redirect(url_for('auth.login', next=request.path))
         return f(*args, **kwargs)
     return decorated_function

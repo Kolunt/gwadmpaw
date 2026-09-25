@@ -75,12 +75,27 @@ def main() -> int:
         errors.append(f"profile route DB lookup failed: {exc}")
 
     response = client.get("/login")
+    if response.status_code != 200:
+        errors.append(f"GET /login expected 200 landing page, got {response.status_code}")
+
+    response = client.get("/login/go")
     if response.status_code not in (302, 303):
-        errors.append(f"GET /login expected redirect, got {response.status_code}")
+        errors.append(f"GET /login/go expected redirect, got {response.status_code}")
     else:
         location = response.headers.get("Location", "")
         if "gwars.io" not in location:
-            errors.append(f"GET /login Location missing gwars.io: {location}")
+            errors.append(f"GET /login/go Location missing gwars.io: {location}")
+
+    response = client.get("/login/go", headers={"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"})
+    if response.status_code != 200:
+        errors.append(f"GET /login/go mobile expected 200 interstitial, got {response.status_code}")
+
+    response = client.get(
+        "/login/go?force=1",
+        headers={"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"},
+    )
+    if response.status_code not in (302, 303):
+        errors.append(f"GET /login/go?force=1 mobile expected redirect, got {response.status_code}")
 
     response = client.get("/gwars-required")
     if response.status_code != 200:

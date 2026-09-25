@@ -43,10 +43,11 @@
 
 ## Как это работает
 
-1. Пользователь открывает `/login` на текущем домене.
-2. Приложение определяет `site_id` по заголовку `Host` (через `ProxyFix` за nginx).
-3. Callback URL всегда строится как `https://{текущий-host}/login` (на проде).
-4. Редирект на `https://www.gwars.io/cross-server-login.php?site_id=...&url=...`.
+1. Пользователь открывает `/login` (landing) на текущем домене.
+2. Кнопка «Войти через GWars» ведёт на `/login/go` (на мобильных — interstitial с подсказкой).
+3. Приложение определяет `site_id` по заголовку `Host` (через `ProxyFix` за nginx).
+4. Callback URL всегда строится как `https://{текущий-host}/login` (на проде).
+5. `/login/go` редиректит на `https://www.gwars.io/cross-server-login.php?site_id=...&url=...`.
 
 Логика в модуле `gwadm/services/gwars_domains.py` (корневой `gwars_domains.py` — обратносовместимый re-export).
 
@@ -67,8 +68,9 @@ python scripts/verify_gwars_domains.py
 На сервере (после деплоя):
 
 ```bash
-curl -sI https://gwadm.ru/login | grep -i location    # site_id=3
-curl -sI https://www.gwadm.ru/login | grep -i location  # site_id=3
+curl -sI https://gwadm.ru/login | head -1               # 200 landing
+curl -sI https://gwadm.ru/login/go | grep -i location   # site_id=3
+curl -sI https://www.gwadm.ru/login/go | grep -i location  # site_id=3
 ```
 
 В заголовке `Location` должен быть URL вида `cross-server-login.php?site_id=3&url=https%3A%2F%2F...%2Flogin`.

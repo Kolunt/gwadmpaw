@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Вход с мобильного - {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="admin-container">
+        <div class="empty-state" style="max-width: 600px; margin: 3rem auto; text-align: center; padding: 3rem;">
+            <div style="font-size: 4rem; margin-bottom: 1.5rem;">📱</div>
+            <h1 style="margin-bottom: 1rem; color: var(--text-primary);">Откройте в браузере</h1>
+            <p style="font-size: 1.05rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6;">
+                Вход через GWars надёжнее работает в обычном браузере (Chrome, Safari, Firefox), а не во встроенном окне приложения.
+            </p>
+            <ol style="text-align: left; color: var(--text-secondary); margin: 0 auto 2rem; max-width: 420px; line-height: 1.6;">
+                <li>Нажмите меню «⋯» или «Поделиться»</li>
+                <li>Выберите «Открыть в браузере»</li>
+                <li>Вернитесь на эту страницу и нажмите «Продолжить»</li>
+            </ol>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('auth.login_go', force=1, next=return_url) if return_url else url_for('auth.login_go', force=1) }}" class="btn btn-primary btn-large">
+                    Продолжить в этом окне
+                </a>
+                <a href="{{ url_for('auth.login', next=return_url) if return_url else url_for('auth.login') }}" class="btn btn-secondary btn-large">
+                    Назад
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

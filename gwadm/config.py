@@ -50,6 +50,21 @@ def is_debug() -> bool:
     return not is_production()
 
 
+def is_gwars_password_configured() -> bool:
+    """True when GWARS_PASSWORD is explicitly set in environment."""
+    return bool(os.environ.get('GWARS_PASSWORD', '').strip())
+
+
+def is_dev_login_enabled() -> bool:
+    """Whether /login/dev is allowed (localhost still required in route)."""
+    flag = os.environ.get('ENABLE_DEV_LOGIN', '').strip().lower()
+    if flag in ('0', 'false', 'no', 'off'):
+        return False
+    if flag in ('1', 'true', 'yes', 'on'):
+        return True
+    return not is_production()
+
+
 def warn_insecure_defaults() -> None:
     """Log warnings for insecure defaults on production (does not block startup)."""
     if not is_production():

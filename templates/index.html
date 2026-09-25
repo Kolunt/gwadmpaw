@@ -16,7 +16,7 @@
             <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-large">
                 Войти через GWars
             </a>
-            {% if request.host in ['127.0.0.1:5000', 'localhost:5000', '127.0.0.1', 'localhost'] %}
+            {% if is_dev_login_enabled and request.host in ['127.0.0.1:5000', 'localhost:5000', '127.0.0.1', 'localhost'] %}
             <a href="{{ url_for('auth.login_dev') }}" class="btn btn-secondary btn-large">
                 Тестовая авторизация
             </a>

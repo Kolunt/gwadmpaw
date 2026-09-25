@@ -12,7 +12,7 @@
             <h3>Исходные данные:</h3>
             <div class="info-row">
                 <span class="info-label">Пароль (для подписи):</span>
-                <span class="info-value"><code>{{ debug_info.password }}</code></span>
+                <span class="info-value"><code>{{ debug_info.password }}</code>{% if debug_info.password_set is defined %} (env: {% if debug_info.password_set %}задан{% else %}не задан{% endif %}){% endif %}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Имя (закодированное):</span>

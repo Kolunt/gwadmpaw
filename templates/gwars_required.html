@@ -12,7 +12,7 @@
                 Вы должны быть авторизованы в игре, прежде чем пользоваться этим сервисом.
             </p>
             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                <a href="{{ gwars_login_url }}" class="btn btn-primary btn-large">
+                <a href="{{ url_for('auth.login_go', next=return_url) if return_url else url_for('auth.login_go') }}" class="btn btn-primary btn-large">
                     Войти через GWars
                 </a>
                 <a href="https://www.gwars.io/" target="_blank" class="btn btn-secondary btn-large">
@@ -24,7 +24,7 @@
             </div>
             <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
                 <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                    После авторизации на сайте GWars вернитесь сюда и нажмите "Войти через GWars" снова.
+                    После авторизации на сайте GWars вернитесь сюда и нажмите «Войти через GWars» снова.
                 </p>
             </div>
         </div>

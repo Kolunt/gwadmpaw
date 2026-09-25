@@ -66,12 +66,12 @@
 
 | ID | Задача | Статус | Зависит от |
 |----|--------|--------|------------|
-| R-301 | Разделить `/login` → `/login` (landing), `/login/go` (redirect GWars), callback как есть | todo | R-202 |
-| R-302 | Мобильный interstitial: детект UA, инструкция «открыть в браузере», кнопка без мгновенного редиректа | todo | R-301 |
-| R-303 | Заменить `gwars_auth_attempt` на `login_state` + `return_url` в сессии | todo | R-301 |
-| R-304 | `debug.html` / `debug_sign3.html` — только `FLASK_DEBUG` или роль admin | todo | R-202 |
-| R-305 | `GWARS_PASSWORD` только из env (`config.py`), убрать из кода и debug-шаблонов | todo | R-101 |
-| R-306 | `/login/dev` — отключение через `ENABLE_DEV_LOGIN=0` на проде (дополнительно к проверке host) | todo | R-202 |
+| R-301 | Разделить `/login` → `/login` (landing), `/login/go` (redirect GWars), callback как есть | done | `templates/login.html`, `/login/go` |
+| R-302 | Мобильный interstitial: детект UA, инструкция «открыть в браузере», кнопка без мгновенного редиректа | done | `templates/login_mobile.html` |
+| R-303 | Заменить `gwars_auth_attempt` на `login_state` + `return_url` в сессии | done | `gwadm/services/login_flow.py` |
+| R-304 | `debug.html` / `debug_sign3.html` — только `FLASK_DEBUG` или роль admin | done | `can_view_auth_debug` |
+| R-305 | `GWARS_PASSWORD` только из env (`config.py`), убрать из кода и debug-шаблонов | done | пароль скрыт в debug, блок callback на проде |
+| R-306 | `/login/dev` — отключение через `ENABLE_DEV_LOGIN=0` на проде (дополнительно к проверке host) | done | `is_dev_login_enabled()` |
 
 ---
 
@@ -201,3 +201,4 @@ gwadmpaw/
 | 2025-09-25 | R-103: `ensure_db()` только при старте (app import, cron), guard в `get_db_connection()` |
 | 2025-09-25 | R-106, R-201, R-002: `create_app()` factory, extensions, i18n; Babel 4.x fix |
 | 2025-09-25 | R-211: `gwars_signatures.py` — compute/verify sign*, debug helpers; auth.py без inline hashlib |
+| 2025-09-25 | R-301–R-306: login landing/go, mobile interstitial, login_state+return_url, debug gate, GWARS_PASSWORD, ENABLE_DEV_LOGIN |

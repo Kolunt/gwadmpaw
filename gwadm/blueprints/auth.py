@@ -5,7 +5,7 @@ from datetime import datetime
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
-from gwadm.config import ADMIN_USER_IDS, is_debug
+from gwadm.config import ADMIN_USER_IDS, is_debug, is_dev_login_enabled, is_gwars_password_configured, is_production
 from gwadm.db import ensure_db, get_db_connection
 from gwadm.logging_config import log_debug, log_error
 from gwadm.services.activity import log_activity
@@ -26,6 +26,16 @@ from gwadm.services.gwars_domains import (
     is_local_dev_host,
     load_gwars_domain_map,
 )
+from gwadm.services.login_flow import (
+    can_view_auth_debug,
+    clear_login_flow,
+    clear_login_flow_full,
+    get_safe_return_url,
+    is_login_pending,
+    pop_return_url_after_login,
+    should_show_mobile_interstitial,
+    start_login_flow,
+)
 from gwadm.services.roles import assign_role, get_user_role_names, get_user_roles, has_role
 
 bp = Blueprint('auth', __name__)
@@ -33,9 +43,11 @@ bp = Blueprint('auth', __name__)
 @bp.route('/login/dev')
 def login_dev():
     """Тестовый режим авторизации для локальной разработки"""
-    # Проверяем, что мы на localhost
+    if not is_dev_login_enabled():
+        return redirect(url_for('public.index'))
+
     is_local = request.host in ['127.0.0.1:5000', 'localhost:5000', '127.0.0.1', 'localhost']
-    
+
     if not is_local:
         flash('Тестовый режим доступен только на localhost', 'error')
         return redirect(url_for('public.index'))
@@ -184,9 +196,8 @@ def login_dev():
     session['level'] = level
     session['synd'] = synd
     session['roles'] = get_user_role_names(user_id)
-    # Очищаем флаг попытки авторизации через GWars (если был установлен)
-    session.pop('gwars_auth_attempt', None)
-    
+    clear_login_flow()
+
     log_activity(
         'login',
         details='Тестовый вход через login_dev',
@@ -196,13 +207,54 @@ def login_dev():
     flash('Тестовая авторизация выполнена успешно!', 'success')
     return redirect(url_for('profile.dashboard'))
 
+def _build_gwars_redirect_url():
+    is_local = is_local_dev_host(request.host)
+    domain_map = load_gwars_domain_map()
+    gwars_login_url = build_gwars_login_url(
+        request.host,
+        is_local=is_local,
+        domain_map=domain_map,
+    )
+    if is_local:
+        log_debug(f"Local development detected. GWars login URL: {gwars_login_url}")
+    return gwars_login_url
+
+
+@bp.route('/login/go')
+def login_go():
+    return_url = get_safe_return_url(request.args.get('next'))
+    if should_show_mobile_interstitial(request.headers.get('User-Agent', '')) and request.args.get('force') != '1':
+        return render_template('login_mobile.html', return_url=return_url or '')
+
+    start_login_flow(return_url)
+    return redirect(_build_gwars_redirect_url())
+
+
 @bp.route('/login')
 def login():
+    sign = request.args.get('sign', '')
+    user_id = request.args.get('user_id', '')
+
+    if not sign or not user_id:
+        if is_login_pending():
+            clear_login_flow_full()
+            return redirect(url_for('auth.gwars_required'))
+        return_url = get_safe_return_url(request.args.get('next'))
+        return render_template('login.html', return_url=return_url or '')
+
+    return _handle_gwars_callback()
+
+
+def _handle_gwars_callback():
     try:
-        # Получаем параметры от GWars
         sign = request.args.get('sign', '')
         user_id = request.args.get('user_id', '')
-        
+
+        if is_production() and not is_gwars_password_configured():
+            log_error('GWARS_PASSWORD is not configured; rejecting login callback')
+            flash('Сервер не настроен для входа. Обратитесь к администратору.', 'error')
+            return redirect(url_for('auth.login'))
+
         name_encoded = extract_name_encoded_from_request(request)
         name_info = decode_gwars_name(name_encoded, request.args.get('name', ''))
         name = name_info['name']
@@ -221,39 +273,6 @@ def login():
         usersex = request.args.get('usersex', '')
         sign4 = request.args.get('sign4', '')
 
-        # Если нет параметров, проверяем, вернулся ли пользователь с GWars без авторизации
-        if not sign or not user_id:
-            # Проверяем, есть ли в сессии флаг о попытке авторизации через GWars
-            gwars_auth_attempt = session.get('gwars_auth_attempt', False)
-            
-            # Если пользователь уже пытался авторизоваться через GWars (флаг в сессии),
-            # но параметров авторизации нет, значит он не авторизован в GWars
-            if gwars_auth_attempt:
-                # Очищаем флаг
-                session.pop('gwars_auth_attempt', None)
-                # Показываем страницу с сообщением о необходимости авторизации
-                return redirect(url_for('auth.gwars_required'))
-            
-            # Если параметров нет и пользователь еще не пытался авторизоваться,
-            # устанавливаем флаг и редиректим на GWars для авторизации
-            session['gwars_auth_attempt'] = True
-            
-            # ВАЖНО: GWars проверяет домен callback URL
-            # Для локальной разработки используем production URL, чтобы GWars принял запрос
-            # После авторизации пользователь будет редиректиться на production, 
-            # где можно будет протестировать функционал
-            
-            is_local = is_local_dev_host(request.host)
-            domain_map = load_gwars_domain_map()
-            gwars_login_url = build_gwars_login_url(
-                request.host,
-                is_local=is_local,
-                domain_map=domain_map,
-            )
-            if is_local:
-                log_debug(f"Local development detected. GWars login URL: {gwars_login_url}")
-            return redirect(gwars_login_url)
-        
         if is_debug():
             log_debug("=== LOGIN DEBUG ===")
             log_debug("Received parameters:")
@@ -273,24 +292,28 @@ def login():
         
         # Проверяем подписи (пробуем оба варианта - с декодированным и закодированным именем)
         if not verify_sign(name, user_id, sign, name_encoded):
-            flash('Ошибка проверки подписи sign. Смотрите информацию ниже.', 'error')
-            debug_info = build_sign_debug_info(
-                request, name, name_encoded, name_cp1251, name_latin1,
-                user_id, sign, sign2, level, synd,
-            )
-            return render_template('debug.html', debug_info=debug_info)
+            flash('Ошибка проверки подписи sign.', 'error')
+            if can_view_auth_debug(session, is_debug()):
+                debug_info = build_sign_debug_info(
+                    request, name, name_encoded, name_cp1251, name_latin1,
+                    user_id, sign, sign2, level, synd,
+                )
+                return render_template('debug.html', debug_info=debug_info)
+            return redirect(url_for('auth.login'))
         
         if not verify_sign2(level, synd, user_id, sign2):
             flash('Ошибка проверки подписи sign2', 'error')
             return redirect(url_for('public.index'))
         
         if not verify_sign3(name, user_id, has_passport, has_mobile, old_passport, sign3, name_encoded):
-            flash('Ошибка проверки подписи sign3. Смотрите информацию ниже.', 'error')
-            debug_info = build_sign3_debug_info(
-                request, name, name_encoded, user_id,
-                has_passport, has_mobile, old_passport, sign3, sign4,
-            )
-            return render_template('debug_sign3.html', debug_info=debug_info)
+            flash('Ошибка проверки подписи sign3.', 'error')
+            if can_view_auth_debug(session, is_debug()):
+                debug_info = build_sign3_debug_info(
+                    request, name, name_encoded, user_id,
+                    has_passport, has_mobile, old_passport, sign3, sign4,
+                )
+                return render_template('debug_sign3.html', debug_info=debug_info)
+            return redirect(url_for('auth.login'))
         
         if not verify_sign4(sign3, sign4):
             # Логируем детали для отладки
@@ -478,19 +501,19 @@ def login():
         session['username'] = name
         session['level'] = level
         session['synd'] = synd
-        session['roles'] = get_user_role_names(user_id)  # Сохраняем роли в сессию
-        # Очищаем флаг попытки авторизации через GWars (если был установлен)
-        session.pop('gwars_auth_attempt', None)
-        
+        session['roles'] = get_user_role_names(user_id)
+        clear_login_flow()
+
         log_activity(
             'login',
             details='Вход через GWars',
             metadata={'source': 'gwars', 'user_id': user_id, 'username': name}
         )
-        
-        return redirect(url_for('profile.dashboard'))
+
+        return_url = pop_return_url_after_login()
+        return redirect(return_url or url_for('profile.dashboard'))
     except Exception as e:
-        log_error(f"Error in login route: {e}")
+        log_error(f"Error in login callback: {e}")
         log_error(f"Traceback: {traceback.format_exc()}")
         flash(f'Ошибка при входе: {str(e)}', 'error')
         return redirect(url_for('public.index'))
@@ -510,11 +533,6 @@ def logout():
 @bp.route('/gwars-required')
 def gwars_required():
     """Страница с сообщением о необходимости авторизации в GWars"""
-    domain_map = load_gwars_domain_map()
-    gwars_login_url = build_gwars_login_url(
-        request.host,
-        is_local=is_local_dev_host(request.host),
-        domain_map=domain_map,
-    )
-    return render_template('gwars_required.html', gwars_login_url=gwars_login_url)
+    return_url = get_safe_return_url(request.args.get('next'))
+    return render_template('gwars_required.html', return_url=return_url or '')
 

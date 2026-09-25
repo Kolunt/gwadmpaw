@@ -4,7 +4,7 @@ import hashlib
 from datetime import datetime, timedelta
 from urllib.parse import quote, unquote, unquote_plus, unquote_to_bytes
 
-from gwadm.config import GWARS_PASSWORD, is_debug
+from gwadm.config import GWARS_PASSWORD, is_debug, is_gwars_password_configured
 from gwadm.logging_config import log_debug, log_error
 
 
@@ -393,7 +393,8 @@ def build_sign_debug_info(
 
     return {
         'received_params': dict(request.args),
-        'password': GWARS_PASSWORD,
+        'password': '(hidden)',
+        'password_set': is_gwars_password_configured(),
         'encoded_name': name_encoded if name_encoded else 'EMPTY',
         'decoded_name': name if name else 'EMPTY',
         'decoded_name_cp1251': name_cp1251 if name_cp1251 else 'N/A',
@@ -462,7 +463,8 @@ def build_sign3_debug_info(
 
     return {
         'received_params': dict(request.args),
-        'password': GWARS_PASSWORD,
+        'password': '(hidden)',
+        'password_set': is_gwars_password_configured(),
         'encoded_name': name_encoded if name_encoded else 'EMPTY',
         'decoded_name': name if name else 'EMPTY',
         'user_id': user_id,
