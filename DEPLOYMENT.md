@@ -119,6 +119,8 @@ from app import app
 application = app
 ```
 
+При импорте `app` вызывается `gwadm.create_app()` (factory в [`gwadm/factory.py`](gwadm/factory.py)); менять WSGI не нужно.
+
 **Критически важно**: 
 - Убедитесь, что в WSGI файле **НЕТ** никаких упоминаний `mangum`, `Lambda`, `ASGI` или других библиотек для AWS
 - WSGI файл должен быть максимально простым - только импорт Flask приложения

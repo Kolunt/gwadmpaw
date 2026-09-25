@@ -1,5 +1,5 @@
 from flask import(
-    Flask, render_template, redirect, url_for, request, session,
+    render_template, redirect, url_for, request, session,
     flash, jsonify, send_file, Response, abort, has_request_context,
     make_response
 )
@@ -10,7 +10,6 @@ from datetime import datetime, timedelta, timezone
 import os
 import logging
 from functools import wraps
-from version import __version__
 import secrets
 import json
 import random
@@ -22,7 +21,6 @@ except ImportError:
     requests = None
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
-from werkzeug.middleware.proxy_fix import ProxyFix
 import traceback
 import threading
 import time
@@ -41,25 +39,16 @@ from gwadm.config import (
     CRON_SECRET_TOKEN,
     EVENT_TIME_OFFSET_HOURS,
     GWARS_PASSWORD,
-    SECRET_KEY,
     is_debug,
     is_production,
 )
-from gwadm.logging_config import log_debug, log_error, setup_logging
-from gwadm import db as gwadm_db
+from gwadm import create_app
+from gwadm.extensions import BABEL_AVAILABLE, babel
+from gwadm.i18n import _, format_date, format_datetime, get_locale
+from gwadm.logging_config import log_debug, log_error
 from gwadm.db import ensure_db, get_db, get_db_connection, get_db_path
 
-setup_logging()
-
-app = Flask(__name__)
-app.secret_key = SECRET_KEY
-app.config['VERSION'] = __version__
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-if is_production():
-    app.config['SESSION_COOKIE_SECURE'] = True
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app = create_app()
 
 def get_event_now():
     return datetime.utcnow() + timedelta(hours=EVENT_TIME_OFFSET_HOURS)
@@ -195,107 +184,6 @@ def log_activity(action, details=None, metadata=None, user_id=None, username=Non
     finally:
         if conn:
             conn.close()
-
-# Настройка локализации
-app.config['LANGUAGES'] = {
-    'ru': 'Русский',
-    'en': 'English'
-}
-app.config['BABEL_DEFAULT_LOCALE'] = 'ru'
-app.config['BABEL_DEFAULT_TIMEZONE'] = 'Europe/Moscow'
-app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
-
-# Словарь русских переводов для fallback (используется всегда)
-_russian_translations = {
-    'Home': 'Главная',
-    'Events': 'Мероприятия',
-    'Participants': 'Участники',
-    'FAQ': 'FAQ',
-    'Admin Panel': 'Админ-панель',
-    'Users': 'Пользователи',
-    'Roles': 'Роли',
-    'Titles': 'Звания',
-    'Settings': 'Настройки',
-    'Localization': 'Локализация',
-    'Profile': 'Профиль',
-    'Logout': 'Выйти',
-    'Login via GWars': 'Войти через GWars',
-    'Edit Profile': 'Редактировать профиль',
-    'Main': 'Основное',
-    'Contacts': 'Контакты',
-    'About': 'О себе',
-    'User Profile': 'Профиль пользователя',
-    'User ID:': 'ID пользователя:',
-    'Name:': 'Имя:',
-    'Level:': 'Уровень:',
-    'Syndicate:': 'Синдикат:',
-    'Gender:': 'Пол:',
-    'Passport:': 'Паспорт:',
-    'Mobile:': 'Мобильный:',
-    'Last login:': 'Последний вход:',
-    'Yes': 'Есть',
-    'No': 'Нет',
-    'Not specified': 'Не указан',
-    'Contact information not specified': 'Контактная информация не указана',
-    'Additional information not specified': 'Дополнительная информация не указана',
-    'Toggle theme': 'Переключить тему',
-}
-
-def get_locale():
-    """Определяет текущую локаль из настроек. Всегда возвращает русский для неавторизованных пользователей."""
-    try:
-        # Если пользователь авторизован, проверяем его настройку языка
-        from flask import session
-        if 'user_id' in session:
-            try:
-                conn = get_db_connection()
-                user = conn.execute('SELECT language FROM users WHERE user_id = ?', (session['user_id'],)).fetchone()
-                conn.close()
-                if user and dict(user).get('language') and user['language'] in app.config['LANGUAGES']:
-                    return user['language']
-            except Exception as e:
-                log_error(f"Error getting user language: {e}")
-    except Exception:
-        # Если session недоступен (например, вне контекста запроса)
-        pass
-    
-    # Для неавторизованных пользователей всегда используем русский
-    return 'ru'
-
-def _(text):
-    """Функция перевода - всегда использует русские переводы из словаря"""
-    # Всегда используем русские переводы из словаря
-    return _russian_translations.get(text, text)
-
-def format_date(date, format=None):
-    """Форматирование даты (fallback)"""
-    return str(date)
-
-def format_datetime(datetime, format=None):
-    """Форматирование даты и времени (fallback)"""
-    return str(datetime)
-
-BABEL_AVAILABLE = False
-try:
-    from flask_babel import Babel
-    babel = Babel(app)
-    BABEL_AVAILABLE = True
-    
-    @babel.localeselector
-    def babel_get_locale():
-        """Определяет локаль для Flask-Babel"""
-        try:
-            return get_locale()
-        except Exception:
-            return 'ru'
-    
-except ImportError:
-    # Flask-Babel не установлен - используем fallback функции
-    BABEL_AVAILABLE = False
-except Exception as e:
-    # Любая другая ошибка при инициализации Babel
-    log_error(f"Error initializing Babel: {e}")
-    BABEL_AVAILABLE = False
 
 def generate_unique_avatar_seed(user_id):
     """Генерирует уникальный seed для аватара пользователя"""
@@ -1345,7 +1233,7 @@ def inject_default_theme():
 @app.context_processor
 def inject_common_flags():
     return {
-        'is_production': app.config.get('ENV') == 'production',
+        'is_production': is_production(),
         'app_config': app.config,
     }
 
@@ -12739,14 +12627,6 @@ def assignment_mark_received(assignment_id):
     flash(message, 'success' if success else 'error')
     
     return redirect(url_for('assignments'))
-
-# Инициализируем БД при импорте модуля (для WSGI)
-try:
-    ensure_db()
-except Exception as e:
-    log_error(f"Failed to initialize database on startup: {e}")
-    if gwadm_db._database_is_ready():
-        gwadm_db._db_initialized = True
 
 @app.errorhandler(404)
 def handle_not_found(error):

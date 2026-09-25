@@ -15,7 +15,7 @@
 |----|--------|--------|------------|
 | R-000 | Зафиксировать workflow: локально → тест → git → деплой → проверка на проде | done | `.cursor/rules/development-workflow.mdc` |
 | R-001 | Добавить `scripts/smoke_check.py` (импорт app, `/`, `/login` redirect, parse gwars map) | done | `scripts/smoke_check.py` |
-| R-002 | Описать целевую структуру пакетов в README или здесь — не менять код, только договориться | todo | См. «Целевая структура» ниже |
+| R-002 | Описать целевую структуру пакетов в README или здесь — не менять код, только договориться | done | README + целевая структура в бэклоге |
 | R-003 | Включить на проде только то, что нужно: `SECRET_KEY` в `.env` | done | |
 | R-004 | Убрать из git чувствительное/лишнее: `database.db.backup*`, `pa_export/` | todo | Отдельный PR, без функциональных изменений |
 
@@ -32,7 +32,7 @@
 | R-103 | Перевести `init_db()` на вызов только при старте / явной миграции; убрать `ensure_db()` из каждого `get_db_connection()` | done | `ensure_db()` при импорте app и в cron |
 | R-104 | `migrations/` — вынести ALTER/INSERT из `init_db` в версионированные скрипты (хотя бы `001_initial.sql`, `002_*.sql` + таблица `schema_version`) | todo | R-103 |
 | R-105 | `logging_config.py` — уровни log debug/info по `FLASK_ENV`; убрать `log_error` для штатного login debug | done | `gwadm/logging_config.py` |
-| R-106 | `extensions.py` — создание `app`, ProxyFix, Babel, регистрация blueprints | todo | R-102 |
+| R-106 | `extensions.py` — создание `app`, ProxyFix, Babel, регистрация blueprints | done | `gwadm/extensions.py`, Babel 4.x |
 
 **Критерий готовности:** `app.py` импортирует `create_app()` из пакета; поведение на проде не изменилось; smoke проходит.
 
@@ -44,7 +44,7 @@
 
 | ID | Задача | Статус | Зависит от |
 |----|--------|--------|------------|
-| R-201 | Пакет `gwadm/` (или `app/`) + `create_app()` factory | todo | R-106 |
+| R-201 | Пакет `gwadm/` (или `app/`) + `create_app()` factory | done | `gwadm/factory.py`, `app = create_app()` |
 | R-202 | Blueprint `auth` — `/login`, `/logout`, `/login/dev`, `/gwars-required`, verify_sign* | todo | R-201 |
 | R-203 | Blueprint `public` — `/`, `/participants`, `/faq`, `/rules`, `/rating`, `/contacts` | todo | R-201 |
 | R-204 | Blueprint `profile` — `/dashboard`, `/profile/*`, edit profile | todo | R-201 |
@@ -198,3 +198,4 @@ gwadmpaw/
 | 2025-09-25 | Создан бэклог; R-000, R-003 отмечены done по факту уже сделанного |
 | 2025-09-25 | R-001, R-101, R-102, R-105: пакет `gwadm/` (config, db, logging), smoke_check, документация |
 | 2025-09-25 | R-103: `ensure_db()` только при старте (app import, cron), guard в `get_db_connection()` |
+| 2025-09-25 | R-106, R-201, R-002: `create_app()` factory, extensions, i18n; Babel 4.x fix |

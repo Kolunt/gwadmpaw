@@ -39,7 +39,7 @@ python scripts/verify_gwars_domains.py
 | `FLASK_ENV` / `FLASK_DEBUG` | Режим prod/dev и уровень логов |
 | `EVENT_TIME_OFFSET_HOURS` | Смещение «сейчас» для этапов мероприятий |
 
-Слой БД и логирования: [`gwadm/db.py`](gwadm/db.py), [`gwadm/logging_config.py`](gwadm/logging_config.py). Инициализация схемы — `ensure_db()` при старте процесса (импорт `app` / `cron_tasks`), не при каждом `get_db_connection()`.
+Слой приложения: [`gwadm/factory.py`](gwadm/factory.py) (`create_app()`), [`gwadm/extensions.py`](gwadm/extensions.py), [`gwadm/i18n.py`](gwadm/i18n.py), [`gwadm/db.py`](gwadm/db.py), [`gwadm/logging_config.py`](gwadm/logging_config.py). Entry point для gunicorn: `app:app` (корневой [`app.py`](app.py) вызывает `create_app()` и регистрирует маршруты).
 
 ## Развертывание на PythonAnywhere
 
@@ -90,10 +90,13 @@ pip3.10 install --user -r requirements.txt
 
 ```
 gwadmpaw/
-├── app.py              # Flask-приложение (маршруты; entry point gunicorn app:app)
-├── gwadm/              # Пакет инфраструктуры
+├── app.py              # Маршруты; entry point gunicorn app:app
+├── gwadm/              # Пакет приложения
+│   ├── factory.py      # create_app()
+│   ├── extensions.py   # Babel, hook для blueprints
+│   ├── i18n.py         # Локализация
 │   ├── config.py       # Настройки из env
-│   ├── db.py           # SQLite, init_db, get_db_connection
+│   ├── db.py           # SQLite, ensure_db, get_db_connection
 │   └── logging_config.py
 ├── gwars_domains.py    # Карта доменов GWars
 ├── scripts/

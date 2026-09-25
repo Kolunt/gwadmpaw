@@ -1,1 +1,5 @@
-"""gwadm application package (config, database, logging)."""
+"""gwadm application package."""
+
+from gwadm.factory import create_app
+
+__all__ = ['create_app']
