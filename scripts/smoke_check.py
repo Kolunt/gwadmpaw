@@ -64,6 +64,38 @@ def main() -> int:
         if not content_type.startswith(("image/png", "image/svg+xml")):
             errors.append(f"GET /avatars/image unexpected Content-Type: {content_type}")
 
+    response = client.get("/titles/999999999")
+    if response.status_code not in (302, 303):
+        errors.append(f"GET /titles/999999999 expected redirect, got {response.status_code}")
+
+    response = client.get("/awards/999999999")
+    if response.status_code not in (302, 303):
+        errors.append(f"GET /awards/999999999 expected redirect, got {response.status_code}")
+
+    response = client.get("/roles/admin")
+    if response.status_code != 200:
+        errors.append(f"GET /roles/admin expected 200, got {response.status_code}")
+
+    try:
+        conn = get_db_connection()
+        title_row = conn.execute("SELECT id FROM titles LIMIT 1").fetchone()
+        award_row = conn.execute("SELECT id FROM awards LIMIT 1").fetchone()
+        conn.close()
+        if title_row:
+            response = client.get(f"/titles/{title_row['id']}")
+            if response.status_code != 200:
+                errors.append(
+                    f"GET /titles/{title_row['id']} expected 200, got {response.status_code}"
+                )
+        if award_row:
+            response = client.get(f"/awards/{award_row['id']}")
+            if response.status_code != 200:
+                errors.append(
+                    f"GET /awards/{award_row['id']} expected 200, got {response.status_code}"
+                )
+    except Exception as exc:
+        errors.append(f"meta route DB lookup failed: {exc}")
+
     if errors:
         for err in errors:
             print(f"FAIL: {err}")

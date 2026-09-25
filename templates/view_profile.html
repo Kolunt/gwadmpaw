@@ -17,7 +17,7 @@
                     {% if user_roles %}
                         {% for role in user_roles %}
                             {% if role.display_name|lower != 'пользователь' %}
-                                <a href="{{ url_for('role_view', role_name=role.name) }}" class="role-badge role-badge-link">
+                                <a href="{{ url_for('meta.role_view', role_name=role.name) }}" class="role-badge role-badge-link">
                                     {{ role.display_name }}
                                 </a>
                             {% endif %}
@@ -31,7 +31,7 @@
                             {% else %}
                                 {% set title_icon_symbol = '🏆' %}
                             {% endif %}
-                            <a href="{{ url_for('title_view', title_id=title.id) }}"
+                            <a href="{{ url_for('meta.title_view', title_id=title.id) }}"
                                class="title-icon-link"
                                title="{{ title.display_name }}">
                                 <span class="title-badge-icon"
@@ -49,7 +49,7 @@
                             {% else %}
                                 {% set award_icon_symbol = '🎖️' %}
                             {% endif %}
-                            <a href="{{ url_for('award_view', award_id=award.id) }}"
+                            <a href="{{ url_for('meta.award_view', award_id=award.id) }}"
                                class="award-icon-link"
                                title="{{ award.title }}">
                                 {% if award.image %}
@@ -262,7 +262,7 @@
                                 </span>
                             </td>
                             <td class="title-name-cell" data-label="Название">
-                                <a href="{{ url_for('title_view', title_id=title.id) }}" class="title-name-link" style="color: {{ title.color }};">
+                                <a href="{{ url_for('meta.title_view', title_id=title.id) }}" class="title-name-link" style="color: {{ title.color }};">
                                     {{ title.display_name }}
                                 </a>
                             </td>
@@ -289,16 +289,16 @@
                     {% for award in user_awards %}
                     <div class="award-card" style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; text-align: center; transition: transform 0.2s, box-shadow 0.2s;">
                         {% if award.image %}
-                        <a href="{{ url_for('award_view', award_id=award.id) }}" style="display: inline-block; margin-bottom: 1rem;">
+                        <a href="{{ url_for('meta.award_view', award_id=award.id) }}" style="display: inline-block; margin-bottom: 1rem;">
                             <img src="{{ award.image }}" alt="{{ award.title }}" style="max-width: 120px; max-height: 120px; width: auto; height: auto; border-radius: 8px;">
                         </a>
                         {% elif award.icon %}
-                        <a href="{{ url_for('award_view', award_id=award.id) }}" style="display: inline-block; margin-bottom: 1rem; font-size: 4rem; line-height: 1; text-decoration: none;">
+                        <a href="{{ url_for('meta.award_view', award_id=award.id) }}" style="display: inline-block; margin-bottom: 1rem; font-size: 4rem; line-height: 1; text-decoration: none;">
                             {{ award.icon }}
                         </a>
                         {% endif %}
                         <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">
-                            <a href="{{ url_for('award_view', award_id=award.id) }}" class="award-name-link">
+                            <a href="{{ url_for('meta.award_view', award_id=award.id) }}" class="award-name-link">
                                 {% if award.icon and not award.image %}{{ award.icon }} {% endif %}{{ award.title }}
                             </a>
                         </h3>
