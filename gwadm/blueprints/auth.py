@@ -1,5 +1,6 @@
 """GWars authentication routes."""
 
+import time
 import traceback
 from datetime import datetime
 
@@ -11,6 +12,7 @@ from gwadm.logging_config import log_debug, log_error
 from gwadm.services.activity import log_activity
 from gwadm.services.avatars import generate_unique_avatar_seed
 from gwadm.services.gwars_auth import finalize_user_login
+from gwadm.services.presence import SESSION_PRESENCE_KEY, touch_user_presence
 from gwadm.services.gwars_signatures import (
     build_sign3_debug_info,
     build_sign_debug_info,
@@ -197,6 +199,8 @@ def login_dev():
     session['synd'] = synd
     session['roles'] = get_user_role_names(user_id)
     clear_login_flow()
+    touch_user_presence(user_id, force=True)
+    session[SESSION_PRESENCE_KEY] = time.time()
 
     log_activity(
         'login',

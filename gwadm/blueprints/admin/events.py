@@ -1,13 +1,19 @@
 """Admin: events."""
 
+import random
+import traceback
+from datetime import datetime
+
 from flask import (
     Blueprint, flash, jsonify, redirect, render_template, request, session, url_for,
 )
+from gwadm.blueprints.admin import bp
 from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
-
-from gwadm.blueprints.admin import bp
+from gwadm.services.activity import log_activity
+from gwadm.services.events_stages import EVENT_STAGES, get_current_event_stage
+from gwadm.services.settings import get_rating_setting
 
 @bp.route('/events')
 @require_role('admin')

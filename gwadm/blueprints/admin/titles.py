@@ -8,6 +8,7 @@ from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
 
 from gwadm.blueprints.admin import bp
+from gwadm.services.titles import get_all_titles, get_user_titles
 
 @bp.route('/titles')
 @require_role('admin')

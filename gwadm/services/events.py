@@ -11,6 +11,55 @@ from gwadm.logging_config import log_debug, log_error
 from gwadm.services.events_stages import get_current_event_stage, get_event_now
 
 
+def _parse_stage_datetime(value):
+    if not value:
+        return None
+    text = str(value).split('.')[0]
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M'):
+        try:
+            return datetime.strptime(text[:19] if 'T' in text and len(text) > 16 else text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def get_last_finished_event(conn=None):
+    """Return the most recently finished event (by after_party end), or None."""
+    own_conn = conn is None
+    if own_conn:
+        conn = get_db_connection()
+
+    events = conn.execute(
+        'SELECT id, name FROM events WHERE deleted_at IS NULL'
+    ).fetchall()
+    best = None
+    best_end = None
+
+    for event in events:
+        event_id = event['id']
+        if not is_event_finished(event_id):
+            continue
+        stage = conn.execute(
+            '''
+            SELECT end_datetime FROM event_stages
+            WHERE event_id = ? AND stage_type = 'after_party'
+            ''',
+            (event_id,),
+        ).fetchone()
+        if not stage or not stage['end_datetime']:
+            continue
+        end_dt = _parse_stage_datetime(stage['end_datetime'])
+        if end_dt is None:
+            continue
+        if best_end is None or end_dt > best_end:
+            best_end = end_dt
+            best = {'id': event_id, 'name': event['name'], 'finished_at': end_dt}
+
+    if own_conn:
+        conn.close()
+    return best
+
+
 def is_event_finished(event_id):
     """Проверяет, закончилось ли мероприятие полностью."""
     conn = get_db_connection()

@@ -10,7 +10,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h1>Контакты</h1>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin_contacts') }}" class="btn btn-primary">Управление контактами</a>
+            <a href="{{ url_for('admin.admin_users') }}" class="btn btn-primary">Управление участниками</a>
             {% endif %}
         </div>
         

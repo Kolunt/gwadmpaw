@@ -1,5 +1,7 @@
 """Admin: logs."""
 
+import json
+
 from flask import (
     Blueprint, flash, jsonify, redirect, render_template, request, session, url_for,
 )

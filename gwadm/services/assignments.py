@@ -8,8 +8,9 @@ from gwadm.config import (
     ASSIGNMENT_RECEIPT_FOLDER,
     ASSIGNMENT_RECEIPT_RELATIVE,
 )
-from gwadm.services.uploads import save_validated_image, validate_image_upload
 from gwadm.services.activity import log_activity
+from gwadm.services.rating import _normalize_multiline_text
+from gwadm.services.uploads import save_validated_image, validate_image_upload
 
 def create_random_assignments(event_id, assigned_by):
     """Создает случайное распределение Деда Мороза и Внучки"""

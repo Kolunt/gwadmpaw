@@ -1,0 +1,32 @@
+{% set admin_nav = [
+    ('admin.admin_panel', '🏠', 'Главная', []),
+    ('admin.admin_users', '👥', 'Участники', ['admin.admin_user_create', 'admin.admin_user_edit', 'admin.admin_user_roles', 'admin.admin_user_titles', 'admin.admin_user_delete', 'admin.admin_user_impersonate']),
+    ('admin.admin_settings', '⚙️', 'Настройки', ['admin.admin_telegram_menu', 'admin.admin_telegram_menu_get']),
+    ('admin.admin_events', '🎉', 'Мероприятия', ['admin.admin_event_create', 'admin.admin_event_view', 'admin.admin_event_edit', 'admin.admin_event_participants', 'admin.admin_event_distribution_positive_view', 'admin.admin_event_review']),
+    ('admin.admin_faq', '❓', 'FAQ', ['admin.admin_faq_create', 'admin.admin_faq_edit', 'admin.admin_faq_category_create', 'admin.admin_faq_category_edit']),
+    ('admin.admin_awards', '🏆', 'Награды', ['admin.admin_award_create', 'admin.admin_award_edit']),
+    ('admin.admin_titles', '⭐', 'Звания', ['admin.admin_title_create', 'admin.admin_title_edit', 'admin.admin_user_titles']),
+    ('admin.admin_logs', '📝', 'Логи', []),
+    ('admin.admin_letters', '💬', 'Чаты', ['admin.admin_letters_archived']),
+    ('admin.admin_rules', '📜', 'Правила', ['admin.admin_rules_edit']),
+    ('admin.admin_broadcasts', '📢', 'Рассылки', ['admin.admin_broadcasts_templates', 'admin.admin_broadcasts_template_get']),
+    ('admin.admin_rating_settings', '🔔', 'Цыфорки', ['admin.admin_rating_detail', 'admin.admin_rating_settings_fix_points']),
+] %}
+<nav class="sidebar-nav">
+    <div class="sidebar-section">
+        <div class="sidebar-section-title">Админ-панель</div>
+        {% for endpoint, icon, label, children in admin_nav %}
+        {% set is_active = request.endpoint == endpoint or request.endpoint in children %}
+        <a href="{{ url_for(endpoint) }}" class="sidebar-link{% if is_active %} active{% endif %}">
+            <span class="sidebar-icon">{{ icon }}</span>
+            <span>{{ label }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    <div class="sidebar-section sidebar-section-site">
+        <a href="{{ url_for('public.index') }}" class="sidebar-link sidebar-link-site">
+            <span class="sidebar-icon">↩️</span>
+            <span>На сайт</span>
+        </a>
+    </div>
+</nav>

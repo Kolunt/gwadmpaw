@@ -7,7 +7,11 @@ from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
 from gwadm.services.activity import log_activity
-from gwadm.services.rating import queue_rating_recalc
+from gwadm.services.rating import (
+    _get_snowflake_source_label,
+    _sync_contact_snowflakes,
+    queue_rating_recalc,
+)
 
 from gwadm.blueprints.admin import bp
 

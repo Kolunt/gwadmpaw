@@ -1,13 +1,17 @@
 """Admin: users."""
 
 from flask import (
-    Blueprint, flash, jsonify, redirect, render_template, request, session, url_for,
+    Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for,
 )
 from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
 
 from gwadm.blueprints.admin import bp
+from gwadm.services.activity import log_activity
+from gwadm.services.avatars import VALID_AVATAR_STYLES as AVATAR_STYLES
+from gwadm.services.roles import get_user_roles
+from gwadm.services.titles import get_all_titles, get_user_titles
 
 @bp.route('/users')
 @require_role('admin')
@@ -45,7 +49,7 @@ def admin_users():
 @require_role('admin')
 def admin_user_create():
     """Создание нового пользователя"""
-    available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
+    available_languages = current_app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
     if request.method == 'POST':
         user_id = request.form.get('user_id', '').strip()
         username = request.form.get('username', '').strip()
@@ -143,7 +147,7 @@ def admin_user_edit(user_id):
     """Редактирование пользователя"""
     conn = get_db_connection()
     user = conn.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
-    available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
+    available_languages = current_app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
     
     if not user:
         flash('Пользователь не найден', 'error')

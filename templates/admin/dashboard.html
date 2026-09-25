@@ -1,0 +1,85 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Админ-панель — {{ get_setting('site_title', 'Анонимные Деды Морозы') }}{% endblock %}
+
+{% block admin_content %}
+<div class="admin-container">
+    <h1>Админ-панель</h1>
+    <p class="text-muted admin-dashboard-meta">Обновлено: {{ stats.generated_at }}</p>
+
+    <h2 class="section-subtitle">Участники</h2>
+    <div class="admin-dashboard-grid">
+        <a href="{{ url_for('admin.admin_users') }}" class="admin-dashboard-card admin-dashboard-card-link">
+            <div class="stat-number">{{ stats.total_users }}</div>
+            <div class="stat-label">Всего участников</div>
+        </a>
+        <div class="admin-dashboard-card">
+            <div class="stat-number">{{ stats.rating_positive }}</div>
+            <div class="stat-label">Рейтинг +</div>
+        </div>
+        <div class="admin-dashboard-card">
+            <div class="stat-number">{{ stats.rating_negative }}</div>
+            <div class="stat-label">Рейтинг −</div>
+        </div>
+        <a href="{{ url_for('admin.admin_users') }}" class="admin-dashboard-card admin-dashboard-card-link">
+            <div class="stat-number">{{ stats.never_participated }}</div>
+            <div class="stat-label">Без участия в мероприятиях</div>
+        </a>
+        <div class="admin-dashboard-card">
+            <div class="stat-number">{{ stats.online_users }}</div>
+            <div class="stat-label">Онлайн сейчас</div>
+        </div>
+    </div>
+
+    <h2 class="section-subtitle">Подарки и конверсия</h2>
+    <div class="admin-dashboard-grid">
+        <div class="admin-dashboard-card">
+            <div class="stat-number">
+                {% if stats.gifts_all_time.conversion_pct is not none %}{{ stats.gifts_all_time.conversion_pct }}%{% else %}—{% endif %}
+            </div>
+            <div class="stat-label">Конверсия за всё время</div>
+            <p class="stat-hint">{{ stats.gifts_all_time.sent_and_received }} / {{ stats.gifts_all_time.total }} пар</p>
+        </div>
+        <div class="admin-dashboard-card">
+            {% if stats.last_finished_event and stats.gifts_last_event %}
+            <div class="stat-number">
+                {% if stats.gifts_last_event.conversion_pct is not none %}{{ stats.gifts_last_event.conversion_pct }}%{% else %}—{% endif %}
+            </div>
+            <div class="stat-label">Конверсия: {{ stats.last_finished_event.name }}</div>
+            <p class="stat-hint">
+                <a href="{{ url_for('admin.admin_event_view', event_id=stats.last_finished_event.id) }}">
+                    {{ stats.gifts_last_event.sent_and_received }} / {{ stats.gifts_last_event.total }} пар
+                </a>
+            </p>
+            {% else %}
+            <div class="stat-number">—</div>
+            <div class="stat-label">Нет завершённых мероприятий</div>
+            {% endif %}
+        </div>
+        <div class="admin-dashboard-card">
+            <div class="stat-number">{{ stats.gifts_all_time.send_rate_pct if stats.gifts_all_time.send_rate_pct is not none else '—' }}{% if stats.gifts_all_time.send_rate_pct is not none %}%{% endif %}</div>
+            <div class="stat-label">Отправка (всё время)</div>
+            <p class="stat-hint">Деды отметили отправку</p>
+        </div>
+    </div>
+
+    <h2 class="section-subtitle">Система</h2>
+    <div class="admin-dashboard-grid">
+        <a href="{{ url_for('admin.admin_broadcasts') }}" class="admin-dashboard-card admin-dashboard-card-link">
+            <div class="stat-number">{{ stats.broadcast_pending }}</div>
+            <div class="stat-label">Рассылки в очереди</div>
+        </a>
+        <a href="{{ url_for('admin.admin_events') }}" class="admin-dashboard-card admin-dashboard-card-link">
+            <div class="stat-number">{{ stats.events_review_pending }}</div>
+            <div class="stat-label">Заявки на ревью</div>
+        </a>
+        <div class="admin-dashboard-card">
+            <div class="stat-number">{% if stats.rating_cache_populated %}OK{% else %}!{% endif %}</div>
+            <div class="stat-label">Кэш рейтинга</div>
+            <p class="stat-hint">
+                {% if stats.rating_cache_updated_at %}{{ stats.rating_cache_updated_at }}{% else %}пусто{% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

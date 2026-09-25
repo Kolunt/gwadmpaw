@@ -32,6 +32,96 @@
     --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
+[data-theme="admin"] {
+    --bg-primary: #1a0a0c;
+    --bg-secondary: #2a1215;
+    --bg-card: #32161a;
+    --text-primary: #f5e6e8;
+    --text-secondary: #c9a8ad;
+    --border-color: #5c2a32;
+    --accent-color: #b83a4a;
+    --accent-hover: #d44d5f;
+    --success-color: #6abf69;
+    --error-color: #e85d6f;
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="admin"] .navbar,
+[data-theme="admin"] .navbar-admin {
+    background: linear-gradient(180deg, #3d1520 0%, #2a0e14 100%);
+    border-bottom: 1px solid #6b2835;
+}
+
+[data-theme="admin"] .sidebar,
+[data-theme="admin"] .sidebar-admin {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+}
+
+[data-theme="admin"] .sidebar-link.active,
+[data-theme="admin"] .sidebar-link:hover {
+    background: rgba(184, 58, 74, 0.2);
+    color: var(--text-primary);
+}
+
+[data-theme="admin"] .sidebar-section-site {
+    border-top: 1px solid var(--border-color);
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+}
+
+[data-theme="admin"] .sidebar-link-admin-entry {
+    border-top: 1px solid var(--border-color);
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+}
+
+[data-theme="admin"] .admin-dashboard-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+}
+
+[data-theme="admin"] .admin-dashboard-card .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+[data-theme="admin"] .admin-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+[data-theme="admin"] .admin-dashboard-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: border-color 0.2s, transform 0.15s;
+}
+
+[data-theme="admin"] .admin-dashboard-card-link:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+}
+
+[data-theme="admin"] .admin-dashboard-meta,
+[data-theme="admin"] .stat-hint {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: 0.35rem;
+}
+
+[data-theme="admin"] .section-subtitle {
+    margin: 1.5rem 0 0.75rem;
+    font-size: 1.1rem;
+}
+
 /* === Section: Page-specific (assignments, rating, awards) === */
 .award-profile-btn {
     display: inline-flex;

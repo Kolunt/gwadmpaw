@@ -18,6 +18,7 @@ from gwadm.services.events_stages import (
     get_event_stages,
     parse_event_datetime,
 )
+from gwadm.services.presence import count_online_users, get_user_presence_status
 from gwadm.services.roles import get_user_roles
 from gwadm.services.settings import get_setting
 from gwadm.services.titles import get_user_titles
@@ -30,10 +31,7 @@ def index():
     conn = get_db_connection()
 
     total_users = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
-    online_users = conn.execute('''
-        SELECT COUNT(*) as count FROM users
-        WHERE datetime(last_login) > datetime('now', '-1 hour')
-    ''').fetchone()['count']
+    online_users = count_online_users(conn)
 
     events_list = conn.execute('''
         SELECT e.*, u.username as creator_name
@@ -164,6 +162,7 @@ def participants():
                     u.avatar_style,
                     u.created_at,
                     u.last_login,
+                    u.last_seen,
                     GROUP_CONCAT(r.display_name, ', ') as roles
                 FROM users u
                 LEFT JOIN user_roles ur ON u.user_id = ur.user_id
@@ -202,6 +201,7 @@ def participants():
                     u.avatar_style,
                     u.created_at,
                     u.last_login,
+                    u.last_seen,
                     GROUP_CONCAT(r.display_name, ', ') as roles
                 FROM users u
                 LEFT JOIN user_roles ur ON u.user_id = ur.user_id
@@ -216,20 +216,8 @@ def participants():
         for user in users:
             user_keys = user.keys()
             last_login = user['last_login'] if 'last_login' in user_keys else None
-
-            status = 'Оффлайн'
-            if last_login:
-                try:
-                    last_login_str = str(last_login).split('.')[0] if '.' in str(last_login) else str(last_login)
-                    last_login_date = datetime.strptime(last_login_str, '%Y-%m-%d %H:%M:%S')
-                    now = datetime.now()
-                    if (now - last_login_date).total_seconds() < 3600:
-                        status = 'Онлайн'
-                    elif (now - last_login_date).days == 0:
-                        status = 'Был сегодня'
-                except Exception as e:
-                    user_id = user['user_id'] if 'user_id' in user_keys else 'unknown'
-                    log_debug(f"Error parsing last_login for user {user_id}: {e}")
+            last_seen = user['last_seen'] if 'last_seen' in user_keys else None
+            status = get_user_presence_status(last_seen, last_login)
 
             roles_str = user['roles'] if ('roles' in user_keys and user['roles']) else 'Пользователь'
             user_id = user['user_id'] if 'user_id' in user_keys else None

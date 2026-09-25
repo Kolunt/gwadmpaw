@@ -1,13 +1,19 @@
 """Admin: settings."""
 
-from flask import (
-    Blueprint, flash, jsonify, redirect, render_template, request, session, url_for,
-)
-from gwadm.db import get_db_connection
-from gwadm.decorators import require_login, require_role, require_any_role
-from gwadm.logging_config import log_error, log_debug
+import traceback
 
+from flask import (
+    Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for,
+)
 from gwadm.blueprints.admin import bp
+from gwadm.db import get_db_connection
+from gwadm.extensions import BABEL_AVAILABLE
+from gwadm.decorators import require_login, require_role, require_any_role
+from gwadm.i18n import get_locale
+from gwadm.logging_config import log_error, log_debug
+from gwadm.services.content_init import init_default_modal_texts
+from gwadm.services.gwars_domains import load_gwars_domain_map, parse_domain_map, serialize_domain_map
+from gwadm.services.settings import get_setting, set_setting
 
 @bp.route('/settings', methods=['GET', 'POST'])
 @require_role('admin')
@@ -22,7 +28,7 @@ def admin_settings():
         # Обработка настройки локализации
         if 'default_language' in request.form:
             default_language = request.form.get('default_language', 'ru').strip()
-            if default_language in app.config['LANGUAGES']:
+            if default_language in current_app.config['LANGUAGES']:
                 set_setting('default_language', default_language, 'Язык по умолчанию (ru или en)', 'general')
         
         # Обновляем настройки
@@ -172,7 +178,7 @@ def admin_settings():
     
     # Получаем настройки локализации для вкладки
     default_language = get_setting('default_language', 'ru')
-    available_languages = app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
+    available_languages = current_app.config.get('LANGUAGES', {'ru': 'Русский', 'en': 'English'})
     try:
         current_locale = get_locale()
     except Exception:

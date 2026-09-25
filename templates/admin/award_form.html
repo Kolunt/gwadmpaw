@@ -1,9 +1,9 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
 {% block title %}{% if award %}Редактирование награды{% else %}Создание награды{% endif %} - Админ-панель{% endblock %}
 
-{% block content %}
+{% block admin_content %}
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if award %}Редактирование награды{% else %}Создание награды{% endif %}</h1>

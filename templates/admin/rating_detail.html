@@ -1,9 +1,9 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Бубенчики - {{ user.username or ('ID ' ~ user.user_id) }}{% endblock %}
 
-{% block content %}
+{% block admin_content %}
 <div class="dashboard-container">
     <div class="admin-container">
         <div class="admin-header">

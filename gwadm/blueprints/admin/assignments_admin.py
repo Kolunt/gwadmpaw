@@ -8,6 +8,7 @@ from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
 
 from gwadm.blueprints.admin import bp
+from gwadm.services.assignments import get_admin_letter_assignments
 
 @bp.route('/letters/archived')
 @require_role('admin')

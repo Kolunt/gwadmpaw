@@ -27,11 +27,13 @@ def test_fresh_database_applies_all_migrations(tmp_path):
         "SELECT name FROM sqlite_master WHERE type='table' AND name='users'"
     ).fetchone()
     settings = conn.execute("SELECT COUNT(*) FROM settings").fetchone()[0]
+    last_seen_col = conn.execute("PRAGMA table_info(users)").fetchall()
     conn.close()
 
     assert version == CURRENT_VERSION
     assert users is not None
     assert settings > 0
+    assert any(row[1] == 'last_seen' for row in last_seen_col)
 
 
 def test_legacy_database_is_stamped_without_rerunning_alters(tmp_path):

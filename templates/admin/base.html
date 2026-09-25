@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="admin">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#5c1a24">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="АДМ Admin">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    {% set site_title = get_setting('site_title', 'Анонимные Деды Морозы') %}
+    <title>{% block title %}{{ site_title }} — Админ{% endblock %}</title>
+    {% set site_icon = '🎅' %}
+    {% set site_logo = '🎅' %}
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>{{ site_icon }}</text></svg>">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% if is_production %}
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a);
+        })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=105196567', 'ym');
+        ym(105196567, 'init', { ssr: true, webvisor: true, clickmap: true, ecommerce: "dataLayer", accurateTrackBounce: true, trackLinks: true });
+    </script>
+    {% endif %}
+</head>
+<body class="admin-layout-body">
+    {% if is_production %}
+    <noscript>
+        <div><img src="https://mc.yandex.ru/watch/105196567" style="position:absolute; left:-9999px;" alt="" /></div>
+    </noscript>
+    {% endif %}
+    <nav class="navbar navbar-admin">
+        <div class="navbar-content">
+            <div class="navbar-left">
+                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Открыть меню">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <a href="{{ url_for('admin.admin_panel') }}" class="navbar-brand-link">
+                    <span class="navbar-logo-emoji">{{ site_logo }}</span>
+                    <span class="logo logo-desktop">АДМ · Админ</span>
+                    <span class="logo logo-mobile">ADM</span>
+                </a>
+            </div>
+            <div class="navbar-actions">
+                <a href="https://max.ru/channel_GWADM" class="navbar-icon-btn" title="Наш канал в MAX!" aria-label="MAX" target="_blank" rel="noopener noreferrer">
+                    <img src="{{ url_for('static', filename='images/max-logo.png') }}" alt="MAX" class="navbar-icon-image">
+                </a>
+                <a href="https://t.me/GWADMv2" class="navbar-icon-btn" title="Наш Telegram-канал" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
+                    <img src="{{ url_for('static', filename='images/telegram-logo.svg') }}" alt="Telegram" class="navbar-icon-image">
+                </a>
+                {% if session.get('impersonation_original') %}
+                {% from 'macros/csrf.html' import csrf_input %}
+                <form method="POST" action="{{ url_for('admin.stop_impersonation') }}" class="impersonation-navbar-form">
+                    {{ csrf_input() }}
+                    <button type="submit" class="navbar-icon-btn" title="Вернуться к своей учетной записи" aria-label="Вернуться к своей учетной записи">
+                        🔙
+                    </button>
+                </form>
+                {% endif %}
+                {% if session.user_id %}
+                <a href="{{ url_for('profile.dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="{{ _('Profile') }}">
+                    {% if current_user_avatar_seed %}
+                        <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="Аватар" class="navbar-avatar">
+                    {% else %}
+                        <span class="navbar-icon">👤</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="navbar-icon-btn" title="{{ _('Logout') }}">
+                    <span class="navbar-icon">🚪</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <aside id="sidebar" class="sidebar sidebar-admin">
+        <div class="sidebar-header">
+            <button id="sidebar-close" class="sidebar-close" aria-label="Закрыть меню">
+                <span>&times;</span>
+            </button>
+        </div>
+        {% include 'admin/_sidebar.html' %}
+    </aside>
+
+    <div class="content-wrapper">
+        <main class="main-content">
+            <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message|safe }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+                {% block admin_content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+        window.getCsrfToken = function () {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

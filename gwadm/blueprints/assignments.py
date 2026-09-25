@@ -16,7 +16,17 @@ from gwadm.config import (
     LETTER_UPLOAD_FOLDER,
     LETTER_UPLOAD_RELATIVE,
 )
-from gwadm.services.assignments import mark_assignment_received, mark_assignment_sent
+from gwadm.services.assignments import (
+    _format_full_address,
+    get_admin_letter_assignments,
+    get_user_assignments,
+    mark_assignment_received,
+    mark_assignment_sent,
+)
+from gwadm.services.events import is_event_finished
+from gwadm.services.events_stages import parse_event_datetime
+from gwadm.services.rating import _normalize_multiline_text
+from gwadm.services.roles import has_role
 from gwadm.services.uploads import save_validated_image, validate_image_upload
 
 bp = Blueprint('assignments', __name__)

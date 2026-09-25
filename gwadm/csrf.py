@@ -64,6 +64,8 @@ def _wants_json_response() -> bool:
 
 
 def init_csrf(app) -> None:
+    app.jinja_env.globals['csrf_token'] = generate_csrf_token
+
     @app.context_processor
     def inject_csrf():
         return {'csrf_token': generate_csrf_token}
