@@ -26,6 +26,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import traceback
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from gwars_domains import (
     DEFAULT_GWARS_DOMAIN_MAP,
@@ -129,9 +130,18 @@ LETTER_UPLOAD_RELATIVE = 'uploads/letter_attachments'
 LETTER_UPLOAD_FOLDER = os.path.join(app.static_folder, 'uploads', 'letter_attachments')
 ASSIGNMENT_RECEIPT_RELATIVE = 'uploads/assignment_receipts'
 ASSIGNMENT_RECEIPT_FOLDER = os.path.join(app.static_folder, 'uploads', 'assignment_receipts')
+AVATAR_CACHE_FOLDER = os.path.join(app.static_folder, 'uploads', 'avatars', 'cache')
 ALLOWED_LETTER_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+VALID_AVATAR_STYLES = frozenset({
+    'adventurer', 'adventurer-neutral', 'avataaars', 'avataaars-neutral',
+    'big-ears', 'big-ears-neutral', 'big-smile', 'bottts', 'bottts-neutral',
+    'croodles', 'croodles-neutral', 'fun-emoji', 'icons', 'identicon', 'initials',
+    'lorelei', 'lorelei-neutral', 'micah', 'miniavs', 'open-peeps', 'personas',
+    'pixel-art', 'pixel-art-neutral', 'rings', 'shapes', 'thumbs',
+})
 os.makedirs(LETTER_UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(ASSIGNMENT_RECEIPT_FOLDER, exist_ok=True)
+os.makedirs(AVATAR_CACHE_FOLDER, exist_ok=True)
 
 # Настройка логирования (должно быть перед использованием log_error)
 logging.basicConfig(level=logging.DEBUG)
@@ -1305,20 +1315,102 @@ def generate_unique_avatar_candidates(style, count=20, exclude_user_id=None):
     
     return candidates
 
-def get_avatar_url(avatar_seed, style=None, size=128):
-    """Генерирует URL аватара DiceBear"""
-    if not avatar_seed:
-        return None
+def normalize_avatar_style(style):
+    """Возвращает валидный стиль DiceBear."""
     style_value = (style or 'avataaars').strip()
     if not style_value or style_value.lower() in ('none', 'null'):
         style_value = 'avataaars'
+    if style_value not in VALID_AVATAR_STYLES:
+        style_value = 'avataaars'
+    return style_value
+
+
+def build_dicebear_avatar_url(avatar_seed, style=None, size=128):
+    """Прямой URL DiceBear (для серверной загрузки)."""
+    style_value = normalize_avatar_style(style)
     try:
         size_value = int(size)
     except (TypeError, ValueError):
         size_value = 128
-    # PNG надёжнее для маленьких <img> в таблицах и списках
+    size_value = max(16, min(size_value, 256))
     fmt = 'png' if size_value <= 64 else 'svg'
-    return f"https://api.dicebear.com/7.x/{style_value}/{fmt}?seed={avatar_seed}&size={size_value}"
+    return (
+        f"https://api.dicebear.com/7.x/{style_value}/{fmt}"
+        f"?seed={quote(str(avatar_seed), safe='')}&size={size_value}"
+    ), style_value, size_value, fmt
+
+
+def get_avatar_cache_path(avatar_seed, style=None, size=128):
+    """Путь к файлу кэша аватара."""
+    _, style_value, size_value, fmt = build_dicebear_avatar_url(avatar_seed, style, size)
+    cache_name = hashlib.sha256(f'{style_value}:{avatar_seed}:{size_value}:{fmt}'.encode()).hexdigest()
+    return os.path.join(AVATAR_CACHE_FOLDER, f'{cache_name}.{fmt}'), fmt
+
+
+def ensure_avatar_cached(avatar_seed, style=None, size=40):
+    """Скачивает аватар в локальный кэш, если его ещё нет."""
+    if not avatar_seed or not requests:
+        return False
+    cache_path, _fmt = get_avatar_cache_path(avatar_seed, style, size)
+    if os.path.exists(cache_path):
+        return True
+    dicebear_url, _, _, _ = build_dicebear_avatar_url(avatar_seed, style, size)
+    try:
+        response = requests.get(dicebear_url, timeout=20)
+        if response.status_code != 200:
+            return False
+        os.makedirs(AVATAR_CACHE_FOLDER, exist_ok=True)
+        with open(cache_path, 'wb') as cache_file:
+            cache_file.write(response.content)
+        return True
+    except Exception as exc:
+        log_error(f"ensure_avatar_cached failed for seed={avatar_seed}: {exc}")
+        return False
+
+
+def warm_user_avatars(users, size=40, max_workers=4):
+    """Прогревает кэш аватаров для списка пользователей (ограниченный параллелизм)."""
+    seeds = [
+        (user.get('avatar_seed'), user.get('avatar_style'))
+        for user in users
+        if user.get('avatar_seed')
+    ]
+    if not seeds:
+        return
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(ensure_avatar_cached, seed, style, size)
+            for seed, style in seeds
+        ]
+        for future in futures:
+            try:
+                future.result()
+            except Exception as exc:
+                log_error(f"warm_user_avatars task failed: {exc}")
+
+
+def get_avatar_url(avatar_seed, style=None, size=128):
+    """URL аватара через локальный прокси (кэш + без лимитов DiceBear в браузере)."""
+    if not avatar_seed:
+        return None
+    style_value = normalize_avatar_style(style)
+    try:
+        size_value = int(size)
+    except (TypeError, ValueError):
+        size_value = 128
+    size_value = max(16, min(size_value, 256))
+    try:
+        return url_for(
+            'avatar_image',
+            seed=str(avatar_seed),
+            style=style_value,
+            size=size_value,
+        )
+    except RuntimeError:
+        return (
+            f"/avatars/image?seed={quote(str(avatar_seed), safe='')}"
+            f"&style={quote(style_value, safe='')}&size={size_value}"
+        )
 
 def get_user_avatar_url(user, size=128):
     """Получает URL аватара пользователя с учетом его стиля"""
@@ -12755,6 +12847,33 @@ def admin_letters():
     assignments = get_admin_letter_assignments()
     return render_template('admin/letters.html', assignments=assignments)
 
+@app.route('/avatars/image')
+def avatar_image():
+    """Прокси и дисковый кэш аватаров DiceBear (same-origin для браузера)."""
+    seed = (request.args.get('seed') or '').strip()
+    style = normalize_avatar_style(request.args.get('style'))
+    try:
+        size_value = int(request.args.get('size', 40))
+    except (TypeError, ValueError):
+        size_value = 40
+    size_value = max(16, min(size_value, 256))
+
+    if not seed or not re.fullmatch(r'[\w.\-]+', seed):
+        abort(404)
+
+    cache_path, fmt = get_avatar_cache_path(seed, style, size_value)
+    mimetype = 'image/png' if fmt == 'png' else 'image/svg+xml'
+
+    if not os.path.exists(cache_path):
+        if not ensure_avatar_cached(seed, style, size_value):
+            dicebear_url, _, _, _ = build_dicebear_avatar_url(seed, style, size_value)
+            if requests:
+                return redirect(dicebear_url)
+            abort(502)
+
+    return send_file(cache_path, mimetype=mimetype, max_age=604800)
+
+
 @app.route('/titles/<int:title_id>')
 def title_view(title_id):
     """Публичный список пользователей с конкретным званием"""
@@ -12767,6 +12886,7 @@ def title_view(title_id):
         return redirect(url_for('participants'))
 
     users = get_users_with_title(title_id)
+    warm_user_avatars(users, size=40)
     return render_template('title_view.html', title=dict(title), users=users, get_avatar_url=get_avatar_url)
 
 
@@ -13600,6 +13720,7 @@ def award_view(award_id):
         return redirect(url_for('participants'))
 
     users = get_users_with_award(award_id)
+    warm_user_avatars(users, size=40)
     return render_template('award_view.html', award=dict(award), users=users, get_avatar_url=get_avatar_url)
 
 @app.route('/assignments/<int:assignment_id>/send', methods=['POST'])

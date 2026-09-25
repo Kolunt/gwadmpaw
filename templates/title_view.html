@@ -42,7 +42,11 @@
                                         <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars', 40) }}"
                                              alt="{{ user.username }}"
                                              class="avatar-small"
-                                             style="width: 40px; height: 40px; margin-right: 0;">
+                                             style="width: 40px; height: 40px; margin-right: 0;"
+                                             loading="lazy"
+                                             decoding="async"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                        <span class="avatar-small avatar-fallback" style="display:none; width: 40px; height: 40px; margin-right: 0; align-items: center; justify-content: center; font-size: 1.25rem; background: var(--bg-secondary); border-radius: 50%; border: 2px solid var(--border-color);">👤</span>
                                     {% else %}
                                         <span class="avatar-small" style="width: 40px; height: 40px; margin-right: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; background: var(--bg-secondary);">👤</span>
                                     {% endif %}
