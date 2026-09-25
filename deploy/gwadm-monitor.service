@@ -1,0 +1,13 @@
+[Unit]
+Description=GWADM production monitoring checks
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/deploy/gwadm
+Environment=PATH=/usr/bin:/bin
+EnvironmentFile=-/home/deploy/gwadm/.env
+ExecStart=/bin/bash /home/deploy/gwadm/scripts/monitor_prod.sh
+
+[Install]
+WantedBy=default.target

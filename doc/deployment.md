@@ -49,6 +49,28 @@ ls -la ~/gwadm/backups/
 
 Опционально в `~/gwadm/.env`: `BACKUP_DIR=/path/to/backups`.
 
+## Мониторинг
+
+Ежечасные проверки через user systemd timer [`scripts/monitor_prod.sh`](../scripts/monitor_prod.sh):
+
+- local/public `GET /health`
+- использование диска (`/`, пороги 85%/95%)
+- размер avatar cache (`static/uploads/avatars/cache`, пороги 500/1000 MB)
+- размер каталога `backups/` (только INFO)
+- ошибки gunicorn в `journalctl` за последний час (WARN при ≥ 5)
+
+```bash
+cp ~/gwadm/deploy/gwadm-monitor.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now gwadm-monitor.timer
+systemctl --user start gwadm-monitor.service
+journalctl --user -u gwadm-monitor.service -n 30
+```
+
+Коды выхода: `0` OK, `1` CRITICAL, `2` WARN. Просмотр логов: `journalctl --user -u gwadm-monitor.service`.
+
+Опционально в `.env`: `MONITOR_DISK_WARN_PERCENT`, `MONITOR_AVATAR_WARN_MB`, `MONITOR_SKIP_PUBLIC=1` (только local health).
+
 ## PWA / Service Worker
 
 При релизе с изменениями в `static/` обновите `CACHE_NAME` в [`static/sw.js`](../static/sw.js) — синхронно с версией в [`version.py`](../version.py) (например `gwadmpaw-v1.28.0`). Иначе клиенты могут кэшировать старый CSS/JS.

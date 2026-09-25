@@ -120,7 +120,7 @@
 | R-702 | Объединить `_OLD_deployment_pythonanywhere.md` и `deploy/FINISH_SETUP.md` или явно пометить legacy PA | done | — |
 | R-703 | `GET /health` — 200 + версия, без БД или с лёгкой проверкой | done | R-106 |
 | R-704 | systemd timer для backup БД + ротация (вместо только cron-job.org) | done | R-102 |
-| R-705 | Мониторинг: алерт при 5xx, место на диске (аватары-кэш растёт) | todo | R-703 |
+| R-705 | Мониторинг: алерт при 5xx, место на диске (аватары-кэш растёт) | done | R-703 |
 
 ---
 
@@ -208,3 +208,4 @@ gwadmpaw/
 | 2025-09-25 | R-601–R-605: Jinja macros, admin-settings.js, CSS cleanup, PWA CACHE_NAME, style.css reorder |
 | 2025-09-25 | R-701–R-702: документация в `doc/`, README под gwadm.ru, PA-гайд в `_OLD_*` |
 | 2025-09-25 | R-704: `backup_database()` + `~/gwadm/backups/`, systemd user timer `gwadm-backup` |
+| 2025-09-25 | R-705: `monitor_prod.sh` + `gwadm-monitor.timer` (health, disk, avatar cache, journal) |

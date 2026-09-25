@@ -116,7 +116,19 @@ ls -la ~/gwadm/backups/
 
 Подробнее: [doc/database.md](../doc/database.md).
 
-## 8. Проверка
+## 8. Мониторинг (systemd timer)
+
+```bash
+cp ~/gwadm/deploy/gwadm-monitor.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now gwadm-monitor.timer
+systemctl --user start gwadm-monitor.service
+journalctl --user -u gwadm-monitor.service -n 30
+```
+
+Подробнее: [doc/deployment.md](../doc/deployment.md#мониторинг).
+
+## 9. Проверка
 
 ```bash
 systemctl --user status gwadm
