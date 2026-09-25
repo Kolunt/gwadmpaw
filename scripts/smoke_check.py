@@ -22,13 +22,23 @@ def main() -> int:
     if not callable(is_production):
         errors.append("is_production is not callable")
 
-    from gwadm.db import get_db
+    from gwadm.db import get_db, get_db_connection, is_database_initialized
+
+    if not is_database_initialized():
+        errors.append("database should be initialized after import app")
 
     try:
         with get_db() as conn:
             conn.execute("SELECT 1")
     except Exception as exc:
         errors.append(f"get_db context manager failed: {exc}")
+
+    try:
+        conn = get_db_connection()
+        conn.execute("SELECT 1")
+        conn.close()
+    except Exception as exc:
+        errors.append(f"get_db_connection failed: {exc}")
 
     client = flask_app.test_client()
 

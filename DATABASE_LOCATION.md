@@ -100,31 +100,35 @@ def init_db():
 База данных инициализируется при импорте модуля:
 
 ```python
-# В конце app.py
+# В конце app.py (при импорте WSGI)
 try:
-    init_db()
+    ensure_db()
 except Exception as e:
     log_error(f"Failed to initialize database on startup: {e}")
 ```
 
+Скрипт `cron_tasks.py` также вызывает `ensure_db()` в начале `main()`.
+
 ## Подключение к базе данных
 
-### Функция `get_db_connection()`
+### Функция `get_db_connection()` ([`gwadm/db.py`](gwadm/db.py))
 
 ```python
 def get_db_connection():
     """Получает соединение с базой данных"""
-    ensure_db()  # Убеждаемся, что БД инициализирована
+    if not _db_initialized:
+        raise RuntimeError('Call ensure_db() at startup')
     db_path = get_db_path()
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row  # Возвращает строки как словари
+    conn = sqlite3.connect(db_path, timeout=30)
+    conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA journal_mode=WAL')
     return conn
 ```
 
 **Особенности:**
-- Автоматически инициализирует БД, если её нет
+- Требует предварительный `ensure_db()` при старте процесса
 - Использует `sqlite3.Row` для удобного доступа к данным
-- Возвращает готовое соединение
+- WAL mode и timeout=30 для многопоточного gunicorn
 
 ## Структура базы данных
 

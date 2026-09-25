@@ -47,7 +47,7 @@ from gwadm.config import (
 )
 from gwadm.logging_config import log_debug, log_error, setup_logging
 from gwadm import db as gwadm_db
-from gwadm.db import ensure_db, get_db, get_db_connection, get_db_path, init_db
+from gwadm.db import ensure_db, get_db, get_db_connection, get_db_path
 
 setup_logging()
 
@@ -2055,7 +2055,7 @@ def login():
             # Если ошибка из-за отсутствия таблицы, пробуем инициализировать БД заново
             if "no such table" in str(e).lower():
                 log_error("Table not found, reinitializing database...")
-                init_db()
+                ensure_db()
                 # Пробуем еще раз
                 try:
                     # Проверяем существующего пользователя еще раз

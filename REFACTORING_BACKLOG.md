@@ -29,7 +29,7 @@
 |----|--------|--------|------------|
 | R-101 | `config.py` — `SECRET_KEY`, `GWARS_PASSWORD`, `DATABASE_PATH`, `CRON_SECRET_TOKEN`, флаги prod/dev | done | `gwadm/config.py` |
 | R-102 | `db.py` — `get_db_path()`, `get_connection()` как context manager, WAL, timeout | done | `gwadm/db.py`, `get_db()` |
-| R-103 | Перевести `init_db()` на вызов только при старте / явной миграции; убрать `ensure_db()` из каждого `get_db_connection()` | todo | R-102 |
+| R-103 | Перевести `init_db()` на вызов только при старте / явной миграции; убрать `ensure_db()` из каждого `get_db_connection()` | done | `ensure_db()` при импорте app и в cron |
 | R-104 | `migrations/` — вынести ALTER/INSERT из `init_db` в версионированные скрипты (хотя бы `001_initial.sql`, `002_*.sql` + таблица `schema_version`) | todo | R-103 |
 | R-105 | `logging_config.py` — уровни log debug/info по `FLASK_ENV`; убрать `log_error` для штатного login debug | done | `gwadm/logging_config.py` |
 | R-106 | `extensions.py` — создание `app`, ProxyFix, Babel, регистрация blueprints | todo | R-102 |
@@ -197,3 +197,4 @@ gwadmpaw/
 |------|-----------|
 | 2025-09-25 | Создан бэклог; R-000, R-003 отмечены done по факту уже сделанного |
 | 2025-09-25 | R-001, R-101, R-102, R-105: пакет `gwadm/` (config, db, logging), smoke_check, документация |
+| 2025-09-25 | R-103: `ensure_db()` только при старте (app import, cron), guard в `get_db_connection()` |

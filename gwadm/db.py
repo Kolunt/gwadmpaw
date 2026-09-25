@@ -996,9 +996,17 @@ def ensure_db():
                 raise
 
 
+def is_database_initialized() -> bool:
+    """Return True after ensure_db() has completed in this process."""
+    return _db_initialized
+
+
 def get_db_connection():
     """Получает соединение с базой данных"""
-    ensure_db()  # Убеждаемся, что БД инициализирована
+    if not _db_initialized:
+        raise RuntimeError(
+            'Database is not initialized. Call ensure_db() at application or cron startup.'
+        )
     db_path = get_db_path()
     conn = sqlite3.connect(db_path, timeout=30)
     conn.row_factory = sqlite3.Row

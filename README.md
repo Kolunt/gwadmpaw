@@ -39,7 +39,7 @@ python scripts/verify_gwars_domains.py
 | `FLASK_ENV` / `FLASK_DEBUG` | Режим prod/dev и уровень логов |
 | `EVENT_TIME_OFFSET_HOURS` | Смещение «сейчас» для этапов мероприятий |
 
-Слой БД и логирования: [`gwadm/db.py`](gwadm/db.py), [`gwadm/logging_config.py`](gwadm/logging_config.py).
+Слой БД и логирования: [`gwadm/db.py`](gwadm/db.py), [`gwadm/logging_config.py`](gwadm/logging_config.py). Инициализация схемы — `ensure_db()` при старте процесса (импорт `app` / `cron_tasks`), не при каждом `get_db_connection()`.
 
 ## Развертывание на PythonAnywhere
 
