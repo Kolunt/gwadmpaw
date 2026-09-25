@@ -31,6 +31,7 @@
 - Navbar (60px) и sidebar (250px на desktop) не меняются; отступ под navbar задаёт `.content-wrapper { margin-top: 60px }`.
 - Карточки и плитки: `border-radius: 0`, `padding: var(--layout-inner)`.
 - Узкий контент только точечно: `.form-container`, `.layout-inner`, `.profile-card`, `.letter-page-card`.
+- Hero на главной (`.hero-section`) — на всю высоту области контента: `min-height: calc(100dvh - 60px)`.
 
 ## Связанные документы
 
