@@ -3,7 +3,7 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
-NGINX_URL="${NGINX_URL:-http://127.0.0.1}"
+PUBLIC_URL="${PUBLIC_URL:-https://gwadm.ru}"
 APP_DIR="${APP_DIR:-$HOME/gwadm}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/.env}"
 PYTHON="${PYTHON:-$APP_DIR/venv/bin/python}"

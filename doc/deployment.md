@@ -34,7 +34,7 @@ journalctl --user -u gwadm -n 20
 
 **Обязательно после каждого деплоя:** `post_deploy_smoke.sh` на сервере проверяет:
 - `systemctl --user is-active gwadm`
-- `/health` на gunicorn (`127.0.0.1:8000`) и через nginx (`127.0.0.1`)
+- `/health` на gunicorn (`127.0.0.1:8000`) и публично `https://gwadm.ru/health`
 - совпадение `version` в `/health` с `version.py` в репозитории
 
 Без `loginctl enable-linger deploy` user systemd (и gwadm) **останавливается после закрытия SSH** → nginx 502. Один раз на сервере:
