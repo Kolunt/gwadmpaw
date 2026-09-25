@@ -19,6 +19,28 @@ python app.py
 
 Приложение будет доступно по адресу `http://localhost:5000`
 
+### Проверка перед деплоем
+
+```bash
+python scripts/smoke_check.py
+python scripts/verify_gwars_domains.py
+```
+
+## Конфигурация
+
+Настройки загружаются из переменных окружения (модуль [`gwadm/config.py`](gwadm/config.py)). Шаблон для `.env` на сервере: [`.env.example`](.env.example).
+
+| Переменная | Назначение |
+|------------|------------|
+| `SECRET_KEY` | Ключ сессий Flask (обязательно на проде) |
+| `GWARS_PASSWORD` | Пароль подписей GWars |
+| `DATABASE_PATH` | Путь к файлу SQLite |
+| `CRON_SECRET_TOKEN` | Защита endpoint `/cron/run` |
+| `FLASK_ENV` / `FLASK_DEBUG` | Режим prod/dev и уровень логов |
+| `EVENT_TIME_OFFSET_HOURS` | Смещение «сейчас» для этапов мероприятий |
+
+Слой БД и логирования: [`gwadm/db.py`](gwadm/db.py), [`gwadm/logging_config.py`](gwadm/logging_config.py).
+
 ## Развертывание на PythonAnywhere
 
 📖 **Подробная инструкция по развертыванию на gwadm.pythonanywhere.com** находится в файле [DEPLOYMENT.md](DEPLOYMENT.md)
@@ -68,20 +90,19 @@ pip3.10 install --user -r requirements.txt
 
 ```
 gwadmpaw/
-├── app.py              # Основное Flask приложение
-├── requirements.txt    # Зависимости Python
-├── README.md          # Документация
-├── .gitignore         # Игнорируемые файлы
-├── database.db        # SQLite база данных (создается автоматически)
-├── templates/         # HTML шаблоны
-│   ├── base.html
-│   ├── index.html
-│   └── dashboard.html
-└── static/            # Статические файлы
-    ├── css/
-    │   └── style.css
-    └── js/
-        └── theme.js
+├── app.py              # Flask-приложение (маршруты; entry point gunicorn app:app)
+├── gwadm/              # Пакет инфраструктуры
+│   ├── config.py       # Настройки из env
+│   ├── db.py           # SQLite, init_db, get_db_connection
+│   └── logging_config.py
+├── gwars_domains.py    # Карта доменов GWars
+├── scripts/
+│   ├── smoke_check.py
+│   └── verify_gwars_domains.py
+├── requirements.txt
+├── database.db         # SQLite (создаётся автоматически)
+├── templates/
+└── static/
 ```
 
 ## Авторизация через GWars

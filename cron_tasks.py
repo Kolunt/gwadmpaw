@@ -19,8 +19,8 @@ project_path = os.path.dirname(os.path.abspath(__file__))
 if project_path not in sys.path:
     sys.path.insert(0, project_path)
 
-# Импортируем функции из app.py
-from app import get_db_connection, log_error, log_debug
+from gwadm.db import get_db_connection
+from gwadm.logging_config import log_debug, log_error
 
 def cleanup_expired_verification_codes():
     """Очищает истекшие коды верификации Telegram"""
