@@ -12,6 +12,7 @@
 | `--layout-padding-x` | `0` | Горизонтальный padding обёртки страницы |
 | `--layout-padding-y` | `0` | Вертикальный padding обёртки страницы |
 | `--layout-inner` | `0.75rem` (12px) | Внутренний padding карточек, заголовков секций |
+| `--layout-section-gap` | `1.5rem` (24px) | Зазор между hero и stats на главной |
 | `--layout-narrow` | `48rem` | Узкий контент (формы, письма, login) |
 
 ## Классы
@@ -35,7 +36,7 @@
 
 ## Статистика (главная)
 
-Три метрики (участники, онлайн, мероприятия) — один блок `.stats-bar` с тремя `.stats-bar-item`, разделёнными `border`. На mobile (≤768px) — колонка.
+Три метрики (участники, онлайн, мероприятия) — один блок `.stats-bar` с тремя `.stats-bar-item`, разделёнными `border`. На mobile (≤768px) — колонка. Отступ от hero: `.hero-section + .stats-section { margin-top: var(--layout-section-gap) }`.
 
 ## Hero (главная)
 

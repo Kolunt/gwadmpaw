@@ -22,6 +22,7 @@
     --layout-padding-x: 0;
     --layout-padding-y: 0;
     --layout-inner: 0.75rem;
+    --layout-section-gap: 1.5rem;
     --layout-narrow: 48rem;
 }
 
@@ -1078,6 +1079,10 @@ body {
 }
 
 /* Statistics Section */
+.hero-section + .stats-section {
+    margin-top: var(--layout-section-gap);
+}
+
 .stats-section {
     padding: 0;
     margin: 0;
