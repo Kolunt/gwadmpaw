@@ -9,7 +9,7 @@
         <h1>Мы не нашли эту страницу</h1>
         <p>Запрашиваемая страница могла быть удалена, переименована или временно недоступна.</p>
         <div class="error-actions">
-            <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+            <a href="{{ url_for('public.index') }}" class="btn btn-primary">На главную</a>
             {% if request.referrer %}
             <a href="{{ request.referrer }}" class="btn btn-secondary">Вернуться назад</a>
             {% endif %}

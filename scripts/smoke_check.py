@@ -46,6 +46,11 @@ def main() -> int:
     if response.status_code != 200:
         errors.append(f"GET / expected 200, got {response.status_code}")
 
+    for path in ("/participants", "/faq", "/rules", "/rating", "/contacts"):
+        response = client.get(path)
+        if response.status_code != 200:
+            errors.append(f"GET {path} expected 200, got {response.status_code}")
+
     response = client.get("/login")
     if response.status_code not in (302, 303):
         errors.append(f"GET /login expected redirect, got {response.status_code}")

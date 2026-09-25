@@ -79,7 +79,7 @@
                     <span></span>
                     <span></span>
                 </button>
-                <a href="{{ url_for('index') }}" class="navbar-brand-link">
+                <a href="{{ url_for('public.index') }}" class="navbar-brand-link">
                     <span class="navbar-logo-emoji">{{ site_logo }}</span>
                     {% set logo_text = get_setting('logo_text', 'Анонимные Деды Морозы') %}
                     <span class="logo logo-desktop">{{ logo_text }}</span>
@@ -138,7 +138,7 @@
         <nav class="sidebar-nav">
             <!-- Основное меню (для всех пользователей) -->
             <div class="sidebar-section">
-                <a href="{{ url_for('index') }}" class="sidebar-link">
+                <a href="{{ url_for('public.index') }}" class="sidebar-link">
                     <span class="sidebar-icon">🏠</span>
                     <span>{{ _('Home') }}</span>
                 </a>
@@ -146,21 +146,25 @@
                     <span class="sidebar-icon">🎉</span>
                     <span>{{ _('Events') }}</span>
                 </a>
-                <a href="{{ url_for('participants') }}" class="sidebar-link">
+                <a href="{{ url_for('public.participants') }}" class="sidebar-link">
                     <span class="sidebar-icon">👥</span>
                     <span>{{ _('Participants') }}</span>
                 </a>
-                <a href="{{ url_for('user_rating') }}" class="sidebar-link">
+                <a href="{{ url_for('public.user_rating') }}" class="sidebar-link">
                     <span class="sidebar-icon">🏆</span>
                     <span>Рейтинг</span>
                 </a>
-                <a href="{{ url_for('faq') }}" class="sidebar-link">
+                <a href="{{ url_for('public.faq') }}" class="sidebar-link">
                     <span class="sidebar-icon">❓</span>
                     <span>{{ _('FAQ') }}</span>
                 </a>
-                <a href="{{ url_for('rules') }}" class="sidebar-link">
+                <a href="{{ url_for('public.rules') }}" class="sidebar-link">
                     <span class="sidebar-icon">📜</span>
                     <span>Правила</span>
+                </a>
+                <a href="{{ url_for('public.contacts') }}" class="sidebar-link">
+                    <span class="sidebar-icon">📞</span>
+                    <span>Контакты</span>
                 </a>
                 {% if session.user_id %}
                 <a href="{{ url_for('assignments') }}" class="sidebar-link">

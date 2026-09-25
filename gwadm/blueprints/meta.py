@@ -60,7 +60,7 @@ def title_view(title_id):
 
     if not title:
         flash('Звание не найдено', 'error')
-        return redirect(url_for('participants'))
+        return redirect(url_for('public.participants'))
 
     users = get_users_with_title(title_id)
     warm_user_avatars(users, size=40)
@@ -76,7 +76,7 @@ def role_view(role_name):
     if not role:
         conn.close()
         flash('Роль не найдена', 'error')
-        return redirect(url_for('participants'))
+        return redirect(url_for('public.participants'))
 
     users = conn.execute('''
         SELECT
@@ -115,7 +115,7 @@ def award_view(award_id):
 
     if not award:
         flash('Награда не найдена', 'error')
-        return redirect(url_for('participants'))
+        return redirect(url_for('public.participants'))
 
     users = get_users_with_award(award_id)
     warm_user_avatars(users, size=40)

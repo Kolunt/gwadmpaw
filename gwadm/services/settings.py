@@ -14,3 +14,12 @@ def get_setting(key, default=None):
     except Exception as e:
         log_error(f"Error getting setting {key}: {e}")
         return default
+
+
+def get_rating_setting(key, default=1):
+    """Получает настройку рейтинга как целое число."""
+    try:
+        value = get_setting(key, str(default))
+        return int(value) if value else default
+    except (ValueError, TypeError):
+        return default

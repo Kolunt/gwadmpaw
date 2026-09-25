@@ -36,7 +36,7 @@ def login_dev():
     
     if not is_local:
         flash('Тестовый режим доступен только на localhost', 'error')
-        return redirect(url_for('index'))
+        return redirect(url_for('public.index'))
     
     # Используем тестовые данные для первого администратора (user_id 283494)
     user_id = ADMIN_USER_IDS[0]
@@ -174,7 +174,7 @@ def login_dev():
     except Exception as e:
         log_error(f"Error saving dev user: {e}")
         flash(f'Ошибка сохранения пользователя: {str(e)}', 'error')
-        return redirect(url_for('index'))
+        return redirect(url_for('public.index'))
     finally:
         conn.close()
     
@@ -437,7 +437,7 @@ def login():
         
         if not verify_sign2(level, synd, user_id, sign2):
             flash('Ошибка проверки подписи sign2', 'error')
-            return redirect(url_for('index'))
+            return redirect(url_for('public.index'))
         
         if not verify_sign3(name, user_id, has_passport, has_mobile, old_passport, sign3, name_encoded):
             # Показываем страницу отладки для sign3
@@ -492,7 +492,7 @@ def login():
             
             # Показываем более информативное сообщение
             flash('Ошибка проверки подписи sign4. Возможно, разница в часовых поясах. Попробуйте войти еще раз.', 'error')
-            return redirect(url_for('index'))
+            return redirect(url_for('public.index'))
         
         # Сохраняем пользователя в БД
         conn = get_db_connection()
@@ -646,11 +646,11 @@ def login():
                     log_error(f"Error saving user after reinitialization: {e2}")
                     flash(f'Ошибка сохранения пользователя: {str(e2)}', 'error')
                     conn.close()
-                    return redirect(url_for('index'))
+                    return redirect(url_for('public.index'))
             else:
                 flash(f'Ошибка сохранения пользователя: {str(e)}', 'error')
                 conn.close()
-                return redirect(url_for('index'))
+                return redirect(url_for('public.index'))
         finally:
             conn.close()
         
@@ -685,7 +685,7 @@ def login():
         log_error(f"Error in login route: {e}")
         log_error(f"Traceback: {traceback.format_exc()}")
         flash(f'Ошибка при входе: {str(e)}', 'error')
-        return redirect(url_for('index'))
+        return redirect(url_for('public.index'))
 
 @bp.route('/logout')
 def logout():
@@ -697,7 +697,7 @@ def logout():
         )
     session.clear()
     flash('Вы успешно вышли из системы', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('public.index'))
 
 @bp.route('/gwars-required')
 def gwars_required():

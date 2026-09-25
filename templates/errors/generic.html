@@ -9,7 +9,7 @@
         <h1>Произошла ошибка</h1>
         <p>{{ error.description if error and error.description else 'Запрос не может быть обработан.' }}</p>
         <div class="error-actions">
-            <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+            <a href="{{ url_for('public.index') }}" class="btn btn-primary">На главную</a>
             {% if request.referrer %}
             <a href="{{ request.referrer }}" class="btn btn-secondary">Вернуться назад</a>
             {% endif %}

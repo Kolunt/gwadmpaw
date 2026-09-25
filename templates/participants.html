@@ -109,7 +109,7 @@
             <ul class="pagination-list">
                 {% if has_prev is defined and has_prev %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('participants', page=(page|default(1))-1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
+                    <a href="{{ url_for('public.participants', page=(page|default(1))-1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
                         ← Предыдущая
                     </a>
                 </li>
@@ -127,7 +127,7 @@
                 
                 {% if start_page > 1 %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('participants', page=1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link">1</a>
+                    <a href="{{ url_for('public.participants', page=1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link">1</a>
                 </li>
                 {% if start_page > 2 %}
                 <li class="pagination-item pagination-item-ellipsis">
@@ -141,7 +141,7 @@
                     {% if p == current_page %}
                     <span class="pagination-link pagination-link-active" aria-current="page">{{ p }}</span>
                     {% else %}
-                    <a href="{{ url_for('participants', page=p, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link">{{ p }}</a>
+                    <a href="{{ url_for('public.participants', page=p, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link">{{ p }}</a>
                     {% endif %}
                 </li>
                 {% endfor %}
@@ -153,13 +153,13 @@
                 </li>
                 {% endif %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('participants', page=total_pages, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link">{{ total_pages }}</a>
+                    <a href="{{ url_for('public.participants', page=total_pages, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link">{{ total_pages }}</a>
                 </li>
                 {% endif %}
                 
                 {% if has_next is defined and has_next %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('participants', page=current_page+1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
+                    <a href="{{ url_for('public.participants', page=current_page+1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
                         Следующая →
                     </a>
                 </li>

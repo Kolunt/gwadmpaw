@@ -36,7 +36,6 @@ from gwars_domains import (
 from gwadm.config import (
     ADMIN_USER_IDS,
     CRON_SECRET_TOKEN,
-    EVENT_TIME_OFFSET_HOURS,
     GWARS_PASSWORD,
     is_debug,
     is_production,
@@ -48,7 +47,17 @@ from gwadm.logging_config import log_debug, log_error
 from gwadm.db import ensure_db, get_db, get_db_connection, get_db_path
 
 from gwadm.services.activity import log_activity
-from gwadm.services.settings import get_setting
+from gwadm.services.settings import get_rating_setting, get_setting
+from gwadm.services.events_stages import (
+    EVENT_STAGES,
+    create_participant_approvals_for_event,
+    get_current_event_stage,
+    get_event_now,
+    get_event_registrations_count,
+    get_event_stages,
+    parse_event_datetime,
+)
+from gwadm.services.titles import get_user_titles
 from gwadm.services.gwars_domains import load_gwars_domain_map
 from gwadm.services.roles import (
     assign_role,
@@ -67,44 +76,6 @@ from gwadm.services.avatars import (
 )
 
 app = create_app()
-
-def get_event_now():
-    return datetime.utcnow() + timedelta(hours=EVENT_TIME_OFFSET_HOURS)
-
-def parse_event_datetime(value):
-    """Безопасно парсит сохранённые в БД даты этапов в объект datetime."""
-    if not value:
-        return None
-
-    if isinstance(value, datetime):
-        return value
-
-    value_str = str(value).strip()
-    if not value_str:
-        return None
-
-    formats = (
-        '%Y-%m-%d %H:%M:%S',
-        '%Y-%m-%dT%H:%M:%S',
-        '%Y-%m-%dT%H:%M',
-        '%Y-%m-%d %H:%M',
-    )
-
-    for fmt in formats:
-        try:
-            return datetime.strptime(value_str, fmt)
-        except ValueError:
-            continue
-
-    try:
-        result = datetime.fromisoformat(value_str)
-        if result.tzinfo is not None:
-            result = result.astimezone(timezone.utc).replace(tzinfo=None)
-            if EVENT_TIME_OFFSET_HOURS:
-                result += timedelta(hours=EVENT_TIME_OFFSET_HOURS)
-        return result
-    except ValueError:
-        return None
 
 @app.template_filter('format_gender')
 def format_gender(value):
@@ -246,20 +217,6 @@ def get_all_titles():
     titles = conn.execute('''
         SELECT * FROM titles ORDER BY is_system DESC, display_name
     ''').fetchall()
-    conn.close()
-    return [dict(t) for t in titles]
-
-def get_user_titles(user_id):
-    """Получает список званий пользователя"""
-    if not user_id:
-        return []
-    conn = get_db_connection()
-    titles = conn.execute('''
-        SELECT t.* FROM titles t
-        INNER JOIN user_titles ut ON t.id = ut.title_id
-        WHERE ut.user_id = ?
-        ORDER BY t.display_name
-    ''', (user_id,)).fetchall()
     conn.close()
     return [dict(t) for t in titles]
 
@@ -646,7 +603,7 @@ def require_role(role_name):
             if not has_role(user_id, role_name):
                 if not user_id:
                     flash('Для доступа к этой странице необходимо авторизоваться', 'error')
-                    return redirect(url_for('index'))
+                    return redirect(url_for('public.index'))
                 else:
                     flash('У вас нет прав для доступа к этой странице', 'error')
                     return redirect(url_for('dashboard'))
@@ -663,7 +620,7 @@ def require_any_role(*role_names):
             if not has_any_role(user_id, role_names):
                 if not user_id:
                     flash('Для доступа к этой странице необходимо авторизоваться', 'error')
-                    return redirect(url_for('index'))
+                    return redirect(url_for('public.index'))
                 else:
                     flash('У вас нет прав для доступа к этой странице', 'error')
                     return redirect(url_for('dashboard'))
@@ -676,7 +633,7 @@ def require_login(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             flash('Для доступа к этой странице необходимо авторизоваться', 'error')
-            return redirect(url_for('index'))
+            return redirect(url_for('public.index'))
         return f(*args, **kwargs)
     return decorated_function
 # Проверка подписи sign
@@ -757,123 +714,6 @@ def inject_common_flags():
         'app_config': app.config,
     }
 
-@app.route('/')
-def index():
-    # Собираем данные для лендинга (доступно всем)
-    conn = get_db_connection()
-    
-    # Статистика участников
-    total_users = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
-    online_users = conn.execute('''
-        SELECT COUNT(*) as count FROM users 
-        WHERE datetime(last_login) > datetime('now', '-1 hour')
-    ''').fetchone()['count']
-    
-    # Последние события (активные или последние 3)
-    events_list = conn.execute('''
-        SELECT e.*, u.username as creator_name
-        FROM events e
-        LEFT JOIN users u ON e.created_by = u.user_id
-        WHERE e.deleted_at IS NULL
-        ORDER BY e.created_at DESC
-    ''').fetchall()
-    
-    # Определяем текущий этап и ближайший будущий этап для каждого мероприятия
-    events_with_stages_raw = []
-    now = get_event_now()
-    stage_info_map = {stage['type']: stage for stage in EVENT_STAGES}
-
-    def parse_dt(value):
-        if not value:
-            return None
-        try:
-            return datetime.fromisoformat(str(value))
-        except ValueError:
-            return None
-
-    for event in events_list:
-        current_stage = get_current_event_stage(event['id'])
-        display_stage_name = None
-        next_stage = None
-        if current_stage:
-            display_stage_name = current_stage['info']['name']
-            if current_stage['info']['type'] == 'registration_closed':
-                lottery_stage = next((stage for stage in EVENT_STAGES if stage['type'] == 'lottery'), None)
-                display_stage_name = lottery_stage['name'] if lottery_stage else 'Жеребьёвка'
-        
-        # Определяем следующий этап для таймера
-        stages = get_event_stages(event['id'])
-        stages_dict = {stage['stage_type']: dict(stage) for stage in stages}
-        for stage in stages:
-            start_dt = parse_dt(stage['start_datetime'])
-            if not start_dt or start_dt <= now:
-                continue
-
-            stage_info = stage_info_map.get(stage['stage_type'])
-            stage_name = stage_info['name'] if stage_info else stage['stage_type']
-
-            if (not next_stage) or start_dt < next_stage['start_dt']:
-                next_stage = {
-                    'name': stage_name,
-                    'start_dt': start_dt,
-                    'start_iso': start_dt.isoformat()
-                }
-
-        if current_stage and not next_stage:
-            current_type = current_stage['info']['type']
-            try:
-                current_index = next(i for i, s in enumerate(EVENT_STAGES) if s['type'] == current_type)
-            except StopIteration:
-                current_index = None
-
-            if current_index is not None:
-                for idx in range(current_index + 1, len(EVENT_STAGES)):
-                    next_info = EVENT_STAGES[idx]
-                    next_data = stages_dict.get(next_info['type'])
-                    candidate_raw = None
-                    candidate_dt = None
-
-                    if next_data and next_data.get('start_datetime'):
-                        candidate_raw = next_data['start_datetime']
-                    elif next_data and next_data.get('end_datetime'):
-                        candidate_raw = next_data['end_datetime']
-                    elif next_info['type'] == 'after_party' and current_stage['data'] and current_stage['data'].get('end_datetime'):
-                        candidate_raw = current_stage['data']['end_datetime']
-
-                    if candidate_raw:
-                        candidate_dt = parse_event_datetime(str(candidate_raw))
-
-                    if candidate_dt and candidate_dt > now:
-                        next_stage = {
-                            'name': next_info['name'],
-                            'start_dt': candidate_dt,
-                            'start_iso': candidate_dt.isoformat()
-                        }
-                        break
-
-        events_with_stages_raw.append({
-            'event': event,
-            'current_stage': current_stage,
-            'display_stage_name': display_stage_name,
-            'next_stage': next_stage
-        })
-
-    events_with_stages = events_with_stages_raw
-
-    for item in events_with_stages:
-        event = item['event']
-        item['registrations_count'] = get_event_registrations_count(event['id'])
-
-    # Название проекта
-    project_name = get_setting('project_name', 'Анонимные Деды Морозы')
-    
-    conn.close()
-    
-    return render_template('index.html', 
-                         total_users=total_users,
-                         online_users=online_users,
-                         events_with_stages=events_with_stages,
-                         project_name=project_name)
 @app.route('/telegram/verify/generate', methods=['POST'])
 @require_login
 def telegram_verify_generate():
@@ -1208,7 +1048,7 @@ def view_profile(user_id):
     if not user:
         flash('Пользователь не найден', 'error')
         conn.close()
-        return redirect(url_for('participants'))
+        return redirect(url_for('public.participants'))
     
     # Получаем роли и звания пользователя
     user_roles = get_user_roles(user_id)
@@ -1341,173 +1181,6 @@ def delete_admin_comment(user_id, comment_id):
         flash('Ошибка при удалении комментария', 'error')
     
     return redirect(url_for('view_profile', user_id=user_id) + '#comments')
-
-@app.route('/participants')
-def participants():
-    """Страница со списком участников"""
-    try:
-        # Параметры пагинации и поиска
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 50, type=int)
-        search_query = request.args.get('search', '').strip()
-        
-        # Логирование для отладки поиска
-        if search_query:
-            log_debug(f"Participants search: query='{search_query}', encoded={search_query.encode('utf-8')}")
-        
-        # Ограничиваем per_page разумными значениями
-        per_page = min(max(per_page, 10), 100)
-        
-        conn = get_db_connection()
-        
-        # Формируем условия поиска
-        # SQLite LOWER() не работает с кириллицей, поэтому используем другой подход:
-        # Загружаем всех пользователей и фильтруем в Python
-        search_params = []
-        if search_query:
-            search_lower = search_query.lower()
-            # Используем оригинальный запрос и нижний регистр для SQL
-            # Но основной фильтр будет в Python
-            search_pattern = f'%{search_query}%'
-            search_params = [search_pattern, search_pattern, search_pattern]
-        
-        # Для поиска загружаем всех пользователей и фильтруем в Python
-        # (так как SQLite LOWER() не работает с кириллицей)
-        if search_query:
-            # Загружаем всех пользователей для фильтрации в Python
-            all_users = conn.execute('''
-                SELECT 
-                    u.user_id,
-                    u.username,
-                    u.avatar_seed,
-                    u.avatar_style,
-                    u.created_at,
-                    u.last_login,
-                    GROUP_CONCAT(r.display_name, ', ') as roles
-                FROM users u
-                LEFT JOIN user_roles ur ON u.user_id = ur.user_id
-                LEFT JOIN roles r ON ur.role_id = r.id
-                GROUP BY u.user_id
-                ORDER BY u.created_at ASC
-            ''').fetchall()
-            
-            # Фильтруем в Python с учетом регистра
-            search_lower = search_query.lower()
-            filtered_users = []
-            for user in all_users:
-                user_keys = user.keys()
-                username = user['username'] if 'username' in user_keys else ''
-                user_id_str = str(user['user_id']) if 'user_id' in user_keys else ''
-                roles_str = user['roles'] if ('roles' in user_keys and user['roles']) else ''
-                
-                # Проверяем совпадение (регистронезависимо)
-                if (search_query.lower() in username.lower() or 
-                    search_query.lower() in user_id_str.lower() or
-                    search_query.lower() in roles_str.lower()):
-                    filtered_users.append(user)
-            
-            # Применяем пагинацию к отфильтрованным результатам
-            total_count = len(filtered_users)
-            offset = (page - 1) * per_page
-            users = filtered_users[offset:offset + per_page]
-        else:
-            # Без поиска - обычная пагинация
-            total_count = conn.execute('''
-                SELECT COUNT(DISTINCT u.user_id)
-                FROM users u
-            ''').fetchone()[0]
-            
-            offset = (page - 1) * per_page
-            users_query = '''
-                SELECT 
-                    u.user_id,
-                    u.username,
-                    u.avatar_seed,
-                    u.avatar_style,
-                    u.created_at,
-                    u.last_login,
-                    GROUP_CONCAT(r.display_name, ', ') as roles
-                FROM users u
-                LEFT JOIN user_roles ur ON u.user_id = ur.user_id
-                LEFT JOIN roles r ON ur.role_id = r.id
-                GROUP BY u.user_id
-                ORDER BY u.created_at ASC
-                LIMIT ? OFFSET ?
-            '''
-            users = conn.execute(users_query, [per_page, offset]).fetchall()
-        
-        # Для каждого пользователя определяем статус
-        participants_data = []
-        for user in users:
-            # sqlite3.Row работает как словарь, но не имеет метода .get()
-            # Используем прямой доступ с проверкой наличия ключей
-            user_keys = user.keys()
-            
-            last_login = user['last_login'] if 'last_login' in user_keys else None
-            
-            status = 'Оффлайн'
-            if last_login:
-                try:
-                    # Обрабатываем разные форматы даты
-                    last_login_str = str(last_login).split('.')[0] if '.' in str(last_login) else str(last_login)
-                    last_login_date = datetime.strptime(last_login_str, '%Y-%m-%d %H:%M:%S')
-                    now = datetime.now()
-                    if (now - last_login_date).total_seconds() < 3600:  # Меньше часа
-                        status = 'Онлайн'
-                    elif (now - last_login_date).days == 0:  # Сегодня
-                        status = 'Был сегодня'
-                except Exception as e:
-                    user_id = user['user_id'] if 'user_id' in user_keys else 'unknown'
-                    log_debug(f"Error parsing last_login for user {user_id}: {e}")
-            
-            # Обрабатываем роли - если их нет, используем 'Пользователь'
-            roles_str = user['roles'] if ('roles' in user_keys and user['roles']) else 'Пользователь'
-            
-            # Получаем значения с обработкой отсутствующих ключей
-            user_id = user['user_id'] if 'user_id' in user_keys else None
-            username = user['username'] if ('username' in user_keys and user['username']) else 'Неизвестно'
-            avatar_seed = user['avatar_seed'] if 'avatar_seed' in user_keys else None
-            avatar_style = user['avatar_style'] if 'avatar_style' in user_keys else None
-            created_at = user['created_at'] if ('created_at' in user_keys and user['created_at']) else 'N/A'
-            
-            participants_data.append({
-                'user_id': user_id,
-                'username': username,
-                'avatar_seed': avatar_seed,
-                'avatar_style': avatar_style,
-                'status': status,
-                'roles': roles_str,
-                'created_at': created_at
-            })
-        
-        conn.close()
-        
-        # Вычисляем данные для пагинации
-        total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
-        has_prev = page > 1
-        has_next = page < total_pages
-        
-        # Логирование для отладки
-        log_debug(f"Participants pagination: page={page}, per_page={per_page}, total_count={total_count}, total_pages={total_pages}, participants_count={len(participants_data)}")
-        
-        return render_template('participants.html', 
-                             participants=participants_data,
-                             get_avatar_url=get_avatar_url,
-                             page=page,
-                             per_page=per_page,
-                             total_count=total_count,
-                             total_pages=total_pages,
-                             has_prev=has_prev,
-                             has_next=has_next,
-                             search_query=search_query)
-    except Exception as e:
-        log_error(f"Error in participants route: {e}")
-        log_error(traceback.format_exc())
-        try:
-            conn.close()
-        except:
-            pass
-        return f"Ошибка при загрузке участников: {str(e)}", 500
 
 @app.route('/debug')
 def debug():
@@ -5443,14 +5116,6 @@ def get_faq_categories():
     return [dict(c) for c in categories]
 
 
-def get_rating_setting(key, default=1):
-    """Получает настройку рейтинга как целое число"""
-    try:
-        value = get_setting(key, str(default))
-        return int(value) if value else default
-    except (ValueError, TypeError):
-        return default
-
 def set_setting(key, value, description=None, category='general'):
     """Устанавливает значение настройки"""
     conn = get_db_connection()
@@ -5471,448 +5136,6 @@ def set_setting(key, value, description=None, category='general'):
 # МЕРОПРИЯТИЯ
 # ============================================
 
-EVENT_STAGES = [
-    {'type': 'pre_registration', 'name': 'Предварительная регистрация', 'required': False, 'has_start': True, 'has_end': False},
-    {'type': 'main_registration', 'name': 'Основная регистрация', 'required': True, 'has_start': True, 'has_end': False},
-    {'type': 'registration_closed', 'name': 'Закрытие регистрации', 'required': True, 'has_start': True, 'has_end': False},
-    {'type': 'lottery', 'name': 'Жеребьёвка', 'required': False, 'has_start': False, 'has_end': False},
-    {'type': 'celebration_date', 'name': 'Обмен подарками', 'required': True, 'has_start': True, 'has_end': False},
-    {'type': 'after_party', 'name': 'Мероприятие завершено', 'required': True, 'has_start': False, 'has_end': True},
-]
-
-AVATAR_STYLES = ['avataaars', 'bottts', 'identicon', 'initials', 'micah']
-
-def is_event_finished(event_id):
-    """Проверяет, закончилось ли мероприятие полностью"""
-    conn = get_db_connection()
-    stage_rows = conn.execute('''
-        SELECT * FROM event_stages 
-        WHERE event_id = ? 
-        ORDER BY stage_order
-    ''', (event_id,)).fetchall()
-    conn.close()
-
-    stages = [dict(row) for row in stage_rows]
-    
-    if not stages:
-        return False
-    
-    now = get_event_now()
-    
-    # Мероприятие считается завершенным, если последний этап (after_party) имеет end_datetime и оно прошло
-    after_party_stage = None
-    for stage in stages:
-        if stage['stage_type'] == 'after_party':
-            after_party_stage = stage
-            break
-    
-    if after_party_stage and after_party_stage['end_datetime']:
-        try:
-            end_dt = datetime.strptime(after_party_stage['end_datetime'], '%Y-%m-%d %H:%M:%S')
-        except:
-            try:
-                end_dt = datetime.strptime(after_party_stage['end_datetime'], '%Y-%m-%dT%H:%M')
-            except:
-                return False
-        
-        return now > end_dt
-    
-    return False
-
-def distribute_event_awards(event_id, require_sent=False):
-    """Выдает награды участникам мероприятия.
-
-    Если require_sent=True, награда выдается только Дедам Морозам, которые отметили отправку подарка.
-    """
-    conn = get_db_connection()
-    
-    # Проверяем, есть ли награда для мероприятия
-    event = conn.execute('SELECT award_id FROM events WHERE id = ?', (event_id,)).fetchone()
-    if not event or not event['award_id']:
-        conn.close()
-        return False
-    
-    award_id = event['award_id']
-    
-    if require_sent:
-        participants = conn.execute('''
-            SELECT DISTINCT santa_user_id AS user_id
-            FROM event_assignments
-            WHERE event_id = ?
-              AND santa_user_id IS NOT NULL
-              AND santa_sent_at IS NOT NULL
-        ''', (event_id,)).fetchall()
-    else:
-        # Получаем всех участников мероприятия
-        participants = conn.execute('''
-            SELECT DISTINCT user_id FROM event_registrations WHERE event_id = ?
-        ''', (event_id,)).fetchall()
-    
-    if not participants:
-        conn.close()
-        return False
-    
-    # Выдаем награду каждому участнику
-    admin_user_id = session.get('user_id') or 1  # Используем текущего пользователя или системного
-    awarded_count = 0
-    
-    for participant in participants:
-        user_id = participant['user_id']
-        try:
-            # Проверяем, не выдана ли уже награда
-            existing = conn.execute('''
-                SELECT id FROM user_awards WHERE user_id = ? AND award_id = ?
-            ''', (user_id, award_id)).fetchone()
-            
-            if not existing:
-                conn.execute('''
-                    INSERT INTO user_awards (user_id, award_id, assigned_by)
-                    VALUES (?, ?, ?)
-                ''', (user_id, award_id, admin_user_id))
-                awarded_count += 1
-        except sqlite3.IntegrityError:
-            pass  # Награда уже выдана
-        except Exception as e:
-            log_error(f"Error awarding user {user_id} with award {award_id}: {e}")
-    
-    if awarded_count > 0:
-        conn.commit()
-        log_debug(f"Distributed {awarded_count} awards for event {event_id} (require_sent={require_sent})")
-    
-    conn.close()
-    return awarded_count > 0
-def get_current_event_stage(event_id):
-    """Определяет текущий этап мероприятия на основе текущей даты"""
-    conn = get_db_connection()
-    stage_rows = conn.execute('''
-        SELECT * FROM event_stages 
-        WHERE event_id = ? 
-        ORDER BY stage_order
-    ''', (event_id,)).fetchall()
-    conn.close()
-
-    stages = [dict(row) for row in stage_rows]
-    for stage in stages:
-        if (
-            stage.get('stage_type') == 'after_party'
-            and not stage.get('start_datetime')
-            and stage.get('end_datetime')
-        ):
-            stage['start_datetime'] = stage['end_datetime']
-
-    if not stages:
-        return None
-    
-    now = get_event_now()
-    
-    # Проверяем, начался ли этап "Закрытие регистрации" - если да, создаем записи для ревью
-    registration_closed_stage = None
-    for stage in stages:
-        if stage['stage_type'] == 'registration_closed' and stage['start_datetime']:
-            try:
-                start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
-            except:
-                try:
-                    start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%dT%H:%M')
-                except:
-                    continue
-            if now >= start_dt:
-                registration_closed_stage = stage
-                break
-    
-    # Если регистрация закрылась, создаем записи для ревью
-    if registration_closed_stage:
-        create_participant_approvals_for_event(event_id)
-    
-    # Создаем словарь этапов с их информацией
-    stages_dict = {stage['stage_type']: dict(stage) for stage in stages}
-    stages_info_dict = {stage['type']: stage for stage in EVENT_STAGES}
-    
-    # Ищем текущий этап
-    current_stage = None
-    
-    for stage_info in EVENT_STAGES:
-        stage_type = stage_info['type']
-        if stage_type not in stages_dict:
-            continue
-        
-        stage = dict(stages_dict[stage_type])
-        
-        # Проверяем, начался ли этап
-        if stage['start_datetime']:
-            try:
-                start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
-            except:
-                try:
-                    start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%dT%H:%M')
-                except:
-                    log_debug(f"get_current_event_stage: cannot parse start_datetime for stage {stage_type}: {stage['start_datetime']}")
-                    continue
-            
-            # Если этап еще не начался, пропускаем
-            if now < start_dt:
-                log_debug(f"get_current_event_stage: stage {stage_type} not started yet (start: {start_dt}, now: {now})")
-                continue
-        
-        # Проверяем, закончился ли этап
-        if stage['end_datetime']:
-            try:
-                end_dt = datetime.strptime(stage['end_datetime'], '%Y-%m-%d %H:%M:%S')
-            except:
-                try:
-                    end_dt = datetime.strptime(stage['end_datetime'], '%Y-%m-%dT%H:%M')
-                except:
-                    end_dt = None
-            if stage_type == 'after_party':
-                end_dt = None
-
-            if end_dt and now > end_dt:
-                continue
-        
-        # Проверяем, не начался ли следующий этап (если следующий этап начался, текущий должен закончиться)
-        # Это работает для всех этапов, не только для тех, у которых нет даты начала
-        current_order = stage['stage_order']
-        next_stage_started = False
-        for next_stage in stages:
-            if next_stage['stage_order'] > current_order and next_stage['start_datetime']:
-                try:
-                    next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
-                except:
-                    try:
-                        next_start_dt = datetime.strptime(next_stage['start_datetime'], '%Y-%m-%dT%H:%M')
-                    except:
-                        continue
-                if now >= next_start_dt:
-                    next_stage_started = True
-                    log_debug(f"get_current_event_stage: stage {stage_type} ended because next stage {next_stage['stage_type']} started at {next_start_dt}")
-                    break
-        
-        if next_stage_started:
-            continue
-        
-        # Этот этап активен
-        current_stage = {
-            'data': stage,
-            'info': stage_info
-        }
-        log_debug(f"get_current_event_stage: found active stage {stage_type} for event {event_id}")
-        break
-    
-    if not current_stage:
-        log_debug(f"get_current_event_stage: no active stage found for event {event_id}")
-    
-    return current_stage
-
-def get_event_gifts_statistics(event_id):
-    """Получает статистику по подаркам для мероприятия"""
-    conn = get_db_connection()
-    try:
-        # Всего назначений (сколько подарков должно быть отправлено)
-        total_result = conn.execute('''
-            SELECT COUNT(*) as count
-            FROM event_assignments
-            WHERE event_id = ?
-        ''', (event_id,)).fetchone()
-        total_assignments = total_result['count'] if total_result else 0
-        
-        # Отправлено, но не подтверждено получение
-        # Учитываем только явно отмеченные (santa_sent_at) - нажатие кнопки "Отправил"
-        # Сообщения не считаются признаком отправки подарка
-        sent_not_received_result = conn.execute('''
-            SELECT COUNT(DISTINCT ea.id) as count
-            FROM event_assignments ea
-            WHERE ea.event_id = ?
-              AND (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '')
-              AND (ea.recipient_received_at IS NULL OR ea.recipient_received_at = '')
-        ''', (event_id,)).fetchone()
-        sent_not_received = sent_not_received_result['count'] if sent_not_received_result else 0
-        
-        # Отправлено и подтверждено получение
-        # Учитываем только явно отмеченные (santa_sent_at) - нажатие кнопки "Отправил"
-        # Сообщения не считаются признаком отправки подарка
-        sent_and_received_result = conn.execute('''
-            SELECT COUNT(DISTINCT ea.id) as count
-            FROM event_assignments ea
-            WHERE ea.event_id = ?
-              AND (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '')
-              AND ea.recipient_received_at IS NOT NULL
-              AND ea.recipient_received_at != ''
-        ''', (event_id,)).fetchone()
-        sent_and_received = sent_and_received_result['count'] if sent_and_received_result else 0
-        
-        # Не отправлено
-        not_sent = total_assignments - sent_not_received - sent_and_received
-        
-        # Логирование для отладки
-        log_debug(f"Event {event_id} gifts stats: total={total_assignments}, sent_not_received={sent_not_received}, sent_and_received={sent_and_received}, not_sent={not_sent}")
-        
-        return {
-            'total': total_assignments,
-            'sent_not_received': sent_not_received,
-            'sent_and_received': sent_and_received,
-            'not_sent': not_sent
-        }
-    except Exception as e:
-        log_error(f"Error getting gifts statistics for event {event_id}: {e}")
-        log_error(traceback.format_exc())
-        return {
-            'total': 0,
-            'sent_not_received': 0,
-            'sent_and_received': 0,
-            'not_sent': 0
-        }
-    finally:
-        conn.close()
-
-def is_registration_open(event_id):
-    """Проверяет, открыта ли регистрация на мероприятие"""
-    current_stage = get_current_event_stage(event_id)
-    if not current_stage:
-        log_debug(f"is_registration_open: no current stage for event {event_id}")
-        return False
-    
-    stage_type = current_stage['info']['type']
-    # Регистрация открыта на этапах предварительной и основной регистрации
-    is_open = stage_type in ['pre_registration', 'main_registration']
-    log_debug(f"is_registration_open: event {event_id}, stage_type={stage_type}, is_open={is_open}")
-    return is_open
-
-def is_user_registered(event_id, user_id):
-    """Проверяет, зарегистрирован ли пользователь на мероприятие"""
-    if not user_id:
-        return False
-    conn = get_db_connection()
-    registration = conn.execute('''
-        SELECT id FROM event_registrations 
-        WHERE event_id = ? AND user_id = ?
-    ''', (event_id, user_id)).fetchone()
-    conn.close()
-    return registration is not None
-def get_event_registrations_count(event_id):
-    """Получает количество зарегистрированных пользователей на мероприятие"""
-    conn = get_db_connection()
-    count = conn.execute('''
-        SELECT COUNT(*) as count FROM event_registrations 
-        WHERE event_id = ?
-    ''', (event_id,)).fetchone()
-    conn.close()
-    return count['count'] if count else 0
-def get_event_registrations(event_id):
-    """Получает список зарегистрированных пользователей на мероприятие"""
-    conn = get_db_connection()
-    registrations = conn.execute('''
-        SELECT er.*, u.user_id, u.username, u.avatar_seed, u.avatar_style, u.level, u.synd
-        FROM event_registrations er
-        JOIN users u ON er.user_id = u.user_id
-        WHERE er.event_id = ?
-        ORDER BY er.registered_at ASC
-    ''', (event_id,)).fetchall()
-    conn.close()
-    return registrations
-
-def get_event_registrations_paginated(event_id, page=1, per_page=20):
-    """Получает список зарегистрированных пользователей на мероприятие с пагинацией"""
-    # Ограничиваем per_page разумными значениями
-    per_page = min(max(per_page, 10), 100)
-    
-    conn = get_db_connection()
-    
-    # Подсчитываем общее количество
-    total_count = conn.execute('''
-        SELECT COUNT(*) as count 
-        FROM event_registrations 
-        WHERE event_id = ?
-    ''', (event_id,)).fetchone()
-    total_count = total_count['count'] if total_count else 0
-    
-    # Вычисляем offset
-    offset = (page - 1) * per_page
-    
-    # Получаем участников с пагинацией
-    registrations = conn.execute('''
-        SELECT er.*, u.user_id, u.username, u.avatar_seed, u.avatar_style, u.level, u.synd
-        FROM event_registrations er
-        JOIN users u ON er.user_id = u.user_id
-        WHERE er.event_id = ?
-        ORDER BY er.registered_at ASC
-        LIMIT ? OFFSET ?
-    ''', (event_id, per_page, offset)).fetchall()
-    conn.close()
-    
-    # Вычисляем данные для пагинации
-    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
-    has_prev = page > 1
-    has_next = page < total_pages
-    
-    return {
-        'registrations': registrations,
-        'total_count': total_count,
-        'page': page,
-        'per_page': per_page,
-        'total_pages': total_pages,
-        'has_prev': has_prev,
-        'has_next': has_next
-    }
-
-def get_event_stages(event_id):
-    """Возвращает список этапов мероприятия в порядке их следования"""
-    conn = get_db_connection()
-    try:
-        stage_rows = conn.execute('''
-            SELECT stage_type, stage_order, start_datetime, end_datetime
-            FROM event_stages
-            WHERE event_id = ?
-            ORDER BY stage_order
-        ''', (event_id,)).fetchall()
-    finally:
-        conn.close()
-    stages = []
-    for row in stage_rows:
-        stage = dict(row)
-        if (
-            stage.get('stage_type') == 'after_party'
-            and not stage.get('start_datetime')
-            and stage.get('end_datetime')
-        ):
-            stage['start_datetime'] = stage['end_datetime']
-        stages.append(stage)
-    return stages
-def create_participant_approvals_for_event(event_id):
-    """Создает записи для ревью участников при закрытии регистрации"""
-    conn = get_db_connection()
-    try:
-        # При закрытии регистрации сначала снимаем все бубенчики за отправленный/неотправленный подарок
-        # (на случай продления мероприятия - они будут начислены заново)
-        _revoke_gift_events(conn, event_id)
-        
-        # Получаем всех зарегистрированных участников
-        registrations = conn.execute('''
-            SELECT user_id FROM event_registrations WHERE event_id = ?
-        ''', (event_id,)).fetchall()
-        
-        # Создаем записи для ревью (если их еще нет)
-        for reg in registrations:
-            conn.execute('''
-                INSERT OR IGNORE INTO event_participant_approvals 
-                (event_id, user_id, approved) 
-                VALUES (?, ?, 0)
-            ''', (event_id, reg['user_id']))
-            _ensure_registration_bonus_event(conn, event_id, reg['user_id'])
-            # Начисляем бубенчики за неотправленный подарок, если подарок не отправлен
-            _ensure_gift_not_sent_event(conn, event_id, reg['user_id'])
-            # Начисляем бубенчики за отправленный подарок, если подарок отправлен
-            _ensure_gift_sent_event(conn, event_id, reg['user_id'])
-        
-        # Начисляем бубенчики за очередность отправки подарка для всех участников, которые отправили
-        _ensure_order_bonus_events(conn, event_id)
-        
-        conn.commit()
-        log_debug(f"Created participant approvals for event {event_id}")
-    except Exception as e:
-        log_error(f"Error creating participant approvals: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
 def get_participants_for_review(event_id):
     """Получает список участников для ревью с полной информацией"""
     conn = get_db_connection()
@@ -7786,144 +7009,6 @@ def event_unregister(event_id):
         conn.close()
     
     return redirect(url_for('event_view', event_id=event_id))
-
-@app.route('/faq')
-def faq():
-    """Страница с часто задаваемыми вопросами"""
-    conn = get_db_connection()
-    categories_rows = conn.execute('''
-        SELECT name, display_name
-        FROM faq_categories
-        WHERE is_active = 1
-        ORDER BY sort_order, display_name
-    ''').fetchall()
-    items_rows = conn.execute('''
-        SELECT question, answer, category, sort_order, id
-        FROM faq_items
-        WHERE is_active = 1
-        ORDER BY sort_order, id
-    ''').fetchall()
-    conn.close()
-
-    from collections import OrderedDict
-
-    def _format_category_label(key: str, display: str | None) -> str:
-        if display:
-            return display
-        mapping = {
-            'general': 'Общие вопросы',
-            'events': 'Мероприятия',
-            'profile': 'Профиль и настройки',
-            'technical': 'Технические вопросы',
-            'security': 'Безопасность и конфиденциальность',
-        }
-        return mapping.get(key, key.replace('_', ' ').title())
-
-    sections = OrderedDict()
-    for row in categories_rows:
-        key = row['name']
-        sections[key] = {
-            'key': key,
-            'display_name': _format_category_label(key, row['display_name']),
-            'entries': []
-        }
-
-    for item in items_rows:
-        key = (item['category'] or '').strip() or 'general'
-        if key not in sections:
-            sections[key] = {
-                'key': key,
-                'display_name': _format_category_label(key, None),
-                'entries': []
-            }
-        sections[key]['entries'].append({
-            'id': item['id'],
-            'question': item['question'],
-            'answer': item['answer']
-        })
-
-    faq_sections = [section for section in sections.values() if section['entries']]
-
-    return render_template('faq.html', faq_sections=faq_sections)
-
-
-@app.route('/rules')
-def rules():
-    """Страница с правилами"""
-    try:
-        import json
-        rules_content = get_setting('rules_content', '')
-        rules_items = []
-        
-        if rules_content:
-            try:
-                # Пытаемся распарсить как JSON
-                rules_items = json.loads(rules_content)
-                if not isinstance(rules_items, list):
-                    rules_items = []
-            except (json.JSONDecodeError, ValueError):
-                # Старый формат HTML - оставляем как есть для обратной совместимости
-                pass
-        
-        return render_template('rules.html', rules_content=rules_content, rules_items=rules_items)
-    except Exception as e:
-        log_error(f"Error in rules route: {e}")
-        return render_template('rules.html', rules_content='', rules_items=[])
-def contacts():
-    """Страница контактов - показывает администраторов/модераторов и пользователей со званиями"""
-    conn = get_db_connection()
-    
-    # Получаем пользователей с ролями администратора или модератора
-    admins_moderators = conn.execute('''
-        SELECT DISTINCT u.*, 
-               GROUP_CONCAT(DISTINCT r.name) as roles_list
-        FROM users u
-        INNER JOIN user_roles ur ON u.user_id = ur.user_id
-        INNER JOIN roles r ON ur.role_id = r.id
-        WHERE r.name IN ('admin', 'moderator')
-        GROUP BY u.user_id
-        ORDER BY 
-            CASE WHEN r.name = 'admin' THEN 1 ELSE 2 END,
-            u.username
-    ''').fetchall()
-    
-    # Получаем пользователей со званиями
-    users_with_titles = conn.execute('''
-        SELECT DISTINCT u.*
-        FROM users u
-        INNER JOIN user_titles ut ON u.user_id = ut.user_id
-        WHERE u.user_id NOT IN (
-            SELECT DISTINCT u2.user_id
-            FROM users u2
-            INNER JOIN user_roles ur2 ON u2.user_id = ur2.user_id
-            INNER JOIN roles r2 ON ur2.role_id = r2.id
-            WHERE r2.name IN ('admin', 'moderator')
-        )
-        GROUP BY u.user_id
-        ORDER BY u.username
-    ''').fetchall()
-    
-    # Получаем звания для пользователей со званиями
-    users_with_titles_data = []
-    for user in users_with_titles:
-        user_dict = dict(user)
-        user_titles = get_user_titles(user['user_id'])
-        user_dict['titles'] = user_titles
-        users_with_titles_data.append(user_dict)
-    
-    # Получаем роли для администраторов/модераторов
-    admins_moderators_data = []
-    for user in admins_moderators:
-        user_dict = dict(user)
-        user_roles = get_user_roles(user['user_id'])
-        user_dict['roles'] = user_roles
-        admins_moderators_data.append(user_dict)
-    
-    conn.close()
-    
-    return render_template('contacts.html', 
-                           admins_moderators=admins_moderators_data,
-                           users_with_titles=users_with_titles_data)
 
 # ========== Логи ==========
 
@@ -10632,277 +9717,6 @@ def _sync_contact_snowflakes(conn, user_row):
                 )
 
 
-def _ensure_registration_bonus_event(conn, event_id, user_id):
-    source = f'event:{event_id}:registration_bonus'
-    reason = f'Регистрация закрыта: мероприятие #{event_id}'
-    # Получаем настройку очков за регистрацию: сначала из настроек мероприятия, если не задано - из глобальных
-    event_row = conn.execute('SELECT rating_registration FROM events WHERE id = ?', (event_id,)).fetchone()
-    if event_row and event_row['rating_registration'] is not None:
-        points = int(event_row['rating_registration'])
-    else:
-        points = get_rating_setting('rating_event_registration', 1)
-    existing = conn.execute(
-        '''
-        SELECT id, active, manual_revoked
-        FROM snowflake_events
-        WHERE user_id = ? AND source = ?
-        ''',
-        (user_id, source)
-    ).fetchone()
-    if not existing:
-        conn.execute(
-            '''
-            INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''',
-            (user_id, source, reason, points, 1, 0)
-        )
-    elif not existing['active']:
-        conn.execute(
-            '''
-            UPDATE snowflake_events
-            SET active = 1,
-                points = ?,
-                manual_revoked = 0,
-                revoked_at = NULL,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            ''',
-            (points, existing['id'])
-        )
-
-
-def _ensure_gift_not_sent_event(conn, event_id, user_id):
-    """Создает или активирует событие бубенчика за неотправленный подарок при закрытии регистрации"""
-    source = f'event:{event_id}:gift_not_sent'
-    reason = f'Неотправленный подарок при закрытии регистрации: мероприятие #{event_id}'
-    # Получаем настройку очков за неотправленный подарок: сначала из настроек мероприятия, если не задано - из глобальных
-    event_row = conn.execute('SELECT rating_gift_not_sent FROM events WHERE id = ?', (event_id,)).fetchone()
-    if event_row and event_row['rating_gift_not_sent'] is not None:
-        points = int(event_row['rating_gift_not_sent'])
-    else:
-        points = get_rating_setting('rating_event_gift_not_sent', 0)
-    
-    # Если очки = 0, не создаем событие
-    if points == 0:
-        return
-    
-    # Проверяем, есть ли у пользователя назначение и не отправлен ли подарок
-    assignment = conn.execute('''
-        SELECT id, santa_sent_at FROM event_assignments
-        WHERE event_id = ? AND santa_user_id = ?
-    ''', (event_id, user_id)).fetchone()
-    
-    # Если нет назначения или подарок уже отправлен - не начисляем
-    if not assignment or assignment['santa_sent_at']:
-        return
-    
-    existing = conn.execute(
-        '''
-        SELECT id, active, manual_revoked
-        FROM snowflake_events
-        WHERE user_id = ? AND source = ?
-        ''',
-        (user_id, source)
-    ).fetchone()
-    
-    if not existing:
-        conn.execute(
-            '''
-            INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''',
-            (user_id, source, reason, points, 1, 0)
-        )
-    elif not existing['active']:
-        conn.execute(
-            '''
-            UPDATE snowflake_events
-            SET active = 1,
-                points = ?,
-                manual_revoked = 0,
-                revoked_at = NULL,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            ''',
-            (points, existing['id'])
-        )
-
-
-def _ensure_gift_sent_event(conn, event_id, user_id):
-    """Создает или активирует событие бубенчика за отправленный подарок при закрытии регистрации"""
-    source = f'event:{event_id}:gift_sent'
-    reason = f'Отправленный подарок при закрытии регистрации: мероприятие #{event_id}'
-    # Получаем настройку очков за отправленный подарок: сначала из настроек мероприятия, если не задано - из глобальных
-    event_row = conn.execute('SELECT rating_gift_sent FROM events WHERE id = ?', (event_id,)).fetchone()
-    if event_row and event_row['rating_gift_sent'] is not None:
-        points = int(event_row['rating_gift_sent'])
-    else:
-        points = get_rating_setting('rating_event_gift_sent', 0)
-    
-    # Если очки = 0, не создаем событие
-    if points == 0:
-        return
-    
-    # Проверяем, есть ли у пользователя назначение и отправлен ли подарок
-    assignment = conn.execute('''
-        SELECT id, santa_sent_at FROM event_assignments
-        WHERE event_id = ? AND santa_user_id = ?
-    ''', (event_id, user_id)).fetchone()
-    
-    # Если нет назначения или подарок не отправлен - не начисляем
-    if not assignment or not assignment['santa_sent_at']:
-        return
-    
-    existing = conn.execute(
-        '''
-        SELECT id, active, manual_revoked
-        FROM snowflake_events
-        WHERE user_id = ? AND source = ?
-        ''',
-        (user_id, source)
-    ).fetchone()
-    
-    if not existing:
-        conn.execute(
-            '''
-            INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''',
-            (user_id, source, reason, points, 1, 0)
-        )
-    elif not existing['active']:
-        conn.execute(
-            '''
-            UPDATE snowflake_events
-            SET active = 1,
-                points = ?,
-                manual_revoked = 0,
-                revoked_at = NULL,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            ''',
-            (points, existing['id'])
-        )
-
-
-def _ensure_order_bonus_events(conn, event_id):
-    """Создает или обновляет события бубенчиков за очередность отправки подарка для всех участников при закрытии регистрации"""
-    source = f'event:{event_id}:order_bonus'
-    
-    # Получаем настройки мероприятия
-    event_row = conn.execute('SELECT rating_order_coefficient FROM events WHERE id = ?', (event_id,)).fetchone()
-    if not event_row or event_row['rating_order_coefficient'] is None or event_row['rating_order_coefficient'] == 0:
-        # Коэффициент не задан или равен 0, не начисляем
-        return
-    
-    coefficient = float(event_row['rating_order_coefficient'])
-    
-    # Получаем общее количество участников мероприятия на момент закрытия регистрации (с назначениями)
-    total_participants = conn.execute('''
-        SELECT COUNT(DISTINCT santa_user_id) as total
-        FROM event_assignments
-        WHERE event_id = ?
-    ''', (event_id,)).fetchone()
-    
-    if not total_participants or total_participants['total'] == 0:
-        return
-    
-    total = total_participants['total']
-    
-    # Получаем всех участников, которые отправили подарки, отсортированных по времени отправки
-    sent_assignments = conn.execute('''
-        SELECT DISTINCT santa_user_id, santa_sent_at
-        FROM event_assignments
-        WHERE event_id = ? AND santa_sent_at IS NOT NULL
-        ORDER BY santa_sent_at ASC
-    ''', (event_id,)).fetchall()
-    
-    if not sent_assignments:
-        return
-    
-    # Начисляем бубенчики каждому участнику в порядке отправки
-    for idx, assignment in enumerate(sent_assignments, start=1):
-        user_id = assignment['santa_user_id']
-        order_num = idx
-        
-        # Вычисляем бубенчики: (общее_количество - порядковый_номер + 1) * коэффициент
-        points = float((total - order_num + 1) * coefficient)
-        
-        if points <= 0:
-            continue
-        
-        reason = f'Очередность отправки подарка: {order_num}-й из {total} (мероприятие #{event_id})'
-        
-        # Проверяем, есть ли уже событие
-        existing = conn.execute('''
-            SELECT id, active, manual_revoked
-            FROM snowflake_events
-            WHERE user_id = ? AND source = ?
-        ''', (user_id, source)).fetchone()
-        
-        if not existing:
-            # Создаем новое событие
-            conn.execute('''
-                INSERT INTO snowflake_events (user_id, source, reason, points, active, manual_revoked)
-                VALUES (?, ?, ?, ?, 1, 0)
-            ''', (user_id, source, reason, points))
-        elif not existing['active']:
-            # Активируем и обновляем существующее неактивное событие
-            conn.execute('''
-                UPDATE snowflake_events
-                SET active = 1,
-                    points = ?,
-                    reason = ?,
-                    manual_revoked = 0,
-                    revoked_at = NULL,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            ''', (points, reason, existing['id']))
-        else:
-            # Обновляем существующее активное событие, если очки изменились
-            conn.execute('''
-                UPDATE snowflake_events
-                SET points = ?,
-                    reason = ?,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            ''', (points, reason, existing['id']))
-
-
-def _revoke_gift_events(conn, event_id):
-    """Снимает бубенчики за отправленный/неотправленный подарок и за очередность при продлении мероприятия"""
-    # Снимаем бубенчики за неотправленный подарок
-    source_not_sent = f'event:{event_id}:gift_not_sent'
-    conn.execute('''
-        UPDATE snowflake_events
-        SET active = 0,
-            revoked_at = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE source = ? AND active = 1
-    ''', (source_not_sent,))
-    
-    # Снимаем бубенчики за отправленный подарок
-    source_sent = f'event:{event_id}:gift_sent'
-    conn.execute('''
-        UPDATE snowflake_events
-        SET active = 0,
-            revoked_at = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE source = ? AND active = 1
-    ''', (source_sent,))
-    
-    # Снимаем бубенчики за очередность отправки
-    source_order = f'event:{event_id}:order_bonus'
-    conn.execute('''
-        UPDATE snowflake_events
-        SET active = 0,
-            revoked_at = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE source = ? AND active = 1
-    ''', (source_order,))
-
-
 def _get_snowflake_source_label(source):
     contact_map = {s: label for s, label, _ in _SNOWFLAKE_CONTACT_SOURCES}
     if source in contact_map:
@@ -11124,92 +9938,6 @@ def recalculate_all_snowflake_events(conn, settings_dict):
 
 
 
-@app.route('/rating')
-def user_rating():
-    """Простая система рейтинга участников (прямая ссылка)."""
-    roles = session.get('roles')
-    if isinstance(roles, (list, tuple, set)):
-        is_admin = 'admin' in roles
-    elif isinstance(roles, str):
-        is_admin = roles == 'admin'
-    else:
-        is_admin = False
-
-    # Параметры пагинации
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 50, type=int)
-    
-    # Ограничиваем per_page разумными значениями
-    per_page = min(max(per_page, 10), 200)
-    page = max(1, page)
-
-    conn = get_db_connection()
-    try:
-        # Оптимизация: используем SQL агрегацию с JOIN для получения рейтинга и пользователей
-        # Сортируем по рейтингу (убывание) и имени (возрастание)
-        rating_query = '''
-            SELECT 
-                u.user_id,
-                u.username,
-                COALESCE(SUM(CAST(se.points AS REAL)), 0.0) as total_points
-            FROM users u
-            LEFT JOIN snowflake_events se ON u.user_id = se.user_id
-                AND (se.active = 1 OR CAST(se.active AS INTEGER) = 1)
-                AND (se.manual_revoked IS NULL OR se.manual_revoked = 0 OR CAST(se.manual_revoked AS INTEGER) = 0)
-            GROUP BY u.user_id, u.username
-            ORDER BY total_points DESC, LOWER(u.username) ASC
-        '''
-        
-        # Получаем общее количество пользователей для пагинации
-        total_count = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
-        
-        # Вычисляем смещение для пагинации
-        offset = (page - 1) * per_page
-        
-        # Получаем данные с пагинацией
-        # Используем параметризованный запрос для безопасности
-        rating_rows_raw = conn.execute(
-            rating_query + ' LIMIT ? OFFSET ?', 
-            (per_page, offset)
-        ).fetchall()
-        
-    finally:
-        conn.close()
-
-    # Преобразуем результаты
-    rating_rows = []
-    for row in rating_rows_raw:
-        try:
-            rating_rows.append({
-                'user_id': row['user_id'],
-                'username': row['username'],
-                'rating': float(row['total_points']) if row['total_points'] is not None else 0.0,
-            })
-        except (ValueError, TypeError):
-            continue
-
-    # Вычисляем информацию о пагинации
-    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
-    has_prev = page > 1
-    has_next = page < total_pages
-
-    resp = make_response(render_template(
-        'rating.html', 
-        rating_rows=rating_rows, 
-        is_admin=is_admin,
-        page=page,
-        per_page=per_page,
-        total_count=total_count,
-        total_pages=total_pages,
-        has_prev=has_prev,
-        has_next=has_next
-    ))
-    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
-    return resp
-
-
 @app.route('/admin/rating/<int:user_id>')
 @require_role('admin')
 def admin_rating_detail(user_id):
@@ -11222,7 +9950,7 @@ def admin_rating_detail(user_id):
         ''', (user_id,)).fetchone()
         if not user_row:
             flash('Пользователь не найден', 'error')
-            return redirect(url_for('user_rating'))
+            return redirect(url_for('public.user_rating'))
 
         user_dict = dict(user_row)
         _sync_contact_snowflakes(conn, user_dict)
@@ -11268,7 +9996,7 @@ def admin_rating_event_annul(event_id):
         event = conn.execute('SELECT id, user_id, active, manual_revoked FROM snowflake_events WHERE id = ?', (event_id,)).fetchone()
         if not event:
             flash('Запись не найдена', 'error')
-            return redirect(url_for('user_rating'))
+            return redirect(url_for('public.user_rating'))
 
         user_id = event['user_id']
         if event['manual_revoked'] and not event['active']:
@@ -11299,7 +10027,7 @@ def admin_rating_event_restore(event_id):
         event = conn.execute('SELECT id, user_id, manual_revoked FROM snowflake_events WHERE id = ?', (event_id,)).fetchone()
         if not event:
             flash('Запись не найдена', 'error')
-            return redirect(url_for('user_rating'))
+            return redirect(url_for('public.user_rating'))
 
         user_id = event['user_id']
         conn.execute('''

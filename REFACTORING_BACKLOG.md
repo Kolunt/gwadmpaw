@@ -46,7 +46,7 @@
 |----|--------|--------|------------|
 | R-201 | Пакет `gwadm/` (или `app/`) + `create_app()` factory | done | `gwadm/factory.py`, `app = create_app()` |
 | R-202 | Blueprint `auth` — `/login`, `/logout`, `/login/dev`, `/gwars-required`, verify_sign* | done | R-201 |
-| R-203 | Blueprint `public` — `/`, `/participants`, `/faq`, `/rules`, `/rating`, `/contacts` | todo | R-201 |
+| R-203 | Blueprint `public` — `/`, `/participants`, `/faq`, `/rules`, `/rating`, `/contacts` | done | R-201 |
 | R-204 | Blueprint `profile` — `/dashboard`, `/profile/*`, edit profile | todo | R-201 |
 | R-205 | Blueprint `events` — события, регистрация, просмотр | todo | R-201 |
 | R-206 | Blueprint `assignments` — задания, письма, чаты | todo | R-201 |
