@@ -197,21 +197,22 @@ Copy-Item database.db "database_$(Get-Date -Format 'yyyyMMdd').db"
 
 ## Миграции
 
-База данных поддерживает автоматические миграции через `ALTER TABLE`:
+Схема БД версионируется через каталог [`migrations/`](migrations/) и таблицу `schema_version`. При старте приложения [`gwadm/migrations/runner.py`](gwadm/migrations/runner.py) вызывается из `init_db()`.
 
-```python
-# Пример миграции (добавление колонки)
-try:
-    c.execute('ALTER TABLE users ADD COLUMN avatar_seed TEXT')
-except sqlite3.OperationalError:
-    # Колонка уже существует, это нормально
-    pass
+| Файл | Назначение |
+|------|------------|
+| `001_schema_version.sql` | Таблица `schema_version` |
+| `002_initial_schema.sql` | `CREATE TABLE IF NOT EXISTS` для всех таблиц |
+| `003_legacy_columns.py` | `ALTER TABLE`, индексы, миграция `snowflake_events.points` |
+| `004_seed_data.py` | Роли, права, настройки по умолчанию, seed-данные |
+
+**Существующая БД (прод):** если есть таблица `users`, но `schema_version` пуста — runner **штампует** текущую версию без повторного прогона legacy-ALTER (bootstrap).
+
+**Новая миграция:** добавить `005_description.sql` (или `.py` с `upgrade(conn)`) и увеличить `CURRENT_VERSION` в `gwadm/migrations/runner.py`.
+
+```bash
+python -m pytest tests/test_migrations.py -q
 ```
-
-**Особенности:**
-- Миграции выполняются при инициализации БД
-- Безопасные (не падают, если колонка уже существует)
-- Автоматические (не требуют ручного вмешательства)
 
 ## Проверка базы данных
 

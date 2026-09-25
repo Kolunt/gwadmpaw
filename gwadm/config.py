@@ -69,7 +69,7 @@ def warn_insecure_defaults() -> None:
     """Log warnings for insecure defaults on production (does not block startup)."""
     if not is_production():
         return
-    if GWARS_PASSWORD == _DEFAULT_GWARS_PASSWORD:
+    if not is_gwars_password_configured():
         import logging
         logging.getLogger(__name__).warning(
             'GWARS_PASSWORD is not set in environment; using built-in default. '

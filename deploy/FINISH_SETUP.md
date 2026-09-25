@@ -36,6 +36,20 @@ https://gwadm.ru/login
 
 Карта доменов в приложении: админка → **Настройки → Интеграции → GWars** или см. [GWARS_DOMAINS.md](../GWARS_DOMAINS.md).
 
+**GWARS_PASSWORD** (подписи callback `/login`) — обязательно в `~/gwadm/.env` на проде:
+
+```bash
+cd ~/gwadm
+grep '^GWARS_PASSWORD=' .env || echo 'GWARS_PASSWORD=MISSING'
+# если MISSING — допишите строку (значение из настроек GWars для site_id=3), не перезаписывайте весь .env:
+# GWARS_PASSWORD=ваш_пароль
+# ENABLE_DEV_LOGIN=0
+systemctl --user restart gwadm
+journalctl --user -u gwadm -n 20 | grep -i GWARS || echo 'OK: no GWARS_PASSWORD warning'
+```
+
+Без `GWARS_PASSWORD` в логах gunicorn будет предупреждение, а callback отклоняется на production.
+
 ## 4. SECRET_KEY (сессии Flask)
 
 Без фиксированного `SECRET_KEY` при нескольких воркерах gunicorn авторизация «вылетает» между запросами.

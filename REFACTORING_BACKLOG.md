@@ -30,7 +30,7 @@
 | R-101 | `config.py` — `SECRET_KEY`, `GWARS_PASSWORD`, `DATABASE_PATH`, `CRON_SECRET_TOKEN`, флаги prod/dev | done | `gwadm/config.py` |
 | R-102 | `db.py` — `get_db_path()`, `get_connection()` как context manager, WAL, timeout | done | `gwadm/db.py`, `get_db()` |
 | R-103 | Перевести `init_db()` на вызов только при старте / явной миграции; убрать `ensure_db()` из каждого `get_db_connection()` | done | `ensure_db()` при импорте app и в cron |
-| R-104 | `migrations/` — вынести ALTER/INSERT из `init_db` в версионированные скрипты (хотя бы `001_initial.sql`, `002_*.sql` + таблица `schema_version`) | todo | R-103 |
+| R-104 | `migrations/` — вынести ALTER/INSERT из `init_db` в версионированные скрипты (хотя бы `001_initial.sql`, `002_*.sql` + таблица `schema_version`) | done | R-103 |
 | R-105 | `logging_config.py` — уровни log debug/info по `FLASK_ENV`; убрать `log_error` для штатного login debug | done | `gwadm/logging_config.py` |
 | R-106 | `extensions.py` — создание `app`, ProxyFix, Babel, регистрация blueprints | done | `gwadm/extensions.py`, Babel 4.x |
 
@@ -204,3 +204,4 @@ gwadmpaw/
 | 2025-09-25 | R-301–R-306: login landing/go, mobile interstitial, login_state+return_url, debug gate, GWARS_PASSWORD, ENABLE_DEV_LOGIN |
 | 2025-09-25 | R-401–R-405, R-501–R-506, R-703: CSRF, uploads audit, cron env-only, nginx rate limit/headers, pytest+CI, `/health` |
 | 2025-09-25 | R-004: `database.db.backup*` убраны из git, расширен `.gitignore` (pytest cache, `_download_pa_export.py`) |
+| 2025-09-25 | R-104: `migrations/` + `schema_version`, runner в `gwadm/migrations/runner.py`, legacy bootstrap для прода |

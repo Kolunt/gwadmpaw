@@ -3,6 +3,14 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
+ENV_FILE="${ENV_FILE:-$HOME/gwadm/.env}"
+
+if [[ -f "${ENV_FILE}" ]]; then
+  echo "Checking GWARS_PASSWORD in ${ENV_FILE}"
+  grep -q '^GWARS_PASSWORD=.' "${ENV_FILE}"
+else
+  echo "WARN: ${ENV_FILE} not found, skipping GWARS_PASSWORD check"
+fi
 
 echo "Checking ${BASE_URL}/health"
 curl -sf "${BASE_URL}/health" | grep -q '"status":"ok"'
