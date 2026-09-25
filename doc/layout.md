@@ -33,6 +33,10 @@
 - Узкий контент только точечно: `.form-container`, `.layout-inner`, `.profile-card`, `.letter-page-card`.
 - Hero на главной (`.hero-section`) — на всю высоту области контента: `min-height: calc(100dvh - 60px)`.
 
+## Статистика (главная)
+
+Три метрики (участники, онлайн, мероприятия) — один блок `.stats-bar` с тремя `.stats-bar-item`, разделёнными `border`. На mobile (≤768px) — колонка.
+
 ## Hero (главная)
 
 Секция `.hero-section` на `/`:

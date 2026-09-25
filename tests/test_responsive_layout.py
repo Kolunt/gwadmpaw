@@ -81,6 +81,8 @@ def test_home_stats_section_no_nested_container(client):
     )
     assert match is not None
     assert 'class="container"' not in match.group(1)
+    assert 'stats-bar' in match.group(1)
+    assert 'stats-bar-item' in match.group(1)
 
 
 def test_container_class_not_used_as_page_wrapper(client):
