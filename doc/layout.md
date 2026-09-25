@@ -27,6 +27,7 @@
 ## Правила
 
 - Межсекционные gap и margin — **0**; разделение блоков — `border` на карточках.
+- `.main-content`, `.layout-main`, page shells — `padding-block: 0` (включая mobile breakpoints).
 - Navbar (60px) и sidebar (250px на desktop) не меняются; отступ под navbar задаёт `.content-wrapper { margin-top: 60px }`.
 - Карточки и плитки: `border-radius: 0`, `padding: var(--layout-inner)`.
 - Узкий контент только точечно: `.form-container`, `.layout-inner`, `.profile-card`, `.letter-page-card`.

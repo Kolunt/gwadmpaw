@@ -360,6 +360,26 @@ body {
     padding: 0;
 }
 
+/* Page shells: no outer vertical gaps */
+.main-content {
+    padding-block: 0;
+}
+
+.layout-main > section,
+.layout-main > .dashboard-container,
+.layout-main > .admin-container {
+    margin-block: 0;
+    padding-block: 0;
+}
+
+.dashboard-container > h1,
+.admin-container > h1,
+.faq-container > h1 {
+    margin: 0;
+    padding: var(--layout-inner);
+    border-bottom: 1px solid var(--border-color);
+}
+
 .layout-inner {
     width: 100%;
     max-width: var(--layout-narrow);
@@ -1288,7 +1308,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 60vh;
-    padding: 2rem;
+    padding: var(--layout-inner);
 }
 
 .auth-card {
@@ -1520,7 +1540,7 @@ body {
 
 .dashboard-tab-content {
     display: none;
-    padding: 1rem 0;
+    padding: var(--layout-inner);
     animation: fadeIn 0.3s ease;
 }
 
@@ -1639,11 +1659,12 @@ body {
 }
 
 .profile-info {
-    margin-bottom: 2rem;
+    margin-bottom: 0;
+    padding: var(--layout-inner);
 }
 
 .empty-state {
-    padding: 2rem;
+    padding: var(--layout-inner);
     text-align: center;
     color: var(--text-secondary);
 }
@@ -1686,7 +1707,7 @@ body {
 .footer {
     background-color: var(--bg-card);
     border-top: 1px solid var(--border-color);
-    padding: 2rem 0;
+    padding: var(--layout-inner) 0;
     margin-top: auto;
     text-align: center;
     color: var(--text-secondary);
@@ -1756,7 +1777,7 @@ body {
 /* Mobile content adjustments */
 @media (max-width: 768px) {
     .main-content {
-        padding-bottom: 4rem;
+        padding: 0;
         min-height: auto;
         flex: none;
         display: block;
@@ -1820,10 +1841,6 @@ body {
 
     .info-label {
         font-size: 0.9rem;
-    }
-
-    .main-content {
-        padding: 1rem 0;
     }
 }
 
@@ -3001,27 +3018,28 @@ body {
 
 /* FAQ стили */
 .faq-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem;
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 .faq-container h1 {
     color: var(--text-primary);
-    margin-bottom: 2rem;
     font-size: 2rem;
 }
 
 .faq-section {
-    margin-bottom: 3rem;
+    margin: 0;
+    padding: 0;
 }
 
 .faq-section h2 {
     color: var(--accent-color);
-    margin-bottom: 1.5rem;
+    margin: 0;
+    padding: var(--layout-inner);
     font-size: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .faq-item {
@@ -3130,10 +3148,6 @@ body {
 }
 
 @media (max-width: 768px) {
-    .faq-container {
-        padding: 1rem 0.5rem;
-    }
-    
     .faq-container h1 {
         font-size: 1.5rem;
     }
@@ -3491,12 +3505,12 @@ body {
 
 /* Profile Edit Form */
 .profile-edit-form {
-    margin-top: 2rem;
+    margin-top: 0;
 }
 
 .form-section {
-    margin-bottom: 2rem;
-    padding-bottom: 2rem;
+    margin-bottom: 0;
+    padding: var(--layout-inner);
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -3565,9 +3579,9 @@ body {
 }
 
 .profile-user-info {
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 2px solid var(--border-color);
+    margin-top: 0;
+    padding: var(--layout-inner);
+    border-top: 1px solid var(--border-color);
 }
 
 .profile-user-info h3 {
@@ -3644,8 +3658,8 @@ body {
 }
 
 .event-info-section {
-    margin-bottom: 2rem;
-    padding-bottom: 2rem;
+    margin-bottom: 0;
+    padding: var(--layout-inner);
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -3660,7 +3674,8 @@ body {
 }
 
 .event-stages-section {
-    margin-top: 2rem;
+    margin-top: 0;
+    padding: var(--layout-inner);
 }
 
 .stage-card {
@@ -3825,11 +3840,11 @@ body {
 
 .empty-state {
     text-align: center;
-    padding: 3rem;
+    padding: var(--layout-inner);
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: var(--shadow-lg);
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .empty-state p {
@@ -4447,7 +4462,7 @@ html.dark .avatar-candidate-img {
 
 /* Интеграции */
 .integrations-container {
-    padding: 1rem 0;
+    padding: 0;
 }
 
 .integrations-subtabs {
