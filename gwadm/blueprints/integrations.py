@@ -6,6 +6,20 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request, session
 
 from gwadm.config import CRON_SECRET_TOKEN
+try:
+    import requests
+except ImportError:
+    requests = None
+
+from gwadm.services.telegram import (
+    generate_telegram_verification_code,
+    handle_telegram_callback,
+    handle_telegram_message,
+    verify_dadata_api,
+    verify_smtp_connection,
+    verify_telegram_bot,
+)
+
 from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role
 from gwadm.logging_config import log_error
