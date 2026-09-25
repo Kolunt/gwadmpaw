@@ -1,5 +1,5 @@
 // Service Worker для PWA
-const CACHE_NAME = 'gwadmpaw-v1.16.1';
+const CACHE_NAME = 'gwadmpaw-v1.27.22';
 const urlsToCache = [
   '/',
   '/static/css/style.css',
@@ -40,6 +40,12 @@ self.addEventListener('activate', function(event) {
 
 // Перехват запросов
 self.addEventListener('fetch', function(event) {
+  const requestUrl = new URL(event.request.url);
+  // Внешние ресурсы (Dicebear и др.) не трогаем — иначе ломаются аватарки
+  if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
   // Не кэшируем API запросы и авторизацию
   if (event.request.url.includes('/api/') || 
       event.request.url.includes('/login') ||

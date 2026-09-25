@@ -1309,9 +1309,16 @@ def get_avatar_url(avatar_seed, style=None, size=128):
     """Генерирует URL аватара DiceBear"""
     if not avatar_seed:
         return None
-    if style is None:
-        style = 'avataaars'  # Стиль по умолчанию
-    return f"https://api.dicebear.com/7.x/{style}/svg?seed={avatar_seed}&size={size}"
+    style_value = (style or 'avataaars').strip()
+    if not style_value or style_value.lower() in ('none', 'null'):
+        style_value = 'avataaars'
+    try:
+        size_value = int(size)
+    except (TypeError, ValueError):
+        size_value = 128
+    # PNG надёжнее для маленьких <img> в таблицах и списках
+    fmt = 'png' if size_value <= 64 else 'svg'
+    return f"https://api.dicebear.com/7.x/{style_value}/{fmt}?seed={avatar_seed}&size={size_value}"
 
 def get_user_avatar_url(user, size=128):
     """Получает URL аватара пользователя с учетом его стиля"""

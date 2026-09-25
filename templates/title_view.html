@@ -38,13 +38,14 @@
                         <tr>
                             <td data-label="Пользователь">
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: var(--bg-secondary); display: flex; align-items: center; justify-content: center;">
-                                        {% if user.avatar_seed %}
-                                            <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars', 40) }}" alt="{{ user.username }}" style="width: 100%; height: 100%; object-fit: cover;">
-                                        {% else %}
-                                            <span style="font-size: 1.25rem;">👤</span>
-                                        {% endif %}
-                                    </div>
+                                    {% if user.avatar_seed %}
+                                        <img src="{{ get_avatar_url(user.avatar_seed, user.avatar_style or 'avataaars', 40) }}"
+                                             alt="{{ user.username }}"
+                                             class="avatar-small"
+                                             style="width: 40px; height: 40px; margin-right: 0;">
+                                    {% else %}
+                                        <span class="avatar-small" style="width: 40px; height: 40px; margin-right: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; background: var(--bg-secondary);">👤</span>
+                                    {% endif %}
                                     <div>
                                         <div style="font-weight: 600;">{{ user.username }}</div>
                                         {% if user.last_login %}
