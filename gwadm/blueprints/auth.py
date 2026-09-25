@@ -205,7 +205,7 @@ def login_dev():
     )
     
     flash('Тестовая авторизация выполнена успешно!', 'success')
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('profile.dashboard'))
 
 @bp.route('/login')
 def login():
@@ -680,7 +680,7 @@ def login():
             metadata={'source': 'gwars', 'user_id': user_id, 'username': name}
         )
         
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('profile.dashboard'))
     except Exception as e:
         log_error(f"Error in login route: {e}")
         log_error(f"Traceback: {traceback.format_exc()}")

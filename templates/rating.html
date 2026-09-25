@@ -46,7 +46,7 @@
                                 <span class="badge badge-accent">{{ current_place }}</span>
                             </td>
                             <td data-label="Участник">
-                                <a href="{{ url_for('view_profile', user_id=row.user_id) }}" class="assignments-event-link">
+                                <a href="{{ url_for('profile.view_profile', user_id=row.user_id) }}" class="assignments-event-link">
                                     {{ row.username or ('ID ' ~ row.user_id) }}
                                 </a>
                             </td>

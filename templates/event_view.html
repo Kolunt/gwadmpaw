@@ -200,7 +200,7 @@
                 <div class="participants-grid">
                     {% for reg in registrations %}
                     <div class="participant-card">
-                        <a href="{{ url_for('view_profile', user_id=reg.user_id) }}">
+                        <a href="{{ url_for('profile.view_profile', user_id=reg.user_id) }}">
                             {% if reg.avatar_seed %}
                             <img src="{{ get_avatar_url(reg.avatar_seed, reg.avatar_style or 'avataaars') }}" 
                                  alt="{{ reg.username }}" 

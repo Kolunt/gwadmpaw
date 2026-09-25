@@ -74,7 +74,7 @@
 
         <!-- Табы -->
         <div class="dashboard-tabs">
-            <a href="{{ url_for('dashboard') }}#main" 
+            <a href="{{ url_for('profile.dashboard') }}#main" 
                class="dashboard-tab" 
                data-tab="main">
                 📋 {{ _('Main') }}
@@ -82,25 +82,25 @@
             {% set user_titles = get_user_titles(user.user_id) %}
             {% set user_awards = get_user_awards(user.user_id) %}
             {% if user_titles %}
-            <a href="{{ url_for('dashboard') }}#titles" 
+            <a href="{{ url_for('profile.dashboard') }}#titles" 
                class="dashboard-tab" 
                data-tab="titles">
                 🏆 Звания
             </a>
             {% endif %}
             {% if user_awards %}
-            <a href="{{ url_for('dashboard') }}#awards" 
+            <a href="{{ url_for('profile.dashboard') }}#awards" 
                class="dashboard-tab" 
                data-tab="awards">
                 🎖️ Награды
             </a>
             {% endif %}
-            <a href="{{ url_for('dashboard') }}#contacts" 
+            <a href="{{ url_for('profile.dashboard') }}#contacts" 
                class="dashboard-tab" 
                data-tab="contacts">
                 📞 {{ _('Contacts') }}
             </a>
-            <a href="{{ url_for('dashboard') }}#about" 
+            <a href="{{ url_for('profile.dashboard') }}#about" 
                class="dashboard-tab" 
                data-tab="about">
                 📝 {{ _('About') }}
@@ -461,7 +461,7 @@
         </div>
 
         <div class="profile-actions">
-            <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">{{ _('Edit Profile') }}</a>
+            <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-primary">{{ _('Edit Profile') }}</a>
             {% if 'admin' in session.get('roles', []) %}
             <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">{{ _('Admin Panel') }}</a>
             {% endif %}

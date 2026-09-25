@@ -121,7 +121,7 @@
                         <td data-label="Последний вход">{{ user.last_login or 'N/A' }}</td>
                         <td data-label="Комментарии">
                             {% if user.comments_count and user.comments_count > 0 %}
-                                <a href="{{ url_for('view_profile', user_id=user.user_id) }}#comments" 
+                                <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#comments" 
                                    class="comments-badge" 
                                    title="Просмотреть комментарии">
                                     💬 {{ user.comments_count }}

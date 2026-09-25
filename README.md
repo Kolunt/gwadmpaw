@@ -98,8 +98,9 @@ gwadmpaw/
 │   ├── config.py       # Настройки из env
 │   ├── db.py           # SQLite, ensure_db, get_db_connection
 │   ├── logging_config.py
-│   ├── services/       # avatars, events_stages, gwars_auth, gwars_domains, roles, settings, titles, activity
-│   └── blueprints/     # auth (login), meta (avatars, titles, awards, roles), public (landing, FAQ, …)
+│   ├── decorators.py   # require_login, require_role
+│   ├── services/       # avatars, awards, events_stages, profile_comments, gwars_auth, roles, settings, titles, activity
+│   └── blueprints/     # auth, meta, public, profile (dashboard, edit, view)
 ├── gwars_domains.py    # Shim → gwadm.services.gwars_domains
 ├── scripts/
 │   ├── smoke_check.py

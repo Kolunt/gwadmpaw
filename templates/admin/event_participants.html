@@ -83,7 +83,7 @@
                 <tr>
                     <td data-label="ID">{{ participant.user_id }}</td>
                     <td data-label="Пользователь">
-                        <a href="{{ url_for('view_profile', user_id=participant.user_id) }}" class="contact-link">{{ participant.username }}</a>
+                        <a href="{{ url_for('profile.view_profile', user_id=participant.user_id) }}" class="contact-link">{{ participant.username }}</a>
                     </td>
                     <td data-label="ФИО">
                         {% if participant.last_name or participant.first_name or participant.middle_name %}

@@ -28,7 +28,7 @@
                     </div>
                     <div class="contact-info">
                         <h3>
-                            <a href="{{ url_for('view_profile', user_id=user.user_id) }}">{{ user.username }}</a>
+                            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}">{{ user.username }}</a>
                         </h3>
                         <div class="contact-badges">
                             {% for role in user.roles %}
@@ -90,7 +90,7 @@
                     </div>
                     <div class="contact-info">
                         <h3>
-                            <a href="{{ url_for('view_profile', user_id=user.user_id) }}">{{ user.username }}</a>
+                            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}">{{ user.username }}</a>
                         </h3>
                         <div class="contact-badges">
                             {% for title in user.titles %}

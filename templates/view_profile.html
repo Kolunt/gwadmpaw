@@ -70,41 +70,41 @@
 
         <!-- Табы -->
         <div class="dashboard-tabs">
-            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#main" 
+            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#main" 
                class="dashboard-tab active" 
                data-tab="main">
                 📋 Основное
             </a>
             {% if user_titles %}
-            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#titles" 
+            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#titles" 
                class="dashboard-tab" 
                data-tab="titles">
                 🏆 Звания
             </a>
             {% endif %}
             {% if user_awards %}
-            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#awards" 
+            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#awards" 
                class="dashboard-tab" 
                data-tab="awards">
                 🎖️ Награды
             </a>
             {% endif %}
             {% if is_admin %}
-            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#contacts" 
+            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#contacts" 
                class="dashboard-tab" 
                data-tab="contacts">
                 📞 Контакты
             </a>
             {% endif %}
             {% if is_admin or has_comments %}
-            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#comments" 
+            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#comments" 
                class="dashboard-tab" 
                data-tab="comments">
                 💬 Комментарии
             </a>
             {% endif %}
             {% if show_about %}
-            <a href="{{ url_for('view_profile', user_id=user.user_id) }}#about" 
+            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#about" 
                class="dashboard-tab" 
                data-tab="about">
                 📝 О себе
@@ -428,7 +428,7 @@
                 <!-- Форма добавления нового комментария (только для администраторов) -->
                 <div style="margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-secondary, #f5f5f5); border-radius: 8px; border: 1px solid var(--border-color, #e0e0e0);">
                     <h4 style="margin-top: 0; margin-bottom: 1rem; color: var(--text-primary);">Добавить комментарий</h4>
-                    <form method="POST" action="{{ url_for('add_admin_comment', user_id=user.user_id) }}">
+                    <form method="POST" action="{{ url_for('profile.add_admin_comment', user_id=user.user_id) }}">
                         <textarea 
                             name="comment" 
                             rows="4" 
@@ -508,7 +508,7 @@
                                 </button>
                                 <form 
                                     method="POST" 
-                                    action="{{ url_for('delete_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}" 
+                                    action="{{ url_for('profile.delete_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}" 
                                     style="display: inline;"
                                     onsubmit="return confirm('Вы уверены, что хотите удалить этот комментарий?');">
                                     <button type="submit" class="btn btn-sm btn-danger" style="font-size: 0.85rem; padding: 0.4rem 0.75rem;">
@@ -523,7 +523,7 @@
                         </div>
                         <!-- Форма редактирования (скрыта по умолчанию) -->
                         <div id="comment-edit-{{ comment.id }}" style="display: none; margin-top: 1rem;">
-                            <form method="POST" action="{{ url_for('update_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}">
+                            <form method="POST" action="{{ url_for('profile.update_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}">
                                 <textarea 
                                     name="comment" 
                                     rows="4" 
@@ -574,7 +574,7 @@
 
         <div class="profile-actions">
             {% if is_own_profile %}
-            <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Редактировать профиль</a>
+            <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-primary">Редактировать профиль</a>
             {% if session.get('user_id') and 'admin' in session.get('roles', []) %}
             <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Админ-панель</a>
             {% endif %}

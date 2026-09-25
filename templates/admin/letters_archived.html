@@ -38,12 +38,12 @@
                             <td data-label="ID">{{ chat.original_assignment_id }}</td>
                             <td data-label="Мероприятие">{{ chat.event_name }}</td>
                             <td data-label="Дед Мороз">
-                                <a href="{{ url_for('view_profile', user_id=chat.santa_user_id) }}" target="_blank">
+                                <a href="{{ url_for('profile.view_profile', user_id=chat.santa_user_id) }}" target="_blank">
                                     {{ chat.santa_name }}
                                 </a>
                             </td>
                             <td data-label="Получатель">
-                                <a href="{{ url_for('view_profile', user_id=chat.recipient_user_id) }}" target="_blank">
+                                <a href="{{ url_for('profile.view_profile', user_id=chat.recipient_user_id) }}" target="_blank">
                                     {{ chat.recipient_name }}
                                 </a>
                             </td>

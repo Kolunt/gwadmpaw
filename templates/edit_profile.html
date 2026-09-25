@@ -311,7 +311,7 @@
             
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Сохранить изменения</button>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Отмена</a>
+                <a href="{{ url_for('profile.dashboard') }}" class="btn btn-secondary">Отмена</a>
                 {% if session.user_id and 'admin' in session.get('roles', []) %}
                 <button type="button" id="clear-profile-btn" class="btn btn-danger" title="Стереть все редактируемые поля в профиле" style="margin-left: auto;">
                     🗑️

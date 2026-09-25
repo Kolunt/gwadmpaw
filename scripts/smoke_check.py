@@ -51,6 +51,29 @@ def main() -> int:
         if response.status_code != 200:
             errors.append(f"GET {path} expected 200, got {response.status_code}")
 
+    response = client.get("/dashboard")
+    if response.status_code not in (302, 303):
+        errors.append(f"GET /dashboard expected redirect, got {response.status_code}")
+
+    response = client.get("/api/avatar/candidates?style=avataaars")
+    if response.status_code not in (302, 303, 401):
+        errors.append(
+            f"GET /api/avatar/candidates expected redirect or 401, got {response.status_code}"
+        )
+
+    try:
+        conn = get_db_connection()
+        user_row = conn.execute("SELECT user_id FROM users LIMIT 1").fetchone()
+        conn.close()
+        if user_row:
+            response = client.get(f"/profile/{user_row['user_id']}")
+            if response.status_code != 200:
+                errors.append(
+                    f"GET /profile/{user_row['user_id']} expected 200, got {response.status_code}"
+                )
+    except Exception as exc:
+        errors.append(f"profile route DB lookup failed: {exc}")
+
     response = client.get("/login")
     if response.status_code not in (302, 303):
         errors.append(f"GET /login expected redirect, got {response.status_code}")
