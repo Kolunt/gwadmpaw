@@ -52,7 +52,7 @@ def main() -> int:
             errors.append(f"GET {path} expected 200, got {response.status_code}")
 
     response = client.get("/dashboard")
-    if response.status_code not in (302, 303):
+    if response.status_code not in (302, 303, 308):
         errors.append(f"GET /dashboard expected redirect, got {response.status_code}")
 
     response = client.get("/api/avatar/candidates?style=avataaars")
@@ -133,6 +133,44 @@ def main() -> int:
                 )
     except Exception as exc:
         errors.append(f"meta route DB lookup failed: {exc}")
+
+
+    response = client.get("/events")
+    if response.status_code != 200:
+        errors.append(f"GET /events expected 200, got {response.status_code}")
+
+    try:
+        conn = get_db_connection()
+        event_row = conn.execute(
+            "SELECT id FROM events WHERE deleted_at IS NULL LIMIT 1"
+        ).fetchone()
+        conn.close()
+        if event_row:
+            eid = event_row["id"]
+            response = client.get(f"/events/{eid}")
+            if response.status_code != 200:
+                errors.append(
+                    f"GET /events/{eid} expected 200, got {response.status_code}"
+                )
+    except Exception as exc:
+        errors.append(f"events route DB lookup failed: {exc}")
+
+    for path in ("/assignments", "/letter"):
+        response = client.get(path)
+        if response.status_code not in (302, 303):
+            errors.append(f"GET {path} expected redirect, got {response.status_code}")
+
+    response = client.get("/admin")
+    if response.status_code not in (302, 303, 308):
+        errors.append(f"GET /admin expected redirect, got {response.status_code}")
+
+    response = client.get("/cron/run")
+    if response.status_code != 401:
+        errors.append(f"GET /cron/run expected 401, got {response.status_code}")
+
+    response = client.post("/telegram/webhook", json={})
+    if response.status_code == 404:
+        errors.append("POST /telegram/webhook returned 404")
 
     if errors:
         for err in errors:

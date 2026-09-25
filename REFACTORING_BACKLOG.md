@@ -48,10 +48,10 @@
 | R-202 | Blueprint `auth` — `/login`, `/logout`, `/login/dev`, `/gwars-required`, verify_sign* | done | R-201 |
 | R-203 | Blueprint `public` — `/`, `/participants`, `/faq`, `/rules`, `/rating`, `/contacts` | done | R-201 |
 | R-204 | Blueprint `profile` — `/dashboard`, `/profile/*`, edit profile | done | R-201 |
-| R-205 | Blueprint `events` — события, регистрация, просмотр | todo | R-201 |
-| R-206 | Blueprint `assignments` — задания, письма, чаты | todo | R-201 |
-| R-207 | Blueprint `admin` — все `/admin/*` | todo | R-201 |
-| R-208 | Blueprint `integrations` — Telegram webhook, Dadata verify, cron | todo | R-201 |
+| R-205 | Blueprint `events` — события, регистрация, просмотр | done | R-201 |
+| R-206 | Blueprint `assignments` — задания, письма, чаты | done | R-201 |
+| R-207 | Blueprint `admin` — все `/admin/*` | done | R-201 |
+| R-208 | Blueprint `integrations` — Telegram webhook, Dadata verify, cron | done | R-201 |
 | R-209 | Blueprint `meta` — `/avatars/image`, titles/awards/roles public views | done | R-201 |
 | R-210 | Сервисный слой: `services/gwars_auth.py`, `services/avatars.py`, `services/telegram.py` | done | R-202, R-209 |
 | R-211 | Удалить дубли debug-логики sign/sign3; один модуль `gwars_signatures.py` | todo | R-202 |

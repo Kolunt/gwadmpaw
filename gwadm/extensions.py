@@ -38,3 +38,14 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(meta_bp)
     app.register_blueprint(public_bp)
     app.register_blueprint(profile_bp)
+    from gwadm.blueprints.events import bp as events_bp
+    from gwadm.blueprints.assignments import bp as assignments_bp
+    from gwadm.blueprints.admin import bp as admin_bp
+    from gwadm.blueprints.admin.impersonation import impersonation_bp
+    from gwadm.blueprints.integrations import bp as integrations_bp
+
+    app.register_blueprint(events_bp)
+    app.register_blueprint(assignments_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(impersonation_bp)
+    app.register_blueprint(integrations_bp)

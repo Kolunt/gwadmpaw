@@ -8,7 +8,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h1>Часто задаваемые вопросы (FAQ)</h1>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin_faq') }}" class="btn btn-primary">Управление FAQ</a>
+            <a href="{{ url_for('admin.admin_faq') }}" class="btn btn-primary">Управление FAQ</a>
             {% endif %}
         </div>
         
@@ -204,7 +204,7 @@
             <p>Не нашли ответ на свой вопрос? Обратитесь к <a href="{{ url_for('meta.role_view', role_name='admin') }}" class="faq-admin-link">администраторам</a>.</p>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
             <p style="margin-top: 1rem;">
-                <a href="{{ url_for('admin_faq') }}" class="btn btn-secondary">Перейти в управление FAQ</a>
+                <a href="{{ url_for('admin.admin_faq') }}" class="btn btn-secondary">Перейти в управление FAQ</a>
             </p>
             {% endif %}
         </div>

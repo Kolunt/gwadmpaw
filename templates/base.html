@@ -103,7 +103,7 @@
                     <span class="navbar-icon theme-icon">🌙</span>
                 </button>
                 {% if session.get('impersonation_original') %}
-                <form method="POST" action="{{ url_for('stop_impersonation') }}" class="impersonation-navbar-form">
+                <form method="POST" action="{{ url_for('admin.stop_impersonation') }}" class="impersonation-navbar-form">
                     <button type="submit" class="navbar-icon-btn" title="Вернуться к своей учетной записи" aria-label="Вернуться к своей учетной записи">
                         🔙
                     </button>
@@ -142,7 +142,7 @@
                     <span class="sidebar-icon">🏠</span>
                     <span>{{ _('Home') }}</span>
                 </a>
-                <a href="{{ url_for('events') }}" class="sidebar-link">
+                <a href="{{ url_for('events.events') }}" class="sidebar-link">
                     <span class="sidebar-icon">🎉</span>
                     <span>{{ _('Events') }}</span>
                 </a>
@@ -167,7 +167,7 @@
                     <span>Контакты</span>
                 </a>
                 {% if session.user_id %}
-                <a href="{{ url_for('assignments') }}" class="sidebar-link">
+                <a href="{{ url_for('assignments.assignments') }}" class="sidebar-link">
                     <span class="sidebar-icon">📋</span>
                     <span>Задания</span>
                 </a>
@@ -178,43 +178,43 @@
             {% if 'admin' in session.get('roles', []) %}
             <div class="sidebar-section sidebar-section-admin">
                 <div class="sidebar-section-title">{{ _('Admin Panel') }}</div>
-                <a href="{{ url_for('admin_users') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_users') }}" class="sidebar-link">
                     <span class="sidebar-icon">👥</span>
                     <span>Участники</span>
                 </a>
-                <a href="{{ url_for('admin_settings') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_settings') }}" class="sidebar-link">
                     <span class="sidebar-icon">⚙️</span>
                     <span>{{ _('Settings') }}</span>
                 </a>
-                <a href="{{ url_for('admin_events') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_events') }}" class="sidebar-link">
                     <span class="sidebar-icon">🎉</span>
                     <span>{{ _('Events') }}</span>
                 </a>
-                <a href="{{ url_for('admin_faq') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_faq') }}" class="sidebar-link">
                     <span class="sidebar-icon">❓</span>
                     <span>{{ _('FAQ') }}</span>
                 </a>
-                <a href="{{ url_for('admin_awards') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_awards') }}" class="sidebar-link">
                     <span class="sidebar-icon">🏆</span>
                     <span>Награды</span>
                 </a>
-                <a href="{{ url_for('admin_logs') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_logs') }}" class="sidebar-link">
                     <span class="sidebar-icon">📝</span>
                     <span>Логи</span>
                 </a>
-                <a href="{{ url_for('admin_letters') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_letters') }}" class="sidebar-link">
                     <span class="sidebar-icon">💬</span>
                     <span>Чаты</span>
                 </a>
-                <a href="{{ url_for('admin_rules') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_rules') }}" class="sidebar-link">
                     <span class="sidebar-icon">📜</span>
                     <span>Правила</span>
                 </a>
-                <a href="{{ url_for('admin_broadcasts') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_broadcasts') }}" class="sidebar-link">
                     <span class="sidebar-icon">📢</span>
                     <span>Рассылки</span>
                 </a>
-                <a href="{{ url_for('admin_rating_settings') }}" class="sidebar-link">
+                <a href="{{ url_for('admin.admin_rating_settings') }}" class="sidebar-link">
                     <span class="sidebar-icon">🔔</span>
                     <span>Цыфорки</span>
                 </a>

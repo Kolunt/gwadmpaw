@@ -108,18 +108,18 @@
                         <span class="participant-count">{{ item.registrations_count }}</span>
                         <span class="participant-label">участников</span>
                     </div>
-                    <a href="{{ url_for('events') }}" class="btn btn-sm btn-outline">Подробнее</a>
+                    <a href="{{ url_for('events.events') }}" class="btn btn-sm btn-outline">Подробнее</a>
                 </div>
             </div>
             {% endfor %}
         </div>
         {% if events_with_stages|length > 3 %}
         <div class="section-footer">
-            <a href="{{ url_for('events') }}" class="btn btn-primary">Все мероприятия</a>
+            <a href="{{ url_for('events.events') }}" class="btn btn-primary">Все мероприятия</a>
         </div>
         {% else %}
         <div class="section-footer">
-            <a href="{{ url_for('events') }}" class="btn btn-primary">Перейти к мероприятиям</a>
+            <a href="{{ url_for('events.events') }}" class="btn btn-primary">Перейти к мероприятиям</a>
         </div>
         {% endif %}
     </div>

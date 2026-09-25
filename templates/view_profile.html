@@ -576,11 +576,11 @@
             {% if is_own_profile %}
             <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-primary">Редактировать профиль</a>
             {% if session.get('user_id') and 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Админ-панель</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">Админ-панель</a>
             {% endif %}
             {% else %}
             {% if can_impersonate %}
-            <form method="POST" action="{{ url_for('admin_user_impersonate', user_id=user.user_id) }}" style="display: inline;">
+            <form method="POST" action="{{ url_for('admin.admin_user_impersonate', user_id=user.user_id) }}" style="display: inline;">
                 <input type="hidden" name="next" value="{{ request.full_path or request.path }}">
                 <input type="hidden" name="return_url" value="{{ request.full_path or request.path }}">
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите управлять этим пользователем?');">

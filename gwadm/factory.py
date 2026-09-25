@@ -63,6 +63,13 @@ def create_app() -> Flask:
 
     _ensure_upload_dirs(app)
     init_extensions(app)
+    from gwadm.jinja_filters import register_template_filters
+    from gwadm.context import register_context_processors
+    from gwadm.errors import register_error_handlers
+
+    register_template_filters(app)
+    register_context_processors(app)
+    register_error_handlers(app)
     register_blueprints(app)
     _init_database()
 

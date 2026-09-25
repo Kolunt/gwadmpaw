@@ -8,7 +8,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h1>Правила</h1>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin_rules') }}" class="btn btn-primary">Управление правилами</a>
+            <a href="{{ url_for('admin.admin_rules') }}" class="btn btn-primary">Управление правилами</a>
             {% endif %}
         </div>
         

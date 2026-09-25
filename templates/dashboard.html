@@ -463,7 +463,7 @@
         <div class="profile-actions">
             <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-primary">{{ _('Edit Profile') }}</a>
             {% if 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">{{ _('Admin Panel') }}</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">{{ _('Admin Panel') }}</a>
             {% endif %}
             <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary">{{ _('Logout') }}</a>
         </div>
