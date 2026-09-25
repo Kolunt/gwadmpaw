@@ -28,9 +28,20 @@ python app.py
 
 ```bash
 git push
-ssh gwadmpaw-prod "cd ~/gwadm && git pull && systemctl --user restart gwadm"
-bash ~/gwadm/scripts/post_deploy_smoke.sh
+ssh gwadmpaw-prod "cd ~/gwadm && git pull && systemctl --user restart gwadm && sleep 2 && bash scripts/post_deploy_smoke.sh"
 journalctl --user -u gwadm -n 20
+```
+
+**Обязательно после каждого деплоя:** `post_deploy_smoke.sh` на сервере проверяет:
+- `systemctl --user is-active gwadm`
+- `/health` на gunicorn (`127.0.0.1:8000`) и через nginx (`127.0.0.1`)
+- совпадение `version` в `/health` с `version.py` в репозитории
+
+Без `loginctl enable-linger deploy` user systemd (и gwadm) **останавливается после закрытия SSH** → nginx 502. Один раз на сервере:
+
+```bash
+sudo loginctl enable-linger deploy
+loginctl show-user deploy -p Linger   # должно быть Linger=yes
 ```
 
 Nginx reload нужен только после изменения `deploy/nginx-gwadm.conf`.

@@ -13,7 +13,17 @@
 
 Подождите 5–30 минут после сохранения.
 
-## 2. Nginx + SSL (на сервере)
+## 2. Linger для user systemd (обязательно)
+
+Без linger сервис `gwadm` останавливается, когда закрывается SSH-сессия → **502 Bad Gateway** в nginx.
+
+```bash
+sudo loginctl enable-linger deploy
+loginctl show-user deploy -p Linger   # Linger=yes
+systemctl --user enable --now gwadm
+```
+
+## 3. Nginx + SSL (на сервере)
 
 Подключитесь и выполните (введёте пароль `deploy` один раз):
 
@@ -26,7 +36,7 @@ sudo bash ~/gwadm/deploy/setup-nginx-only.sh
 - проксирует `gwadm.ru` → gunicorn на порту 8000;
 - выпустит сертификат Let's Encrypt (если DNS уже указывает на сервер).
 
-## 3. GWars
+## 4. GWars
 
 В настройках GWars для **site_id=3** укажите callback:
 
@@ -52,7 +62,7 @@ journalctl --user -u gwadm -n 20 | grep -i GWARS || echo 'OK: no GWARS_PASSWORD 
 
 Без `GWARS_PASSWORD` в логах gunicorn будет предупреждение, а callback отклоняется на production.
 
-## 4. SECRET_KEY (сессии Flask)
+## 5. SECRET_KEY (сессии Flask)
 
 Без фиксированного `SECRET_KEY` при нескольких воркерах gunicorn авторизация «вылетает» между запросами.
 
@@ -66,7 +76,7 @@ systemctl --user daemon-reload
 systemctl --user restart gwadm
 ```
 
-## 5. Telegram и cron
+## 6. Telegram и cron
 
 В админке: **Настройки → Интеграции** — «Проверить подключение» у бота (обновит webhook).
 
@@ -88,7 +98,7 @@ systemctl --user restart gwadm
 https://gwadm.ru/cron/run?token=ВАШ_ТОКЕН
 ```
 
-## 6. Nginx: rate limit и security headers
+## 7. Nginx: rate limit и security headers
 
 После обновления репозитория скопируйте конфиг и перезагрузите nginx:
 
@@ -103,7 +113,7 @@ sudo nginx -t && sudo systemctl reload nginx
 curl -sI https://gwadm.ru/ | grep -i x-frame
 ```
 
-## 7. Backup БД (systemd timer)
+## 8. Backup БД (systemd timer)
 
 ```bash
 mkdir -p ~/.config/systemd/user
@@ -116,7 +126,7 @@ ls -la ~/gwadm/backups/
 
 Подробнее: [doc/database.md](../doc/database.md).
 
-## 8. Мониторинг (systemd timer)
+## 9. Мониторинг (systemd timer)
 
 ```bash
 cp ~/gwadm/deploy/gwadm-monitor.{service,timer} ~/.config/systemd/user/
@@ -128,7 +138,7 @@ journalctl --user -u gwadm-monitor.service -n 30
 
 Подробнее: [doc/deployment.md](../doc/deployment.md#мониторинг).
 
-## 9. Фоновые задачи (rating, рассылки, audit, avatar cache)
+## 10. Фоновые задачи (rating, рассылки, audit, avatar cache)
 
 ```bash
 cp ~/gwadm/deploy/gwadm-rating-cache.{service,timer} ~/.config/systemd/user/
@@ -143,13 +153,13 @@ systemctl --user restart gwadm
 
 Подробнее: [doc/deployment.md](../doc/deployment.md#фоновые-задачи-фаза-8).
 
-## 10. Проверка
+## 11. Проверка после деплоя (обязательно)
 
 ```bash
 systemctl --user status gwadm
-curl -s http://127.0.0.1:8000/health
-bash ~/gwadm/scripts/post_deploy_smoke.sh
-curl -I https://gwadm.ru/
-curl -sI https://gwadm.ru/login | grep -i location    # site_id=3
-curl -sI https://www.gwadm.ru/login | grep -i location
+bash ~/gwadm/scripts/post_deploy_smoke.sh   # gunicorn + nginx + version
+curl -s http://127.0.0.1/health           # через nginx :80
+curl -sI http://gwadm.ru/login | grep -i location    # site_id=3
 ```
+
+`post_deploy_smoke.sh` должен завершиться с `OK`. Версия в `/health` = `version.py` в git.
