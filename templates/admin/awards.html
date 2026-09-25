@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Награды - Админ-панель{% endblock %}
 
 {% block content %}
@@ -48,6 +49,7 @@
                         <div style="display: flex; gap: 0.5rem;">
                             <a href="{{ url_for('admin.admin_award_edit', award_id=award.id) }}" class="btn-icon" title="Редактировать">✏️</a>
                             <form method="POST" action="{{ url_for('admin.admin_award_delete', award_id=award.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту награду?');">
+        {{ csrf_input() }}
                                 <button type="submit" class="btn-icon" title="Удалить" style="background-color: var(--error-color); color: white;">🗑️</button>
                             </form>
                         </div>

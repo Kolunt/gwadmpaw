@@ -79,11 +79,11 @@
 
 | ID | Задача | Статус | Зависит от |
 |----|--------|--------|------------|
-| R-401 | CSRF для POST в админке и профиле (`Flask-WTF` или свой токен) | todo | R-207 |
-| R-402 | Аудит загрузки файлов (awards, letter attachments) — расширения, размер, путь | todo | R-207 |
-| R-403 | `/cron/run` — токен только из env, без автогенерации в БД на проде | todo | R-101 |
-| R-404 | Rate limit на `/login`, `/telegram/webhook` (Flask-Limiter или nginx) | todo | R-301 |
-| R-405 | Security headers в nginx (X-Frame-Options, CSP базовый) | todo | — |
+| R-401 | CSRF для POST в админке и профиле (`Flask-WTF` или свой токен) | done | R-207 |
+| R-402 | Аудит загрузки файлов (awards, letter attachments) — расширения, размер, путь | done | R-207 |
+| R-403 | `/cron/run` — токен только из env, без автогенерации в БД на проде | done | R-101 |
+| R-404 | Rate limit на `/login`, `/telegram/webhook` (Flask-Limiter или nginx) | done | R-301 |
+| R-405 | Security headers в nginx (X-Frame-Options, CSP базовый) | done | — |
 
 ---
 
@@ -91,12 +91,12 @@
 
 | ID | Задача | Статус | Зависит от |
 |----|--------|--------|------------|
-| R-501 | `pytest` + `tests/conftest.py` (temp SQLite, test client) | todo | R-102 |
-| R-502 | Тесты `gwars_domains.py` (уже есть скрипт — перенести в pytest) | todo | R-501 |
-| R-503 | Тесты `gwars_signatures.py` — sign, sign2, sign3, sign4, cp1251 | todo | R-211 |
-| R-504 | Тесты auth flow: `/login/go` redirect URL, callback с фикстурными sign | todo | R-301 |
-| R-505 | GitHub Actions: lint (ruff/flake8) + pytest на push/PR | todo | R-501 |
-| R-506 | Smoke после деплоя (опционально): curl site_id, /health | todo | R-001 |
+| R-501 | `pytest` + `tests/conftest.py` (temp SQLite, test client) | done | R-102 |
+| R-502 | Тесты `gwars_domains.py` (уже есть скрипт — перенести в pytest) | done | R-501 |
+| R-503 | Тесты `gwars_signatures.py` — sign, sign2, sign3, sign4, cp1251 | done | R-211 |
+| R-504 | Тесты auth flow: `/login/go` redirect URL, callback с фикстурными sign | done | R-301 |
+| R-505 | GitHub Actions: lint (ruff/flake8) + pytest на push/PR | done | R-501 |
+| R-506 | Smoke после деплоя (опционально): curl site_id, /health | done | R-001 |
 
 ---
 
@@ -118,7 +118,7 @@
 |----|--------|--------|------------|
 | R-701 | Обновить `README.md` под gwadm.ru, актуальная версия, ссылки на GWARS_DOMAINS | todo | — |
 | R-702 | Объединить `DEPLOYMENT.md` и `deploy/FINISH_SETUP.md` или явно пометить legacy PA | todo | — |
-| R-703 | `GET /health` — 200 + версия, без БД или с лёгкой проверкой | todo | R-106 |
+| R-703 | `GET /health` — 200 + версия, без БД или с лёгкой проверкой | done | R-106 |
 | R-704 | systemd timer для backup БД + ротация (вместо только cron-job.org) | todo | R-102 |
 | R-705 | Мониторинг: алерт при 5xx, место на диске (аватары-кэш растёт) | todo | R-703 |
 
@@ -202,3 +202,4 @@ gwadmpaw/
 | 2025-09-25 | R-106, R-201, R-002: `create_app()` factory, extensions, i18n; Babel 4.x fix |
 | 2025-09-25 | R-211: `gwars_signatures.py` — compute/verify sign*, debug helpers; auth.py без inline hashlib |
 | 2025-09-25 | R-301–R-306: login landing/go, mobile interstitial, login_state+return_url, debug gate, GWARS_PASSWORD, ENABLE_DEV_LOGIN |
+| 2025-09-25 | R-401–R-405, R-501–R-506, R-703: CSRF, uploads audit, cron env-only, nginx rate limit/headers, pytest+CI, `/health` |

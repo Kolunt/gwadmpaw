@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}{{ event.name }} - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -129,6 +130,7 @@
                                   action="{{ url_for('events.event_register', event_id=event.id) }}"
                                   class="register-form"
                                   data-event-id="{{ event.id }}">
+        {{ csrf_input() }}
                                 <button type="submit" class="btn btn-primary btn-large">Подтвердить участие</button>
                             </form>
                         </div>
@@ -139,6 +141,7 @@
                             </div>
                             <form method="POST" action="{{ url_for('events.event_unregister', event_id=event.id) }}" 
                                   onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');">
+        {{ csrf_input() }}
                                 <button type="submit" class="btn btn-danger">Отменить регистрацию</button>
                             </form>
                         </div>
@@ -149,6 +152,7 @@
                                   action="{{ url_for('events.event_register', event_id=event.id) }}"
                                   class="register-form"
                                   data-event-id="{{ event.id }}">
+        {{ csrf_input() }}
                                 <button type="submit" class="btn btn-primary btn-large">Зарегистрироваться на мероприятие</button>
                             </form>
                         </div>

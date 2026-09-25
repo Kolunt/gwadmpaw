@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Редактирование правил - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -12,6 +13,7 @@
         
         <div class="admin-card">
             <form method="POST" action="{{ url_for('admin.admin_rules_edit') }}" id="rules-form">
+        {{ csrf_input() }}
                 <div class="form-group">
                     <label class="form-label">Правила</label>
                     <p class="form-hint">Используйте формат пунктов: 1, 1.1, 1.1.1 и т.д. Вы можете добавлять и удалять строки.</p>

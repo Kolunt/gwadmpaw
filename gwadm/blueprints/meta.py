@@ -3,7 +3,7 @@
 import os
 import re
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 
 try:
     import requests
@@ -22,6 +22,12 @@ from gwadm.services.avatars import (
 from gwadm.services.meta_lists import get_users_with_award, get_users_with_title
 
 bp = Blueprint('meta', __name__)
+
+
+@bp.route('/health')
+def health():
+    """Lightweight health check for deploy smoke and monitoring."""
+    return jsonify({'status': 'ok', 'version': current_app.config['VERSION']}), 200
 
 
 @bp.route('/avatars/image')

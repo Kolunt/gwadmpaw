@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}{% if category %}Редактирование категории FAQ{% else %}Создание категории FAQ{% endif %} - Админ-панель{% endblock %}
 
 {% block content %}
@@ -11,6 +12,7 @@
     
     <div class="form-container">
         <form method="POST">
+        {{ csrf_input() }}
             <div class="form-group">
                 <label for="name">Имя категории (латиница):</label>
                 <input type="text" id="name" name="name" required 

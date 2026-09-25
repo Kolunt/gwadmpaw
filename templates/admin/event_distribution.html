@@ -837,7 +837,8 @@ async function removeAssignmentForSanta(santaId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'X-CSRF-Token': window.getCsrfToken(),
             },
             credentials: 'same-origin',
             body: JSON.stringify({ santa_id: santaId })
@@ -1102,7 +1103,8 @@ async function savePairs({ showSuccess = true } = {}) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'X-CSRF-Token': window.getCsrfToken(),
             },
             credentials: 'same-origin',
             body: JSON.stringify(requestBody)
@@ -1510,7 +1512,8 @@ function renderPairs(pairs, options = {}) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': window.getCsrfToken(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ santa_id: santaId })
@@ -1730,7 +1733,8 @@ async function handleGenerate() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'X-CSRF-Token': window.getCsrfToken(),
             },
             credentials: 'same-origin',
             body: JSON.stringify({
@@ -1854,7 +1858,8 @@ async function handleGenerateUnformed() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'X-CSRF-Token': window.getCsrfToken(),
             },
             credentials: 'same-origin',
             body: JSON.stringify({
@@ -1873,7 +1878,8 @@ async function handleGenerateUnformed() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': window.getCsrfToken(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ pairs: data.pairs })
@@ -1980,7 +1986,8 @@ if (assignmentsBtn) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': window.getCsrfToken(),
                 },
                 credentials: 'same-origin'
             });

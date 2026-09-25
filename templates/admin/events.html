@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Мероприятия - Админ-панель{% endblock %}
 
 {% block content %}
@@ -59,6 +60,7 @@
                             </a>
                             {% endif %}
                             <form method="POST" action="{{ url_for('admin.admin_event_delete', event_id=event.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это мероприятие?');">
+        {{ csrf_input() }}
                                 <button type="submit" class="btn btn-sm btn-danger" title="Удалить">
                                     <span style="font-size: 1.2em;">🗑️</span>
                                 </button>

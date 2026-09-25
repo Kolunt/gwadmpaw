@@ -481,6 +481,7 @@ function generateVerificationCode() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRF-Token': window.getCsrfToken(),
         }
     })
     .then(response => response.json())
@@ -536,6 +537,7 @@ function unlinkTelegram() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRF-Token': window.getCsrfToken(),
         }
     })
     .then(response => response.json())

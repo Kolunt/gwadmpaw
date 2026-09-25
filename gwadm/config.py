@@ -84,6 +84,8 @@ def warn_insecure_defaults() -> None:
 LETTER_UPLOAD_RELATIVE = 'uploads/letter_attachments'
 ASSIGNMENT_RECEIPT_RELATIVE = 'uploads/assignment_receipts'
 ALLOWED_LETTER_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+ALLOWED_AWARD_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'}
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 LETTER_UPLOAD_FOLDER = str(ROOT_DIR / 'static' / 'uploads' / 'letter_attachments')
 ASSIGNMENT_RECEIPT_FOLDER = str(ROOT_DIR / 'static' / 'uploads' / 'assignment_receipts')
 

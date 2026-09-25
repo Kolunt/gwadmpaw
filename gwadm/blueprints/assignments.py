@@ -1,6 +1,8 @@
 """User letter and assignment routes."""
 
 import os
+from datetime import datetime
+
 from flask import (
     Blueprint, flash, jsonify, redirect, render_template, request, session, url_for,
 )
@@ -8,10 +10,14 @@ from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
 
-from werkzeug.utils import secure_filename
-
-from gwadm.config import ASSIGNMENT_RECEIPT_FOLDER, LETTER_UPLOAD_FOLDER
+from gwadm.config import (
+    ALLOWED_LETTER_IMAGE_EXTENSIONS,
+    ASSIGNMENT_RECEIPT_RELATIVE,
+    LETTER_UPLOAD_FOLDER,
+    LETTER_UPLOAD_RELATIVE,
+)
 from gwadm.services.assignments import mark_assignment_received, mark_assignment_sent
+from gwadm.services.uploads import save_validated_image, validate_image_upload
 
 bp = Blueprint('assignments', __name__)
 
@@ -152,19 +158,26 @@ def letter():
         saved_filepath = None
 
         if has_attachment:
-            filename = secure_filename(attachment_file.filename)
-            _, ext = os.path.splitext(filename)
-            ext = ext.lower()
-            if ext not in ALLOWED_LETTER_IMAGE_EXTENSIONS:
-                flash('Допускается загрузка только изображений (PNG, JPG, JPEG, GIF, WEBP).', 'error')
+            data, upload_error = validate_image_upload(
+                attachment_file, ALLOWED_LETTER_IMAGE_EXTENSIONS,
+            )
+            if upload_error:
+                flash(upload_error, 'error')
                 return redirect(url_for('assignments.letter', assignment_id=selected_assignment.get('id')))
 
-            unique_name = f"{selected_assignment.get('id')}_{int(datetime.now().timestamp())}_{secrets.token_hex(4)}{ext}"
-            saved_filepath = os.path.join(LETTER_UPLOAD_FOLDER, unique_name)
+            _, ext = os.path.splitext(attachment_file.filename)
+            ext = ext.lower()
+            if ext == '.jpeg':
+                ext = '.jpg'
             try:
-                attachment_file.save(saved_filepath)
+                unique_name = save_validated_image(
+                    data,
+                    LETTER_UPLOAD_FOLDER,
+                    str(selected_assignment.get('id')),
+                    ext,
+                )
             except Exception as exc:
-                log_error(f"Failed to save letter attachment {unique_name}: {exc}")
+                log_error(f"Failed to save letter attachment: {exc}")
                 flash('Не удалось загрузить изображение.', 'error')
                 return redirect(url_for('assignments.letter', assignment_id=selected_assignment.get('id')))
 

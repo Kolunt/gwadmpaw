@@ -435,7 +435,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': window.getCsrfToken(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify(fields)
@@ -604,7 +605,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': window.getCsrfToken(),
                     },
                     credentials: 'same-origin',
                     body: JSON.stringify({ final_registration: true })

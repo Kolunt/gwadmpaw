@@ -22,6 +22,7 @@ from gwadm.services.telegram import (
 
 from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role
+from gwadm.csrf import csrf_exempt
 from gwadm.logging_config import log_error
 from gwadm.services.settings import get_setting
 
@@ -114,6 +115,7 @@ def telegram_verify_unlink():
 
 
 @bp.route('/telegram/webhook', methods=['POST'])
+@csrf_exempt
 def telegram_webhook():
     """Вебхук для обработки сообщений от Telegram бота"""
     if not requests:
@@ -254,42 +256,29 @@ def verify_telegram():
 
 
 @bp.route('/cron/run', methods=['GET', 'POST'])
+@csrf_exempt
 def cron_run():
-    """HTTP endpoint для запуска cron задач из внешнего сервиса
-    
-    Защищен секретным токеном, который можно настроить через переменную окружения
-    CRON_SECRET_TOKEN или через настройку в БД.
-    
+    """HTTP endpoint для запуска cron задач из внешнего сервиса.
+
+    Защищен секретным токеном из переменной окружения CRON_SECRET_TOKEN.
+
     Использование:
     https://gwadm.pythonanywhere.com/cron/run?token=YOUR_SECRET_TOKEN
     """
-    # Получаем секретный токен из переменной окружения или настроек
-    expected_token = CRON_SECRET_TOKEN or get_setting('cron_secret_token', '')
-    
-    # Если токен не настроен, генерируем случайный при первом запуске
+    from gwadm.config import is_production
+
+    expected_token = CRON_SECRET_TOKEN
     if not expected_token:
-        # Генерируем случайный токен и сохраняем в настройках
-        import secrets
-        expected_token = secrets.token_urlsafe(32)
-        conn = get_db_connection()
-        try:
-            # Проверяем, существует ли настройка
-            existing = conn.execute('SELECT key FROM settings WHERE key = ?', ('cron_secret_token',)).fetchone()
-            if not existing:
-                conn.execute('''
-                    INSERT INTO settings (key, value, description, category)
-                    VALUES (?, ?, ?, ?)
-                ''', ('cron_secret_token', expected_token, 'Секретный токен для запуска cron задач', 'system'))
-                conn.commit()
-            else:
-                # Получаем существующий токен
-                setting = conn.execute('SELECT value FROM settings WHERE key = ?', ('cron_secret_token',)).fetchone()
-                if setting:
-                    expected_token = setting['value']
-        except Exception as e:
-            log_error(f"Error getting/setting cron token: {e}")
-        finally:
-            conn.close()
+        if is_production():
+            log_error('CRON_SECRET_TOKEN is not configured in production')
+            return jsonify({
+                'success': False,
+                'error': 'Cron endpoint is not configured',
+            }), 503
+        return jsonify({
+            'success': False,
+            'error': 'Invalid or missing token',
+        }), 401
     
     # Проверяем токен из запроса
     provided_token = request.args.get('token') or request.form.get('token')

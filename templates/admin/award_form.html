@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}{% if award %}Редактирование награды{% else %}Создание награды{% endif %} - Админ-панель{% endblock %}
 
 {% block content %}
@@ -11,6 +12,7 @@
     
     <div class="form-container">
         <form method="POST" enctype="multipart/form-data" class="form">
+        {{ csrf_input() }}
             <div class="form-group">
                 <label for="title" class="form-label">Заголовок награды *</label>
                 <input 

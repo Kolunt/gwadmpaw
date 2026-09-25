@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Роли - Админ-панель{% endblock %}
 
 {% block content %}
@@ -104,6 +105,7 @@
                         <div style="display: flex; gap: 0.5rem; align-items: center;">
                             <a href="{{ url_for('admin.admin_role_edit', role_id=role.id) }}" class="btn-icon" title="Редактировать">✏️</a>
                             <form method="POST" action="{{ url_for('admin.admin_role_delete', role_id=role.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить эту роль?');">
+        {{ csrf_input() }}
                                 <button type="submit" class="btn-icon" title="Удалить" style="background-color: var(--error-color); border-color: var(--error-color); color: white;">🗑️</button>
                             </form>
                         </div>

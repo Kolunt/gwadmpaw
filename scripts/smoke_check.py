@@ -42,6 +42,19 @@ def main() -> int:
 
     client = flask_app.test_client()
 
+    response = client.get("/health")
+    if response.status_code != 200:
+        errors.append(f"GET /health expected 200, got {response.status_code}")
+    else:
+        try:
+            health_data = response.get_json()
+            if not health_data or health_data.get("status") != "ok":
+                errors.append(f"GET /health unexpected JSON: {health_data}")
+            elif not health_data.get("version"):
+                errors.append("GET /health missing version field")
+        except Exception as exc:
+            errors.append(f"GET /health JSON parse failed: {exc}")
+
     response = client.get("/")
     if response.status_code != 200:
         errors.append(f"GET / expected 200, got {response.status_code}")

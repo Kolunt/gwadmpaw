@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Ревью участников: {{ event.name }} - Админ-панель{% endblock %}
 
 {% block content %}
@@ -86,6 +87,7 @@
                             </td>
                             <td data-label="Действия">
                                 <form method="POST" action="{{ url_for('admin_event_approve', event_id=event.id) }}" style="display: inline;">
+        {{ csrf_input() }}
                                     <input type="hidden" name="user_id" value="{{ participant.user_id }}">
                                     {% if participant.approved %}
                                     <button type="submit" name="approved" value="0" class="btn btn-sm btn-warning" 

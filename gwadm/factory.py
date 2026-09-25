@@ -71,6 +71,11 @@ def create_app() -> Flask:
     register_context_processors(app)
     register_error_handlers(app)
     register_blueprints(app)
+
+    from gwadm.csrf import init_csrf
+
+    init_csrf(app)
+
     _init_database()
 
     return app

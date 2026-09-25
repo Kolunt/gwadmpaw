@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}{% if user %}Редактирование пользователя{% else %}Создание пользователя{% endif %} - Админ-панель{% endblock %}
 
 {% block content %}
@@ -11,6 +12,7 @@
     
     <div class="form-container">
         <form method="POST" class="user-form-compact">
+        {{ csrf_input() }}
             <!-- Основная информация -->
             <div class="form-section-compact">
                 <h3 class="form-section-title">📋 Основная информация</h3>
@@ -301,6 +303,7 @@
                 {% endif %}
             </div>
             <form method="POST" style="margin-top: 1rem;">
+        {{ csrf_input() }}
                 <input type="hidden" name="block_action" value="unblock">
                 <button type="submit" class="btn btn-success" onclick="return confirm('Вы уверены, что хотите разблокировать этого пользователя?');">
                     🔓 Разблокировать пользователя
@@ -308,6 +311,7 @@
             </form>
             {% else %}
             <form method="POST">
+        {{ csrf_input() }}
                 <input type="hidden" name="block_action" value="block">
                 <div class="form-group-compact">
                     <label for="blocked_reason">Причина блокировки <span style="color: red;">*</span>:</label>
@@ -340,6 +344,7 @@
                     
                     <div class="roles-titles-actions">
                         <form method="POST" class="role-form-compact">
+        {{ csrf_input() }}
                             <input type="hidden" name="role_action" value="assign">
                             <select name="role_name" required>
                                 <option value="">Выберите роль</option>
@@ -354,6 +359,7 @@
                         
                         {% if user_roles %}
                         <form method="POST" class="role-form-compact">
+        {{ csrf_input() }}
                             <input type="hidden" name="role_action" value="remove">
                             <select name="role_name" required>
                                 <option value="">Выберите роль</option>
@@ -383,6 +389,7 @@
                     
                     <div class="roles-titles-actions">
                         <form method="POST" class="role-form-compact">
+        {{ csrf_input() }}
                             <input type="hidden" name="title_action" value="assign">
                             <select name="title_id" required>
                                 <option value="">Выберите звание</option>
@@ -399,6 +406,7 @@
                         
                         {% if user_titles %}
                         <form method="POST" class="role-form-compact">
+        {{ csrf_input() }}
                             <input type="hidden" name="title_action" value="remove">
                             <select name="title_id" required>
                                 <option value="">Выберите звание</option>

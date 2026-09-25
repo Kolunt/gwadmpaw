@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Локализация - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -17,6 +18,7 @@
 
     <div class="settings-form">
         <form method="POST" action="{{ url_for('admin_localization') }}">
+        {{ csrf_input() }}
             <div class="setting-card">
                 <div class="setting-card-header">
                     <label for="default_language" class="setting-label">

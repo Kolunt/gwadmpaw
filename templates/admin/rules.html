@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Управление правилами - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -10,6 +11,7 @@
             <div style="display: flex; gap: 0.5rem;">
                 {% if not has_rules %}
                 <form method="POST" action="{{ url_for('admin.admin_rules_init_defaults') }}" style="display: inline;">
+        {{ csrf_input() }}
                     <button type="submit" class="btn btn-secondary" onclick="return confirm('Инициализировать дефолтные правила? Существующие правила будут перезаписаны.');">
                         Инициализировать дефолтные правила
                     </button>

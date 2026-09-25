@@ -1,13 +1,17 @@
 """Admin: awards."""
 
+import os
+
 from flask import (
-    Blueprint, flash, jsonify, redirect, render_template, request, session, url_for,
+    Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for,
 )
 from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
 
 from gwadm.blueprints.admin import bp
+from gwadm.config import ALLOWED_AWARD_IMAGE_EXTENSIONS
+from gwadm.services.uploads import save_validated_image, validate_image_upload
 
 @bp.route('/awards')
 @require_role('admin')
@@ -52,20 +56,22 @@ def admin_award_create():
         except ValueError:
             sort_order = 100
         
-        # Обработка загрузки изображения
         image_path = None
         if image_file and image_file.filename:
-            upload_dir = os.path.join(app.static_folder, 'uploads', 'awards')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            # Проверяем расширение
-            allowed_extensions = {'.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'}
+            data, upload_error = validate_image_upload(
+                image_file,
+                ALLOWED_AWARD_IMAGE_EXTENSIONS,
+                allow_svg=True,
+            )
+            if upload_error:
+                flash(upload_error, 'error')
+                users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
+                conn.close()
+                return render_template('admin/award_form.html', users=users)
             file_ext = os.path.splitext(image_file.filename)[1].lower()
-            if file_ext in allowed_extensions:
-                filename = f"award_{int(datetime.now().timestamp())}{file_ext}"
-                filepath = os.path.join(upload_dir, filename)
-                image_file.save(filepath)
-                image_path = f'/static/uploads/awards/{filename}'
+            upload_dir = os.path.join(current_current_app.static_folder, 'uploads', 'awards')
+            filename = save_validated_image(data, upload_dir, 'award', file_ext)
+            image_path = f'/static/uploads/awards/{filename}'
         
         try:
             # Создаем награду
@@ -140,7 +146,7 @@ def admin_award_edit(award_id):
         if delete_image == '1':
             # Удаляем старое изображение
             if image_path:
-                old_filepath = os.path.join(app.static_folder, image_path.replace('/static/', ''))
+                old_filepath = os.path.join(current_app.static_folder, image_path.replace('/static/', ''))
                 if os.path.exists(old_filepath):
                     try:
                         os.remove(old_filepath)
@@ -149,26 +155,37 @@ def admin_award_edit(award_id):
             image_path = None
         
         if image_file and image_file.filename:
-            # Удаляем старое изображение при загрузке нового
             if image_path:
-                old_filepath = os.path.join(app.static_folder, image_path.replace('/static/', ''))
+                old_filepath = os.path.join(current_current_app.static_folder, image_path.replace('/static/', ''))
                 if os.path.exists(old_filepath):
                     try:
                         os.remove(old_filepath)
                     except Exception as e:
                         log_debug(f"Error deleting old image: {e}")
-            
-            upload_dir = os.path.join(app.static_folder, 'uploads', 'awards')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            # Проверяем расширение
-            allowed_extensions = {'.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'}
+
+            data, upload_error = validate_image_upload(
+                image_file,
+                ALLOWED_AWARD_IMAGE_EXTENSIONS,
+                allow_svg=True,
+            )
+            if upload_error:
+                flash(upload_error, 'error')
+                users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
+                current_users = conn.execute(
+                    'SELECT user_id FROM user_awards WHERE award_id = ?', (award_id,),
+                ).fetchall()
+                current_user_ids = [u['user_id'] for u in current_users]
+                conn.close()
+                return render_template(
+                    'admin/award_form.html',
+                    award=award,
+                    users=users,
+                    current_user_ids=current_user_ids,
+                )
             file_ext = os.path.splitext(image_file.filename)[1].lower()
-            if file_ext in allowed_extensions:
-                filename = f"award_{int(datetime.now().timestamp())}{file_ext}"
-                filepath = os.path.join(upload_dir, filename)
-                image_file.save(filepath)
-                image_path = f'/static/uploads/awards/{filename}'
+            upload_dir = os.path.join(current_current_app.static_folder, 'uploads', 'awards')
+            filename = save_validated_image(data, upload_dir, 'award', file_ext)
+            image_path = f'/static/uploads/awards/{filename}'
         
         try:
             # Обновляем награду
@@ -250,7 +267,7 @@ def admin_award_delete(award_id):
     try:
         # Удаляем изображение если есть
         if award['image']:
-            image_path = os.path.join(app.static_folder, award['image'].replace('/static/', ''))
+            image_path = os.path.join(current_app.static_folder, award['image'].replace('/static/', ''))
             if os.path.exists(image_path):
                 try:
                     os.remove(image_path)

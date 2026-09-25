@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Настройки рейтинга (Цыфорки) - Админ-панель{% endblock %}
 
 {% block content %}
@@ -10,6 +11,7 @@
     </div>
     
     <form method="POST" class="settings-form">
+        {{ csrf_input() }}
         <div class="settings-section">
             <p class="text-muted" style="margin-bottom: 1.5rem;">
                 Настройте количество очков, которые начисляются участникам за различные действия.
@@ -250,6 +252,7 @@
             <button type="submit" class="btn btn-primary" onclick="document.getElementById('form-action').value='save';">Сохранить настройки</button>
             <button type="submit" class="btn btn-warning" onclick="if(confirm('Вы уверены? Это пересчитает все уже начисленные очки на основе новых настроек.')) { document.getElementById('form-action').value='update'; } else { return false; }">Обновить и пересчитать</button>
             <form method="POST" action="{{ url_for('admin.admin_rating_settings_fix_points') }}" style="display: inline;" onsubmit="return confirm('Исправить значения points в базе данных? Это преобразует все строковые значения в числа.');">
+        {{ csrf_input() }}
                 <button type="submit" class="btn btn-outline-warning">Исправить данные в БД</button>
             </form>
             <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">Отмена</a>

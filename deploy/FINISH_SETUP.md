@@ -54,17 +54,45 @@ systemctl --user restart gwadm
 
 В админке: **Настройки → Интеграции** — «Проверить подключение» у бота (обновит webhook).
 
-В cron-job.org замените URL на:
+**CRON_SECRET_TOKEN** обязателен в `~/gwadm/.env` (больше не генерируется в БД):
+
+```bash
+cd ~/gwadm
+# если токен был только в settings:
+sqlite3 database.db "SELECT value FROM settings WHERE key='cron_secret_token';"
+# добавьте в .env:
+# CRON_SECRET_TOKEN=скопированное_значение
+python3 -c "import secrets; print('CRON_SECRET_TOKEN=' + secrets.token_urlsafe(32))"  # или новый токен
+systemctl --user restart gwadm
+```
+
+В cron-job.org:
 
 ```
 https://gwadm.ru/cron/run?token=ВАШ_ТОКЕН
 ```
 
-## 6. Проверка
+## 6. Nginx: rate limit и security headers
+
+После обновления репозитория скопируйте конфиг и перезагрузите nginx:
+
+```bash
+sudo cp ~/gwadm/deploy/nginx-gwadm.conf /etc/nginx/sites-available/gwadm
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Проверка заголовков:
+
+```bash
+curl -sI https://gwadm.ru/ | grep -i x-frame
+```
+
+## 7. Проверка
 
 ```bash
 systemctl --user status gwadm
-curl -I http://127.0.0.1:8000/
+curl -s http://127.0.0.1:8000/health
+bash ~/gwadm/scripts/post_deploy_smoke.sh
 curl -I https://gwadm.ru/
 curl -sI https://gwadm.ru/login | grep -i location    # site_id=3
 curl -sI https://www.gwadm.ru/login | grep -i location

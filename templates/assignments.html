@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Задания - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -82,6 +83,7 @@
                             {% endif %}
                             {% if not event_finished %}
                             <form method="POST" action="{{ url_for('assignments.assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 0.75rem; display: grid; gap: 0.5rem;">
+        {{ csrf_input() }}
                                 <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.85); font-weight: 600;">Информация об отправке</label>
                                 <textarea
                                     id="send_info_{{ event_data.as_santa.get('id') }}"
@@ -133,6 +135,7 @@
                         {% else %}
                         {% if not event_finished %}
                         <form method="POST" action="{{ url_for('assignments.assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 1rem;">
+        {{ csrf_input() }}
                             <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-weight: 600;">Информация об отправке</label>
                             <textarea 
                                 id="send_info_{{ event_data.as_santa.get('id') }}"
@@ -201,6 +204,7 @@
                                 {% else %}
                                 {% if not event_finished %}
                                 <form method="POST" action="{{ url_for('assignments.assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" style="display: grid; gap: 0.75rem; margin-top: 0.5rem;">
+        {{ csrf_input() }}
                                     <div>
                                     <label for="thank_you_{{ event_data.as_recipient.get('id') }}" style="font-weight: 600;">Сообщение благодарности</label>
                                         <textarea

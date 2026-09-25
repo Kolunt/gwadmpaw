@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}{% if role %}Редактирование роли{% else %}Создание роли{% endif %} - Админ-панель{% endblock %}
 
 {% block content %}
@@ -11,6 +12,7 @@
     
     <div class="form-container">
         <form method="POST" class="role-form">
+        {{ csrf_input() }}
             {% if not role %}
             <div class="form-group">
                 <label for="name">Имя роли (латиница, без пробелов):</label>

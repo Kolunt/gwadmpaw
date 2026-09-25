@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}{% if event %}Редактирование{% else %}Создание{% endif %} мероприятия - Админ-панель{% endblock %}
 
 {% block content %}
@@ -10,6 +11,7 @@
     </div>
     
     <form method="POST" class="event-form">
+        {{ csrf_input() }}
         <div class="form-section">
             <h3>Основная информация</h3>
             

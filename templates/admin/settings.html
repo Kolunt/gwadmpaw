@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Настройки - Админ-панель{% endblock %}
 
 {% block content %}
@@ -10,6 +11,7 @@
     </div>
     
     <form method="POST" class="settings-form" enctype="multipart/form-data">
+        {{ csrf_input() }}
         <!-- Табы -->
         <div class="settings-tabs">
             {% for category, settings in settings_by_category.items() %}
@@ -626,6 +628,7 @@
                                             <div style="display: flex; gap: 0.5rem;">
                                                 <a href="{{ url_for('admin.admin_title_edit', title_id=title.id) }}" class="btn-icon" title="Редактировать">✏️</a>
                                                 <form method="POST" action="{{ url_for('admin.admin_title_delete', title_id=title.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это звание?');">
+        {{ csrf_input() }}
                                                     <button type="submit" class="btn-icon" title="Удалить" style="background-color: var(--error-color); color: white;">🗑️</button>
                                                 </form>
                                             </div>
@@ -1419,6 +1422,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             fetch('{{ url_for("integrations.verify_dadata") }}', {
                 method: 'POST',
+                headers: {
+                    'X-CSRF-Token': window.getCsrfToken(),
+                },
                 body: formData
             })
             .then(response => response.json())
@@ -1499,6 +1505,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const verifySmtpUrl = {{ url_for("integrations.verify_smtp")|tojson|safe }};
             fetch(verifySmtpUrl, {
                 method: 'POST',
+                headers: {
+                    'X-CSRF-Token': window.getCsrfToken(),
+                },
                 body: formData
             })
             .then(response => response.json())
@@ -1581,6 +1590,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const verifyTelegramUrl = {{ url_for("integrations.verify_telegram")|tojson|safe }};
             fetch(verifyTelegramUrl, {
                 method: 'POST',
+                headers: {
+                    'X-CSRF-Token': window.getCsrfToken(),
+                },
                 body: formData
             })
             .then(response => response.json())
@@ -1857,6 +1869,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         
         <form id="menu-form" method="POST" action="{{ url_for('admin.admin_telegram_menu') }}">
+        {{ csrf_input() }}
             <input type="hidden" name="action" id="menu-action" value="create">
             <input type="hidden" name="menu_id" id="menu-id">
             
@@ -1947,6 +1960,7 @@ function loadBotMenu() {
                     ${statusBadge}
                     <button type="button" class="btn btn-secondary" onclick="editMenuItem(${item.id})" style="padding: 0.5rem 1rem;">✏️</button>
                     <form method="POST" action="{{ url_for('admin.admin_telegram_menu') }}" style="display: inline;" onsubmit="return confirm('Удалить этот пункт меню?');">
+        {{ csrf_input() }}
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="menu_id" value="${item.id}">
                         <button type="submit" class="btn btn-secondary" style="padding: 0.5rem 1rem;">🗑️</button>

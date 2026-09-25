@@ -8,6 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Деды Морозы">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     {% set site_title = get_setting('site_title', 'Анонимные Деды Морозы') %}
     <title>{% block title %}{{ site_title }}{% endblock %}</title>
     {% set site_description = get_setting('site_description', '') %}
@@ -103,7 +104,10 @@
                     <span class="navbar-icon theme-icon">🌙</span>
                 </button>
                 {% if session.get('impersonation_original') %}
+                {% from 'macros/csrf.html' import csrf_input %}
                 <form method="POST" action="{{ url_for('admin.stop_impersonation') }}" class="impersonation-navbar-form">
+        {{ csrf_input() }}
+                    {{ csrf_input() }}
                     <button type="submit" class="navbar-icon-btn" title="Вернуться к своей учетной записи" aria-label="Вернуться к своей учетной записи">
                         🔙
                     </button>
@@ -245,6 +249,10 @@
     <script>
         // Передаем настройку темы по умолчанию из сервера
         window.DEFAULT_THEME = '{{ default_theme }}';
+        window.getCsrfToken = function () {
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        };
     </script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>

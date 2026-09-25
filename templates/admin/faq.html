@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}FAQ - Админ-панель{% endblock %}
 
 {% block content %}
@@ -74,6 +75,7 @@
                             <div class="table-action-group">
                                 <a href="{{ url_for('admin.admin_faq_edit', faq_id=item.id) }}" class="btn-icon" title="Редактировать">✏️</a>
                                 <form method="POST" action="{{ url_for('admin.admin_faq_delete', faq_id=item.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить этот вопрос?');">
+        {{ csrf_input() }}
                                     <button type="submit" class="btn-icon btn-icon-danger" title="Удалить">🗑️</button>
                                 </form>
                             </div>
@@ -151,6 +153,7 @@
                             <div class="table-action-group">
                                 <a href="{{ url_for('admin.admin_faq_category_edit', category_id=category.id) }}" class="btn-icon" title="Редактировать">✏️</a>
                                 <form method="POST" action="{{ url_for('admin.admin_faq_category_delete', category_id=category.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');">
+        {{ csrf_input() }}
                                     <button type="submit" class="btn-icon btn-icon-danger" title="Удалить">🗑️</button>
                                 </form>
                             </div>

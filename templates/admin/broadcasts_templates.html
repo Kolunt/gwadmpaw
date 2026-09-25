@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Шаблоны рассылок - Админ-панель{% endblock %}
 
 {% block content %}
@@ -34,6 +35,7 @@
                         ✏️
                     </button>
                     <form method="POST" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот шаблон?');">
+        {{ csrf_input() }}
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="template_id" value="{{ template.id }}">
                         <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
@@ -79,6 +81,7 @@
             <button type="button" class="modal-close" onclick="closeTemplateModal()">&times;</button>
         </div>
         <form method="POST" id="template-form">
+        {{ csrf_input() }}
             <input type="hidden" name="action" id="template-action" value="create">
             <input type="hidden" name="template_id" id="template-id">
             

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Мероприятия - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -69,12 +70,14 @@
                                               action="{{ url_for('events.event_register', event_id=event.id) }}"
                                               class="register-form"
                                               data-event-id="{{ event.id }}">
+        {{ csrf_input() }}
                                             <button type="submit" class="btn btn-sm btn-primary">Подтвердить</button>
                                         </form>
                                     {% elif item.registration_open %}
                                         {% if item.is_registered %}
                                             <form method="POST" action="{{ url_for('events.event_unregister', event_id=event.id) }}"
                                                   onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');">
+        {{ csrf_input() }}
                                                 <button type="submit" class="btn-icon btn-icon-danger" title="Отменить участие" aria-label="Отменить участие">❌</button>
                                             </form>
                                         {% else %}
@@ -82,6 +85,7 @@
                                                   action="{{ url_for('events.event_register', event_id=event.id) }}"
                                                   class="register-form"
                                                   data-event-id="{{ event.id }}">
+        {{ csrf_input() }}
                                                 <button type="submit" class="btn-icon btn-icon-success" title="Записаться" aria-label="Записаться">✅</button>
                                             </form>
                                         {% endif %}

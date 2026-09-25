@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Звания пользователя - Админ-панель{% endblock %}
 
 {% block content %}
@@ -27,6 +28,7 @@
     <div class="roles-management">
         <h3>Назначить звание</h3>
         <form method="POST" class="role-form">
+        {{ csrf_input() }}
             <input type="hidden" name="action" value="assign">
             <select name="title_id" required>
                 <option value="">Выберите звание</option>
@@ -43,6 +45,7 @@
         
         <h3>Удалить звание</h3>
         <form method="POST" class="role-form">
+        {{ csrf_input() }}
             <input type="hidden" name="action" value="remove">
             <select name="title_id" required>
                 <option value="">Выберите звание</option>

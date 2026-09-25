@@ -3,9 +3,12 @@
 from gwadm.db import get_db_connection
 from gwadm.logging_config import log_debug, log_error
 import os
-from werkzeug.utils import secure_filename
-
-from gwadm.config import ASSIGNMENT_RECEIPT_FOLDER, LETTER_UPLOAD_FOLDER, ALLOWED_LETTER_IMAGE_EXTENSIONS
+from gwadm.config import (
+    ALLOWED_LETTER_IMAGE_EXTENSIONS,
+    ASSIGNMENT_RECEIPT_FOLDER,
+    ASSIGNMENT_RECEIPT_RELATIVE,
+)
+from gwadm.services.uploads import save_validated_image, validate_image_upload
 from gwadm.services.activity import log_activity
 
 def create_random_assignments(event_id, assigned_by):
@@ -707,18 +710,23 @@ def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_
     if not receipt_file or not receipt_file.filename:
         return False, 'Приложите фотографию подарка.'
 
-    filename = secure_filename(receipt_file.filename)
-    _, ext = os.path.splitext(filename)
-    ext = ext.lower()
-    if ext not in ALLOWED_LETTER_IMAGE_EXTENSIONS:
-        return False, 'Допускается загрузка только изображений (PNG, JPG, JPEG, GIF, WEBP).'
+    data, upload_error = validate_image_upload(receipt_file, ALLOWED_LETTER_IMAGE_EXTENSIONS)
+    if upload_error:
+        return False, upload_error
 
-    unique_name = f"{assignment_id}_{int(datetime.now().timestamp())}_{secrets.token_hex(4)}{ext}"
-    saved_filepath = os.path.join(ASSIGNMENT_RECEIPT_FOLDER, unique_name)
+    _, ext = os.path.splitext(receipt_file.filename)
+    ext = ext.lower()
+    if ext == '.jpeg':
+        ext = '.jpg'
     try:
-        receipt_file.save(saved_filepath)
+        unique_name = save_validated_image(
+            data,
+            ASSIGNMENT_RECEIPT_FOLDER,
+            str(assignment_id),
+            ext,
+        )
     except Exception as exc:
-        log_error(f"Failed to save assignment receipt image {unique_name}: {exc}")
+        log_error(f"Failed to save assignment receipt image: {exc}")
         return False, 'Не удалось загрузить изображение.'
 
     receipt_relative_path = f"{ASSIGNMENT_RECEIPT_RELATIVE}/{unique_name}"

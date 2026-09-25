@@ -7,7 +7,7 @@ from flask import Blueprint, flash, jsonify, redirect, render_template, request,
 
 from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role
-from gwadm.logging_config import log_error
+from gwadm.logging_config import log_debug, log_error
 from gwadm.services.avatars import (
     generate_unique_avatar_candidates,
     get_avatar_url,

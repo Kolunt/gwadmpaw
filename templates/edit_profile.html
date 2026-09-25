@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Редактирование профиля - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -18,6 +19,7 @@
         {% endif %}
         
         <form method="POST" class="profile-edit-form">
+        {{ csrf_input() }}
             <div class="form-section">
                 <h3>Информация из GWars (не редактируется)</h3>
                 <div class="readonly-info">
@@ -568,7 +570,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-Token': window.getCsrfToken(),
                     },
                     credentials: 'same-origin'
                 })

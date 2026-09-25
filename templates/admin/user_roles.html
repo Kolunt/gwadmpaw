@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Роли пользователя - Админ-панель{% endblock %}
 
 {% block content %}
@@ -25,6 +26,7 @@
     <div class="roles-management">
         <h3>Назначить роль</h3>
         <form method="POST" class="role-form">
+        {{ csrf_input() }}
             <input type="hidden" name="action" value="assign">
             <select name="role_name" required>
                 <option value="">Выберите роль</option>
@@ -39,6 +41,7 @@
         
         <h3>Удалить роль</h3>
         <form method="POST" class="role-form">
+        {{ csrf_input() }}
             <input type="hidden" name="action" value="remove">
             <select name="role_name" required>
                 <option value="">Выберите роль</option>

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Звания - Админ-панель{% endblock %}
 
 {% block content %}
@@ -61,6 +62,7 @@
                         {% if not title.is_system %}
                         <a href="{{ url_for('admin.admin_title_edit', title_id=title.id) }}" class="btn btn-sm btn-primary">Редактировать</a>
                         <form method="POST" action="{{ url_for('admin.admin_title_delete', title_id=title.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это звание?');">
+        {{ csrf_input() }}
                             <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
                         </form>
                         {% else %}

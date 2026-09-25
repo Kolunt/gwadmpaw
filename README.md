@@ -22,6 +22,8 @@ python app.py
 ### Проверка перед деплоем
 
 ```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
 python scripts/smoke_check.py
 python scripts/verify_gwars_domains.py
 python scripts/verify_gwars_signatures.py
@@ -37,11 +39,13 @@ python scripts/verify_gwars_signatures.py
 | `GWARS_PASSWORD` | Пароль подписей GWars (**обязательно на проде**) |
 | `ENABLE_DEV_LOGIN` | `0` на проде — отключить `/login/dev` (по умолчанию: вкл. только в dev) |
 | `DATABASE_PATH` | Путь к файлу SQLite |
-| `CRON_SECRET_TOKEN` | Защита endpoint `/cron/run` |
+| `CRON_SECRET_TOKEN` | Защита endpoint `/cron/run` (**обязательно на проде**) |
 | `FLASK_ENV` / `FLASK_DEBUG` | Режим prod/dev и уровень логов |
 | `EVENT_TIME_OFFSET_HOURS` | Смещение «сейчас» для этапов мероприятий |
 
-Слой приложения: [`gwadm/factory.py`](gwadm/factory.py) (`create_app()`), [`gwadm/extensions.py`](gwadm/extensions.py), [`gwadm/i18n.py`](gwadm/i18n.py), [`gwadm/db.py`](gwadm/db.py), [`gwadm/logging_config.py`](gwadm/logging_config.py). Entry point для gunicorn: `app:app` (корневой [`app.py`](app.py) вызывает `create_app()` и регистрирует маршруты).
+Слой приложения: [`gwadm/factory.py`](gwadm/factory.py) (`create_app()`), [`gwadm/extensions.py`](gwadm/extensions.py), [`gwadm/i18n.py`](gwadm/i18n.py), [`gwadm/db.py`](gwadm/db.py), [`gwadm/logging_config.py`](gwadm/logging_config.py), [`gwadm/csrf.py`](gwadm/csrf.py). Entry point для gunicorn: `app:app` (корневой [`app.py`](app.py) вызывает `create_app()`).
+
+**Безопасность:** все POST-формы и `fetch()` защищены CSRF-токеном (`X-CSRF-Token` / `_csrf_token`). Загрузки изображений проходят проверку расширения, размера (до 5 МБ) и magic bytes ([`gwadm/services/uploads.py`](gwadm/services/uploads.py)). На проде после обновления [`deploy/nginx-gwadm.conf`](deploy/nginx-gwadm.conf): `sudo nginx -t && sudo systemctl reload nginx`.
 
 ## Развертывание на PythonAnywhere
 
@@ -104,11 +108,14 @@ gwadmpaw/
 │   ├── services/       # gwars_signatures, gwars_auth, events, assignments, telegram, …
 │   └── blueprints/     # auth, meta, public, profile, events, assignments, admin/, integrations
 ├── gwars_domains.py    # Shim → gwadm.services.gwars_domains
+├── tests/              # pytest (conftest + unit/smoke tests)
 ├── scripts/
 │   ├── smoke_check.py
 │   ├── verify_gwars_domains.py
-│   └── verify_gwars_signatures.py
+│   ├── verify_gwars_signatures.py
+│   └── post_deploy_smoke.sh
 ├── requirements.txt
+├── requirements-dev.txt
 ├── database.db         # SQLite (создаётся автоматически)
 ├── templates/
 └── static/

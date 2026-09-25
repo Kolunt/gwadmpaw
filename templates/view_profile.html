@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Профиль {{ user.username }} - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -429,6 +430,7 @@
                 <div style="margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-secondary, #f5f5f5); border-radius: 8px; border: 1px solid var(--border-color, #e0e0e0);">
                     <h4 style="margin-top: 0; margin-bottom: 1rem; color: var(--text-primary);">Добавить комментарий</h4>
                     <form method="POST" action="{{ url_for('profile.add_admin_comment', user_id=user.user_id) }}">
+        {{ csrf_input() }}
                         <textarea 
                             name="comment" 
                             rows="4" 
@@ -511,6 +513,7 @@
                                     action="{{ url_for('profile.delete_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}" 
                                     style="display: inline;"
                                     onsubmit="return confirm('Вы уверены, что хотите удалить этот комментарий?');">
+        {{ csrf_input() }}
                                     <button type="submit" class="btn btn-sm btn-danger" style="font-size: 0.85rem; padding: 0.4rem 0.75rem;">
                                         🗑️ Удалить
                                     </button>
@@ -524,6 +527,7 @@
                         <!-- Форма редактирования (скрыта по умолчанию) -->
                         <div id="comment-edit-{{ comment.id }}" style="display: none; margin-top: 1rem;">
                             <form method="POST" action="{{ url_for('profile.update_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}">
+        {{ csrf_input() }}
                                 <textarea 
                                     name="comment" 
                                     rows="4" 
@@ -581,6 +585,7 @@
             {% else %}
             {% if can_impersonate %}
             <form method="POST" action="{{ url_for('admin.admin_user_impersonate', user_id=user.user_id) }}" style="display: inline;">
+        {{ csrf_input() }}
                 <input type="hidden" name="next" value="{{ request.full_path or request.path }}">
                 <input type="hidden" name="return_url" value="{{ request.full_path or request.path }}">
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите управлять этим пользователем?');">

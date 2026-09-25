@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% from 'macros/csrf.html' import csrf_input %}
 {% block title %}Участники {{ event.name }} - Админ-панель{% endblock %}
 
 {% block content %}
@@ -37,6 +38,7 @@
     <div class="admin-card">
         <h2 style="margin-top: 0;">Добавить участника вручную</h2>
         <form method="POST" action="{{ url_for('admin.admin_event_participant_add', event_id=event.id) }}" class="manual-add-form">
+        {{ csrf_input() }}
             <div class="form-row">
                 <div class="form-group">
                     <label for="user_identifier" class="form-label">ID или имя пользователя</label>
@@ -157,12 +159,14 @@
                         <div class="table-action-group">
                             {% if participant.can_confirm_participant and participant.stage == 'main' %}
                             <form method="POST" action="{{ url_for('admin.admin_event_participant_confirm', event_id=event.id) }}">
+        {{ csrf_input() }}
                                 <input type="hidden" name="user_id" value="{{ participant.user_id }}">
                                 <button type="submit" class="btn-icon" title="Подтвердить участие">✅</button>
                             </form>
                             {% endif %}
                             {% if participant.can_reject_participant and participant.stage == 'main' %}
                             <form method="POST" action="{{ url_for('admin.admin_event_participant_reject', event_id=event.id) }}" class="participant-reject-form">
+        {{ csrf_input() }}
                                 <input type="hidden" name="user_id" value="{{ participant.user_id }}">
                                 <input type="hidden" name="reason" class="reject-reason-input">
                                 <button type="button" class="btn-icon btn-icon-danger participant-reject-btn" data-username="{{ participant.username }}">🚫</button>
@@ -170,17 +174,20 @@
                             {% endif %}
                             {% if participant.can_upgrade_to_main %}
                             <form method="POST" action="{{ url_for('admin.admin_event_participant_upgrade', event_id=event.id) }}">
+        {{ csrf_input() }}
                                 <input type="hidden" name="user_id" value="{{ participant.user_id }}">
                                 <button type="submit" class="btn-icon" title="Перевести в основную регистрацию">⬆️</button>
                             </form>
                             {% endif %}
                             {% if participant.can_downgrade_to_pre %}
                             <form method="POST" action="{{ url_for('admin.admin_event_participant_downgrade', event_id=event.id) }}">
+        {{ csrf_input() }}
                                 <input type="hidden" name="user_id" value="{{ participant.user_id }}">
                                 <button type="submit" class="btn-icon" title="Перевести в предварительную регистрацию">⬇️</button>
                             </form>
                             {% endif %}
                             <form method="POST" action="{{ url_for('admin.admin_event_participant_remove', event_id=event.id) }}" onsubmit="return confirm('Удалить участника {{ participant.username }} из мероприятия?');">
+        {{ csrf_input() }}
                                 <input type="hidden" name="user_id" value="{{ participant.user_id }}">
                                 <button type="submit" class="btn-icon btn-icon-danger" title="Удалить участника">🗑️</button>
                             </form>
