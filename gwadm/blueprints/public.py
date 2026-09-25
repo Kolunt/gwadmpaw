@@ -430,29 +430,18 @@ def user_rating():
     per_page = min(max(per_page, 10), 200)
     page = max(1, page)
 
+    from gwadm.services.rating import (
+        get_live_rating_page,
+        get_rating_page,
+        rating_cache_is_populated,
+    )
+
     conn = get_db_connection()
     try:
-        rating_query = '''
-            SELECT
-                u.user_id,
-                u.username,
-                COALESCE(SUM(CAST(se.points AS REAL)), 0.0) as total_points
-            FROM users u
-            LEFT JOIN snowflake_events se ON u.user_id = se.user_id
-                AND (se.active = 1 OR CAST(se.active AS INTEGER) = 1)
-                AND (se.manual_revoked IS NULL OR se.manual_revoked = 0 OR CAST(se.manual_revoked AS INTEGER) = 0)
-            GROUP BY u.user_id, u.username
-            ORDER BY total_points DESC, LOWER(u.username) ASC
-        '''
-
-        total_count = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
-        offset = (page - 1) * per_page
-
-        rating_rows_raw = conn.execute(
-            rating_query + ' LIMIT ? OFFSET ?',
-            (per_page, offset)
-        ).fetchall()
-
+        if rating_cache_is_populated(conn):
+            rating_rows_raw, total_count = get_rating_page(conn, page, per_page)
+        else:
+            rating_rows_raw, total_count = get_live_rating_page(conn, page, per_page)
     finally:
         conn.close()
 

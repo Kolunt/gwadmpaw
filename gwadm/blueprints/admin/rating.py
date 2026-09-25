@@ -6,6 +6,8 @@ from flask import (
 from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
+from gwadm.services.activity import log_activity
+from gwadm.services.rating import queue_rating_recalc
 
 from gwadm.blueprints.admin import bp
 
@@ -167,17 +169,13 @@ def admin_rating_settings():
         
         conn.commit()
         
-        # Если действие "update", пересчитываем все события
         if action == 'update':
-            try:
-                updated_count = recalculate_all_snowflake_events(conn, settings_dict)
-                conn.commit()
-                flash(f'Настройки сохранены и все очки пересчитаны. Обновлено/создано событий: {updated_count}', 'success')
-            except Exception as e:
-                log_error(f"Error recalculating snowflake events: {e}")
-                import traceback
-                log_error(traceback.format_exc())
-                flash('Настройки сохранены, но произошла ошибка при пересчете очков: ' + str(e), 'error')
+            queue_rating_recalc()
+            flash(
+                'Настройки сохранены. Пересчёт очков поставлен в очередь '
+                '(выполнится при следующем запуске gwadm-rating-cache).',
+                'success',
+            )
         else:
             flash('Настройки рейтинга успешно сохранены', 'success')
         

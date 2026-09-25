@@ -124,13 +124,17 @@
 
 ---
 
-## Фаза 8 — Долгосрочно (когда упрётесь в SQLite)
+## Фаза 8 — Оптимизация под текущий VPS (SQLite)
+
+**Решение (2026-09-25):** остаёмся на SQLite на одном сервере без расширения мощности. PostgreSQL, Redis, Celery/RQ и отдельные воркер-процессы **не планируются** — тяжёлое выносим в systemd timer + скрипты (как `gwadm-backup`, `gwadm-monitor`).
 
 | ID | Задача | Статус | Триггер |
 |----|--------|--------|---------|
-| R-801 | Оценка миграции на PostgreSQL | todo | частые lock / >1k одновременных |
-| R-802 | Фоновые задачи (Celery/RQ/systemd) для рассылок и пересчёта рейтинга | todo | таймауты gunicorn |
-| R-803 | Кэш рейтинга (материализованная таблица / Redis) | todo | медленный `/rating` |
+| R-801 | Оценка миграции на PostgreSQL | cancelled | решение: не масштабируем сервер, SQLite достаточен |
+| R-802 | Фоновые задачи через systemd timer: рассылки, пересчёт рейтинга (не в HTTP-запросе) | done | `broadcast_queue`, `gwadm-broadcast-queue.timer` |
+| R-803 | Кэш рейтинга: материализованная таблица в **той же SQLite** + пересчёт по timer | done | `user_rating_cache`, `gwadm-rating-cache.timer` |
+| R-804 | Аудит SQLite под нагрузку: индексы, число воркеров gunicorn, долгие запросы, `EXPLAIN QUERY PLAN` | done | `scripts/sqlite_audit.py`, weekly timer |
+| R-805 | Ротация/очистка avatar cache по порогу (дополнение к мониторингу R-705) | done | `cleanup_avatar_cache.py`, weekly timer |
 
 ---
 
@@ -189,6 +193,7 @@ gwadmpaw/
 - Новые фичи без техдолга
 - Смена дизайна / UX
 - Миграция на другой фреймворк
+- Миграция на PostgreSQL / расширение сервера (Redis, отдельные воркеры) — см. решение по фазе 8
 
 ---
 
@@ -209,3 +214,5 @@ gwadmpaw/
 | 2025-09-25 | R-701–R-702: документация в `doc/`, README под gwadm.ru, PA-гайд в `_OLD_*` |
 | 2025-09-25 | R-704: `backup_database()` + `~/gwadm/backups/`, systemd user timer `gwadm-backup` |
 | 2025-09-25 | R-705: `monitor_prod.sh` + `gwadm-monitor.timer` (health, disk, avatar cache, journal) |
+| 2026-09-25 | Фаза 8 переформулирована: R-801 cancelled (без PostgreSQL); R-802–R-805 — оптимизация в рамках SQLite + systemd на текущем VPS |
+| 2026-09-25 | R-802–R-805: rating cache, broadcast queue, sqlite audit, avatar cleanup (v1.29.0) |

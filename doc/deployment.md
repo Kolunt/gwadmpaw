@@ -71,6 +71,34 @@ journalctl --user -u gwadm-monitor.service -n 30
 
 Опционально в `.env`: `MONITOR_DISK_WARN_PERCENT`, `MONITOR_AVATAR_WARN_MB`, `MONITOR_SKIP_PUBLIC=1` (только local health).
 
+## Фоновые задачи (фаза 8)
+
+Без Redis/Celery — systemd user timers + Python-скрипты в `scripts/`:
+
+| Timer | Скрипт | Расписание |
+|-------|--------|------------|
+| `gwadm-rating-cache` | `rebuild_rating_cache.py` | hourly (+ пересчёт snowflake при `rating_recalc_pending`) |
+| `gwadm-broadcast-queue` | `process_broadcast_queue.py` | каждые 2 мин |
+| `gwadm-avatar-cleanup` | `cleanup_avatar_cache.py` | weekly |
+| `gwadm-sqlite-audit` | `sqlite_audit.py` | weekly |
+
+Установка на проде:
+
+```bash
+cp ~/gwadm/deploy/gwadm-rating-cache.{service,timer} ~/.config/systemd/user/
+cp ~/gwadm/deploy/gwadm-broadcast-queue.{service,timer} ~/.config/systemd/user/
+cp ~/gwadm/deploy/gwadm-avatar-cleanup.{service,timer} ~/.config/systemd/user/
+cp ~/gwadm/deploy/gwadm-sqlite-audit.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now gwadm-rating-cache.timer gwadm-broadcast-queue.timer gwadm-avatar-cleanup.timer gwadm-sqlite-audit.timer
+systemctl --user start gwadm-rating-cache.service
+journalctl --user -u gwadm-rating-cache.service -n 20
+```
+
+Рассылки из админки ставятся в очередь `broadcast_queue` и отправляются пакетами по timer. `/rating` читает из `user_rating_cache` (пересборка hourly).
+
+Опционально в `.env`: `AVATAR_CACHE_MAX_MB=500`, `AVATAR_CACHE_MAX_AGE_DAYS=30`.
+
 ## PWA / Service Worker
 
 При релизе с изменениями в `static/` обновите `CACHE_NAME` в [`static/sw.js`](../static/sw.js) — синхронно с версией в [`version.py`](../version.py) (например `gwadmpaw-v1.28.0`). Иначе клиенты могут кэшировать старый CSS/JS.

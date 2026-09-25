@@ -128,7 +128,22 @@ journalctl --user -u gwadm-monitor.service -n 30
 
 Подробнее: [doc/deployment.md](../doc/deployment.md#мониторинг).
 
-## 9. Проверка
+## 9. Фоновые задачи (rating, рассылки, audit, avatar cache)
+
+```bash
+cp ~/gwadm/deploy/gwadm-rating-cache.{service,timer} ~/.config/systemd/user/
+cp ~/gwadm/deploy/gwadm-broadcast-queue.{service,timer} ~/.config/systemd/user/
+cp ~/gwadm/deploy/gwadm-avatar-cleanup.{service,timer} ~/.config/systemd/user/
+cp ~/gwadm/deploy/gwadm-sqlite-audit.{service,timer} ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now gwadm-rating-cache.timer gwadm-broadcast-queue.timer gwadm-avatar-cleanup.timer gwadm-sqlite-audit.timer
+systemctl --user start gwadm-rating-cache.service
+systemctl --user restart gwadm
+```
+
+Подробнее: [doc/deployment.md](../doc/deployment.md#фоновые-задачи-фаза-8).
+
+## 10. Проверка
 
 ```bash
 systemctl --user status gwadm

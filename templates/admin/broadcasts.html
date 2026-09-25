@@ -168,6 +168,31 @@
     <!-- Таб: История рассылок -->
     <div class="admin-tab-content active" data-tab="history">
         <div class="broadcasts-history-container">
+            {% if broadcast_queue %}
+            <h2>Очередь рассылок</h2>
+            <div class="broadcasts-history-list" style="margin-bottom: 24px;">
+                {% for job in broadcast_queue %}
+                <div class="broadcast-history-item">
+                    <div class="broadcast-header">
+                        <div class="broadcast-info">
+                            <span class="broadcast-date">#{{ job.id }} · {{ job.created_at }}</span>
+                            <span class="broadcast-method">
+                                {% if job.delivery_method == 'email' %}📧 Email{% else %}🤖 Telegram{% endif %}
+                            </span>
+                            <span class="broadcast-status">
+                                {% if job.status == 'pending' %}⏳ В очереди{% else %}🔄 Отправляется{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="broadcast-stats">
+                        <span>Обработано: {{ job.processed_count or 0 }} / {{ job.total_recipients or 0 }}</span>
+                        <span>Успешно: {{ job.success_count or 0 }}</span>
+                        <span>Ошибок: {{ job.error_count or 0 }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
             <h2>История рассылок</h2>
             {% if broadcasts_history %}
         <div class="broadcasts-history-list">

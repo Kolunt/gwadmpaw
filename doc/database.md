@@ -130,6 +130,18 @@ def get_db_connection():
 - Использует `sqlite3.Row` для удобного доступа к данным
 - WAL mode и timeout=30 для многопоточного gunicorn
 
+### Аудит и лимиты на одном VPS
+
+Еженедельный `scripts/sqlite_audit.py` (timer `gwadm-sqlite-audit`) пишет в journalctl:
+- размер `database.db`, `journal_mode`, `page_count`;
+- `EXPLAIN QUERY PLAN` для `/rating` (кэш и live);
+- список индексов на `snowflake_events`, `users`, `user_rating_cache`;
+- предупреждение, если `user_rating_cache` пуст.
+
+Рекомендации для gwadm.ru: **2 worker** gunicorn (см. `deploy/gwadm-user.service`), не увеличивать без необходимости — SQLite один writer.
+
+Кэш рейтинга: таблица `user_rating_cache`, пересборка `scripts/rebuild_rating_cache.py` (hourly). Очередь рассылок: `broadcast_queue`.
+
 ## Структура базы данных
 
 ### Основные таблицы

@@ -1,7 +1,21 @@
 """Rating snowflake helpers."""
 
+import re
+
 from gwadm.db import get_db_connection
 from gwadm.logging_config import log_debug, log_error
+from gwadm.services.settings import get_rating_setting, get_setting, set_setting
+
+RATING_RECALC_PENDING_KEY = 'rating_recalc_pending'
+
+_RATING_AGGREGATION_FROM = '''
+    FROM users u
+    LEFT JOIN snowflake_events se ON u.user_id = se.user_id
+        AND (se.active = 1 OR CAST(se.active AS INTEGER) = 1)
+        AND (se.manual_revoked IS NULL OR se.manual_revoked = 0
+             OR CAST(se.manual_revoked AS INTEGER) = 0)
+    GROUP BY u.user_id, u.username
+'''
 def _normalize_contact_value(value):
     if not value:
         return ''
@@ -316,3 +330,109 @@ def recalculate_all_snowflake_events(conn, settings_dict):
     
     log_debug(f"Recalculated {updated_count} snowflake events, created {created_count} new events")
     return updated_count + created_count
+
+
+def _load_rating_settings_dict(conn):
+    rows = conn.execute(
+        '''
+        SELECT key, value FROM settings
+        WHERE category = 'rating' OR key LIKE 'rating_%'
+        '''
+    ).fetchall()
+    return {row['key']: row['value'] for row in rows}
+
+
+def rating_cache_is_populated(conn) -> bool:
+    row = conn.execute('SELECT COUNT(*) AS count FROM user_rating_cache').fetchone()
+    return bool(row and row['count'] > 0)
+
+
+def rebuild_rating_cache(conn) -> int:
+    """Rebuild materialized rating cache. Returns number of rows."""
+    conn.execute('DELETE FROM user_rating_cache')
+    conn.execute(
+        f'''
+        INSERT INTO user_rating_cache (user_id, username, total_points, updated_at)
+        SELECT
+            u.user_id,
+            u.username,
+            COALESCE(SUM(CAST(se.points AS REAL)), 0.0),
+            CURRENT_TIMESTAMP
+        {_RATING_AGGREGATION_FROM}
+        '''
+    )
+    row = conn.execute('SELECT COUNT(*) AS count FROM user_rating_cache').fetchone()
+    return int(row['count']) if row else 0
+
+
+def get_rating_page(conn, page: int, per_page: int):
+    """Read rating page from cache. Returns (rows, total_count)."""
+    total_count = conn.execute('SELECT COUNT(*) AS count FROM user_rating_cache').fetchone()['count']
+    offset = (page - 1) * per_page
+    rows = conn.execute(
+        '''
+        SELECT user_id, username, total_points
+        FROM user_rating_cache
+        ORDER BY total_points DESC, LOWER(username) ASC
+        LIMIT ? OFFSET ?
+        ''',
+        (per_page, offset),
+    ).fetchall()
+    return rows, total_count
+
+
+def get_live_rating_page(conn, page: int, per_page: int):
+    """Fallback live aggregation when cache is empty."""
+    total_count = conn.execute('SELECT COUNT(*) AS count FROM users').fetchone()['count']
+    offset = (page - 1) * per_page
+    rows = conn.execute(
+        f'''
+        SELECT
+            u.user_id,
+            u.username,
+            COALESCE(SUM(CAST(se.points AS REAL)), 0.0) AS total_points
+        {_RATING_AGGREGATION_FROM}
+        ORDER BY total_points DESC, LOWER(u.username) ASC
+        LIMIT ? OFFSET ?
+        ''',
+        (per_page, offset),
+    ).fetchall()
+    return rows, total_count
+
+
+def queue_rating_recalc() -> None:
+    set_setting(RATING_RECALC_PENDING_KEY, '1', category='rating')
+
+
+def run_rating_maintenance() -> bool:
+    """Run pending snowflake recalc and rebuild rating cache."""
+    conn = get_db_connection()
+    try:
+        if get_setting(RATING_RECALC_PENDING_KEY, '0') == '1':
+            settings_dict = _load_rating_settings_dict(conn)
+            recalculate_all_snowflake_events(conn, settings_dict)
+            conn.execute(
+                '''
+                UPDATE settings SET value = '0', updated_at = CURRENT_TIMESTAMP
+                WHERE key = ?
+                ''',
+                (RATING_RECALC_PENDING_KEY,),
+            )
+            if conn.total_changes == 0:
+                conn.execute(
+                    '''
+                    INSERT INTO settings (key, value, category)
+                    VALUES (?, '0', 'rating')
+                    ''',
+                    (RATING_RECALC_PENDING_KEY,),
+                )
+        count = rebuild_rating_cache(conn)
+        conn.commit()
+        log_debug(f'Rating cache rebuilt: {count} rows')
+        return True
+    except Exception as exc:
+        log_error(f'run_rating_maintenance failed: {exc}')
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
