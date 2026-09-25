@@ -17,7 +17,7 @@
 | R-001 | Добавить `scripts/smoke_check.py` (импорт app, `/`, `/login` redirect, parse gwars map) | done | `scripts/smoke_check.py` |
 | R-002 | Описать целевую структуру пакетов в README или здесь — не менять код, только договориться | done | README + целевая структура в бэклоге |
 | R-003 | Включить на проде только то, что нужно: `SECRET_KEY` в `.env` | done | |
-| R-004 | Убрать из git чувствительное/лишнее: `database.db.backup*`, `pa_export/` | todo | Отдельный PR, без функциональных изменений |
+| R-004 | Убрать из git чувствительное/лишнее: `database.db.backup*`, `pa_export/` | done | Отдельный PR, без функциональных изменений |
 
 ---
 
@@ -203,3 +203,4 @@ gwadmpaw/
 | 2025-09-25 | R-211: `gwars_signatures.py` — compute/verify sign*, debug helpers; auth.py без inline hashlib |
 | 2025-09-25 | R-301–R-306: login landing/go, mobile interstitial, login_state+return_url, debug gate, GWARS_PASSWORD, ENABLE_DEV_LOGIN |
 | 2025-09-25 | R-401–R-405, R-501–R-506, R-703: CSRF, uploads audit, cron env-only, nginx rate limit/headers, pytest+CI, `/health` |
+| 2025-09-25 | R-004: `database.db.backup*` убраны из git, расширен `.gitignore` (pytest cache, `_download_pa_export.py`) |
