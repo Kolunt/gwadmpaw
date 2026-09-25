@@ -98,8 +98,8 @@ gwadmpaw/
 │   ├── config.py       # Настройки из env
 │   ├── db.py           # SQLite, ensure_db, get_db_connection
 │   ├── logging_config.py
-│   ├── services/       # avatars, gwars_domains, meta_lists
-│   └── blueprints/     # meta: /avatars/image, /titles, /awards, /roles
+│   ├── services/       # avatars, gwars_auth, gwars_domains, roles, settings, activity
+│   └── blueprints/     # auth (login), meta (avatars, titles, awards, roles)
 ├── gwars_domains.py    # Shim → gwadm.services.gwars_domains
 ├── scripts/
 │   ├── smoke_check.py

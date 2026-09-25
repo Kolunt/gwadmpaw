@@ -29,6 +29,8 @@ def init_extensions(app: Flask) -> None:
 
 def register_blueprints(app: Flask) -> None:
     """Register application blueprints."""
+    from gwadm.blueprints.auth import bp as auth_bp
     from gwadm.blueprints.meta import bp as meta_bp
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(meta_bp)

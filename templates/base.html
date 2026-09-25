@@ -88,7 +88,7 @@
             </div>
             <div class="navbar-actions">
                 {% if not session.user_id %}
-                <a href="{{ url_for('login') }}" class="navbar-icon-btn navbar-gwars-btn" title="{{ _('Login via GWars') }}" aria-label="{{ _('Login via GWars') }}">
+                <a href="{{ url_for('auth.login') }}" class="navbar-icon-btn navbar-gwars-btn" title="{{ _('Login via GWars') }}" aria-label="{{ _('Login via GWars') }}">
                     <img src="{{ url_for('static', filename='images/gwars-icon.png') }}" alt="GWars" class="navbar-gwars-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
                     <span class="navbar-icon" style="display: none;">⚔️</span>
                 </a>
@@ -117,7 +117,7 @@
                         <span class="navbar-icon">👤</span>
                     {% endif %}
                 </a>
-                <a href="{{ url_for('logout') }}" class="navbar-icon-btn" title="{{ _('Logout') }}">
+                <a href="{{ url_for('auth.logout') }}" class="navbar-icon-btn" title="{{ _('Logout') }}">
                     <span class="navbar-icon">🚪</span>
                 </a>
                 {% endif %}

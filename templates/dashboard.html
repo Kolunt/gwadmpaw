@@ -465,7 +465,7 @@
             {% if 'admin' in session.get('roles', []) %}
             <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">{{ _('Admin Panel') }}</a>
             {% endif %}
-            <a href="{{ url_for('logout') }}" class="btn btn-secondary">{{ _('Logout') }}</a>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary">{{ _('Logout') }}</a>
         </div>
     </div>
 </div>

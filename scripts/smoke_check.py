@@ -54,6 +54,16 @@ def main() -> int:
         if "gwars.io" not in location:
             errors.append(f"GET /login Location missing gwars.io: {location}")
 
+    response = client.get("/gwars-required")
+    if response.status_code != 200:
+        errors.append(f"GET /gwars-required expected 200, got {response.status_code}")
+    elif "gwars.io" not in response.get_data(as_text=True):
+        errors.append("GET /gwars-required missing gwars.io link")
+
+    response = client.get("/logout")
+    if response.status_code not in (302, 303):
+        errors.append(f"GET /logout expected redirect, got {response.status_code}")
+
     response = client.get("/avatars/image?seed=test&style=avataaars&size=40")
     if response.status_code not in (200, 302):
         errors.append(

@@ -138,3 +138,17 @@ def build_gwars_login_url(
     callback_url = build_gwars_callback_url(host, is_local=is_local, domain_map=entries)
     site_id = resolve_gwars_site_id(host if not is_local else get_primary_host(entries), entries)
     return f"{GWARS_LOGIN_ENDPOINT}?site_id={site_id}&url={quote(callback_url, safe='')}"
+
+
+def load_gwars_domain_map():
+    """Загружает карту доменов GWars из настроек с fallback на дефолт."""
+    from gwadm.logging_config import log_error
+    from gwadm.services.settings import get_setting
+
+    raw = get_setting('gwars_domain_map', '')
+    if raw:
+        try:
+            return parse_domain_map(raw)
+        except ValueError as exc:
+            log_error(f"Invalid gwars_domain_map in settings: {exc}")
+    return list(DEFAULT_GWARS_DOMAIN_MAP)
