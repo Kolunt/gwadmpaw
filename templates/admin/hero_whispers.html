@@ -1,0 +1,100 @@
+{% extends "admin/base.html" %}
+
+{% from 'macros/csrf.html' import csrf_input %}
+{% block title %}Шёпоты главной - Админ-панель{% endblock %}
+
+{% block admin_content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>Шёпоты на главной</h1>
+        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
+    </div>
+
+    <div class="admin-card" style="margin-bottom: 1.5rem;">
+        <h2>Общие настройки</h2>
+        <p class="text-muted" style="margin-bottom: 1rem;">
+            Декоративные фразы на фоне hero-секции главной страницы (стиль боевого лога GWars).
+            Пример: <code>17:46, #1 : WEQ стрелял во врага и залепил 2 раза в _Колунт_</code>
+        </p>
+        <form method="POST" action="{{ url_for('admin.admin_hero_whispers') }}">
+            {{ csrf_input() }}
+            <input type="hidden" name="action" value="toggle_enabled">
+            <label class="checkbox-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="hero_whispers_enabled" value="1"{% if hero_whispers_enabled %} checked{% endif %}>
+                Включить шёпоты на главной
+            </label>
+            <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Сохранить</button>
+        </form>
+    </div>
+
+    <div class="admin-card" style="margin-bottom: 1.5rem;">
+        <h2>Добавить фразу</h2>
+        <form method="POST" action="{{ url_for('admin.admin_hero_whispers') }}">
+            {{ csrf_input() }}
+            <input type="hidden" name="action" value="create">
+            <div class="form-group">
+                <label for="new-text">Текст (до ~120 символов рекомендуется)</label>
+                <input type="text" id="new-text" name="text" class="form-control" maxlength="300" required
+                       placeholder="17:46, #1 : WEQ стрелял во врага…">
+            </div>
+            <div class="form-group">
+                <label for="new-sort-order">Порядок сортировки</label>
+                <input type="number" id="new-sort-order" name="sort_order" class="form-control" value="100" min="0">
+            </div>
+            <button type="submit" class="btn btn-primary">Добавить</button>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Текст</th>
+                    <th>Порядок</th>
+                    <th>Активна</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in whispers %}
+                <tr>
+                    <td data-label="ID">{{ item.id }}</td>
+                    <td data-label="Текст">
+                        <form method="POST" action="{{ url_for('admin.admin_hero_whispers') }}" class="hero-whisper-edit-form">
+                            {{ csrf_input() }}
+                            <input type="hidden" name="action" value="update">
+                            <input type="hidden" name="whisper_id" value="{{ item.id }}">
+                            <input type="text" name="text" class="form-control" value="{{ item.text }}" maxlength="300" required>
+                    </td>
+                    <td data-label="Порядок">
+                            <input type="number" name="sort_order" class="form-control" value="{{ item.sort_order }}" min="0" style="width: 5rem;">
+                    </td>
+                    <td data-label="Активна">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="is_active" value="1"{% if item.is_active %} checked{% endif %}>
+                                Да
+                            </label>
+                    </td>
+                    <td data-label="Действия">
+                            <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin.admin_hero_whispers') }}" style="display: inline;"
+                              onsubmit="return confirm('Удалить эту фразу?');">
+                            {{ csrf_input() }}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="whisper_id" value="{{ item.id }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-muted">Фраз пока нет. Добавьте первую выше.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

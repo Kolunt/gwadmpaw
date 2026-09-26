@@ -1098,6 +1098,8 @@ html.sidebar-collapsed .sidebar-collapse-icon {
 }
 
 .hero-section {
+    position: relative;
+    overflow: hidden;
     background: linear-gradient(
         -45deg,
         var(--accent-color),
@@ -1133,7 +1135,55 @@ html.sidebar-collapsed .sidebar-collapse-icon {
     }
 }
 
+.hero-whispers {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.hero-whisper {
+    position: absolute;
+    max-width: 40ch;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.5);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    animation: hero-whisper-life ease-in-out forwards;
+    opacity: 0;
+}
+
+@keyframes hero-whisper-life {
+    0% {
+        opacity: 0;
+    }
+    15% {
+        opacity: 0.55;
+    }
+    75% {
+        opacity: 0.45;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-whispers {
+        display: none;
+    }
+}
+
 .hero-content {
+    position: relative;
+    z-index: 2;
     max-width: none;
     margin: 0;
     width: 100%;
@@ -1173,6 +1223,8 @@ html.sidebar-collapsed .sidebar-collapse-icon {
 }
 
 .stats-bar-hero {
+    position: relative;
+    z-index: 2;
     flex-shrink: 0;
     width: calc(100% + 2 * var(--layout-inner));
     margin-left: calc(-1 * var(--layout-inner));

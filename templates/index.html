@@ -5,6 +5,7 @@
 {% block content %}
 <!-- Hero Section -->
 <section class="hero-section">
+    <div class="hero-whispers" aria-hidden="true"></div>
     <div class="hero-content">
         <h1 class="hero-title">{{ project_name }}</h1>
         <p class="hero-description">
@@ -166,6 +167,10 @@
 {% endblock %}
 
 {% block scripts %}
+{% if hero_whispers_enabled and hero_whispers %}
+<script>window.HERO_WHISPERS = {{ hero_whispers|tojson }};</script>
+<script src="{{ url_for('static', filename='js/hero-whispers.js') }}"></script>
+{% endif %}
 <script>
     function initCountdownTimers(selector) {
         const elements = document.querySelectorAll(selector);

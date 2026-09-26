@@ -61,6 +61,20 @@
 
 Цвета accent подставляются из настроек сайта (`base.html` → `:root`).
 
+### Hero whispers (шёпоты на фоне)
+
+Декоративные фразы в стиле боевого лога GWars — случайно появляются на фоне hero и плавно исчезают.
+
+| Элемент | Назначение |
+|---------|------------|
+| `.hero-whispers` | Абсолютный слой под контентом (`z-index: 1`), `pointer-events: none`, `aria-hidden` |
+| `.hero-whisper` | Одна фраза: monospace, полупрозрачный белый, `@keyframes hero-whisper-life` |
+| `.hero-content`, `.stats-bar-hero` | `z-index: 2` — текст и статистика поверх шёпотов |
+
+Данные: таблица `hero_whispers`, настройка `hero_whispers_enabled` в `settings`. Управление — [`/admin/hero-whispers`](../gwadm/blueprints/admin/hero_whispers.py). На главной фразы передаются в `window.HERO_WHISPERS` и обрабатываются [`static/js/hero-whispers.js`](../static/js/hero-whispers.js).
+
+При `prefers-reduced-motion: reduce` слой `.hero-whispers` скрыт (как и анимация градиента hero).
+
 ## Карточки мероприятий (главная)
 
 Футер карточки (`.event-card-footer-link`) — ссылка на страницу мероприятия (`/events/{id}`), без отдельной кнопки «Подробнее».

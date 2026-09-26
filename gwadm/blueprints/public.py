@@ -21,6 +21,7 @@ from gwadm.services.events_stages import (
 )
 from gwadm.services.presence import count_online_users, get_user_presence_status
 from gwadm.services.roles import get_user_roles
+from gwadm.services.hero_whispers import get_active_whispers, is_hero_whispers_enabled
 from gwadm.services.settings import get_setting
 from gwadm.services.titles import get_user_titles
 
@@ -129,6 +130,9 @@ def index():
 
     project_name = get_setting('project_name', 'Анонимные Деды Морозы')
 
+    hero_whispers_enabled = is_hero_whispers_enabled()
+    hero_whispers = get_active_whispers(conn) if hero_whispers_enabled else []
+
     conn.close()
 
     return render_template(
@@ -137,6 +141,8 @@ def index():
         online_users=online_users,
         events_with_stages=events_with_stages,
         project_name=project_name,
+        hero_whispers_enabled=hero_whispers_enabled,
+        hero_whispers=hero_whispers,
     )
 
 
