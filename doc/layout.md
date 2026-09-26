@@ -28,7 +28,7 @@
 ## Правила
 
 - Межсекционные gap в сетках — **0**; разделение ячеек — `border` на карточках.
-- Между соседними `<section>` в `.layout-main` — `margin-top: var(--layout-section-gap)` (главная: hero → stats → events → features → CTA).
+- Между соседними `<section>` в `.layout-main` — `margin-top: var(--layout-section-gap)` (главная: hero → events → features → CTA).
 - `.main-content`, `.layout-main`, page shells — `padding-block: 0` (включая mobile breakpoints).
 - Navbar (60px) и sidebar (250px на desktop) не меняются; отступ под navbar задаёт `.content-wrapper { margin-top: 60px }`.
 - Карточки и плитки: `border-radius: 0`, `padding: var(--layout-inner)`.
@@ -45,7 +45,7 @@
 
 ## Статистика (главная)
 
-Три метрики (участники, онлайн, мероприятия) — один блок `.stats-bar` с тремя `.stats-bar-item`, разделёнными `border`. На mobile (≤768px) — колонка.
+Три метрики (участники, онлайн, мероприятия) — блок `.stats-bar.stats-bar-hero` внизу `.hero-section` (виден без прокрутки). Три `.stats-bar-item`, разделённые `border`. На mobile (≤768px) — колонка.
 
 ## Hero (главная)
 

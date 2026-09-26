@@ -7,6 +7,7 @@ def _assert_responsive_shell(body):
     assert 'name="viewport"' in body
     assert 'width=device-width' in body
     assert 'id="sidebar-toggle"' in body
+    assert 'id="sidebar-collapse"' in body
     assert 'content-wrapper' in body
     assert 'css/style.css' in body
 
@@ -75,7 +76,7 @@ def test_layout_main_on_admin(client):
 def test_home_stats_section_no_nested_container(client):
     body = client.get('/').get_data(as_text=True)
     match = re.search(
-        r'<section class="stats-section[^"]*">(.*?)</section>',
+        r'<section class="hero-section[^"]*">(.*?)</section>',
         body,
         re.DOTALL,
     )

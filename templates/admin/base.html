@@ -17,6 +17,15 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ app_config.VERSION }}">
+    <script>
+        (function () {
+            try {
+                if (window.innerWidth >= 1024 && localStorage.getItem('gwadm-sidebar-collapsed') === '1') {
+                    document.documentElement.classList.add('sidebar-collapsed');
+                }
+            } catch (e) { /* ignore */ }
+        })();
+    </script>
     {% if is_production %}
     <script type="text/javascript">
         (function(m,e,t,r,i,k,a){
@@ -90,6 +99,11 @@
             </button>
         </div>
         {% include 'admin/_sidebar.html' %}
+        <div class="sidebar-footer">
+            <button type="button" id="sidebar-collapse" class="sidebar-collapse-btn" aria-label="Свернуть меню" aria-expanded="true">
+                <span class="sidebar-collapse-icon" aria-hidden="true">‹</span>
+            </button>
+        </div>
     </aside>
 
     <div class="content-wrapper">
