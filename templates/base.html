@@ -24,8 +24,9 @@
     <script>
         (function () {
             try {
-                if (window.innerWidth >= 1024 && localStorage.getItem('gwadm-sidebar-collapsed') === '1') {
-                    document.documentElement.classList.add('sidebar-collapsed');
+                if (window.innerWidth >= 1024) {
+                    var collapsed = localStorage.getItem('gwadm-sidebar-collapsed') === '1';
+                    document.documentElement.classList.toggle('sidebar-collapsed', collapsed);
                 }
             } catch (e) { /* ignore */ }
         })();
@@ -228,7 +229,7 @@
         };
     </script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}?v={{ app_config.VERSION }}"></script>
     <script>
         // Регистрация Service Worker для PWA
         if ('serviceWorker' in navigator) {

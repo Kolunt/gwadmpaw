@@ -1,6 +1,7 @@
 """Responsive layout smoke tests."""
 
 import re
+from pathlib import Path
 
 
 def _assert_responsive_shell(body):
@@ -71,6 +72,15 @@ def test_layout_main_on_admin(client):
     client.get('/login/dev')
     body = client.get('/admin/').get_data(as_text=True)
     assert 'layout-main' in body
+
+
+def test_sidebar_toggle_desktop_rule_follows_base_rule():
+    css = Path('static/css/style.css').read_text(encoding='utf-8')
+    base_rule = '.sidebar-toggle {\n    display: none;'
+    desktop_rule = '@media (min-width: 1024px) {\n    .sidebar-toggle {\n        display: flex;'
+    assert base_rule in css
+    assert desktop_rule in css
+    assert css.index(desktop_rule) > css.index(base_rule)
 
 
 def test_home_stats_section_no_nested_container(client):

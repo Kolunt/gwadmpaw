@@ -753,10 +753,6 @@ html.sidebar-collapsed .sidebar-collapse-icon {
     .sidebar-footer {
         display: block;
     }
-
-    .sidebar-toggle {
-        display: flex;
-    }
 }
 
 .sidebar-divider {
@@ -807,6 +803,12 @@ html.sidebar-collapsed .sidebar-collapse-icon {
 
 .sidebar-toggle.active span:nth-child(3) {
     transform: rotate(-45deg) translate(7px, -6px);
+}
+
+@media (min-width: 1024px) {
+    .sidebar-toggle {
+        display: flex;
+    }
 }
 
 /* Overlay для мобильных */
