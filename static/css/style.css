@@ -1222,17 +1222,6 @@ html.sidebar-collapsed .sidebar-collapse-icon {
     font-size: 1.1rem;
 }
 
-.stats-bar-hero {
-    position: relative;
-    z-index: 2;
-    flex-shrink: 0;
-    width: calc(100% + 2 * var(--layout-inner));
-    margin-left: calc(-1 * var(--layout-inner));
-    margin-right: calc(-1 * var(--layout-inner));
-    margin-top: var(--layout-inner);
-    box-shadow: var(--shadow-lg);
-}
-
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1248,6 +1237,17 @@ html.sidebar-collapsed .sidebar-collapse-icon {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     margin: 0;
+}
+
+.stats-bar.stats-bar-hero {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    width: calc(100% + 2 * var(--layout-inner));
+    margin-left: calc(-1 * var(--layout-inner));
+    margin-right: calc(-1 * var(--layout-inner));
+    margin-top: var(--layout-inner);
+    box-shadow: var(--shadow-lg);
 }
 
 .stats-bar-item {
