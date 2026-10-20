@@ -83,6 +83,7 @@ def _routes(ids):
             ('GET', f'/admin/events/{eid}/edit'),
             ('GET', f'/admin/events/{eid}/participants'),
             ('GET', f'/admin/events/{eid}/distribution/positive'),
+            ('GET', f'/admin/events/{eid}/progress'),
         ])
 
     return public, user, admin

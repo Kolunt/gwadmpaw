@@ -22,6 +22,7 @@ from gwadm.services.assignments import (
     get_user_assignments,
     mark_assignment_received,
     mark_assignment_sent,
+    mark_assignment_viewed_for_user,
 )
 from gwadm.services.events import is_event_finished
 from gwadm.services.events_stages import parse_event_datetime
@@ -161,6 +162,9 @@ def letter():
                     break
         if not selected_assignment:
             selected_assignment = accessible_assignments[0]
+
+    if selected_assignment and not admin_override:
+        mark_assignment_viewed_for_user(selected_assignment.get('id'), user_id_int)
 
     user_role = selected_assignment.get('chat_role', 'santa')
 
@@ -378,7 +382,11 @@ def assignments():
         return redirect(url_for('auth.login'))
     
     user_assignments = get_user_assignments(user_id_int)
-    
+    for assignment in user_assignments:
+        aid = assignment.get('id')
+        if aid:
+            mark_assignment_viewed_for_user(aid, user_id_int)
+
     # Группируем задания по мероприятиям
     assignments_by_event = {}
     for assignment in user_assignments:

@@ -14,6 +14,7 @@ from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
 from gwadm.services.activity import log_activity
 from gwadm.services.assignments import save_event_assignments
+from gwadm.services.assignment_progress import get_event_progress_board
 from gwadm.services.events_stages import (
     EVENT_STAGES,
     create_participant_approvals_for_event,
@@ -237,6 +238,32 @@ def admin_event_view(event_id):
                          global_rating_gift_not_sent=global_rating_gift_not_sent,
                          global_rating_gift_sent=global_rating_gift_sent)
 
+
+@bp.route('/events/<int:event_id>/progress')
+@require_role('admin')
+def admin_event_progress(event_id):
+    """Канбан прогресса обмена подарками по мероприятию."""
+    role = request.args.get('role', 'santa')
+    if role not in ('santa', 'recipient'):
+        role = 'santa'
+
+    board = get_event_progress_board(event_id)
+    if not board:
+        flash('Мероприятие не найдено', 'error')
+        return redirect(url_for('admin.admin_events'))
+
+    columns = board['santa_columns'] if role == 'santa' else board['recipient_columns']
+    cards_by_stage = board['boards'][role]
+    role_label = 'Дед Мороз' if role == 'santa' else 'Внучок'
+
+    return render_template(
+        'admin/event_progress.html',
+        event=board['event'],
+        role=role,
+        role_label=role_label,
+        columns=columns,
+        cards_by_stage=cards_by_stage,
+    )
 
 
 @bp.route('/events/<int:event_id>/participants')

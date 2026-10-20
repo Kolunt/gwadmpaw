@@ -615,6 +615,57 @@ def get_admin_letter_assignments():
     return assignments
 
 
+def mark_assignment_viewed_for_user(assignment_id, user_id) -> bool:
+    """Set santa_viewed_at or recipient_viewed_at on first view (assignments / letter)."""
+    try:
+        user_id_int = int(user_id)
+        assignment_id_int = int(assignment_id)
+    except (TypeError, ValueError):
+        return False
+
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            '''
+            SELECT id, santa_user_id, recipient_user_id
+            FROM event_assignments
+            WHERE id = ?
+              AND (is_archived = 0 OR is_archived IS NULL)
+            ''',
+            (assignment_id_int,),
+        ).fetchone()
+        if not row:
+            return False
+        if row['santa_user_id'] == user_id_int:
+            conn.execute(
+                '''
+                UPDATE event_assignments
+                SET santa_viewed_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND santa_viewed_at IS NULL
+                ''',
+                (assignment_id_int,),
+            )
+        elif row['recipient_user_id'] == user_id_int:
+            conn.execute(
+                '''
+                UPDATE event_assignments
+                SET recipient_viewed_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND recipient_viewed_at IS NULL
+                ''',
+                (assignment_id_int,),
+            )
+        else:
+            return False
+        conn.commit()
+        return True
+    except Exception as e:
+        log_error(f"mark_assignment_viewed_for_user failed: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+
 def mark_assignment_sent(assignment_id, user_id, send_info):
     """Отмечает, что подарок отправлен"""
     clear_requested = False

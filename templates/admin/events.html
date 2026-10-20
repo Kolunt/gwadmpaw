@@ -57,6 +57,9 @@
                             <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Участники (админ)">
                                 <span style="font-size: 1.2em;">👥</span>
                             </a>
+                            <a href="{{ url_for('admin.admin_event_progress', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Прогресс обмена">
+                                <span style="font-size: 1.2em;">📊</span>
+                            </a>
                             {% if event.needs_review %}
                             <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn btn-sm btn-success" title="Ревью участников">
                                 <span style="font-size: 1.2em;">📋</span>

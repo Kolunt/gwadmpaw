@@ -9,7 +9,7 @@ from pathlib import Path
 from gwadm.config import ROOT_DIR
 from gwadm.logging_config import log_debug, log_error
 
-CURRENT_VERSION = 7
+CURRENT_VERSION = 8
 MIGRATIONS_DIR = ROOT_DIR / 'migrations'
 
 

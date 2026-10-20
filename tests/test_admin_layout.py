@@ -23,6 +23,18 @@ def test_admin_users_uses_admin_sidebar(client):
     assert 'На сайт' in body
 
 
+def test_admin_event_progress_markup(client):
+    client.get('/login/dev')
+    response = client.get('/admin/events/1/progress')
+    if response.status_code == 404:
+        return
+    assert response.status_code in (200, 302)
+    if response.status_code == 200:
+        body = response.get_data(as_text=True)
+        assert 'progress-kanban' in body
+        assert 'progress-role-tabs' in body
+
+
 def test_admin_logs_responsive_markup(client):
     client.get('/login/dev')
     response = client.get('/admin/logs')

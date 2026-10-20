@@ -78,6 +78,7 @@ Page-specific CSS вынесен в `style.css` (секция «Responsive pages
 - рассылки (`broadcasts.html`, `broadcasts_templates.html`)
 - распределение участников (классы `distribution-*`)
 - логи действий (`admin/logs.html`, `.admin-logs-page`, `.logs-table`)
+- канбан прогресса обмена (`admin/event_progress.html`, `.progress-kanban` — 4 колонки на desktop, 2×2 на tablet, столбец на mobile)
 
 ## Ручная проверка
 

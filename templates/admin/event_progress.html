@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Прогресс обмена — {{ event.name }}{% endblock %}
+
+{% block admin_content %}
+<div class="admin-container admin-event-progress-page">
+    <div class="admin-header">
+        <h1>Прогресс обмена</h1>
+        <div class="action-buttons">
+            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">← К списку</a>
+            <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn btn-secondary">Мероприятие</a>
+        </div>
+    </div>
+
+    <p class="progress-event-title">{{ event.name }}</p>
+
+    <nav class="progress-role-tabs" aria-label="Роль на доске">
+        <a href="{{ url_for('admin.admin_event_progress', event_id=event.id, role='santa') }}"
+           class="progress-role-tab{% if role == 'santa' %} active{% endif %}">Дед Мороз</a>
+        <a href="{{ url_for('admin.admin_event_progress', event_id=event.id, role='recipient') }}"
+           class="progress-role-tab{% if role == 'recipient' %} active{% endif %}">Внучок</a>
+    </nav>
+
+    <div class="progress-kanban" role="region" aria-label="Канбан: {{ role_label }}">
+        {% for stage_id, stage_title in columns %}
+        <section class="progress-kanban-column" aria-labelledby="col-{{ role }}-{{ stage_id }}">
+            <header class="progress-kanban-column-header" id="col-{{ role }}-{{ stage_id }}">
+                <h2 class="progress-kanban-column-title">{{ stage_title }}</h2>
+                <span class="progress-kanban-count">{{ cards_by_stage[stage_id]|length }}</span>
+            </header>
+            <div class="progress-kanban-column-body">
+                {% for card in cards_by_stage[stage_id] %}
+                <article class="progress-kanban-card">
+                    <div class="progress-kanban-card-user">{{ card.username }}</div>
+                    <div class="progress-kanban-card-meta">ID {{ card.user_id }}</div>
+                    <div class="progress-kanban-card-pair">Пара: {{ card.pair_username }}</div>
+                    <a href="{{ url_for('assignments.letter', assignment_id=card.assignment_id, admin=1) }}"
+                       class="progress-kanban-card-link">Переписка</a>
+                </article>
+                {% else %}
+                <p class="progress-kanban-empty">Нет участников</p>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

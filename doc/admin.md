@@ -17,6 +17,7 @@
 | Участники | `/admin/users` |
 | Настройки | `/admin/settings` |
 | Мероприятия | `/admin/events` |
+| Прогресс обмена (канбан по мероприятию) | `/admin/events/<id>/progress` — кнопка 📊 в списке мероприятий |
 | FAQ | `/admin/faq` |
 | Награды | `/admin/awards` |
 | Звания | `/admin/titles` |
@@ -51,3 +52,5 @@
 3. Выбирает мероприятие с **максимальной** датой `after_party.end_datetime` (не по `created_at`).
 
 Карточки дашборда ссылаются на соответствующие разделы (`/admin/users`, `/admin/events/{id}`, `/admin/broadcasts` и т.д.).
+
+Подробнее о канбане прогресса обмена: [fulfillment.md](fulfillment.md).

@@ -152,7 +152,7 @@ def get_db_connection():
    - Счётчик «Онлайн» на главной и статус на `/participants` используют `COALESCE(last_seen, last_login)` за последний час (`gwadm/services/presence.py`)
 2. **events** - мероприятия
 3. **event_registrations** - регистрации на мероприятия
-4. **event_assignments** - назначения (кто кому дарит)
+4. **event_assignments** - назначения (кто кому дарит); `santa_viewed_at` / `recipient_viewed_at` — первый просмотр задания участником (миграция 008, канбан прогресса в админке)
 5. **roles** - роли
 6. **permissions** - права доступа
 7. **user_roles** - связь пользователей и ролей
