@@ -5808,7 +5808,7 @@ html.dark .avatar-candidate-img {
 /* Admin event progress kanban */
 .admin-event-progress-page {
     max-width: 100%;
-    overflow-x: hidden;
+    min-width: 0;
 }
 
 .progress-event-title {
@@ -5841,15 +5841,22 @@ html.dark .avatar-candidate-img {
 
 .progress-kanban {
     display: grid;
-    grid-template-columns: repeat(4, minmax(200px, 1fr));
+    grid-auto-flow: column;
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
     gap: var(--layout-gap);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     overflow-x: auto;
+    overflow-y: hidden;
     padding-bottom: 0.5rem;
     -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
 }
 
 .progress-kanban-column {
-    min-width: 0;
+    min-width: 220px;
+    scroll-snap-align: start;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -5985,20 +5992,9 @@ html.dark .avatar-candidate-img {
     text-align: center;
 }
 
-@media (max-width: 1023px) {
-    .progress-kanban {
-        grid-template-columns: repeat(2, minmax(160px, 1fr));
-    }
-}
-
 @media (max-width: 480px) {
-    .progress-kanban {
-        grid-template-columns: 1fr;
-        overflow-x: visible;
-    }
-
     .progress-kanban-column {
-        max-height: none;
+        max-height: min(65vh, 520px);
     }
 }
 
