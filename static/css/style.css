@@ -2175,6 +2175,21 @@ a.event-card-footer-link:focus-visible {
     width: 100%;
 }
 
+.manual-add-form-modal .form-group {
+    margin-bottom: 1rem;
+}
+
+.manual-participant-modal-hint {
+    margin: 0 0 1rem;
+}
+
+.manual-participant-modal-footer {
+    margin-top: 0.5rem;
+    padding: 0;
+    border-top: none;
+    justify-content: flex-end;
+}
+
 /* Participants Page */
 .participants-container {
     max-width: none;

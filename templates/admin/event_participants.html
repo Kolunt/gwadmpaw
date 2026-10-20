@@ -10,7 +10,10 @@
             <h1>Участники мероприятия</h1>
             <p class="text-muted" style="margin: 0;">{{ event.name }}</p>
         </div>
-        <div style="display: flex; gap: 0.75rem;">
+        <div class="event-header-actions">
+            <button type="button" class="btn btn-primary" id="open-manual-participant-modal">
+                ➕ Добавить участника
+            </button>
             <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn btn-secondary">← Назад к мероприятию</a>
             <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">Список мероприятий</a>
         </div>
@@ -33,34 +36,6 @@
             <span class="event-meta-label">Описание</span>
             <span class="event-meta-value">{{ event.description or '—' }}</span>
         </div>
-    </div>
-
-    <div class="admin-card">
-        <h2 style="margin-top: 0;">Добавить участника вручную</h2>
-        <form method="POST" action="{{ url_for('admin.admin_event_participant_add', event_id=event.id) }}" class="manual-add-form">
-        {{ csrf_input() }}
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="user_identifier" class="form-label">ID или имя пользователя</label>
-                    <input type="text" id="user_identifier" name="user_identifier" class="form-input" placeholder="Например: 12345 или username" required>
-                </div>
-                <div class="form-group">
-                    <label for="notes" class="form-label">Комментарий (опционально)</label>
-                    <input type="text" id="notes" name="notes" class="form-input" placeholder="Например: добавлен вручную">
-                </div>
-                <div class="form-group">
-                    <label for="stage" class="form-label">Этап регистрации</label>
-                    <select id="stage" name="stage" class="form-select" required>
-                        <option value="pre" selected>Предварительная регистрация</option>
-                        <option value="main">Основная регистрация</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Добавить участника</button>
-                <p class="text-muted" style="margin: 0;">Пользователь будет добавлен в список участников и сразу одобрен.</p>
-            </div>
-        </form>
     </div>
 
 {% macro participants_table(participants, show_actions=False) %}
@@ -253,8 +228,81 @@
     </div>
 </div>
 
+<div id="manual-participant-modal" class="modal manual-participant-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="manual-participant-modal-title" aria-hidden="true">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="manual-participant-modal-title">Добавить участника вручную</h2>
+            <button type="button" class="modal-close" id="close-manual-participant-modal" aria-label="Закрыть">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="text-muted small-note manual-participant-modal-hint">
+                Пользователь будет добавлен в список участников и сразу одобрен.
+            </p>
+            <form method="POST" action="{{ url_for('admin.admin_event_participant_add', event_id=event.id) }}" class="manual-add-form manual-add-form-modal">
+                {{ csrf_input() }}
+                <div class="form-group">
+                    <label for="user_identifier" class="form-label">ID или имя пользователя</label>
+                    <input type="text" id="user_identifier" name="user_identifier" class="form-input" placeholder="Например: 12345 или username" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="notes" class="form-label">Комментарий (опционально)</label>
+                    <input type="text" id="notes" name="notes" class="form-input" placeholder="Например: добавлен вручную">
+                </div>
+                <div class="form-group">
+                    <label for="stage" class="form-label">Этап регистрации</label>
+                    <select id="stage" name="stage" class="form-select" required>
+                        <option value="pre" selected>Предварительная регистрация</option>
+                        <option value="main">Основная регистрация</option>
+                    </select>
+                </div>
+                <div class="modal-footer manual-participant-modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancel-manual-participant-modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Добавить участника</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const manualModal = document.getElementById('manual-participant-modal');
+    const openManualBtn = document.getElementById('open-manual-participant-modal');
+    const closeManualBtn = document.getElementById('close-manual-participant-modal');
+    const cancelManualBtn = document.getElementById('cancel-manual-participant-modal');
+    const userIdentifierInput = document.getElementById('user_identifier');
+
+    function openManualModal() {
+        if (!manualModal) return;
+        manualModal.style.display = 'block';
+        manualModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        if (userIdentifierInput) {
+            userIdentifierInput.focus();
+        }
+    }
+
+    function closeManualModal() {
+        if (!manualModal) return;
+        manualModal.style.display = 'none';
+        manualModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    }
+
+    if (openManualBtn) openManualBtn.addEventListener('click', openManualModal);
+    if (closeManualBtn) closeManualBtn.addEventListener('click', closeManualModal);
+    if (cancelManualBtn) cancelManualBtn.addEventListener('click', closeManualModal);
+    if (manualModal) {
+        manualModal.addEventListener('click', function (e) {
+            if (e.target === manualModal) closeManualModal();
+        });
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && manualModal && manualModal.getAttribute('aria-hidden') === 'false') {
+            closeManualModal();
+        }
+    });
+
     const tabs = document.querySelectorAll('.tabs-container .tab-button');
     const contents = document.querySelectorAll('.admin-tab-content');
 
