@@ -1277,6 +1277,7 @@ html.sidebar-collapsed .sidebar-collapse-icon {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: var(--layout-gap);
     margin: 0;
+    align-items: stretch;
 }
 
 .event-card-home {
@@ -1309,18 +1310,32 @@ a.event-card-home-link:focus-visible {
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     gap: 1rem;
-    min-height: calc(2 * 1.5rem * 1.35 + 2 * var(--layout-inner));
     box-sizing: border-box;
 }
 
 .event-card-title {
     font-size: 1.5rem;
     font-weight: 600;
+    line-height: 1.625;
     margin: 0;
     color: var(--text-primary);
     flex: 1;
+    min-height: calc(2 * 1.5rem * 1.625);
+}
+
+/* Одинаковая высота шапок (и при необходимости таймера) в одном ряду сетки */
+@supports (grid-template-rows: subgrid) {
+    a.event-card-home-link {
+        display: grid;
+        grid-template-rows: subgrid;
+        grid-row: span 2;
+    }
+
+    a.event-card-home-link:has(.event-countdown-home) {
+        grid-row: span 3;
+    }
 }
 
 .event-card-body-home {
