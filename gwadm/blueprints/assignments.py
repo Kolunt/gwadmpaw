@@ -25,6 +25,12 @@ from gwadm.services.assignments import (
 )
 from gwadm.services.events import is_event_finished
 from gwadm.services.events_stages import parse_event_datetime
+from gwadm.services.letter_navigation import (
+    build_letter_events,
+    build_letter_item,
+    find_letter_event,
+    pick_default_assignment_id,
+)
 from gwadm.services.multiline_text import normalize_multiline_text
 from gwadm.services.roles import has_role
 from gwadm.services.uploads import save_validated_image, validate_image_upload
@@ -134,6 +140,9 @@ def letter():
         flash('У вас пока нет переписок для отображения.', 'info')
         return redirect(url_for('assignments.assignments'))
 
+    available_letters = [build_letter_item(assignment) for assignment in accessible_assignments]
+    letter_events = build_letter_events(available_letters)
+
     selected_assignment = None
     if assignment_id:
         for assignment in accessible_assignments:
@@ -144,7 +153,14 @@ def letter():
             flash('Выбранное задание не найдено. Показано первое доступное письмо.', 'warning')
 
     if not selected_assignment:
-        selected_assignment = accessible_assignments[0]
+        default_id = pick_default_assignment_id(letter_events)
+        if default_id:
+            for assignment in accessible_assignments:
+                if assignment.get('id') == default_id:
+                    selected_assignment = assignment
+                    break
+        if not selected_assignment:
+            selected_assignment = accessible_assignments[0]
 
     user_role = selected_assignment.get('chat_role', 'santa')
 
@@ -263,28 +279,9 @@ def letter():
         }
     }
 
-    available_letters = []
-    for assignment in accessible_assignments:
-        role = assignment.get('chat_role', 'santa')
-        label = ''
-        if role == 'santa':
-            counterpart = assignment.get('recipient_first_name') or assignment.get('recipient_username') or assignment.get('recipient_last_name') or 'Получатель'
-            label = f"Получатель: {counterpart}"
-        elif role == 'grandchild':
-            counterpart = assignment.get('santa_username') or 'Дед Мороз'
-            label = f"Дед Мороз: {counterpart}"
-        elif role == 'admin':
-            santa_label = assignment.get('santa_full_name') or assignment.get('santa_username') or 'Дед Мороз'
-            recipient_label = assignment.get('recipient_full_name') or assignment.get('recipient_username') or 'Внучок'
-            label = f"Санта: {santa_label} → Внучок: {recipient_label}"
-        available_letters.append({
-            'assignment_id': assignment.get('id'),
-            'event_name': assignment.get('event_name', 'Мероприятие'),
-            'label': label,
-            'role': role,
-            'santa_label': assignment.get('santa_full_name') or assignment.get('santa_username'),
-            'recipient_label': assignment.get('recipient_full_name') or assignment.get('recipient_username')
-        })
+    current_event_id = selected_assignment.get('event_id')
+    current_letter_event = find_letter_event(letter_events, current_event_id)
+    show_letter_switcher = len(available_letters) > 1
 
     conn = get_db_connection()
     raw_messages = conn.execute('''
@@ -353,6 +350,10 @@ def letter():
         letter=letter_context,
         assignment=selected_assignment,
         available_letters=available_letters,
+        letter_events=letter_events,
+        current_letter_event=current_letter_event,
+        current_event_id=current_event_id,
+        show_letter_switcher=show_letter_switcher,
         user_role=user_role,
         chat_messages=chat_messages,
         admin_view=admin_override,

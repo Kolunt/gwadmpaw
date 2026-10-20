@@ -9,29 +9,64 @@
         <div class="admin-header">
             <div>
                 <h1>✉️ Письмо Деду Морозу</h1>
+                {% if letter_events|length <= 1 %}
                 <p class="text-muted mb-0">Мероприятие: {{ letter.event_name }}</p>
+                {% endif %}
             </div>
             <a href="{{ url_for('assignments.assignments') }}" class="btn btn-secondary">← Вернуться к заданиям</a>
         </div>
 
-        {% if available_letters|length > 1 %}
+        {% if show_letter_switcher and current_letter_event %}
         <div class="card letter-switcher-panel">
             <div class="card-body letter-switcher-body">
-                <span class="text-muted letter-switcher-label">Другие чаты:</span>
-                {% for item in available_letters %}
-                <a 
-                    href="{{ url_for('assignments.letter', assignment_id=item.assignment_id) }}"
-                    class="btn btn-sm letter-switcher-btn {% if assignment.id == item.assignment_id %}is-active{% endif %}"
-                >
-                    {% if item.role == 'admin' %}
-                        Санта: {{ item.santa_label }} → Внучок: {{ item.recipient_label }}
-                    {% elif item.role == 'santa' %}
-                        Я Дед Мороз
-                    {% else %}
-                        Я Внучок
+                {% if letter_events|length > 1 %}
+                <label class="letter-switcher-label" for="letter-event-select">Мероприятие</label>
+                <select id="letter-event-select" class="letter-event-select setting-input" aria-label="Выбор мероприятия">
+                    {% for ev in letter_events %}
+                    <option
+                        value="{% if admin_view %}{{ ev.chats[0].assignment_id if ev.chats else '' }}{% else %}{{ ev.santa_assignment_id or ev.grandchild_assignment_id }}{% endif %}"
+                        {% if ev.event_id == current_event_id %}selected{% endif %}
+                    >
+                        {{ ev.event_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+
+                {% if admin_view %}
+                {% if current_letter_event.chats|length > 1 %}
+                <label class="letter-switcher-label" for="letter-chat-select">Переписка</label>
+                <select id="letter-chat-select" class="letter-chat-select setting-input" aria-label="Выбор переписки">
+                    {% for chat in current_letter_event.chats %}
+                    <option
+                        value="{{ chat.assignment_id }}"
+                        {% if assignment.id == chat.assignment_id %}selected{% endif %}
+                    >
+                        {{ chat.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+                {% else %}
+                <div class="letter-role-switcher" role="group" aria-label="Роль в переписке">
+                    {% if current_letter_event.santa_assignment_id %}
+                    <a
+                        href="{{ url_for('assignments.letter', assignment_id=current_letter_event.santa_assignment_id) }}"
+                        class="btn btn-sm letter-role-btn {% if assignment.id == current_letter_event.santa_assignment_id %}is-active{% endif %}"
+                    >
+                        Дед Мороз
+                    </a>
                     {% endif %}
-                </a>
-                {% endfor %}
+                    {% if current_letter_event.grandchild_assignment_id %}
+                    <a
+                        href="{{ url_for('assignments.letter', assignment_id=current_letter_event.grandchild_assignment_id) }}"
+                        class="btn btn-sm letter-role-btn {% if assignment.id == current_letter_event.grandchild_assignment_id %}is-active{% endif %}"
+                    >
+                        Внучок
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endif %}
@@ -148,6 +183,34 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const letterBaseUrl = {{ url_for('assignments.letter') | tojson }};
+    const adminView = {{ 'true' if admin_view else 'false' }};
+
+    function navigateToAssignment(assignmentId) {
+        if (!assignmentId) {
+            return;
+        }
+        let url = letterBaseUrl + '?assignment_id=' + encodeURIComponent(assignmentId);
+        if (adminView) {
+            url += '&admin=1';
+        }
+        window.location.href = url;
+    }
+
+    const eventSelect = document.getElementById('letter-event-select');
+    if (eventSelect) {
+        eventSelect.addEventListener('change', function () {
+            navigateToAssignment(eventSelect.value);
+        });
+    }
+
+    const chatSelect = document.getElementById('letter-chat-select');
+    if (chatSelect) {
+        chatSelect.addEventListener('change', function () {
+            navigateToAssignment(chatSelect.value);
+        });
+    }
+
     const form = document.getElementById('letter-form');
     const textarea = document.getElementById('letter-message-input');
     const fileInput = document.getElementById('letter-attachment-input');

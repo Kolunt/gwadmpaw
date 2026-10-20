@@ -6482,14 +6482,30 @@ html.dark .avatar-candidate-img {
 
 .letter-switcher-body {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 0.75rem;
 }
 
 .letter-switcher-label {
-    align-self: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0;
 }
 
+.letter-event-select,
+.letter-chat-select {
+    width: 100%;
+    max-width: 100%;
+}
+
+.letter-role-switcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.letter-role-btn,
 .letter-switcher-btn {
     background: rgba(46, 125, 50, 0.12);
     border: 1px solid rgba(46, 125, 50, 0.35);
@@ -6497,6 +6513,8 @@ html.dark .avatar-candidate-img {
     transition: all 0.2s ease;
 }
 
+.letter-role-btn:hover,
+.letter-role-btn:focus,
 .letter-switcher-btn:hover,
 .letter-switcher-btn:focus {
     background: rgba(46, 125, 50, 0.22);
@@ -6504,6 +6522,7 @@ html.dark .avatar-candidate-img {
     border-color: rgba(46, 125, 50, 0.55);
 }
 
+.letter-role-btn.is-active,
 .letter-switcher-btn.is-active {
     background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
     border-color: #2e7d32;
@@ -6511,6 +6530,8 @@ html.dark .avatar-candidate-img {
     box-shadow: 0 8px 18px rgba(27, 94, 32, 0.35);
 }
 
+.letter-role-btn.is-active:hover,
+.letter-role-btn.is-active:focus,
 .letter-switcher-btn.is-active:hover,
 .letter-switcher-btn.is-active:focus {
     color: #ffffff;
@@ -6660,7 +6681,8 @@ html.dark .avatar-candidate-img {
         align-items: stretch;
     }
 
-    .letter-switcher-btn {
+    .letter-switcher-btn,
+    .letter-role-btn {
         width: 100%;
         text-align: center;
     }

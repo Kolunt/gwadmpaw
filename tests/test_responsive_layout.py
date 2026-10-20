@@ -59,7 +59,7 @@ def test_letter_chat_styles_externalized(client):
     assert response.status_code in (200, 302)
     if response.status_code == 200:
         body = response.get_data(as_text=True)
-        assert 'letter-switcher-btn' in body
+        assert 'letter-role-switcher' in body or 'letter-event-select' in body or 'letter-chat-select' in body
         assert '.chat-wrapper' not in body
 
 

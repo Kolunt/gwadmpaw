@@ -43,6 +43,17 @@
 
 Тесты: [`tests/test_multiline_text.py`](../tests/test_multiline_text.py).
 
+## Переключатель чатов `/letter`
+
+Логика группировки: [`gwadm/services/letter_navigation.py`](../gwadm/services/letter_navigation.py).
+
+- Несколько мероприятий — `<select class="letter-event-select">`; смена мероприятия открывает чат **Деда Мороза** в выбранном событии.
+- Одно мероприятие — только чипы **Дед Мороз** / **Внучок** (`letter-role-switcher`).
+- Заход на `/letter` без `assignment_id` — последнее мероприятие (по `assigned_at`) и роль Деда.
+- Админ (`admin=1`): select мероприятия + при нескольких парах в событии — `letter-chat-select` с подписью пары.
+
+Тесты: [`tests/test_letter_navigation.py`](../tests/test_letter_navigation.py).
+
 ## Стили страниц
 
 Page-specific CSS вынесен в `style.css` (секция «Responsive pages»):
@@ -61,7 +72,7 @@ DevTools, ширины: **390**, **768**, **1024**, **1280** px.
 |----------|----------------|
 | `/` | hero, stats-grid, нет горизонтального scroll body |
 | `/assignments` | карточки, фильтры |
-| `/letter` | пузыри чата, форма |
+| `/letter` | пузыри чата, форма, select мероприятий и чипы Дед/Внучок |
 | `/contacts` | карточки контактов |
 | `/admin/` | дашборд, drawer на tablet |
 | `/admin/users` | таблица → карточки на ≤1023 |
@@ -71,7 +82,7 @@ DevTools, ширины: **390**, **768**, **1024**, **1280** px.
 ## Локальные тесты
 
 ```bash
-python -m pytest tests/test_multiline_text.py tests/test_responsive_layout.py -v
+python -m pytest tests/test_multiline_text.py tests/test_letter_navigation.py tests/test_responsive_layout.py -v
 python -m pytest -q
 python scripts/smoke_check.py
 python scripts/verify_web_routes.py
