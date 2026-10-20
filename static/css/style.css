@@ -564,55 +564,6 @@ html.sidebar-collapsed .content-wrapper {
     }
 }
 
-.sidebar-header {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    display: none; /* По умолчанию скрыт на десктопе, где кнопка закрытия не видна */
-    justify-content: flex-end;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    background-color: var(--bg-card);
-    z-index: 10;
-}
-
-/* Показываем sidebar-header в drawer-режиме */
-@media (max-width: 1023px) {
-    .sidebar-header {
-        display: flex;
-    }
-}
-
-.sidebar-header .logo,
-.sidebar-header .sidebar-title {
-    font-size: 1.25rem;
-    font-weight: bold;
-    color: var(--accent-color);
-    margin: 0;
-}
-
-.sidebar-title {
-    color: var(--text-primary);
-}
-
-.sidebar-close {
-    display: none;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--text-primary);
-    cursor: pointer;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    line-height: 1;
-    transition: color 0.3s ease;
-}
-
-.sidebar-close:hover {
-    color: var(--accent-color);
-}
-
 .sidebar-nav {
     padding: 1rem 0;
     flex: 1;
@@ -1990,10 +1941,6 @@ a.event-card-footer-link:focus-visible {
 
     .sidebar.active {
         transform: translateX(0) !important;
-    }
-
-    .sidebar-close {
-        display: block !important;
     }
 
     .sidebar-toggle {
