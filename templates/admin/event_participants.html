@@ -212,13 +212,25 @@
     </div>
     {% endmacro %}
 
-    <div class="admin-tabs">
-        <a class="admin-tab-btn active" data-tab="all" href="#all">Все ({{ participants_count }})</a>
-        <a class="admin-tab-btn" data-tab="pre" href="#pre">Предварительная регистрация ({{ participants_pre_count }})</a>
-        <a class="admin-tab-btn" data-tab="main" href="#main">Основная регистрация ({{ participants_main_count }})</a>
-        <a class="admin-tab-btn" data-tab="positive" href="#positive">Позитив ({{ participants_positive_count }})</a>
-        <a class="admin-tab-btn" data-tab="negative" href="#negative">Негатив ({{ participants_negative_count }})</a>
-        <a class="admin-tab-btn" data-tab="na" href="#na">N/A ({{ participants_na_count }})</a>
+    <div class="tabs-container">
+        <a class="tab-button active" data-tab="all" href="#all">
+            Все <span class="tab-count">{{ participants_count }}</span>
+        </a>
+        <a class="tab-button" data-tab="pre" href="#pre">
+            Предварительная регистрация <span class="tab-count">{{ participants_pre_count }}</span>
+        </a>
+        <a class="tab-button" data-tab="main" href="#main">
+            Основная регистрация <span class="tab-count">{{ participants_main_count }}</span>
+        </a>
+        <a class="tab-button" data-tab="positive" href="#positive">
+            Позитив <span class="tab-count">{{ participants_positive_count }}</span>
+        </a>
+        <a class="tab-button" data-tab="negative" href="#negative">
+            Негатив <span class="tab-count">{{ participants_negative_count }}</span>
+        </a>
+        <a class="tab-button" data-tab="na" href="#na">
+            N/A <span class="tab-count">{{ participants_na_count }}</span>
+        </a>
     </div>
 
     <div class="admin-tab-content active" data-tab="all">
@@ -243,7 +255,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const tabs = document.querySelectorAll('.admin-tab-btn');
+    const tabs = document.querySelectorAll('.tabs-container .tab-button');
     const contents = document.querySelectorAll('.admin-tab-content');
 
     function activateTab(tabName, updateHash = true) {

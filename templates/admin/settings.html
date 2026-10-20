@@ -1044,44 +1044,58 @@
         
         <!-- Вкладка данных пользователей -->
         <div class="settings-tab-content" data-tab="profile-data">
-            <div class="settings-section">
-                <h2 class="settings-section-title">Данные пользователей</h2>
-                <p class="setting-hint">
-                    Укажите, какие поля профиля показываются при регистрации и в форме редактирования.
-                    Для контактов действует правило: нужен хотя бы один заполненный канал среди полей с включённым сбором.
-                    Обязательное поле нельзя включить без сбора.
-                </p>
-                <input type="hidden" name="save_profile_data_policy" value="1">
+            <div class="settings-section profile-data-settings">
+                <h2 class="settings-section-title">👤 Данные пользователей</h2>
+
+                <div class="alert alert-info profile-data-policy-intro">
+                    <p><strong>Собираем</strong> — поле видно в профиле и в сценарии регистрации на мероприятие.</p>
+                    <p><strong>Обязательно</strong> — без заполнения нельзя завершить регистрацию (только если сбор включён).</p>
+                    <p>Для контактов: среди полей с включённым сбором нужен <strong>хотя бы один</strong> заполненный канал (email, телефон, мессенджеры, Max).</p>
+                </div>
+
                 {% for group_id, fields in profile_fields_by_group.items() %}
-                <h3 class="settings-subsection-title">{{ profile_group_labels.get(group_id, group_id) }}</h3>
-                <table class="admin-table profile-data-policy-table">
-                    <thead>
-                        <tr>
-                            <th>Поле</th>
-                            <th>Собираем</th>
-                            <th>Обязательно</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for field in fields %}
-                        {% set flags = profile_data_policy.get(field.id, {'collect': true, 'required': false}) %}
-                        <tr>
-                            <td>{{ field.label }}</td>
-                            <td>
-                                <input type="checkbox" name="collect_{{ field.id }}" value="1"
-                                       {% if flags.collect %}checked{% endif %}
-                                       aria-label="Собираем {{ field.label }}">
-                            </td>
-                            <td>
-                                <input type="checkbox" name="required_{{ field.id }}" value="1"
-                                       {% if flags.required %}checked{% endif %}
-                                       aria-label="Обязательно {{ field.label }}">
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="setting-card profile-data-policy-group">
+                    <div class="setting-card-header">
+                        <h3 class="settings-subsection-title">{{ profile_group_labels.get(group_id, group_id) }}</h3>
+                        <span class="setting-badge">{{ fields|length }} полей</span>
+                    </div>
+                    <div class="setting-card-body profile-data-policy-table-wrap">
+                        <table class="admin-table profile-data-policy-table">
+                            <thead>
+                                <tr>
+                                    <th>Поле</th>
+                                    <th class="profile-data-policy-col-check">Собираем</th>
+                                    <th class="profile-data-policy-col-check">Обязательно</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for field in fields %}
+                                {% set flags = profile_data_policy.get(field.id, {'collect': true, 'required': false}) %}
+                                <tr>
+                                    <td data-label="Поле">{{ field.label }}</td>
+                                    <td data-label="Собираем" class="profile-data-policy-col-check">
+                                        <input type="checkbox" class="setting-checkbox" name="collect_{{ field.id }}" value="1"
+                                               {% if flags.collect %}checked{% endif %}
+                                               aria-label="Собираем {{ field.label }}">
+                                    </td>
+                                    <td data-label="Обязательно" class="profile-data-policy-col-check">
+                                        <input type="checkbox" class="setting-checkbox" name="required_{{ field.id }}" value="1"
+                                               {% if flags.required %}checked{% endif %}
+                                               aria-label="Обязательно {{ field.label }}">
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 {% endfor %}
+
+                <div class="profile-data-policy-actions">
+                    <button type="submit" class="btn btn-primary" name="profile_policy_submit" value="1">
+                        Сохранить политику полей
+                    </button>
+                </div>
             </div>
         </div>
 

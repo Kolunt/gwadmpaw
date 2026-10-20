@@ -32,7 +32,8 @@ def admin_settings():
     conn = get_db_connection()
     
     if request.method == 'POST':
-        if request.form.get('save_profile_data_policy') == '1':
+        # Только явная кнопка на вкладке «Данные пользователей» (не скрытое поле в общей форме)
+        if request.form.get('profile_policy_submit') == '1':
             policy = {}
             for field in PROFILE_FIELD_REGISTRY:
                 fid = field['id']

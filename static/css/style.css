@@ -4723,6 +4723,50 @@ html.dark .avatar-candidate-img {
     margin-bottom: 0;
 }
 
+.profile-data-settings .profile-data-policy-intro {
+    margin-bottom: 1.5rem;
+}
+
+.profile-data-settings .profile-data-policy-intro p {
+    margin: 0.35rem 0;
+}
+
+.profile-data-policy-group {
+    margin-bottom: 1.25rem;
+}
+
+.profile-data-policy-group .settings-subsection-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    border: none;
+    padding: 0;
+}
+
+.profile-data-policy-group .settings-subsection-title::after {
+    display: none;
+}
+
+.profile-data-policy-table-wrap {
+    padding-top: 0.25rem;
+    overflow-x: auto;
+}
+
+.profile-data-policy-col-check {
+    width: 7rem;
+    text-align: center;
+}
+
+.profile-data-policy-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
 /* Интеграции */
 .integrations-container {
     padding: 0;
