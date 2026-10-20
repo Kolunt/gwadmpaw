@@ -54,6 +54,8 @@
 
 Пункт сайдбара **Задания** пульсирует (класс `sidebar-link-assignments-pulse`), если пользователь зарегистрирован на мероприятие в этапе **Обмен подарками** (`celebration_date`). Логика: `user_in_celebration_exchange_stage` в [`events_stages.py`](../gwadm/services/events_stages.py).
 
+На странице мероприятия (`event_view.html`) в блоке `.event-header-actions` — те же условия для кнопки **Задания** (`letter-button-animated`); иконки админа и кнопка в один горизонтальный ряд.
+
 Тесты: [`tests/test_letter_navigation.py`](../tests/test_letter_navigation.py), [`tests/test_celebration_sidebar.py`](../tests/test_celebration_sidebar.py).
 
 ## Стили страниц
