@@ -1,7 +1,17 @@
 """Telegram bot and verification helpers."""
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
+from flask import has_request_context, jsonify, request
+
 from gwadm.db import get_db_connection
 from gwadm.logging_config import log_debug, log_error
+from gwadm.services.settings import get_setting
+
+
 def handle_telegram_message(message):
     """Обрабатывает сообщения от пользователей в Telegram"""
     chat_id = message.get('chat', {}).get('id')

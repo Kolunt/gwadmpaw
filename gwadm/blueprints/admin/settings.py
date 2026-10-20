@@ -29,7 +29,7 @@ def admin_settings():
         if 'default_language' in request.form:
             default_language = request.form.get('default_language', 'ru').strip()
             if default_language in current_app.config['LANGUAGES']:
-                set_setting('default_language', default_language, 'Язык по умолчанию (ru или en)', 'general')
+                set_setting('default_language', default_language, category='general')
         
         # Обновляем настройки
         settings_dict = {}
