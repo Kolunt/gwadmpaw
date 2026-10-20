@@ -77,6 +77,7 @@ Page-specific CSS вынесен в `style.css` (секция «Responsive pages
 - правила (public + admin)
 - рассылки (`broadcasts.html`, `broadcasts_templates.html`)
 - распределение участников (классы `distribution-*`)
+- логи действий (`admin/logs.html`, `.admin-logs-page`, `.logs-table`)
 
 ## Ручная проверка
 

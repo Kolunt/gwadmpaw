@@ -23,6 +23,17 @@ def test_admin_users_uses_admin_sidebar(client):
     assert 'На сайт' in body
 
 
+def test_admin_logs_responsive_markup(client):
+    client.get('/login/dev')
+    response = client.get('/admin/logs')
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert 'admin-logs-page' in body
+    assert 'logs-filter' in body
+    assert 'logs-table' in body
+    assert 'data-label="Время"' in body
+
+
 def test_public_sidebar_single_admin_link(client):
     client.get('/login/dev')
     response = client.get('/')

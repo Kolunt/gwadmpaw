@@ -12,12 +12,18 @@ def test_verify_dadata_api_missing_keys():
 def test_verify_dadata_api_success(monkeypatch):
     class FakeResponse:
         status_code = 200
-        text = '{"version":"1"}'
+        text = '{"balance":100.5}'
 
-    monkeypatch.setattr(
-        'gwadm.services.telegram.requests.get',
-        lambda *args, **kwargs: FakeResponse(),
-    )
+        @staticmethod
+        def json():
+            return {'balance': 100.5}
+
+    def fake_get(url, **kwargs):
+        assert 'profile/balance' in url
+        return FakeResponse()
+
+    monkeypatch.setattr('gwadm.services.telegram.requests.get', fake_get)
     ok, msg = verify_dadata_api('api', 'secret')
     assert ok is True
     assert 'проверены' in msg.lower()
+    assert '100.5' in msg

@@ -453,24 +453,37 @@ def verify_dadata_api(api_key, secret_key):
         return False, "API ключ и Secret ключ обязательны"
     
     try:
-        # Используем простой endpoint для проверки (например, версия API)
         headers = {
             'Authorization': f'Token {api_key}',
             'X-Secret': secret_key,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
         }
-        
-        # Проверяем через endpoint /v1/version (более легкий запрос)
-        response = requests.get('https://dadata.ru/api/v1/version', headers=headers, timeout=5)
+        # Профиль: нужны и Token, и X-Secret (см. https://dadata.ru/api/balance/)
+        response = requests.get(
+            'https://dadata.ru/api/v2/profile/balance',
+            headers=headers,
+            timeout=10,
+        )
         
         if response.status_code == 200:
+            try:
+                payload = response.json()
+                balance = payload.get('balance')
+                if balance is not None:
+                    return True, f"Ключи успешно проверены (баланс: {balance} ₽)"
+            except (ValueError, TypeError):
+                pass
             return True, "Ключи успешно проверены"
         elif response.status_code == 401:
             return False, "Неверный API ключ или Secret ключ"
         elif response.status_code == 403:
             return False, "Доступ запрещен. Проверьте права доступа для ключей"
         else:
-            return False, f"Ошибка проверки: {response.status_code} - {response.text[:100]}"
+            detail = response.text[:100].strip()
+            if detail.lstrip().startswith('<!'):
+                detail = 'сервис DaData вернул неожиданный ответ'
+            return False, f"Ошибка проверки: {response.status_code} — {detail}"
     except requests.exceptions.Timeout:
         return False, "Таймаут при подключении к Dadata API"
     except requests.exceptions.ConnectionError:
