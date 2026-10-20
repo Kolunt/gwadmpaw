@@ -51,6 +51,8 @@ def test_admin_settings_no_inline_min_width(client):
     body = response.get_data(as_text=True)
     assert 'min-width: 520px' not in body
     assert 'table-scroll-desktop' in body
+    assert 'settings-tab-content active' in body
+    assert 'settings-tab active' in body
 
 
 def test_letter_chat_styles_externalized(client):

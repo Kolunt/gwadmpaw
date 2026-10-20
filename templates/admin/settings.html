@@ -13,12 +13,13 @@
     <form method="POST" class="settings-form" enctype="multipart/form-data">
         {{ csrf_input() }}
         <!-- Табы -->
+        {% set settings_tab_ns = namespace(first_visible=true) %}
         <div class="settings-tabs">
             {% for category, settings in settings_by_category.items() %}
             {% if category != 'design' and category != 'modals' %}
             <a 
                 href="{{ url_for('admin.admin_settings') }}#{{ category }}"
-                class="settings-tab {% if loop.first %}active{% endif %}"
+                class="settings-tab{% if settings_tab_ns.first_visible %} active{% endif %}"
                 data-tab="{{ category }}"
             >
                 {% if category == 'system' %}
@@ -29,6 +30,7 @@
                     📋 Общие
                 {% endif %}
             </a>
+            {% set settings_tab_ns.first_visible = false %}
             {% endif %}
             {% endfor %}
             <a 
@@ -62,9 +64,10 @@
         </div>
         
         <!-- Содержимое табов -->
+        {% set settings_content_ns = namespace(first_visible=true) %}
         {% for category, settings in settings_by_category.items() %}
         {% if category != 'design' and category != 'modals' %}
-        <div class="settings-tab-content {% if loop.first %}active{% endif %}" data-tab="{{ category }}">
+        <div class="settings-tab-content{% if settings_content_ns.first_visible %} active{% endif %}" data-tab="{{ category }}">
             {% if category == 'integrations' %}
             <!-- Специальная обработка для интеграций -->
             <div class="integrations-container">
@@ -811,6 +814,7 @@
             </div>
             {% endif %}
         </div>
+        {% set settings_content_ns.first_visible = false %}
         {% endif %}
         {% endfor %}
         

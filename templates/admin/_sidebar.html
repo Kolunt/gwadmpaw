@@ -15,7 +15,6 @@
 ] %}
 <nav class="sidebar-nav">
     <div class="sidebar-section">
-        <div class="sidebar-section-title">Админ-панель</div>
         {% for endpoint, icon, label, children in admin_nav %}
         {% set is_active = request.endpoint == endpoint or request.endpoint in children %}
         <a href="{{ url_for(endpoint) }}" class="sidebar-link{% if is_active %} active{% endif %}">
