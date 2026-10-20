@@ -97,6 +97,22 @@
                                 step="1"
                             >
                         </div>
+
+                        {% set rating_max = settings_dict.get('rating_contact_max', {}) %}
+                        <div class="setting-item">
+                            <label for="rating_contact_max" class="setting-label">
+                                Max
+                                <small class="setting-hint">Очки за заполненный Max</small>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="rating_contact_max" 
+                                name="setting_rating_contact_max" 
+                                value="{{ rating_max.get('value', '1') if rating_max else '1' }}"
+                                class="setting-input"
+                                step="1"
+                            >
+                        </div>
                     </div>
                 </div>
             </div>

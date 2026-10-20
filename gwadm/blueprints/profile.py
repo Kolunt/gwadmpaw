@@ -183,6 +183,7 @@ def edit_profile():
                       last_name, first_name, middle_name,
                       postal_code, country, city, street, house, building, apartment, session['user_id']))
 
+            sync_user_contact_snowflakes(conn, session['user_id'])
             conn.commit()
             flash('Профиль успешно обновлен', 'success')
             conn.close()
@@ -412,6 +413,9 @@ from gwadm.services.profile_fields import (
     build_registration_step_plan,
     get_profile_data_policy,
 )
+from gwadm.services.rating import sync_user_contact_snowflakes
+
+_PROFILE_SNOWFLAKE_CONTACT_FIELDS = frozenset({'telegram', 'whatsapp', 'viber', 'max'})
 
 @bp.route('/api/profile/data', methods=['GET'])
 @require_login
@@ -539,8 +543,14 @@ def api_profile_update():
             WHERE user_id = ?
         '''
         conn.execute(update_query, update_values)
+        contact_touched = any(
+            field.split(' =', 1)[0].strip() in _PROFILE_SNOWFLAKE_CONTACT_FIELDS
+            for field in update_fields
+        )
+        if contact_touched:
+            sync_user_contact_snowflakes(conn, user_id)
         conn.commit()
-        
+
         # Проверяем, что обновление прошло успешно
         verify_user = conn.execute('SELECT email, phone, telegram FROM users WHERE user_id = ?', (user_id,)).fetchone()
         if verify_user:

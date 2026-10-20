@@ -32,7 +32,9 @@ _SNOWFLAKE_CONTACT_SOURCES = (
     ('telegram', 'Telegram', 'Заполнен Telegram'),
     ('whatsapp', 'WhatsApp', 'Заполнен WhatsApp'),
     ('viber', 'Viber', 'Заполнен Viber'),
+    ('max', 'Max', 'Заполнен Max'),
 )
+_SNOWFLAKE_CONTACT_SOURCE_IDS = tuple(s[0] for s in _SNOWFLAKE_CONTACT_SOURCES)
 _SNOWFLAKE_SOURCE_LABELS = {source: label for source, label, _ in _SNOWFLAKE_CONTACT_SOURCES}
 
 
@@ -101,6 +103,20 @@ def _sync_contact_snowflakes(conn, user_row):
                 )
 
 
+def sync_user_contact_snowflakes(conn, user_id):
+    """Sync contact snowflake events for one user and refresh rating cache."""
+    row = conn.execute(
+        '''
+        SELECT user_id, telegram, whatsapp, viber, max
+        FROM users WHERE user_id = ?
+        ''',
+        (user_id,),
+    ).fetchone()
+    if not row:
+        return
+    _sync_contact_snowflakes(conn, dict(row))
+    rebuild_rating_cache(conn)
+
 
 def _get_snowflake_source_label(source):
     contact_map = {s: label for s, label, _ in _SNOWFLAKE_CONTACT_SOURCES}
@@ -167,7 +183,7 @@ def recalculate_all_snowflake_events(conn, settings_dict):
         new_points = None
         
         # Определяем новые очки на основе source
-        if source in ('telegram', 'whatsapp', 'viber'):
+        if source in _SNOWFLAKE_CONTACT_SOURCE_IDS:
             # Контакты
             setting_key = f'rating_contact_{source}'
             if setting_key in settings_dict:

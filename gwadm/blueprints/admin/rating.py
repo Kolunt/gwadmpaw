@@ -120,6 +120,8 @@ def admin_rating_settings():
                         description = 'Очки за заполненный WhatsApp'
                     elif key == 'rating_contact_viber':
                         description = 'Очки за заполненный Viber'
+                    elif key == 'rating_contact_max':
+                        description = 'Очки за заполненный Max'
                     elif key == 'rating_event_registration':
                         description = 'Очки за регистрацию на мероприятие (начисляются автоматически всем зарегистрированным участникам при закрытии регистрации администратором)'
                     elif key == 'rating_event_gift_not_sent':
@@ -289,7 +291,7 @@ def admin_rating_detail(user_id):
     conn = get_db_connection()
     try:
         user_row = conn.execute('''
-            SELECT user_id, username, telegram, whatsapp, viber
+            SELECT user_id, username, telegram, whatsapp, viber, max
             FROM users
             WHERE user_id = ?
         ''', (user_id,)).fetchone()
