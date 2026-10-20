@@ -2731,11 +2731,29 @@ a.event-card-footer-link:focus-visible {
         display: none;
     }
 
+    .navbar-logo-emoji {
+        display: none;
+    }
+
     .logo-mobile {
         display: inline-block;
         font-size: 1.1rem;
         font-weight: 600;
         color: var(--text-primary);
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar-brand-link .logo-mobile {
+        display: none;
+    }
+
+    .navbar-left {
+        gap: 0.5rem;
+    }
+
+    .navbar-brand-link {
+        gap: 0;
     }
 }
 
