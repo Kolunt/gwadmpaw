@@ -2142,11 +2142,6 @@ a.event-card-footer-link:focus-visible {
     flex-shrink: 0;
 }
 
-.event-assignments-header-btn {
-    color: #333;
-    font-weight: 600;
-}
-
 .admin-header h1 {
     color: var(--text-primary);
     margin: 0;
