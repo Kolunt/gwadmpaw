@@ -34,9 +34,12 @@
                     <div class="progress-kanban-card-head">
                         <button type="button"
                                 class="progress-kanban-card-name js-progress-contact"
-                                data-contact="{{ card.contacts|tojson|e }}"
+                                data-contact='{{ card.contacts|tojson }}'
                                 title="Контакты участника">{{ card.username }}</button>
-                        <span class="progress-kanban-card-pair-inline" title="Пара в обмене">→ {{ card.pair_username }}</span>
+                        <button type="button"
+                                class="progress-kanban-card-pair-inline js-progress-contact"
+                                data-contact='{{ card.pair_contacts|tojson }}'
+                                title="Контакты пары">→ {{ card.pair_username }}</button>
                     </div>
                     <a href="{{ url_for('assignments.letter', assignment_id=card.assignment_id, admin=1) }}"
                        class="btn btn-secondary progress-kanban-card-link">Переписка</a>
@@ -136,13 +139,18 @@
         if (modal) modal.style.display = 'none';
     }
 
-    document.querySelectorAll('.js-progress-contact').forEach(function (btn) {
-        btn.addEventListener('click', function () {
+    var board = document.querySelector('.admin-event-progress-page');
+    if (board) {
+        board.addEventListener('click', function (e) {
+            var btn = e.target.closest('.js-progress-contact');
+            if (!btn) return;
+            var raw = btn.getAttribute('data-contact');
+            if (!raw) return;
             try {
-                openContacts(JSON.parse(btn.getAttribute('data-contact')));
-            } catch (e) { /* ignore */ }
+                openContacts(JSON.parse(raw));
+            } catch (err) { /* ignore */ }
         });
-    });
+    }
 
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (modal) {
