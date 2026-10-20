@@ -12,6 +12,7 @@ from gwadm.logging_config import log_error, log_debug
 
 from gwadm.services.events_stages import (
     EVENT_STAGES,
+    event_assignments_button_state,
     get_current_event_stage,
     get_event_now,
     get_event_registrations_count,
@@ -446,13 +447,23 @@ def event_view(event_id):
         if stage_type in ['registration_closed', 'lottery', 'celebration_date', 'after_party']:
             show_gifts_stats = True
             gifts_stats = get_event_gifts_statistics(event_id)
-    
+
+    stage_type = current_stage['info']['type'] if current_stage else None
+    show_event_assignments_button, event_assignments_button_pulse = event_assignments_button_state(
+        is_registered=is_registered,
+        stage_type=stage_type,
+        user_id=user_id,
+        event_id=event_id,
+    )
+
     return render_template('event_view.html', 
                          event=event,
                          current_stage=current_stage,
                          modal_texts=modal_texts,
                          registration_open=registration_open,
                          is_registered=is_registered,
+                         show_event_assignments_button=show_event_assignments_button,
+                         event_assignments_button_pulse=event_assignments_button_pulse,
                          needs_main_confirmation=needs_main_confirmation,
                          registrations_count=registrations_count,
                          registrations=registrations,

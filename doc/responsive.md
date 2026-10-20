@@ -54,9 +54,19 @@
 
 Пункт сайдбара **Задания** пульсирует (класс `sidebar-link-assignments-pulse`), если пользователь зарегистрирован на мероприятие в этапе **Обмен подарками** (`celebration_date`). Логика: `user_in_celebration_exchange_stage` в [`events_stages.py`](../gwadm/services/events_stages.py).
 
-На странице мероприятия (`event_view.html`) в блоке `.event-header-actions` — те же условия для кнопки **Задания** (`letter-button-animated`); иконки админа и кнопка в один горизонтальный ряд.
+Кнопка **Задания** в шапке мероприятия (`.event-header-actions`, `event_view.html`): логика [`event_assignments_button_state`](../gwadm/services/events_stages.py).
 
-Тесты: [`tests/test_letter_navigation.py`](../tests/test_letter_navigation.py), [`tests/test_celebration_sidebar.py`](../tests/test_celebration_sidebar.py).
+| Условие | Кнопка | Пульс (`letter-button-animated`) |
+|---------|--------|----------------------------------|
+| Не зарегистрирован | скрыта | — |
+| До жеребьёвки, нет задания | скрыта | — |
+| До жеребьёвки, есть задание (раннее распределение) | видна | нет |
+| Этап «Обмен подарками» | видна | да |
+| Этап «Мероприятие завершено» | видна | нет |
+
+«После жеребьёвки» по календарю: `celebration_date` или `after_party`. Иконки админа и кнопка — в один горизонтальный ряд.
+
+Тесты: [`tests/test_letter_navigation.py`](../tests/test_letter_navigation.py), [`tests/test_celebration_sidebar.py`](../tests/test_celebration_sidebar.py), [`tests/test_event_assignments_button.py`](../tests/test_event_assignments_button.py).
 
 ## Стили страниц
 

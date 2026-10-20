@@ -192,6 +192,48 @@ def user_in_celebration_exchange_stage(user_id) -> bool:
     return False
 
 
+POST_LOTTERY_ASSIGNMENT_STAGES = frozenset({'celebration_date', 'after_party'})
+
+
+def is_post_lottery_stage(stage_type: str | None) -> bool:
+    return stage_type in POST_LOTTERY_ASSIGNMENT_STAGES
+
+
+def user_has_event_assignment(user_id, event_id) -> bool:
+    if not user_id or not event_id:
+        return False
+    conn = get_db_connection()
+    try:
+        row = conn.execute(
+            '''
+            SELECT 1 FROM event_assignments
+            WHERE event_id = ?
+              AND is_archived = 0
+              AND (santa_user_id = ? OR recipient_user_id = ?)
+            LIMIT 1
+            ''',
+            (event_id, user_id, user_id),
+        ).fetchone()
+    finally:
+        conn.close()
+    return row is not None
+
+
+def event_assignments_button_state(
+    *,
+    is_registered: bool,
+    stage_type: str | None,
+    user_id,
+    event_id,
+) -> tuple[bool, bool]:
+    """Return (show_button, pulse_animation) for event_view header."""
+    if not is_registered:
+        return False, False
+    show = is_post_lottery_stage(stage_type) or user_has_event_assignment(user_id, event_id)
+    pulse = stage_type == 'celebration_date'
+    return show, pulse
+
+
 def get_event_registrations_count(event_id):
     """Получает количество зарегистрированных пользователей на мероприятие."""
     conn = get_db_connection()

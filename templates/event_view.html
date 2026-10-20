@@ -9,8 +9,8 @@
         <div class="admin-header">
             <h1>{{ event.name }}</h1>
             <div class="event-header-actions">
-                {% if is_registered and current_stage and current_stage.info.type == 'celebration_date' %}
-                <a href="{{ url_for('assignments.assignments') }}" class="btn btn-sm btn-light event-assignments-header-btn letter-button-animated">
+                {% if show_event_assignments_button %}
+                <a href="{{ url_for('assignments.assignments') }}" class="btn btn-sm btn-light event-assignments-header-btn{% if event_assignments_button_pulse %} letter-button-animated{% endif %}">
                     Задания
                 </a>
                 {% endif %}
