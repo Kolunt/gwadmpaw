@@ -114,3 +114,19 @@ def test_home_event_cards_use_status_indicators(client):
     assert 'event-card-footer-link' in body
     assert 'Подробнее' not in body
     assert '/events/' in body
+
+
+def test_home_hero_assignment_cta_during_celebration(client, monkeypatch):
+    monkeypatch.setattr(
+        'gwadm.context.user_in_celebration_exchange_stage',
+        lambda user_id: True,
+    )
+    with client.session_transaction() as sess:
+        sess['user_id'] = 1
+    body = client.get('/').get_data(as_text=True)
+    assert 'У вас есть задание!' in body
+    assert 'letter-button-animated' in body
+    assert '/assignments' in body
+    hero = re.search(r'<div class="hero-content">(.*?)</div>\s*<div class="stats-bar', body, re.DOTALL)
+    assert hero is not None
+    assert 'Перейти в профиль' not in hero.group(1)
