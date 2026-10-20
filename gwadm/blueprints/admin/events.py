@@ -307,6 +307,7 @@ def admin_event_participants(event_id):
             COALESCE(d.telegram, u.telegram) AS telegram,
             COALESCE(d.whatsapp, u.whatsapp) AS whatsapp,
             COALESCE(d.viber, u.viber) AS viber,
+            COALESCE(d.max, u.max) AS max,
             u.username,
             u.avatar_seed,
             u.avatar_style,
@@ -388,6 +389,7 @@ def admin_event_participants(event_id):
             'telegram': row['telegram'],
             'whatsapp': row['whatsapp'],
             'viber': row['viber'],
+            'max': row['max'],
             'email': row['email'],
             'stage': stage_label,
             'can_upgrade_to_main': stage_label == 'pre',
@@ -457,6 +459,7 @@ def admin_event_distribution_positive_view(event_id):
                 COALESCE(d.telegram, u.telegram) AS telegram,
                 COALESCE(d.whatsapp, u.whatsapp) AS whatsapp,
                 COALESCE(d.viber, u.viber) AS viber,
+                COALESCE(d.max, u.max) AS max,
                 epa.notes as approval_notes,
                 er.registered_at
             FROM event_registrations er
@@ -494,6 +497,7 @@ def admin_event_distribution_positive_view(event_id):
                 'telegram': row['telegram'],
                 'whatsapp': row['whatsapp'],
                 'viber': row['viber'],
+                'max': row['max'],
             },
             'notes': row['approval_notes'],
                 'registered_at': row['registered_at'],
@@ -1081,9 +1085,9 @@ def admin_event_participant_add(event_id):
             INSERT INTO event_registration_details (
                 event_id, user_id, last_name, first_name, middle_name,
                 postal_code, country, city, street, house, building, apartment,
-                phone, telegram, whatsapp, viber
+                phone, telegram, whatsapp, viber, max
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(event_id, user_id) DO UPDATE SET
                 last_name = excluded.last_name,
                 first_name = excluded.first_name,
@@ -1099,6 +1103,7 @@ def admin_event_participant_add(event_id):
                 telegram = excluded.telegram,
                 whatsapp = excluded.whatsapp,
                 viber = excluded.viber,
+                max = excluded.max,
                 updated_at = CURRENT_TIMESTAMP
         ''', (
             event_id,
@@ -1116,7 +1121,8 @@ def admin_event_participant_add(event_id):
             profile.get('phone'),
             profile.get('telegram'),
             profile.get('whatsapp'),
-            profile.get('viber')
+            profile.get('viber'),
+            profile.get('max'),
         ))
 
         conn.execute('''

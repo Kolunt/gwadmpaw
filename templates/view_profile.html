@@ -361,6 +361,16 @@
                         {% endif %}
                     </span>
                 </div>
+                <div class="info-row">
+                    <span class="info-label">Max:</span>
+                    <span class="info-value">
+                        {% if user.max %}
+                            <a href="tel:{{ user.max|replace(' ', '') }}" class="contact-link">{{ user.max }}</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                </div>
             </div>
         </div>
         {% endif %}

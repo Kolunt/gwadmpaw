@@ -255,16 +255,25 @@ def get_event_registrations_paginated(event_id, page=1, per_page=20):
 
 def get_missing_required_fields(user_id):
     """Возвращает информацию о незаполненных обязательных полях."""
+    from gwadm.services.profile_fields import (
+        PROFILE_FIELD_REGISTRY,
+        contact_field_ids,
+        get_profile_data_policy,
+        validate_profile_dict,
+    )
+
+    policy = get_profile_data_policy()
+    personal_ids = [f['id'] for f in PROFILE_FIELD_REGISTRY if f['group'] == 'personal']
+    address_ids = [f['id'] for f in PROFILE_FIELD_REGISTRY if f['group'] == 'address']
+    contact_ids = contact_field_ids()
+
     conn = get_db_connection()
     try:
-        user = conn.execute('''
-            SELECT email, phone, telegram, whatsapp, viber,
-                   last_name, first_name, middle_name,
-                   postal_code, country, city, street, house, building, apartment,
-                   bio
-            FROM users
-            WHERE user_id = ?
-        ''', (user_id,)).fetchone()
+        cols = ', '.join(f['column'] for f in PROFILE_FIELD_REGISTRY)
+        user = conn.execute(
+            f'SELECT {cols} FROM users WHERE user_id = ?',
+            (user_id,),
+        ).fetchone()
         conn.close()
 
         if not user:
@@ -272,19 +281,30 @@ def get_missing_required_fields(user_id):
                 'has_personal_data': False,
                 'has_address': False,
                 'has_contact': False,
-                'missing_personal': ['last_name', 'first_name', 'middle_name'],
-                'missing_address': ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment'],
-                'missing_contacts': ['email', 'phone', 'telegram', 'whatsapp', 'viber'],
+                'missing_personal': personal_ids,
+                'missing_address': address_ids,
+                'missing_contacts': contact_ids,
             }
 
-        missing_personal = [f for f in ('last_name', 'first_name', 'middle_name') if not user[f]]
-        missing_address = [f for f in ('postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment') if not user[f]]
-        missing_contacts = [f for f in ('email', 'phone', 'telegram', 'whatsapp', 'viber') if not user[f]]
+        profile = dict(user)
+        missing_personal = [
+            fid for fid in personal_ids
+            if policy.get(fid, {}).get('collect') and not (profile.get(fid) or '').strip()
+        ]
+        missing_address = [
+            fid for fid in address_ids
+            if policy.get(fid, {}).get('collect') and not (profile.get(fid) or '').strip()
+        ]
+        missing_contacts = [
+            fid for fid in contact_ids
+            if policy.get(fid, {}).get('collect') and not (profile.get(fid) or '').strip()
+        ]
+        validation = validate_profile_dict(profile, policy)
 
         return {
             'has_personal_data': len(missing_personal) == 0,
             'has_address': len(missing_address) == 0,
-            'has_contact': bool(user['email'] or user['phone'] or user['telegram'] or user['whatsapp'] or user['viber']),
+            'has_contact': not validation['missing_contact'],
             'missing_personal': missing_personal,
             'missing_address': missing_address,
             'missing_contacts': missing_contacts,
@@ -296,7 +316,7 @@ def get_missing_required_fields(user_id):
             'has_personal_data': False,
             'has_address': False,
             'has_contact': False,
-            'missing_personal': ['last_name', 'first_name', 'middle_name'],
-            'missing_address': ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment'],
-            'missing_contacts': ['email', 'phone', 'telegram', 'whatsapp', 'viber'],
+            'missing_personal': personal_ids,
+            'missing_address': address_ids,
+            'missing_contacts': contact_ids,
         }

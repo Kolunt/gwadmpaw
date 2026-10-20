@@ -1,0 +1,24 @@
+{% macro contact_rows(entity) %}
+    {% if entity.email %}
+    <div><strong>Email:</strong> <a href="mailto:{{ entity.email }}" class="contact-link">{{ entity.email }}</a></div>
+    {% endif %}
+    {% if entity.phone %}
+    <div><strong>Телефон:</strong> <a href="tel:{{ entity.phone|replace(' ', '') }}" class="contact-link">{{ entity.phone }}</a></div>
+    {% endif %}
+    {% if entity.telegram %}
+    <div><strong>Telegram:</strong>
+        <a href="https://t.me/{{ entity.telegram.lstrip('@') }}" class="contact-link" target="_blank" rel="noopener">
+            {{ entity.telegram if entity.telegram.startswith('@') else '@' ~ entity.telegram }}
+        </a>
+    </div>
+    {% endif %}
+    {% if entity.whatsapp %}
+    <div><strong>WhatsApp:</strong> <a href="https://wa.me/{{ entity.whatsapp|replace(' ', '') }}" class="contact-link" target="_blank" rel="noopener">{{ entity.whatsapp }}</a></div>
+    {% endif %}
+    {% if entity.viber %}
+    <div><strong>Viber:</strong> <a href="viber://chat?number={{ entity.viber|replace(' ', '') }}" class="contact-link">{{ entity.viber }}</a></div>
+    {% endif %}
+    {% if entity.max %}
+    <div><strong>Max:</strong> <a href="tel:{{ entity.max|replace(' ', '') }}" class="contact-link">{{ entity.max }}</a></div>
+    {% endif %}
+{% endmacro %}

@@ -39,6 +39,13 @@
                 🎨 Дизайн
             </a>
             <a 
+                href="{{ url_for('admin.admin_settings') }}#profile-data"
+                class="settings-tab"
+                data-tab="profile-data"
+            >
+                👤 Данные пользователей
+            </a>
+            <a 
                 href="{{ url_for('admin.admin_settings') }}#localization"
                 class="settings-tab"
                 data-tab="localization"
@@ -1035,6 +1042,49 @@
             </div>
         </div>
         
+        <!-- Вкладка данных пользователей -->
+        <div class="settings-tab-content" data-tab="profile-data">
+            <div class="settings-section">
+                <h2 class="settings-section-title">Данные пользователей</h2>
+                <p class="setting-hint">
+                    Укажите, какие поля профиля показываются при регистрации и в форме редактирования.
+                    Для контактов действует правило: нужен хотя бы один заполненный канал среди полей с включённым сбором.
+                    Обязательное поле нельзя включить без сбора.
+                </p>
+                <input type="hidden" name="save_profile_data_policy" value="1">
+                {% for group_id, fields in profile_fields_by_group.items() %}
+                <h3 class="settings-subsection-title">{{ profile_group_labels.get(group_id, group_id) }}</h3>
+                <table class="admin-table profile-data-policy-table">
+                    <thead>
+                        <tr>
+                            <th>Поле</th>
+                            <th>Собираем</th>
+                            <th>Обязательно</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for field in fields %}
+                        {% set flags = profile_data_policy.get(field.id, {'collect': true, 'required': false}) %}
+                        <tr>
+                            <td>{{ field.label }}</td>
+                            <td>
+                                <input type="checkbox" name="collect_{{ field.id }}" value="1"
+                                       {% if flags.collect %}checked{% endif %}
+                                       aria-label="Собираем {{ field.label }}">
+                            </td>
+                            <td>
+                                <input type="checkbox" name="required_{{ field.id }}" value="1"
+                                       {% if flags.required %}checked{% endif %}
+                                       aria-label="Обязательно {{ field.label }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endfor %}
+            </div>
+        </div>
+
         <!-- Вкладка локализации -->
         <div class="settings-tab-content" data-tab="localization">
             <div class="settings-section">

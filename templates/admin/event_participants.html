@@ -130,7 +130,10 @@
                             {% if participant.viber %}
                             <div><strong>Viber:</strong> <a href="viber://chat?number={{ participant.viber|replace(' ', '') }}" class="contact-link">{{ participant.viber }}</a></div>
                             {% endif %}
-                            {% if not (participant.email or participant.phone or participant.telegram or participant.whatsapp or participant.viber) %}
+                            {% if participant.max %}
+                            <div><strong>Max:</strong> <a href="tel:{{ participant.max|replace(' ', '') }}" class="contact-link">{{ participant.max }}</a></div>
+                            {% endif %}
+                            {% if not (participant.email or participant.phone or participant.telegram or participant.whatsapp or participant.viber or participant.max) %}
                             <span class="text-muted">—</span>
                             {% endif %}
                         </div>

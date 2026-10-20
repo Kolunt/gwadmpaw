@@ -224,6 +224,10 @@ Copy-Item database.db "database_$(Get-Date -Format 'yyyyMMdd').db"
 | `002_initial_schema.sql` | `CREATE TABLE IF NOT EXISTS` для всех таблиц |
 | `003_legacy_columns.py` | `ALTER TABLE`, индексы, миграция `snowflake_events.points` |
 | `004_seed_data.py` | Роли, права, настройки по умолчанию, seed-данные |
+| `008_assignment_viewed.py` | `santa_viewed_at`, `recipient_viewed_at` на `event_assignments` |
+| `009_profile_max_and_policy.py` | Колонка `max` в `users` и `event_registration_details`; настройка `profile_data_policy` (JSON) |
+
+Колонка **`users.max`** / **`event_registration_details.max`** — номер телефона в мессенджере Max.
 
 **Существующая БД (прод):** если есть таблица `users`, но `schema_version` пуста — runner **штампует** текущую версию без повторного прогона legacy-ALTER (bootstrap).
 

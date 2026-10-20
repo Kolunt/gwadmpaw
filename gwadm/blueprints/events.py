@@ -29,6 +29,12 @@ from gwadm.services.events import (
 )
 from gwadm.services.activity import log_activity
 from gwadm.services.multiline_text import normalize_multiline_text
+from gwadm.services.profile_fields import (
+    build_registration_step_plan,
+    get_profile_data_policy,
+    profile_snapshot_columns,
+    validate_profile_dict,
+)
 from gwadm.services.settings import get_setting
 
 bp = Blueprint("events", __name__)
@@ -582,22 +588,23 @@ def event_register(event_id):
         if is_registered and not needs_confirmation:
             return jsonify({'success': False, 'error': 'Вы уже зарегистрированы на это мероприятие'}), 400
         missing_fields = get_missing_required_fields(user_id)
+        policy = get_profile_data_policy()
         return jsonify({
             'success': True,
-            'missing_fields': missing_fields
+            'missing_fields': missing_fields,
+            'field_policy': policy,
+            'registration_steps': build_registration_step_plan(policy),
         }), 200
 
     def complete_registration():
         """Проводит регистрацию и сохраняет слепок данных пользователя."""
         conn = get_db_connection()
         try:
-            profile_row = conn.execute('''
-                SELECT last_name, first_name, middle_name,
-                       postal_code, country, city, street, house, building, apartment,
-                       email, phone, telegram, whatsapp, viber, bio
-                FROM users
-                WHERE user_id = ?
-            ''', (user_id,)).fetchone()
+            cols = ', '.join(profile_snapshot_columns())
+            profile_row = conn.execute(
+                f'SELECT {cols} FROM users WHERE user_id = ?',
+                (user_id,),
+            ).fetchone()
 
             if not profile_row:
                 return {'status': 'error', 'message': 'Пользователь не найден'}
@@ -605,21 +612,11 @@ def event_register(event_id):
             profile = {key: (profile_row[key] or '').strip() for key in profile_row.keys()}
             if profile.get('bio'):
                 profile['bio'] = normalize_multiline_text(profile['bio'])
-            required_fields = [
-                ('last_name', 'Фамилия'),
-                ('first_name', 'Имя'),
-                ('middle_name', 'Отчество'),
-                ('postal_code', 'Индекс'),
-                ('country', 'Страна'),
-                ('city', 'Город'),
-                ('street', 'Улица'),
-                ('house', 'Дом'),
-                ('building', 'Корпус/строение'),
-                ('apartment', 'Квартира'),
-                ('phone', 'Номер телефона')
-            ]
-            missing_required = [label for field, label in required_fields if not profile.get(field)]
-            if missing_required:
+            validation = validate_profile_dict(profile)
+            if not validation['ok']:
+                missing_required = list(validation['missing_labels'])
+                if validation['missing_contact']:
+                    missing_required.append('Хотя бы один контакт')
                 return {
                     'status': 'missing',
                     'missing': missing_required
@@ -635,9 +632,9 @@ def event_register(event_id):
                 INSERT INTO event_registration_details (
                     event_id, user_id, last_name, first_name, middle_name,
                     postal_code, country, city, street, house, building, apartment,
-                    email, phone, telegram, whatsapp, viber, bio
+                    email, phone, telegram, whatsapp, viber, max, bio
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(event_id, user_id) DO UPDATE SET
                     last_name = excluded.last_name,
                     first_name = excluded.first_name,
@@ -654,6 +651,7 @@ def event_register(event_id):
                     telegram = excluded.telegram,
                     whatsapp = excluded.whatsapp,
                     viber = excluded.viber,
+                    max = excluded.max,
                     bio = excluded.bio,
                     updated_at = CURRENT_TIMESTAMP
             ''', (
@@ -674,6 +672,7 @@ def event_register(event_id):
                 profile.get('telegram'),
                 profile.get('whatsapp'),
                 profile.get('viber'),
+                profile.get('max'),
                 profile.get('bio')
             ))
 

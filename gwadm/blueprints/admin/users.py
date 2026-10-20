@@ -67,6 +67,7 @@ def admin_user_create():
         telegram = request.form.get('telegram', '').strip()
         whatsapp = request.form.get('whatsapp', '').strip()
         viber = request.form.get('viber', '').strip()
+        max_phone = request.form.get('max', '').strip()
         last_name = request.form.get('last_name', '').strip()
         first_name = request.form.get('first_name', '').strip()
         middle_name = request.form.get('middle_name', '').strip()
@@ -116,13 +117,13 @@ def admin_user_create():
                 INSERT INTO users 
                 (user_id, username, level, synd, has_passport, has_mobile, old_passport, usersex, 
                  avatar_seed, avatar_style, language,
-                 bio, contact_info, email, phone, telegram, whatsapp, viber,
+                 bio, contact_info, email, phone, telegram, whatsapp, viber, max,
                  last_name, first_name, middle_name,
                  postal_code, country, city, street, house, building, apartment)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (user_id_int, username, level_int, synd_int, has_passport_int, has_mobile_int, old_passport_int,
                   usersex, avatar_seed, avatar_style, language,
-                  bio, contact_info, email, phone, telegram, whatsapp, viber,
+                  bio, contact_info, email, phone, telegram, whatsapp, viber, max_phone,
                   last_name, first_name, middle_name,
                   postal_code, country, city, street, house, building, apartment))
             conn.commit()
@@ -262,6 +263,7 @@ def admin_user_edit(user_id):
         telegram = request.form.get('telegram', '').strip()
         whatsapp = request.form.get('whatsapp', '').strip()
         viber = request.form.get('viber', '').strip()
+        max_phone = request.form.get('max', '').strip()
         last_name = request.form.get('last_name', '').strip()
         first_name = request.form.get('first_name', '').strip()
         middle_name = request.form.get('middle_name', '').strip()
@@ -352,14 +354,14 @@ def admin_user_edit(user_id):
                 UPDATE users SET
                     username = ?, level = ?, synd = ?, has_passport = ?, has_mobile = ?, old_passport = ?,
                     usersex = ?, bio = ?, contact_info = ?,
-                    email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?,
+                    email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?, max = ?,
                     last_name = ?, first_name = ?, middle_name = ?,
                     postal_code = ?, country = ?, city = ?, street = ?, house = ?, building = ?, apartment = ?,
                     avatar_seed = ?, avatar_style = ?, language = ?
                 WHERE user_id = ?
             ''', (username, level_int, synd_int, has_passport_int, has_mobile_int, old_passport_int,
                   usersex, bio, contact_info, email, phone, 
-                  telegram, whatsapp, viber,
+                  telegram, whatsapp, viber, max_phone,
                   last_name, first_name, middle_name,
                   postal_code, country, city, street, house, building, apartment,
                   avatar_seed, avatar_style, language,

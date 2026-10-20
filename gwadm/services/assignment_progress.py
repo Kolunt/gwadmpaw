@@ -65,6 +65,7 @@ def _contact_payload(
     telegram=None,
     whatsapp=None,
     viber=None,
+    max_phone=None,
 ) -> dict:
     return {
         'user_id': user_id,
@@ -74,6 +75,7 @@ def _contact_payload(
         'telegram': (telegram or '').strip(),
         'whatsapp': (whatsapp or '').strip(),
         'viber': (viber or '').strip(),
+        'max': (max_phone or '').strip(),
     }
 
 
@@ -86,6 +88,7 @@ def _contacts_from_prefixed_row(row: dict, prefix: str) -> dict:
         row.get(f'{prefix}_telegram'),
         row.get(f'{prefix}_whatsapp'),
         row.get(f'{prefix}_viber'),
+        row.get(f'{prefix}_max'),
     )
 
 
@@ -117,10 +120,12 @@ def get_event_progress_board(event_id: int) -> dict | None:
                 COALESCE(santa_d.telegram, santa.telegram) AS santa_telegram,
                 COALESCE(santa_d.whatsapp, santa.whatsapp) AS santa_whatsapp,
                 COALESCE(santa_d.viber, santa.viber) AS santa_viber,
+                COALESCE(santa_d.max, santa.max) AS santa_max,
                 COALESCE(recipient_d.phone, recipient.phone) AS recipient_phone,
                 COALESCE(recipient_d.telegram, recipient.telegram) AS recipient_telegram,
                 COALESCE(recipient_d.whatsapp, recipient.whatsapp) AS recipient_whatsapp,
                 COALESCE(recipient_d.viber, recipient.viber) AS recipient_viber,
+                COALESCE(recipient_d.max, recipient.max) AS recipient_max,
                 CASE
                     WHEN (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '') THEN 1
                     WHEN EXISTS (

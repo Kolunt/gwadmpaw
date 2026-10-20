@@ -77,6 +77,8 @@
                     >{{ user.contact_info or '' }}</textarea>
                 </div>
                 
+                {% set fp = field_policy or {} %}
+                {% if fp.get('email', {}).get('collect', true) %}
                 <div class="form-group">
                     <label for="email" class="form-label">
                         Email
@@ -91,7 +93,9 @@
                         value="{{ user.email or '' }}"
                     >
                 </div>
+                {% endif %}
                 
+                {% if fp.get('phone', {}).get('collect', true) %}
                 <div class="form-group">
                     <label for="phone" class="form-label">
                         Номер телефона
@@ -106,7 +110,9 @@
                         value="{{ user.phone or '' }}"
                     >
                 </div>
+                {% endif %}
                 
+                {% if fp.get('telegram', {}).get('collect', true) %}
                 <div class="form-group">
                     <label for="telegram" class="form-label">
                         Telegram
@@ -121,7 +127,9 @@
                         value="{{ user.telegram or '' }}"
                     >
                 </div>
+                {% endif %}
                 
+                {% if fp.get('whatsapp', {}).get('collect', true) %}
                 <div class="form-group">
                     <label for="whatsapp" class="form-label">
                         WhatsApp
@@ -136,7 +144,9 @@
                         value="{{ user.whatsapp or '' }}"
                     >
                 </div>
+                {% endif %}
                 
+                {% if fp.get('viber', {}).get('collect', true) %}
                 <div class="form-group">
                     <label for="viber" class="form-label">
                         Viber
@@ -151,6 +161,24 @@
                         value="{{ user.viber or '' }}"
                     >
                 </div>
+                {% endif %}
+
+                {% if fp.get('max', {}).get('collect', true) %}
+                <div class="form-group">
+                    <label for="max" class="form-label">
+                        Max
+                        <small class="form-hint">Номер телефона в Max (необязательно)</small>
+                    </label>
+                    <input 
+                        type="tel" 
+                        id="max" 
+                        name="max" 
+                        class="form-input"
+                        placeholder="+7 (999) 123-45-67"
+                        value="{{ user.max or '' }}"
+                    >
+                </div>
+                {% endif %}
             </div>
             
             <div class="form-section">

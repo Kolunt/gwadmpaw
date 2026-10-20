@@ -227,6 +227,13 @@
                                value="{{ user.viber if user else request.form.get('viber', '') }}"
                                placeholder="+7 (999) 123-45-67">
                     </div>
+
+                    <div class="form-group-compact">
+                        <label for="max">Max:</label>
+                        <input type="text" id="max" name="max" 
+                               value="{{ user.max if user else request.form.get('max', '') }}"
+                               placeholder="+7 (999) 123-45-67">
+                    </div>
                 </div>
             </div>
         

@@ -128,6 +128,17 @@
                 </div>
             </div>
 
+            <div class="registration-step" data-step="step10">
+                <div class="registration-step-content">
+                    <h3>Max</h3>
+                    <p class="text-muted small-note">Номер телефона в мессенджере Max. Если не пользуетесь, нажмите «Не использую».</p>
+                    <div class="form-group">
+                        <label for="registration-max" class="form-label">Аккаунт в Max</label>
+                        <input type="text" id="registration-max" class="form-input" placeholder="+7 (999) 123-45-67">
+                    </div>
+                </div>
+            </div>
+
             <div class="registration-step" data-step="step9">
                 <div class="registration-step-content">
                     <h3>Viber</h3>
@@ -227,6 +238,10 @@
                             <dd data-summary-field="viber"></dd>
                         </div>
                         <div class="summary-row">
+                            <dt>Max</dt>
+                            <dd data-summary-field="max"></dd>
+                        </div>
+                        <div class="summary-row">
                             <dt>О себе</dt>
                             <dd data-summary-field="bio"></dd>
                         </div>
@@ -262,7 +277,30 @@
         const secondaryBtn = document.getElementById('registration-secondary-btn');
         const tertiaryBtn = document.getElementById('registration-tertiary-btn');
 
-        const stepsOrder = ['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7', 'step8', 'step9', 'step#', 'stepfinal'];
+        const LOGICAL_TO_DOM = {
+            intro: 'step1',
+            personal: 'step2',
+            address: 'step3',
+            email: 'step4',
+            phone: 'step5',
+            bio: 'step6',
+            telegram: 'step7',
+            whatsapp: 'step8',
+            viber: 'step9',
+            max: 'step10',
+            commitments: 'step#',
+            final: 'stepfinal'
+        };
+        const DEFAULT_LOGICAL_STEPS = [
+            'intro', 'personal', 'address', 'email', 'phone', 'bio',
+            'telegram', 'whatsapp', 'viber', 'max', 'commitments', 'final'
+        ];
+        let stepsOrder = DEFAULT_LOGICAL_STEPS.map((k) => LOGICAL_TO_DOM[k]).filter(Boolean);
+
+        function applyRegistrationSteps(logicalSteps) {
+            const list = logicalSteps && logicalSteps.length ? logicalSteps : DEFAULT_LOGICAL_STEPS;
+            stepsOrder = list.map((k) => LOGICAL_TO_DOM[k]).filter(Boolean);
+        }
         const stepElements = new Map();
         modal.querySelectorAll('.registration-step').forEach(step => {
             const key = step.getAttribute('data-step');
@@ -281,6 +319,7 @@
             step7: 'Дополнительный контакт: Telegram',
             step8: 'Дополнительный контакт: WhatsApp',
             step9: 'Дополнительный контакт: Viber',
+            step10: 'Дополнительный контакт: Max',
             'step#': 'Обязательства участника',
             stepfinal: 'Проверка данных'
         };
@@ -301,7 +340,8 @@
             bio: document.getElementById('registration-bio'),
             telegram: document.getElementById('registration-telegram'),
             whatsapp: document.getElementById('registration-whatsapp'),
-            viber: document.getElementById('registration-viber')
+            viber: document.getElementById('registration-viber'),
+            max: document.getElementById('registration-max')
         };
 
         const summaryFields = {};
@@ -325,7 +365,8 @@
             bio: '',
             telegram: '',
             whatsapp: '',
-            viber: ''
+            viber: '',
+            max: ''
         };
 
         let profileData = { ...defaultProfile };
@@ -398,7 +439,7 @@
                 .filter(Boolean)
                 .join(' ');
             if (summaryFields.fio) summaryFields.fio.textContent = fio || '—';
-            ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment', 'email', 'phone', 'telegram', 'whatsapp', 'viber', 'bio']
+            ['postal_code', 'country', 'city', 'street', 'house', 'building', 'apartment', 'email', 'phone', 'telegram', 'whatsapp', 'viber', 'max', 'bio']
                 .forEach(key => {
                     if (summaryFields[key]) {
                         summaryFields[key].textContent = textOrDash(profileData[key]);
@@ -420,6 +461,9 @@
                 const result = await response.json();
                 if (result && result.success && result.data) {
                     profileData = { ...defaultProfile, ...result.data };
+                    if (result.registration_steps) {
+                        applyRegistrationSteps(result.registration_steps);
+                    }
                 } else {
                     profileData = { ...defaultProfile };
                 }
@@ -483,7 +527,7 @@
             const saved = await saveProfileData(data);
             setBusy(false);
             if (saved) {
-                goToStep('step3');
+                goToNextStep();
             }
         }
 
@@ -506,7 +550,7 @@
             const saved = await saveProfileData(data);
             setBusy(false);
             if (saved) {
-                goToStep('step4');
+                goToNextStep();
             }
         }
 
@@ -525,7 +569,7 @@
             const saved = await saveProfileData({ email });
             setBusy(false);
             if (saved) {
-                goToStep('step5');
+                goToNextStep();
             }
         }
 
@@ -539,13 +583,13 @@
             const saved = await saveProfileData({ phone });
             setBusy(false);
             if (saved) {
-                goToStep('step6');
+                goToNextStep();
             }
         }
 
         async function handleStep6() {
             if (!inputs.bio) {
-                goToStep('step7');
+                goToNextStep();
                 return;
             }
             const bio = inputs.bio.value.trim();
@@ -553,7 +597,7 @@
             const saved = await saveProfileData({ bio });
             setBusy(false);
             if (saved) {
-                goToStep('step7');
+                goToNextStep();
             }
         }
 
@@ -710,7 +754,7 @@
             switch (activeKey) {
                 case 'step1':
                     primaryBtn.textContent = 'Далее';
-                    primaryBtn.onclick = () => goToStep('step2');
+                    primaryBtn.onclick = () => goToNextStep();
                     secondaryBtn.style.display = 'inline-block';
                     secondaryBtn.textContent = 'Не сейчас';
                     secondaryBtn.removeAttribute('title');
@@ -730,7 +774,7 @@
                     secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
                     secondaryBtn.setAttribute('aria-label', 'Назад');
                     secondaryBtn.title = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step2');
+                    secondaryBtn.onclick = () => goToPreviousStep();
                     break;
                 case 'step4':
                     fillInputs();
@@ -740,7 +784,7 @@
                     secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
                     secondaryBtn.setAttribute('aria-label', 'Назад');
                     secondaryBtn.title = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step3');
+                    secondaryBtn.onclick = () => goToPreviousStep();
                     break;
                 case 'step5':
                     fillInputs();
@@ -750,7 +794,7 @@
                     secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
                     secondaryBtn.setAttribute('aria-label', 'Назад');
                     secondaryBtn.title = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step4');
+                    secondaryBtn.onclick = () => goToPreviousStep();
                     break;
                 case 'step6':
                     fillInputs();
@@ -760,7 +804,7 @@
                     secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
                     secondaryBtn.setAttribute('aria-label', 'Назад');
                     secondaryBtn.title = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step5');
+                    secondaryBtn.onclick = () => goToPreviousStep();
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Пропустить';
                     tertiaryBtn.onclick = () => {
@@ -776,7 +820,7 @@
                     secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
                     secondaryBtn.setAttribute('aria-label', 'Назад');
                     secondaryBtn.title = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step6');
+                    secondaryBtn.onclick = () => goToPreviousStep();
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
                     tertiaryBtn.onclick = () => handleNotUsing('telegram', 'не использую');
@@ -789,7 +833,7 @@
                     secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
                     secondaryBtn.setAttribute('aria-label', 'Назад');
                     secondaryBtn.title = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step7');
+                    secondaryBtn.onclick = () => goToPreviousStep();
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
                     tertiaryBtn.onclick = () => handleNotUsing('whatsapp', 'не использую');
@@ -802,10 +846,23 @@
                     secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
                     secondaryBtn.setAttribute('aria-label', 'Назад');
                     secondaryBtn.title = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step8');
+                    secondaryBtn.onclick = () => goToPreviousStep();
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Не использую';
                     tertiaryBtn.onclick = () => handleNotUsing('viber', '');
+                    break;
+                case 'step10':
+                    fillInputs();
+                    primaryBtn.textContent = 'Подтверждаю';
+                    primaryBtn.onclick = () => handleContactStep('max', true);
+                    secondaryBtn.style.display = 'inline-block';
+                    secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
+                    secondaryBtn.setAttribute('aria-label', 'Назад');
+                    secondaryBtn.title = 'Назад';
+                    secondaryBtn.onclick = () => goToPreviousStep();
+                    tertiaryBtn.style.display = 'inline-block';
+                    tertiaryBtn.textContent = 'Не использую';
+                    tertiaryBtn.onclick = () => handleNotUsing('max', '');
                     break;
                 case 'step#':
                     primaryBtn.textContent = 'Подтверждаю';
@@ -821,7 +878,7 @@
                     secondaryBtn.innerHTML = '<span class="modal-btn-icon">🔙</span>';
                     secondaryBtn.setAttribute('aria-label', 'Назад');
                     secondaryBtn.title = 'Назад';
-                    secondaryBtn.onclick = () => goToStep('step9');
+                    secondaryBtn.onclick = () => goToPreviousStep();
                     break;
                 case 'stepfinal':
                     fillInputs();
@@ -835,7 +892,7 @@
                     secondaryBtn.onclick = resetToStart;
                     tertiaryBtn.style.display = 'inline-block';
                     tertiaryBtn.textContent = 'Назад';
-                    tertiaryBtn.onclick = () => goToStep('step#');
+                    tertiaryBtn.onclick = () => goToPreviousStep();
                     break;
                 default:
                     primaryBtn.onclick = goToNextStep;

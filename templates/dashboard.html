@@ -280,7 +280,7 @@
                 {% endif %}
                 
                 <!-- Контактные данные -->
-                {% if user.email or user.phone or user.telegram or user.whatsapp or user.viber %}
+                {% if user.email or user.phone or user.telegram or user.whatsapp or user.viber or user.max %}
                 <div class="info-section info-section-spaced">
                     <h4 class="info-section-title">Контактные данные</h4>
                     {% if user.email %}
@@ -311,6 +311,12 @@
                     <div class="info-row">
                         <span class="info-label">💜 Viber:</span>
                         <span class="info-value"><a href="viber://chat?number={{ user.viber|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" class="contact-link">{{ user.viber }}</a></span>
+                    </div>
+                    {% endif %}
+                    {% if user.max %}
+                    <div class="info-row">
+                        <span class="info-label">Max:</span>
+                        <span class="info-value"><a href="tel:{{ user.max|replace(' ', '') }}" class="contact-link">{{ user.max }}</a></span>
                     </div>
                     {% endif %}
                 </div>
@@ -374,7 +380,7 @@
                     </div>
                 </div>
                 
-                {% if not (user.last_name or user.first_name or user.middle_name or user.postal_code or user.country or user.city or user.street or user.house or user.building or user.apartment or user.email or user.phone or user.telegram or user.whatsapp or user.viber) %}
+                {% if not (user.last_name or user.first_name or user.middle_name or user.postal_code or user.country or user.city or user.street or user.house or user.building or user.apartment or user.email or user.phone or user.telegram or user.whatsapp or user.viber or user.max) %}
                 <div class="empty-state">
                     <p class="text-muted">{{ _('Contact information not specified') }}</p>
                 </div>

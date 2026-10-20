@@ -14,6 +14,13 @@ from gwadm.logging_config import log_error, log_debug
 from gwadm.services.content_init import init_default_modal_texts
 from gwadm.services.gwars_domains import load_gwars_domain_map, parse_domain_map, serialize_domain_map
 from gwadm.services.settings import get_setting, set_setting
+from gwadm.services.profile_fields import (
+    GROUP_LABELS,
+    PROFILE_FIELD_REGISTRY,
+    fields_by_group,
+    get_profile_data_policy,
+    save_profile_data_policy,
+)
 
 @bp.route('/settings', methods=['GET', 'POST'])
 @require_role('admin')
@@ -25,6 +32,22 @@ def admin_settings():
     conn = get_db_connection()
     
     if request.method == 'POST':
+        if request.form.get('save_profile_data_policy') == '1':
+            policy = {}
+            for field in PROFILE_FIELD_REGISTRY:
+                fid = field['id']
+                policy[fid] = {
+                    'collect': request.form.get(f'collect_{fid}') == '1',
+                    'required': request.form.get(f'required_{fid}') == '1',
+                }
+            err = save_profile_data_policy(policy)
+            if err:
+                flash(err, 'error')
+            else:
+                flash('Политика сбора данных профиля сохранена', 'success')
+            conn.close()
+            return redirect(url_for('admin.admin_settings') + '#profile-data')
+
         # Обработка настройки локализации
         if 'default_language' in request.form:
             default_language = request.form.get('default_language', 'ru').strip()
@@ -169,7 +192,7 @@ def admin_settings():
         setting_dict = dict(setting)
         category = setting['category'] or 'general'
         # Пропускаем категорию rating - она в отдельной странице
-        if category == 'rating':
+        if category in ('rating', 'profile_data'):
             continue
         if category not in settings_by_category:
             settings_by_category[category] = []
@@ -283,6 +306,9 @@ def admin_settings():
         return render_template('admin/settings.html', 
                              settings_by_category=settings_by_category,
                              settings_dict=settings_dict,
+                             profile_data_policy=get_profile_data_policy(),
+                             profile_fields_by_group=fields_by_group(),
+                             profile_group_labels=GROUP_LABELS,
                              default_language=default_language,
                              available_languages=available_languages,
                              current_locale=current_locale,

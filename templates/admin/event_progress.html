@@ -122,6 +122,10 @@
             var vb = digitsOnly(data.viber);
             html += '<div><strong>Viber:</strong> <a href="viber://chat?number=' + esc(vb) + '" class="contact-link">' + esc(data.viber) + '</a></div>';
         }
+        if (data.max) {
+            var mx = digitsOnly(data.max);
+            html += '<div><strong>Max:</strong> <a href="tel:' + esc(mx) + '" class="contact-link">' + esc(data.max) + '</a></div>';
+        }
         if (!html) {
             html = '<span class="text-muted">Контакты не указаны</span>';
         }

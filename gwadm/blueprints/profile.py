@@ -135,6 +135,7 @@ def edit_profile():
         telegram = request.form.get('telegram', '').strip()
         whatsapp = request.form.get('whatsapp', '').strip()
         viber = request.form.get('viber', '').strip()
+        max_phone = request.form.get('max', '').strip()
         last_name = request.form.get('last_name', '').strip()
         first_name = request.form.get('first_name', '').strip()
         middle_name = request.form.get('middle_name', '').strip()
@@ -152,28 +153,33 @@ def edit_profile():
                 if avatar_seed in used_seeds:
                     flash('Выбранный аватар уже используется другим пользователем. Пожалуйста, выберите другой.', 'error')
                     conn.close()
-                    return render_template('edit_profile.html', user=user)
+                    return render_template(
+                        'edit_profile.html',
+                        user=user,
+                        field_policy=get_profile_data_policy(),
+                        profile_fields_registry=PROFILE_FIELD_REGISTRY,
+                    )
 
             if avatar_seed and avatar_style:
                 conn.execute('''
                     UPDATE users
                     SET bio = ?, contact_info = ?, avatar_style = ?, avatar_seed = ?,
-                        email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?,
+                        email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?, max = ?,
                         last_name = ?, first_name = ?, middle_name = ?,
                         postal_code = ?, country = ?, city = ?, street = ?, house = ?, building = ?, apartment = ?
                     WHERE user_id = ?
-                ''', (bio, contact_info, avatar_style, avatar_seed, email, phone, telegram, whatsapp, viber,
+                ''', (bio, contact_info, avatar_style, avatar_seed, email, phone, telegram, whatsapp, viber, max_phone,
                       last_name, first_name, middle_name,
                       postal_code, country, city, street, house, building, apartment, session['user_id']))
             else:
                 conn.execute('''
                     UPDATE users
                     SET bio = ?, contact_info = ?,
-                        email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?,
+                        email = ?, phone = ?, telegram = ?, whatsapp = ?, viber = ?, max = ?,
                         last_name = ?, first_name = ?, middle_name = ?,
                         postal_code = ?, country = ?, city = ?, street = ?, house = ?, building = ?, apartment = ?
                     WHERE user_id = ?
-                ''', (bio, contact_info, email, phone, telegram, whatsapp, viber,
+                ''', (bio, contact_info, email, phone, telegram, whatsapp, viber, max_phone,
                       last_name, first_name, middle_name,
                       postal_code, country, city, street, house, building, apartment, session['user_id']))
 
@@ -187,7 +193,13 @@ def edit_profile():
             conn.close()
 
     conn.close()
-    return render_template('edit_profile.html', user=user)
+    field_policy = get_profile_data_policy()
+    return render_template(
+        'edit_profile.html',
+        user=user,
+        field_policy=field_policy,
+        profile_fields_registry=PROFILE_FIELD_REGISTRY,
+    )
 
 
 @bp.route('/profile/clear', methods=['POST'])
@@ -204,7 +216,7 @@ def clear_profile():
         conn.execute('''
             UPDATE users
             SET bio = NULL, contact_info = NULL,
-                email = NULL, phone = NULL, telegram = NULL, whatsapp = NULL, viber = NULL,
+                email = NULL, phone = NULL, telegram = NULL, whatsapp = NULL, viber = NULL, max = NULL,
                 last_name = NULL, first_name = NULL, middle_name = NULL,
                 postal_code = NULL, country = NULL, city = NULL, street = NULL,
                 house = NULL, building = NULL, apartment = NULL
@@ -395,6 +407,11 @@ def delete_admin_comment(user_id, comment_id):
     return redirect(url_for('profile.view_profile', user_id=user_id) + '#comments')
 
 from gwadm.services.events import get_missing_required_fields
+from gwadm.services.profile_fields import (
+    PROFILE_FIELD_REGISTRY,
+    build_registration_step_plan,
+    get_profile_data_policy,
+)
 
 @bp.route('/api/profile/data', methods=['GET'])
 @require_login
@@ -409,14 +426,11 @@ def api_profile_data():
         # Логируем для отладки
         log_debug(f"api_profile_data: Fetching data for user_id={user_id}")
         
-        user = conn.execute('''
-            SELECT email, phone, telegram, whatsapp, viber,
-                   last_name, first_name, middle_name,
-                   postal_code, country, city, street, house, building, apartment,
-                   bio
-            FROM users 
-            WHERE user_id = ?
-        ''', (user_id,)).fetchone()
+        cols = ', '.join(f['column'] for f in PROFILE_FIELD_REGISTRY)
+        user = conn.execute(
+            f'SELECT {cols} FROM users WHERE user_id = ?',
+            (user_id,),
+        ).fetchone()
         
         if not user:
             conn.close()
@@ -428,26 +442,13 @@ def api_profile_data():
         
         conn.close()
         
+        policy = get_profile_data_policy()
+        data = {f['column']: (user[f['column']] or '') for f in PROFILE_FIELD_REGISTRY}
         return jsonify({
             'success': True,
-            'data': {
-                'email': user['email'] or '',
-                'phone': user['phone'] or '',
-                'telegram': user['telegram'] or '',
-                'whatsapp': user['whatsapp'] or '',
-                'viber': user['viber'] or '',
-                'last_name': user['last_name'] or '',
-                'first_name': user['first_name'] or '',
-                'middle_name': user['middle_name'] or '',
-                'postal_code': user['postal_code'] or '',
-                'country': user['country'] or '',
-                'city': user['city'] or '',
-                'street': user['street'] or '',
-                'house': user['house'] or '',
-                'building': user['building'] or '',
-                'apartment': user['apartment'] or '',
-                'bio': user['bio'] or ''
-            }
+            'data': data,
+            'field_policy': policy,
+            'registration_steps': build_registration_step_plan(policy),
         })
     except Exception as e:
         log_error(f"Error getting profile data for user_id={user_id}: {e}")
@@ -518,6 +519,9 @@ def api_profile_update():
         if 'viber' in data:
             update_fields.append('viber = ?')
             update_values.append(data['viber'].strip())
+        if 'max' in data:
+            update_fields.append('max = ?')
+            update_values.append(data['max'].strip())
         if 'bio' in data:
             update_fields.append('bio = ?')
             update_values.append(normalize_multiline_text(data['bio'].strip()))
