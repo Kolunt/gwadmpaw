@@ -57,6 +57,38 @@ def _row_to_dict(row) -> dict:
     return dict(row)
 
 
+def _contact_payload(
+    user_id,
+    username,
+    email=None,
+    phone=None,
+    telegram=None,
+    whatsapp=None,
+    viber=None,
+) -> dict:
+    return {
+        'user_id': user_id,
+        'username': username or '—',
+        'email': (email or '').strip(),
+        'phone': (phone or '').strip(),
+        'telegram': (telegram or '').strip(),
+        'whatsapp': (whatsapp or '').strip(),
+        'viber': (viber or '').strip(),
+    }
+
+
+def _contacts_from_prefixed_row(row: dict, prefix: str) -> dict:
+    return _contact_payload(
+        row[f'{prefix}_user_id'],
+        row.get(f'{prefix}_username'),
+        row.get(f'{prefix}_email'),
+        row.get(f'{prefix}_phone'),
+        row.get(f'{prefix}_telegram'),
+        row.get(f'{prefix}_whatsapp'),
+        row.get(f'{prefix}_viber'),
+    )
+
+
 def get_event_progress_board(event_id: int) -> dict | None:
     conn = get_db_connection()
     try:
@@ -79,6 +111,16 @@ def get_event_progress_board(event_id: int) -> dict | None:
                 ea.recipient_received_at,
                 santa.username AS santa_username,
                 recipient.username AS recipient_username,
+                santa.email AS santa_email,
+                recipient.email AS recipient_email,
+                COALESCE(santa_d.phone, santa.phone) AS santa_phone,
+                COALESCE(santa_d.telegram, santa.telegram) AS santa_telegram,
+                COALESCE(santa_d.whatsapp, santa.whatsapp) AS santa_whatsapp,
+                COALESCE(santa_d.viber, santa.viber) AS santa_viber,
+                COALESCE(recipient_d.phone, recipient.phone) AS recipient_phone,
+                COALESCE(recipient_d.telegram, recipient.telegram) AS recipient_telegram,
+                COALESCE(recipient_d.whatsapp, recipient.whatsapp) AS recipient_whatsapp,
+                COALESCE(recipient_d.viber, recipient.viber) AS recipient_viber,
                 CASE
                     WHEN (ea.santa_sent_at IS NOT NULL AND ea.santa_sent_at != '') THEN 1
                     WHEN EXISTS (
@@ -90,6 +132,10 @@ def get_event_progress_board(event_id: int) -> dict | None:
             FROM event_assignments ea
             JOIN users santa ON santa.user_id = ea.santa_user_id
             JOIN users recipient ON recipient.user_id = ea.recipient_user_id
+            LEFT JOIN event_registration_details santa_d
+                ON santa_d.event_id = ea.event_id AND santa_d.user_id = ea.santa_user_id
+            LEFT JOIN event_registration_details recipient_d
+                ON recipient_d.event_id = ea.event_id AND recipient_d.user_id = ea.recipient_user_id
             WHERE ea.event_id = ?
               AND (ea.is_archived = 0 OR ea.is_archived IS NULL)
             ORDER BY ea.assigned_at ASC, ea.id ASC
@@ -107,20 +153,28 @@ def get_event_progress_board(event_id: int) -> dict | None:
     for raw in rows:
         row = _row_to_dict(raw)
         row['has_santa_message'] = bool(row.get('has_santa_message'))
+        santa_contacts = _contacts_from_prefixed_row(row, 'santa')
+        recipient_contacts = _contacts_from_prefixed_row(row, 'recipient')
         s_stage = santa_stage(row)
         r_stage = recipient_stage(row)
         boards['santa'][s_stage].append({
             'assignment_id': row['assignment_id'],
             'user_id': row['santa_user_id'],
             'username': row['santa_username'] or '—',
+            'pair_user_id': row['recipient_user_id'],
             'pair_username': row['recipient_username'] or '—',
+            'contacts': santa_contacts,
+            'pair_contacts': recipient_contacts,
             'stage': s_stage,
         })
         boards['recipient'][r_stage].append({
             'assignment_id': row['assignment_id'],
             'user_id': row['recipient_user_id'],
             'username': row['recipient_username'] or '—',
+            'pair_user_id': row['santa_user_id'],
             'pair_username': row['santa_username'] or '—',
+            'contacts': recipient_contacts,
+            'pair_contacts': santa_contacts,
             'stage': r_stage,
         })
 

@@ -5898,25 +5898,70 @@ html.dark .avatar-candidate-img {
     background: var(--bg-primary, var(--bg-card));
 }
 
-.progress-kanban-card-user {
-    font-weight: 600;
-    font-size: 0.9rem;
-    word-break: break-word;
+.progress-kanban-card-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    min-width: 0;
+    font-size: 0.85rem;
+    line-height: 1.35;
 }
 
-.progress-kanban-card-meta,
-.progress-kanban-card-pair {
-    font-size: 0.8rem;
+.progress-kanban-card-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 55%;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-weight: 600;
+    color: var(--link-color, var(--accent-color, #5c1a24));
+    text-align: left;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.progress-kanban-card-name:hover,
+.progress-kanban-card-name:focus-visible {
+    text-decoration-color: currentColor;
+    outline: none;
+}
+
+.progress-kanban-card-pair-inline {
+    flex: 1 1 auto;
+    min-width: 0;
     color: var(--text-secondary);
-    margin-top: 0.2rem;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .progress-kanban-card-link {
     display: inline-block;
     margin-top: 0.5rem;
+    padding: 0.35rem 0.65rem;
     font-size: 0.8rem;
     font-weight: 600;
+    text-decoration: none;
+    width: auto;
+    align-self: flex-start;
+}
+
+.progress-contact-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.progress-contact-profile-wrap {
+    margin: 1rem 0 0;
 }
 
 .progress-kanban-empty {

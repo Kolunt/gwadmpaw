@@ -90,3 +90,6 @@ def test_admin_event_progress_page(client):
         body = response.get_data(as_text=True)
         assert 'progress-kanban' in body
         assert 'Дед Мороз' in body
+        assert 'progress-kanban-card-meta' not in body
+        assert 'js-progress-contact' in body
+        assert 'progress-contact-modal' in body

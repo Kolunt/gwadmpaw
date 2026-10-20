@@ -33,6 +33,7 @@ def test_admin_event_progress_markup(client):
         body = response.get_data(as_text=True)
         assert 'progress-kanban' in body
         assert 'progress-role-tabs' in body
+        assert 'progress-kanban-card-meta' not in body
 
 
 def test_admin_logs_responsive_markup(client):
