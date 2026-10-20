@@ -111,7 +111,7 @@ def test_home_event_cards_use_status_indicators(client):
     assert 'event-status-indicator' in body
     assert 'event-status-active' in body or 'event-status-finished' in body
     assert 'event-stage-badge' not in body
-    assert 'event-card-footer-link' in body
+    assert 'event-card-home-link' in body
     assert 'Подробнее' not in body
     assert '/events/' in body
 

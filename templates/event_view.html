@@ -12,10 +12,6 @@
                 {% if show_event_assignments_button %}
                 <a href="{{ url_for('assignments.assignments') }}" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">➡️Задание📋‼️</a>
                 {% endif %}
-                {% if is_admin %}
-                <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}" class="btn-icon" title="Распределение (позитив)">&#127922;</a>
-                <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn-icon" title="Участники (админ)">&#128101;</a>
-                {% endif %}
             </div>
         </div>
         

@@ -2,6 +2,7 @@
 
 import random
 import traceback
+from collections import defaultdict
 from datetime import datetime
 
 from flask import (
@@ -12,7 +13,12 @@ from gwadm.db import get_db_connection
 from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
 from gwadm.services.activity import log_activity
-from gwadm.services.events_stages import EVENT_STAGES, get_current_event_stage
+from gwadm.services.assignments import save_event_assignments
+from gwadm.services.events_stages import (
+    EVENT_STAGES,
+    create_participant_approvals_for_event,
+    get_current_event_stage,
+)
 from gwadm.services.settings import get_rating_setting
 
 @bp.route('/events')
