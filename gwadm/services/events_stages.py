@@ -170,6 +170,28 @@ def get_current_event_stage(event_id):
     return current_stage
 
 
+def user_in_celebration_exchange_stage(user_id) -> bool:
+    """True if user is registered on an event whose current stage is celebration_date."""
+    if not user_id:
+        return False
+    conn = get_db_connection()
+    try:
+        rows = conn.execute(
+            'SELECT DISTINCT event_id FROM event_registrations WHERE user_id = ?',
+            (user_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+    for row in rows:
+        current_stage = get_current_event_stage(row['event_id'])
+        if not current_stage:
+            continue
+        stage_type = current_stage.get('info', {}).get('type')
+        if stage_type == 'celebration_date':
+            return True
+    return False
+
+
 def get_event_registrations_count(event_id):
     """Получает количество зарегистрированных пользователей на мероприятие."""
     conn = get_db_connection()

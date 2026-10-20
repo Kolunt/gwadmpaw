@@ -9,6 +9,7 @@ from gwadm.logging_config import log_error
 from gwadm.services.awards import get_user_awards
 from gwadm.services.avatars import get_avatar_url
 from gwadm.services.permissions import get_role_permissions
+from gwadm.services.events_stages import user_in_celebration_exchange_stage
 from gwadm.services.settings import get_setting
 from gwadm.services.titles import get_user_titles
 
@@ -88,9 +89,17 @@ def register_context_processors(app):
 
     @app.context_processor
     def inject_common_flags():
+        user_id = session.get('user_id')
+        assignments_sidebar_pulse = False
+        if user_id:
+            try:
+                assignments_sidebar_pulse = user_in_celebration_exchange_stage(int(user_id))
+            except (TypeError, ValueError):
+                assignments_sidebar_pulse = False
         return {
             'is_production': is_production(),
             'is_dev_login_enabled': is_dev_login_enabled(),
             'app_config': app.config,
+            'assignments_sidebar_pulse': assignments_sidebar_pulse,
         }
 

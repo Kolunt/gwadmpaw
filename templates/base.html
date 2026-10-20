@@ -181,7 +181,7 @@
                     <span>Контакты</span>
                 </a>
                 {% if session.user_id %}
-                <a href="{{ url_for('assignments.assignments') }}" class="sidebar-link">
+                <a href="{{ url_for('assignments.assignments') }}" class="sidebar-link{% if assignments_sidebar_pulse and request.endpoint != 'assignments.assignments' %} sidebar-link-assignments-pulse{% endif %}">
                     <span class="sidebar-icon">📋</span>
                     <span>Задания</span>
                 </a>

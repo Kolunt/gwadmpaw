@@ -6834,6 +6834,21 @@ html.dark .avatar-candidate-img {
     animation: letterButtonPulse 2s ease-in-out infinite;
 }
 
+@keyframes sidebarAssignmentsPulse {
+    0% { background-color: transparent; }
+    50% { background-color: rgba(40, 167, 69, 0.35); }
+    100% { background-color: transparent; }
+}
+
+.sidebar-link-assignments-pulse {
+    animation: sidebarAssignmentsPulse 2s ease-in-out infinite;
+    border-radius: 6px;
+}
+
+.sidebar-link-assignments-pulse:hover {
+    animation: sidebarAssignmentsPulse 2s ease-in-out infinite;
+}
+
 /* Event distribution */
 .distribution-section-spaced {
     margin-bottom: 1.5rem;

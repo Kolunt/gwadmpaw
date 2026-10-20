@@ -52,7 +52,9 @@
 - Заход на `/letter` без `assignment_id` — последнее мероприятие (по `assigned_at`) и роль Деда.
 - Админ (`admin=1`): select мероприятия + при нескольких парах в событии — `letter-chat-select` с подписью пары.
 
-Тесты: [`tests/test_letter_navigation.py`](../tests/test_letter_navigation.py).
+Пункт сайдбара **Задания** пульсирует (класс `sidebar-link-assignments-pulse`), если пользователь зарегистрирован на мероприятие в этапе **Обмен подарками** (`celebration_date`). Логика: `user_in_celebration_exchange_stage` в [`events_stages.py`](../gwadm/services/events_stages.py).
+
+Тесты: [`tests/test_letter_navigation.py`](../tests/test_letter_navigation.py), [`tests/test_celebration_sidebar.py`](../tests/test_celebration_sidebar.py).
 
 ## Стили страниц
 
