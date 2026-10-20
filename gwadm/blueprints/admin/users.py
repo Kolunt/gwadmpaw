@@ -11,6 +11,7 @@ from gwadm.blueprints.admin import bp
 from gwadm.services.activity import log_activity
 from gwadm.services.avatars import VALID_AVATAR_STYLES as AVATAR_STYLES
 from gwadm.services.roles import get_user_roles
+from gwadm.services.multiline_text import normalize_multiline_text
 from gwadm.services.titles import get_all_titles, get_user_titles
 
 @bp.route('/users')
@@ -59,7 +60,7 @@ def admin_user_create():
         has_mobile = request.form.get('has_mobile', '0')
         old_passport = request.form.get('old_passport', '0')
         usersex = request.form.get('usersex', '0')
-        bio = request.form.get('bio', '').strip()
+        bio = normalize_multiline_text(request.form.get('bio', '').strip())
         contact_info = request.form.get('contact_info', '').strip()
         email = request.form.get('email', '').strip()
         phone = request.form.get('phone', '').strip()
@@ -254,7 +255,7 @@ def admin_user_edit(user_id):
         has_passport = request.form.get('has_passport', '0')
         has_mobile = request.form.get('has_mobile', '0')
         usersex = request.form.get('usersex', '0')
-        bio = request.form.get('bio', '').strip()
+        bio = normalize_multiline_text(request.form.get('bio', '').strip())
         contact_info = request.form.get('contact_info', '').strip()
         email = request.form.get('email', '').strip()
         phone = request.form.get('phone', '').strip()

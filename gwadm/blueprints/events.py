@@ -27,6 +27,7 @@ from gwadm.services.events import (
     is_registration_open,
 )
 from gwadm.services.activity import log_activity
+from gwadm.services.multiline_text import normalize_multiline_text
 from gwadm.services.settings import get_setting
 
 bp = Blueprint("events", __name__)
@@ -591,6 +592,8 @@ def event_register(event_id):
                 return {'status': 'error', 'message': 'Пользователь не найден'}
 
             profile = {key: (profile_row[key] or '').strip() for key in profile_row.keys()}
+            if profile.get('bio'):
+                profile['bio'] = normalize_multiline_text(profile['bio'])
             required_fields = [
                 ('last_name', 'Фамилия'),
                 ('first_name', 'Имя'),

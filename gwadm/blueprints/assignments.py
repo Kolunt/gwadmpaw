@@ -25,7 +25,7 @@ from gwadm.services.assignments import (
 )
 from gwadm.services.events import is_event_finished
 from gwadm.services.events_stages import parse_event_datetime
-from gwadm.services.rating import _normalize_multiline_text
+from gwadm.services.multiline_text import normalize_multiline_text
 from gwadm.services.roles import has_role
 from gwadm.services.uploads import save_validated_image, validate_image_upload
 
@@ -156,7 +156,7 @@ def letter():
             return redirect(url_for('assignments.letter', assignment_id=selected_assignment.get('id')))
 
     if request.method == 'POST':
-        message = _normalize_multiline_text(request.form.get('message'), max_length=2000)
+        message = normalize_multiline_text(request.form.get('message'), max_length=2000)
         attachment_file = request.files.get('attachment')
         has_attachment = attachment_file and attachment_file.filename
 
@@ -234,7 +234,7 @@ def letter():
 
     recipient_bio = selected_assignment.get('recipient_bio')
     if recipient_bio:
-        recipient_bio = recipient_bio.strip()
+        recipient_bio = normalize_multiline_text(recipient_bio.strip())
     if not recipient_bio:
         recipient_bio = 'Я пока не успел рассказать о себе, но обязательно сделаю это совсем скоро!'
 
@@ -299,7 +299,7 @@ def letter():
     for row in raw_messages:
         message_text = row['message']
         if message_text:
-            normalized = _normalize_multiline_text(message_text)
+            normalized = normalize_multiline_text(message_text)
             if normalized != message_text:
                 message_text = normalized
                 message_updates.append((normalized, row['id']))

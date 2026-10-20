@@ -480,7 +480,7 @@
                 {% if bio_to_display %}
                 <div class="info-row">
                     <span class="info-label">О себе:</span>
-                    <span class="info-value">{{ bio_to_display }}</span>
+                    <span class="info-value multiline-text">{{ bio_to_display | format_multiline }}</span>
                 </div>
                 {% endif %}
                 {% if contact_info_to_display %}

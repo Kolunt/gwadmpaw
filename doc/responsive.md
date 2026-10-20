@@ -29,6 +29,20 @@
 
 `features-grid` (главная): **2 колонки** (&lt;1024px), **4 колонки** (≥1024px).
 
+## Многострочный пользовательский текст
+
+Поля вроде «О себе», сообщений в чате `/letter`, информации об отправке и благодарностей на `/assignments` хранятся в БД с переводами строк (`\n`). Legacy-значения с текстом `<br>` при чтении/сохранении приводятся к `\n` через `normalize_multiline_text` в [`gwadm/services/multiline_text.py`](../gwadm/services/multiline_text.py).
+
+**Вывод в шаблонах:** только фильтр Jinja `format_multiline` (регистрация в [`gwadm/jinja_filters.py`](../gwadm/jinja_filters.py)). Не смешивать с `white-space: pre-wrap` на том же узле и не дублировать `| e | replace('\n', '<br>') | safe`.
+
+При добавлении новых многострочных полей:
+
+1. Нормализовать при записи (`normalize_multiline_text`).
+2. При необходимости — ленивая нормализация при чтении (как для `recipient_thanks_message`).
+3. В шаблоне: `{{ value | format_multiline }}`, при необходимости класс `.multiline-text`.
+
+Тесты: [`tests/test_multiline_text.py`](../tests/test_multiline_text.py).
+
 ## Стили страниц
 
 Page-specific CSS вынесен в `style.css` (секция «Responsive pages»):
@@ -57,7 +71,7 @@ DevTools, ширины: **390**, **768**, **1024**, **1280** px.
 ## Локальные тесты
 
 ```bash
-python -m pytest tests/test_responsive_layout.py -v
+python -m pytest tests/test_multiline_text.py tests/test_responsive_layout.py -v
 python -m pytest -q
 python scripts/smoke_check.py
 python scripts/verify_web_routes.py

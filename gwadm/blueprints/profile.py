@@ -20,6 +20,7 @@ from gwadm.services.profile_comments import (
     get_user_admin_comments,
     update_user_admin_comment,
 )
+from gwadm.services.multiline_text import normalize_multiline_text
 from gwadm.services.roles import get_user_roles
 from gwadm.services.titles import get_user_titles
 
@@ -125,7 +126,7 @@ def edit_profile():
         return redirect(url_for('profile.dashboard'))
 
     if request.method == 'POST':
-        bio = request.form.get('bio', '').strip()
+        bio = normalize_multiline_text(request.form.get('bio', '').strip())
         contact_info = request.form.get('contact_info', '').strip()
         avatar_seed = request.form.get('avatar_seed', '').strip()
         avatar_style = request.form.get('avatar_style', 'avataaars').strip()
@@ -519,7 +520,7 @@ def api_profile_update():
             update_values.append(data['viber'].strip())
         if 'bio' in data:
             update_fields.append('bio = ?')
-            update_values.append(data['bio'].strip())
+            update_values.append(normalize_multiline_text(data['bio'].strip()))
         
         if not update_fields:
             return jsonify({'success': False, 'error': 'Нет полей для обновления'}), 400

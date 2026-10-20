@@ -38,18 +38,9 @@ _SNOWFLAKE_SOURCE_LABELS = {source: label for source, label, _ in _SNOWFLAKE_CON
 
 
 def _normalize_multiline_text(value, max_length=None):
-    if value is None:
-        return ''
-    text = str(value)
-    text = text.replace('\r\n', '\n')
-    text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
-    text = text.replace('\u2028', '\n').replace('\u2029', '\n')
-    text = text.strip()
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    if max_length and len(text) > max_length:
-        text = text[:max_length]
-    return text
+    from gwadm.services.multiline_text import normalize_multiline_text
 
+    return normalize_multiline_text(value, max_length=max_length)
 
 
 def _sync_contact_snowflakes(conn, user_row):

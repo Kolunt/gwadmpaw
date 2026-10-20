@@ -1,16 +1,36 @@
 """Letter assignments and event pairing."""
 
+import os
+import random
+from datetime import datetime
+
 from gwadm.db import get_db_connection
 from gwadm.logging_config import log_debug, log_error
-import os
 from gwadm.config import (
     ALLOWED_LETTER_IMAGE_EXTENSIONS,
     ASSIGNMENT_RECEIPT_FOLDER,
     ASSIGNMENT_RECEIPT_RELATIVE,
 )
 from gwadm.services.activity import log_activity
-from gwadm.services.rating import _normalize_multiline_text
+from gwadm.services.event_admin import get_approved_participants
+from gwadm.services.events import is_event_finished
+from gwadm.services.multiline_text import normalize_multiline_text
 from gwadm.services.uploads import save_validated_image, validate_image_upload
+
+
+def _apply_recipient_bio_normalization(record, bio_updates):
+    bio = record.get('recipient_bio')
+    if not bio:
+        return
+    normalized = normalize_multiline_text(bio)
+    if normalized == bio:
+        return
+    record['recipient_bio'] = normalized
+    event_id = record.get('event_id')
+    recipient_user_id = record.get('recipient_user_id')
+    if event_id is not None and recipient_user_id is not None:
+        bio_updates.append((normalized, event_id, recipient_user_id))
+
 
 def create_random_assignments(event_id, assigned_by):
     """Создает случайное распределение Деда Мороза и Внучки"""
@@ -464,41 +484,49 @@ def get_user_assignments(user_id):
     assignments = []
     send_info_updates = []
     thanks_updates = []
-    
+    bio_updates = []
+
     for row in as_santa_rows:
         record = dict(row)
         info = record.get('santa_send_info')
         if info:
-            normalized = _normalize_multiline_text(info)
+            normalized = normalize_multiline_text(info)
             if normalized != info:
                 record['santa_send_info'] = normalized
                 send_info_updates.append((normalized, record['id']))
+        _apply_recipient_bio_normalization(record, bio_updates)
         assignments.append(record)
-    
+
     for row in as_recipient_rows:
         record = dict(row)
         send_info = record.get('santa_send_info')
         if send_info:
-            normalized = _normalize_multiline_text(send_info)
+            normalized = normalize_multiline_text(send_info)
             if normalized != send_info:
                 record['santa_send_info'] = normalized
                 send_info_updates.append((normalized, record['id']))
         thanks = record.get('recipient_thanks_message')
         if thanks:
-            normalized_thanks = _normalize_multiline_text(thanks)
+            normalized_thanks = normalize_multiline_text(thanks)
             if normalized_thanks != thanks:
                 record['recipient_thanks_message'] = normalized_thanks
                 thanks_updates.append((normalized_thanks, record['id']))
+        _apply_recipient_bio_normalization(record, bio_updates)
         assignments.append(record)
-    
+
     if send_info_updates:
         conn.executemany('UPDATE event_assignments SET santa_send_info = ? WHERE id = ?', send_info_updates)
     if thanks_updates:
         conn.executemany('UPDATE event_assignments SET recipient_thanks_message = ? WHERE id = ?', thanks_updates)
-    if send_info_updates or thanks_updates:
+    if bio_updates:
+        conn.executemany(
+            'UPDATE event_registration_details SET bio = ? WHERE event_id = ? AND user_id = ?',
+            bio_updates,
+        )
+    if send_info_updates or thanks_updates or bio_updates:
         conn.commit()
     conn.close()
-    
+
     return assignments
 
 
@@ -558,13 +586,13 @@ def get_admin_letter_assignments():
         record = dict(row)
         info = record.get('santa_send_info')
         if info:
-            normalized = _normalize_multiline_text(info)
+            normalized = normalize_multiline_text(info)
             if normalized != info:
                 record['santa_send_info'] = normalized
                 send_info_updates.append((normalized, record['id']))
         thanks = record.get('recipient_thanks_message')
         if thanks:
-            normalized_thanks = _normalize_multiline_text(thanks)
+            normalized_thanks = normalize_multiline_text(thanks)
             if normalized_thanks != thanks:
                 record['recipient_thanks_message'] = normalized_thanks
                 thanks_updates.append((normalized_thanks, record['id']))
@@ -592,7 +620,7 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
     clear_requested = False
     if not send_info or not send_info.strip():
         return False, 'Введите данные об отправке'
-    send_info = _normalize_multiline_text(send_info, max_length=500)
+    send_info = normalize_multiline_text(send_info, max_length=500)
     if not send_info:
         return False, 'Введите данные об отправке'
     
@@ -704,7 +732,7 @@ def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_
         return False, 'Даритель еще не отметил отправку подарка'
     conn.close()
 
-    thank_you_message = _normalize_multiline_text(thank_you_message, max_length=1000)
+    thank_you_message = normalize_multiline_text(thank_you_message, max_length=1000)
     if not thank_you_message:
         return False, 'Напишите спасибо для Деда Мороза.'
 

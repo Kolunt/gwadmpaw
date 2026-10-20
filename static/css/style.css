@@ -6642,6 +6642,10 @@ html.dark .avatar-candidate-img {
     white-space: pre-wrap;
 }
 
+.multiline-text {
+    display: inline;
+}
+
 .chat-signoff {
     margin-top: 1.5rem;
 }

@@ -70,7 +70,7 @@
                             {% if event_data.as_santa.get('recipient_bio') %}
                             <p style="margin: 0.5rem 0;">
                                 <strong>О себе:</strong><br>
-                                {{ event_data.as_santa.get('recipient_bio') | e | replace('\n', '<br>') | safe }}
+                                {{ event_data.as_santa.get('recipient_bio') | format_multiline }}
                             </p>
                             {% endif %}
                         </div>
@@ -79,7 +79,7 @@
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
                             <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Подарок отправлен {{ event_data.as_santa.get('santa_sent_at') }}</p>
                             {% if event_data.as_santa.get('santa_send_info') %}
-                            <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Информация об отправке:</strong><br>{{ event_data.as_santa.get('santa_send_info') }}</p>
+                            <p style="margin: 0.5rem 0;"><strong>Информация об отправке:</strong><br>{{ event_data.as_santa.get('santa_send_info') | format_multiline }}</p>
                             {% endif %}
                             {% if not event_finished %}
                             <form method="POST" action="{{ url_for('assignments.assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 0.75rem; display: grid; gap: 0.5rem;">
@@ -115,7 +115,7 @@
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
                             <p style="margin: 0.5rem 0;"><strong>Ответ от внучка:</strong></p>
                             {% if thanks_message %}
-                            <p style="margin: 0.5rem 0; white-space: pre-wrap;">{{ thanks_message | e | replace('\n', '<br>') | safe }}</p>
+                            <p style="margin: 0.5rem 0;">{{ thanks_message | format_multiline }}</p>
                             {% endif %}
                             {% if thanks_image %}
                             <div style="margin-top: 0.75rem; display: inline-flex;">
@@ -180,13 +180,13 @@
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px; display: grid; gap: 0.75rem;">
                             <p style="margin: 0.5rem 0;"><strong>Дед Мороз сообщил об отправке:</strong> {{ event_data.as_recipient.get('santa_sent_at') }}</p>
                             {% if event_data.as_recipient.get('santa_send_info') %}
-                            <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Информация от Деда Мороза:</strong><br>{{ event_data.as_recipient.get('santa_send_info') }}</p>
+                            <p style="margin: 0.5rem 0;"><strong>Информация от Деда Мороза:</strong><br>{{ event_data.as_recipient.get('santa_send_info') | format_multiline }}</p>
                             {% endif %}
                             <div>
                                 {% if event_data.as_recipient.get('recipient_received_at') %}
                                 <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Вы подтвердили получение {{ event_data.as_recipient.get('recipient_received_at') }}</p>
                                 {% if event_data.as_recipient.get('recipient_thanks_message') %}
-                                <p style="margin: 0.5rem 0; white-space: pre-wrap;"><strong>Ваше сообщение:</strong><br>{{ event_data.as_recipient.get('recipient_thanks_message') | e | replace('\n', '<br>') | safe }}</p>
+                                <p style="margin: 0.5rem 0;"><strong>Ваше сообщение:</strong><br>{{ event_data.as_recipient.get('recipient_thanks_message') | format_multiline }}</p>
                                 {% endif %}
                                 {% if event_data.as_recipient.get('recipient_receipt_image') %}
                             <div style="margin-top: 0.75rem; display: inline-flex;">

@@ -44,7 +44,7 @@
                     <div class="chat-message-body">
                         <p>Здравствуй, Дедушка Мороз! Меня зовут <strong>{{ letter.grandchild.first_name }}</strong>, а полностью <strong>{{ letter.grandchild.full_name }}</strong>. Пишу тебе из <strong>{{ letter.grandchild.address }}</strong>. Весь год я вёл себя хорошо, заботился о родных и друзьях, сделал много хорошего и с нетерпением жду волшебства и чудес, которые ты даришь всем детям.</p>
 
-                        <p>Несколько слов о себе: <span class="chat-message-body-pre">{{ letter.grandchild.bio }}</span></p>
+                        <p>Несколько слов о себе: <span class="multiline-text">{{ letter.grandchild.bio | format_multiline }}</span></p>
 
                         <p>Спасибо тебе за всё, что ты делаешь! Желаю тебе крепкого здоровья и счастья. Надеюсь, что в следующем году я снова смогу написать тебе письмо и поделиться своими новыми достижениями!</p>
 
@@ -77,7 +77,7 @@
                         {% endif %}
                     </strong>
                     {% if msg.message %}
-                    <div class="chat-message-body chat-message-body-pre">{{ msg.message | e | replace('\n', '<br>') | safe }}</div>
+                    <div class="chat-message-body multiline-text">{{ msg.message | format_multiline }}</div>
                     {% endif %}
                     {% if msg.attachment_url %}
                     <div class="chat-attachment">

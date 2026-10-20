@@ -1,5 +1,7 @@
 """Jinja template filters."""
 
+from gwadm.services.multiline_text import format_multiline_html
+
 
 def format_gender(value):
     """Convert gender codes (0/1) into human-readable labels."""
@@ -30,3 +32,4 @@ def format_rating(value):
 def register_template_filters(app):
     app.template_filter("format_gender")(format_gender)
     app.template_filter("format_rating")(format_rating)
+    app.template_filter("format_multiline")(format_multiline_html)

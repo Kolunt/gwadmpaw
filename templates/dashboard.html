@@ -389,7 +389,7 @@
                 {% if user.bio %}
                 <div class="info-row">
                     <span class="info-label">О себе:</span>
-                    <span class="info-value">{{ user.bio }}</span>
+                    <span class="info-value multiline-text">{{ user.bio | format_multiline }}</span>
                 </div>
                 {% endif %}
                 
