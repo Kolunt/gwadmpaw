@@ -4273,8 +4273,27 @@ input[type="datetime-local"].datetime-local-input::-webkit-calendar-picker-indic
     position: relative;
 }
 
+.address-region-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 480px) {
+    .address-region-toggle {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.25rem;
+    }
+}
+
 .dadata-address-search-wrap {
     margin-bottom: 1rem;
+}
+
+.dadata-address-search-wrap[hidden] {
+    display: none;
 }
 
 .dadata-suggestions {

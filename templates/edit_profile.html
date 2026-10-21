@@ -234,7 +234,12 @@
                 <h3>Адрес (обязательно для регистрации на мероприятия)</h3>
 
                 {% if dadata_address_enabled %}
-                <div class="form-group dadata-address-search-wrap">
+                {% set _country_norm = (user.country or '')|trim|lower %}
+                {% set address_initial_ru = (not _country_norm) or (_country_norm in ['россия', 'russia', 'рф', 'ru']) %}
+                {% with toggle_name='profile-address-region', initial_ru=address_initial_ru %}
+                {% include 'partials/address_region_toggle.html' %}
+                {% endwith %}
+                <div class="form-group dadata-address-search-wrap" id="profile-dadata-wrap"{% if not address_initial_ru %} hidden{% endif %}>
                     <label for="profile-address-search" class="form-label">Поиск адреса</label>
                     <div class="dadata-address-search" id="profile-dadata-root">
                         <input
@@ -651,6 +656,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 building: '#building',
                 apartment: '#apartment',
             },
+        });
+    }
+    if (typeof window.bindAddressRegionToggle === 'function') {
+        window.bindAddressRegionToggle({
+            radiogroup: document.querySelector('.address-region-toggle'),
+            dadataWrap: document.getElementById('profile-dadata-wrap'),
+            countryInput: document.getElementById('country'),
+            searchInput: document.getElementById('profile-address-search'),
         });
     }
     {% endif %}

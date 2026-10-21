@@ -37,7 +37,10 @@
                 <div class="registration-step-content">
                     <h3>Адрес для отправки подарка</h3>
                     {% if dadata_address_enabled %}
-                    <div class="form-group dadata-address-search-wrap">
+                    {% with toggle_name='registration-address-region', initial_ru=true %}
+                    {% include 'partials/address_region_toggle.html' %}
+                    {% endwith %}
+                    <div class="form-group dadata-address-search-wrap" id="registration-dadata-wrap">
                         <label for="registration-address-search" class="form-label">Поиск адреса</label>
                         <div class="dadata-address-search" id="registration-dadata-root">
                             <input
@@ -434,6 +437,8 @@
             tertiaryBtn.disabled = state;
         }
 
+        let registrationAddressRegionToggle = null;
+
         function fillInputs() {
             Object.keys(inputs).forEach(key => {
                 const input = inputs[key];
@@ -441,6 +446,9 @@
                     input.value = profileData[key] || '';
                 }
             });
+            if (registrationAddressRegionToggle && typeof registrationAddressRegionToggle.syncFromCountry === 'function') {
+                registrationAddressRegionToggle.syncFromCountry();
+            }
         }
 
         function textOrDash(value) {
@@ -997,6 +1005,14 @@
                     building: inputs.building,
                     apartment: inputs.apartment,
                 },
+            });
+        }
+        if (typeof window.bindAddressRegionToggle === 'function') {
+            registrationAddressRegionToggle = window.bindAddressRegionToggle({
+                radiogroup: document.querySelector('#registration-modal .address-region-toggle'),
+                dadataWrap: document.getElementById('registration-dadata-wrap'),
+                countryInput: inputs.country,
+                searchInput: document.getElementById('registration-address-search'),
             });
         }
         {% endif %}

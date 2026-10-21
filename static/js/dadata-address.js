@@ -177,5 +177,71 @@
                 closeList();
             }
         });
+
+        searchInput._dadataCloseList = closeList;
+    };
+
+    var RUSSIA_COUNTRY_VALUES = { 'россия': true, russia: true, 'рф': true, ru: true };
+
+    window.isRussiaCountry = function (country) {
+        var normalized = (country || '').trim().toLowerCase();
+        if (!normalized) {
+            return true;
+        }
+        return Object.prototype.hasOwnProperty.call(RUSSIA_COUNTRY_VALUES, normalized);
+    };
+
+    window.bindAddressRegionToggle = function (options) {
+        var radiogroup = options.radiogroup;
+        var dadataWrap = options.dadataWrap;
+        var countryInput = options.countryInput;
+        var searchInput = options.searchInput;
+        if (!radiogroup || !dadataWrap) {
+            return { syncFromCountry: function () {} };
+        }
+
+        var radios = radiogroup.querySelectorAll('input[type="radio"]');
+
+        function closeSuggestions() {
+            if (searchInput && typeof searchInput._dadataCloseList === 'function') {
+                searchInput._dadataCloseList();
+            }
+        }
+
+        function apply(region) {
+            var showDadata = region === 'ru';
+            dadataWrap.hidden = !showDadata;
+            if (!showDadata) {
+                closeSuggestions();
+            }
+        }
+
+        function syncFromCountry() {
+            var fromRussia = countryInput
+                ? window.isRussiaCountry(countryInput.value)
+                : true;
+            var region = fromRussia ? 'ru' : 'other';
+            radios.forEach(function (radio) {
+                radio.checked = radio.value === region;
+            });
+            apply(region);
+        }
+
+        radios.forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                if (radio.checked) {
+                    apply(radio.value);
+                }
+            });
+        });
+
+        if (countryInput) {
+            countryInput.addEventListener('input', syncFromCountry);
+            countryInput.addEventListener('change', syncFromCountry);
+        }
+
+        syncFromCountry();
+
+        return { syncFromCountry: syncFromCountry };
     };
 })();
