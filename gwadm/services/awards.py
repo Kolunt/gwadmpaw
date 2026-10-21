@@ -1,6 +1,9 @@
-"""User awards (read-only helpers)."""
+"""User awards helpers."""
 
 from gwadm.db import get_db_connection
+from gwadm.logging_config import log_error
+from gwadm.services.activity import log_activity
+from gwadm.services.settings import get_rating_setting
 
 
 def get_user_awards(user_id):

@@ -11,6 +11,7 @@ from gwadm.logging_config import log_error, log_debug
 
 from gwadm.blueprints.admin import bp
 from gwadm.config import ALLOWED_AWARD_IMAGE_EXTENSIONS
+from gwadm.services.awards import assign_award
 from gwadm.services.uploads import save_validated_image, validate_image_upload
 
 @bp.route('/awards')
@@ -69,7 +70,7 @@ def admin_award_create():
                 conn.close()
                 return render_template('admin/award_form.html', users=users)
             file_ext = os.path.splitext(image_file.filename)[1].lower()
-            upload_dir = os.path.join(current_current_app.static_folder, 'uploads', 'awards')
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'awards')
             filename = save_validated_image(data, upload_dir, 'award', file_ext)
             image_path = f'/static/uploads/awards/{filename}'
         
@@ -97,7 +98,9 @@ def admin_award_create():
         except Exception as e:
             log_error(f"Error creating award: {e}")
             flash(f'Ошибка создания награды: {str(e)}', 'error')
+            users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
             conn.close()
+            return render_template('admin/award_form.html', users=users)
     
     # GET запрос - получаем список пользователей
     users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
@@ -156,7 +159,7 @@ def admin_award_edit(award_id):
         
         if image_file and image_file.filename:
             if image_path:
-                old_filepath = os.path.join(current_current_app.static_folder, image_path.replace('/static/', ''))
+                old_filepath = os.path.join(current_app.static_folder, image_path.replace('/static/', ''))
                 if os.path.exists(old_filepath):
                     try:
                         os.remove(old_filepath)
@@ -183,7 +186,7 @@ def admin_award_edit(award_id):
                     current_user_ids=current_user_ids,
                 )
             file_ext = os.path.splitext(image_file.filename)[1].lower()
-            upload_dir = os.path.join(current_current_app.static_folder, 'uploads', 'awards')
+            upload_dir = os.path.join(current_app.static_folder, 'uploads', 'awards')
             filename = save_validated_image(data, upload_dir, 'award', file_ext)
             image_path = f'/static/uploads/awards/{filename}'
         
@@ -240,7 +243,18 @@ def admin_award_edit(award_id):
         except Exception as e:
             log_error(f"Error updating award: {e}")
             flash(f'Ошибка обновления награды: {str(e)}', 'error')
+            users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
+            current_users = conn.execute(
+                'SELECT user_id FROM user_awards WHERE award_id = ?', (award_id,),
+            ).fetchall()
+            current_user_ids = [u['user_id'] for u in current_users]
             conn.close()
+            return render_template(
+                'admin/award_form.html',
+                award=award,
+                users=users,
+                current_user_ids=current_user_ids,
+            )
     
     # GET запрос - получаем список пользователей и текущих пользователей с наградой
     users = conn.execute('SELECT user_id, username FROM users ORDER BY username').fetchall()
