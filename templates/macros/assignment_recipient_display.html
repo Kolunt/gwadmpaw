@@ -34,16 +34,24 @@
             {% endif %}
             <div class="assignment-messenger-links">
                 {% if has_tg %}
-                <a href="https://t.me/{{ tg|replace('@', '')|replace(' ', '') }}" class="assignment-messenger-btn" target="_blank" rel="noopener" title="Telegram">TG</a>
+                <a href="https://t.me/{{ tg|replace('@', '')|replace(' ', '') }}" class="assignment-messenger-btn assignment-messenger-btn--tg" target="_blank" rel="noopener" title="Telegram" aria-label="Telegram">
+                    <img src="{{ url_for('static', filename='images/telegram-logo.svg') }}" alt="" width="28" height="28" class="assignment-messenger-icon" decoding="async">
+                </a>
                 {% endif %}
                 {% if has_wa %}
-                <a href="https://wa.me/{{ wa|replace(' ', '')|replace('+', '') }}" class="assignment-messenger-btn assignment-messenger-btn--wa" target="_blank" rel="noopener" title="WhatsApp">WA</a>
+                <a href="https://wa.me/{{ wa|replace(' ', '')|replace('+', '') }}" class="assignment-messenger-btn assignment-messenger-btn--wa" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp">
+                    <img src="{{ url_for('static', filename='images/whatsapp-logo.svg') }}" alt="" width="28" height="28" class="assignment-messenger-icon" decoding="async">
+                </a>
                 {% endif %}
                 {% if has_vb %}
-                <a href="viber://chat?number={{ vb|replace(' ', '') }}" class="assignment-messenger-btn assignment-messenger-btn--vb" title="Viber">VB</a>
+                <a href="viber://chat?number={{ vb|replace(' ', '') }}" class="assignment-messenger-btn assignment-messenger-btn--vb" title="Viber" aria-label="Viber">
+                    <img src="{{ url_for('static', filename='images/viber-logo.svg') }}" alt="" width="28" height="28" class="assignment-messenger-icon" decoding="async">
+                </a>
                 {% endif %}
                 {% if has_mx %}
-                <a href="tel:{{ mx|replace(' ', '') }}" class="assignment-messenger-btn assignment-messenger-btn--max" title="Max">MAX</a>
+                <a href="tel:{{ mx|replace(' ', '') }}" class="assignment-messenger-btn assignment-messenger-btn--max" title="Max" aria-label="Max">
+                    <img src="{{ url_for('static', filename='images/max-logo.svg') }}" alt="" width="28" height="28" class="assignment-messenger-icon" decoding="async">
+                </a>
                 {% endif %}
             </div>
         </div>

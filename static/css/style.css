@@ -7653,32 +7653,27 @@ html.dark .avatar-candidate-img {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 2.25rem;
-    padding: 0.35rem 0.55rem;
-    border-radius: 6px;
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0.2rem;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.92);
-    color: #333;
-    font-size: 0.75rem;
-    font-weight: 700;
     text-decoration: none;
-    letter-spacing: 0.02em;
+    line-height: 0;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .assignment-messenger-btn:hover {
     background: #fff;
-    color: #111;
+    transform: translateY(-1px);
 }
 
-.assignment-messenger-btn--wa {
-    color: #128c7e;
-}
-
-.assignment-messenger-btn--vb {
-    color: #7360f2;
-}
-
-.assignment-messenger-btn--max {
-    color: #2563eb;
+.assignment-messenger-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: block;
+    object-fit: contain;
+    pointer-events: none;
 }
 
 .assignment-card--recipient .assignment-recipient-panel {
