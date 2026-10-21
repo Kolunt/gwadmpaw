@@ -219,6 +219,8 @@
         var dadataWrap = options.dadataWrap;
         var countryInput = options.countryInput;
         var searchInput = options.searchInput;
+        var streetSearchInput = options.streetSearchInput;
+        var extraHides = options.extraHides || [];
         if (!radiogroup || !dadataWrap) {
             return { syncFromCountry: function () {} };
         }
@@ -226,14 +228,21 @@
         var radios = radiogroup.querySelectorAll('input[type="radio"]');
 
         function closeSuggestions() {
-            if (searchInput && typeof searchInput._dadataCloseList === 'function') {
-                searchInput._dadataCloseList();
-            }
+            [searchInput, streetSearchInput].forEach(function (input) {
+                if (input && typeof input._dadataCloseList === 'function') {
+                    input._dadataCloseList();
+                }
+            });
         }
 
         function apply(region) {
             var showDadata = region === 'ru';
             dadataWrap.hidden = !showDadata;
+            extraHides.forEach(function (el) {
+                if (el) {
+                    el.hidden = !showDadata;
+                }
+            });
             if (!showDadata) {
                 closeSuggestions();
             }

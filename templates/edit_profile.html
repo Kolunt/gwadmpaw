@@ -315,7 +315,7 @@
                         >
                     </div>
                     {% if dadata_address_enabled %}
-                    <small class="form-hint">Подсказки по улицам учитывают индекс и город выше (точнее после выбора адреса в поиске).</small>
+                    <small class="form-hint" id="profile-street-dadata-hint">Подсказки по улицам учитывают индекс и город выше (точнее после выбора адреса в поиске).</small>
                     {% endif %}
                 </div>
                 
@@ -718,6 +718,8 @@ document.addEventListener('DOMContentLoaded', function() {
             dadataWrap: document.getElementById('profile-dadata-wrap'),
             countryInput: document.getElementById('country'),
             searchInput: document.getElementById('profile-address-search'),
+            streetSearchInput: document.getElementById('street'),
+            extraHides: [document.getElementById('profile-street-dadata-hint')],
         });
     }
     {% endif %}

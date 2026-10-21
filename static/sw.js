@@ -1,5 +1,5 @@
 // Service Worker для PWA
-const CACHE_NAME = 'gwadmpaw-v1.36.16';
+const CACHE_NAME = 'gwadmpaw-v1.36.19';
 const urlsToCache = [
   '/',
   '/static/css/style.css',

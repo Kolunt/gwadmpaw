@@ -73,7 +73,7 @@
                                 <input type="text" id="registration-street" class="form-input" placeholder="Ленина" autocomplete="address-line1">
                             </div>
                             {% if dadata_address_enabled %}
-                            <small class="form-hint">Подсказки по улицам учитывают индекс и город выше (точнее после выбора адреса в поиске).</small>
+                            <small class="form-hint" id="registration-street-dadata-hint">Подсказки по улицам учитывают индекс и город выше (точнее после выбора адреса в поиске).</small>
                             {% endif %}
                         </div>
                         <div class="form-group">
@@ -1064,6 +1064,8 @@
                 dadataWrap: document.getElementById('registration-dadata-wrap'),
                 countryInput: inputs.country,
                 searchInput: document.getElementById('registration-address-search'),
+                streetSearchInput: inputs.street,
+                extraHides: [document.getElementById('registration-street-dadata-hint')],
             });
         }
         {% endif %}
