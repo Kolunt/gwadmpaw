@@ -12,6 +12,7 @@ def test_profile_edit_shows_address_region_toggle_when_dadata_enabled(client, mo
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert 'address-region-toggle' in html
+    assert 'address-region-toggle__option' in html
     assert 'Я из России' in html
     assert 'dadata-address-search-wrap' in html
     assert 'profile-dadata-wrap' in html

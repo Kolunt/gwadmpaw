@@ -22,7 +22,7 @@ PROFILE_FIELD_REGISTRY: list[dict[str, Any]] = [
     {'id': 'postal_code', 'column': 'postal_code', 'label': 'Индекс', 'group': 'address', 'kind': 'text'},
     {'id': 'country', 'column': 'country', 'label': 'Страна', 'group': 'address', 'kind': 'text'},
     {'id': 'city', 'column': 'city', 'label': 'Город', 'group': 'address', 'kind': 'text'},
-    {'id': 'street', 'column': 'street', 'label': 'Улица', 'group': 'address', 'kind': 'text'},
+    {'id': 'street', 'column': 'street', 'label': 'Улица / Переулок / Проспект / Проезд / …', 'group': 'address', 'kind': 'text'},
     {'id': 'house', 'column': 'house', 'label': 'Дом', 'group': 'address', 'kind': 'text'},
     {'id': 'building', 'column': 'building', 'label': 'Корпус/строение', 'group': 'address', 'kind': 'text'},
     {'id': 'apartment', 'column': 'apartment', 'label': 'Квартира', 'group': 'address', 'kind': 'text'},
