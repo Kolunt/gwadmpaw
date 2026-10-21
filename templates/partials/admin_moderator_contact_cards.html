@@ -6,7 +6,9 @@
     </div>
     <div class="contact-info">
         <h3>
-            {% if link_profiles %}
+            {% if gwars_links_only %}
+            <a href="{{ build_gwars_character_url(user.user_id) }}" target="_blank" rel="noopener noreferrer">{{ user.username }}</a>
+            {% elif link_profiles %}
             <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}">{{ user.username }}</a>
             {% else %}
             {{ user.username }}
@@ -17,6 +19,14 @@
                 <span class="role-badge">{{ role.display_name }}</span>
             {% endfor %}
         </div>
+        {% if gwars_links_only %}
+        <div class="contact-details">
+            <div class="contact-detail-item">
+                <span class="contact-detail-icon">⚔️</span>
+                <a href="{{ build_gwars_character_url(user.user_id) }}" target="_blank" rel="noopener noreferrer">Персонаж в GWars</a>
+            </div>
+        </div>
+        {% else %}
         <div class="contact-details">
             {% if user.email %}
             <div class="contact-detail-item">
@@ -49,6 +59,7 @@
             </div>
             {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
 {% endfor %}

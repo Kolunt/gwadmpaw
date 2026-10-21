@@ -54,7 +54,7 @@
             <div class="contacts-section" style="margin-top: 1rem;">
                 <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">👑 Администрация</h2>
                 <div class="contacts-grid">
-                    {% with link_profiles=false %}
+                    {% with gwars_links_only=true %}
                     {% include 'partials/admin_moderator_contact_cards.html' %}
                     {% endwith %}
                 </div>

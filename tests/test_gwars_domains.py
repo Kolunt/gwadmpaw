@@ -5,6 +5,7 @@ import json
 from gwars_domains import (
     DEFAULT_GWARS_DOMAIN_MAP,
     build_gwars_callback_url,
+    build_gwars_character_url,
     build_gwars_login_url,
     parse_domain_map,
     resolve_gwars_site_id,
@@ -22,6 +23,10 @@ def test_resolve_gwadm_ru_site_id():
     assert resolve_gwars_site_id("gwadm.ru", parsed) == 3
     assert resolve_gwars_site_id("www.gwadm.ru", parsed) == 3
     assert resolve_gwars_site_id("gwadm.pythonanywhere.com", parsed) == 4
+
+
+def test_build_gwars_character_url():
+    assert build_gwars_character_url(283494) == 'https://www.gwars.io/info.php?id=283494'
 
 
 def test_build_gwars_urls():

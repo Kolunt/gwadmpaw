@@ -79,6 +79,9 @@ def test_account_blocked_page_shows_reason(client):
     body = response.get_data(as_text=True)
     assert 'Нарушение правил' in body
     assert 'Доступ к сайту ограничен' in body
+    assert 'Персонаж в GWars' in body
+    assert 'info.php?id=' in body
+    assert 'mailto:' not in body
 
 
 def test_blocked_user_api_returns_403(client):

@@ -8,6 +8,7 @@ from copy import deepcopy
 from urllib.parse import quote
 
 GWARS_LOGIN_ENDPOINT = "https://www.gwars.io/cross-server-login.php"
+GWARS_CHARACTER_INFO_URL = "https://www.gwars.io/info.php"
 
 DEFAULT_GWARS_DOMAIN_MAP: list[dict] = [
     {"host": "gwadm.ru", "site_id": 3, "primary": True},
@@ -127,6 +128,11 @@ def build_gwars_callback_url(host: str, is_local: bool = False, domain_map: list
     else:
         callback_host = normalize_host(host) or get_primary_host(entries)
     return f"https://{callback_host}/login"
+
+
+def build_gwars_character_url(user_id) -> str:
+    """Публичная страница персонажа на gwars.io."""
+    return f"{GWARS_CHARACTER_INFO_URL}?id={int(user_id)}"
 
 
 def build_gwars_login_url(

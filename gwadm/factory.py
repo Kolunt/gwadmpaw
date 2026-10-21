@@ -69,8 +69,10 @@ def create_app() -> Flask:
 
     register_template_filters(app)
     from gwadm.services.avatars import get_avatar_url
+    from gwadm.services.gwars_domains import build_gwars_character_url
 
     app.add_template_global(get_avatar_url)
+    app.add_template_global(build_gwars_character_url)
     register_context_processors(app)
     register_error_handlers(app)
     register_blueprints(app)
