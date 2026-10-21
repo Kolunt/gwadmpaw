@@ -48,7 +48,7 @@
 |------------|----------------|
 | `postal_code` | `postal_code` |
 | `country` | `country` |
-| `city` | `city` или `settlement` |
+| `city` | Если есть и `city`, и `settlement` — `city_with_type` (или `city`) + `, ` + `settlement_with_type` (или `settlement`). Иначе одно значение: `city_with_type` / `city` или `settlement_with_type` / `settlement` |
 | `street` | `street_with_type` или `street` |
 | `house` | `house` |
 | `building` | `block` |

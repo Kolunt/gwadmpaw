@@ -26,6 +26,29 @@ def test_map_dadata_address_data_maps_russian_address():
     }
 
 
+def test_map_dadata_address_data_joins_city_and_settlement():
+    mapped = map_dadata_address_data({
+        'postal_code': '140155',
+        'country': 'Россия',
+        'city': 'Раменское',
+        'city_with_type': 'г Раменское',
+        'settlement': 'Донино',
+        'settlement_with_type': 'деревня Донино',
+    })
+    assert mapped['city'] == 'г Раменское, деревня Донино'
+    assert mapped['postal_code'] == '140155'
+    assert mapped['street'] == ''
+
+
+def test_map_dadata_address_data_uses_settlement_when_no_city():
+    mapped = map_dadata_address_data({
+        'country': 'Россия',
+        'settlement': 'Донино',
+        'settlement_with_type': 'деревня Донино',
+    })
+    assert mapped['city'] == 'деревня Донино'
+
+
 def test_suggest_address_parses_response(monkeypatch):
     monkeypatch.setattr(
         'gwadm.services.dadata.is_dadata_address_enabled',

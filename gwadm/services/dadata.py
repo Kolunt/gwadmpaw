@@ -24,14 +24,27 @@ def _str_field(value) -> str:
     return str(value).strip()
 
 
+def _map_city(payload: dict) -> str:
+    city = _str_field(payload.get('city'))
+    settlement = _str_field(payload.get('settlement'))
+    if city and settlement:
+        city_part = _str_field(payload.get('city_with_type')) or city
+        settlement_part = _str_field(payload.get('settlement_with_type')) or settlement
+        return f'{city_part}, {settlement_part}'
+    if city:
+        return _str_field(payload.get('city_with_type')) or city
+    if settlement:
+        return _str_field(payload.get('settlement_with_type')) or settlement
+    return ''
+
+
 def map_dadata_address_data(data: dict | None) -> dict:
     payload = data or {}
-    city = payload.get('city') or payload.get('settlement') or ''
     street = payload.get('street_with_type') or payload.get('street') or ''
     return {
         'postal_code': _str_field(payload.get('postal_code')),
         'country': _str_field(payload.get('country')),
-        'city': _str_field(city),
+        'city': _map_city(payload),
         'street': _str_field(street),
         'house': _str_field(payload.get('house')),
         'building': _str_field(payload.get('block')),
