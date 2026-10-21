@@ -25,10 +25,11 @@
             <a href="{{ url_for('admin.admin_user_create') }}" class="btn-icon" title="Создать пользователя">➕</a>
         </div>
         {% if users_filter_label %}
-        <p class="admin-users-filter-banner">
-            Фильтр: <strong>{{ users_filter_label }}</strong>
-            <a href="{{ url_for('admin.admin_users') }}" class="admin-users-filter-clear">Сбросить</a>
-        </p>
+        <div class="admin-users-active-filter" role="status" aria-live="polite">
+            <span class="admin-users-active-filter__label">Фильтр</span>
+            <span class="admin-users-active-filter__chip">{{ users_filter_label }}</span>
+            <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary btn-sm admin-users-active-filter__reset">Сбросить</a>
+        </div>
         {% endif %}
 
         <div class="table-controls">

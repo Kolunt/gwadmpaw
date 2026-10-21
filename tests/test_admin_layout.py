@@ -21,7 +21,7 @@ def test_admin_users_dashboard_filters(client):
     response = client.get('/admin/users?filter=never_participated')
     assert response.status_code == 200
     body = response.get_data(as_text=True)
-    assert 'admin-users-filter-banner' in body
+    assert 'admin-users-active-filter' in body
     assert 'Без участия в мероприятиях' in body
 
 
