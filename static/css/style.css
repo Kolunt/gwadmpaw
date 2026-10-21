@@ -4716,20 +4716,19 @@ html.dark .avatar-candidate-img {
 .settings-tab-content {
     display: none;
     padding: 2rem 2.5rem;
-    animation: fadeIn 0.3s ease;
 }
 
 .settings-tab-content.active {
     display: block;
+    opacity: 1;
+    animation: settingsTabEnter 0.25s ease;
 }
 
-@keyframes fadeIn {
+@keyframes settingsTabEnter {
     from {
-        opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px);
     }
     to {
-        opacity: 1;
         transform: translateY(0);
     }
 }

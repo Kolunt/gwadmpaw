@@ -1239,7 +1239,7 @@
   "bot_menu_items": bot_menu_items or []
 }|tojson }}
 </script>
-<script src="{{ url_for('static', filename='js/admin-settings.js') }}"></script>
+<script src="{{ url_for('static', filename='js/admin-settings.js') }}?v={{ app_config.VERSION }}"></script>
 
 
 <!-- Модальное окно для управления пунктом меню -->

@@ -14,18 +14,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabContents = document.querySelectorAll('.settings-tab-content');
     
     // Функция для переключения таба
+    const settingsForm = document.querySelector('.settings-form');
+
     function switchTab(tabName) {
-        // Убираем активный класс у всех табов и содержимого
+        const scope = settingsForm || document;
+        const selectedTab = scope.querySelector(`.settings-tab[data-tab="${CSS.escape(tabName)}"]`);
+        const selectedContent = scope.querySelector(
+            `.settings-tab-content[data-tab="${CSS.escape(tabName)}"]`
+        );
+        if (!selectedTab || !selectedContent) {
+            return false;
+        }
+
         tabs.forEach(t => t.classList.remove('active'));
         tabContents.forEach(content => content.classList.remove('active'));
-        
-        // Добавляем активный класс к выбранному табу и содержимому
-        const selectedTab = document.querySelector(`.settings-tab[data-tab="${tabName}"]`);
-        const selectedContent = document.querySelector(`.settings-tab-content[data-tab="${tabName}"]`);
-        
-        if (selectedTab && selectedContent) {
-            selectedTab.classList.add('active');
-            selectedContent.classList.add('active');
+
+        selectedTab.classList.add('active');
+        selectedContent.classList.add('active');
             
             // Если переключились на таб "integrations" и hash не указывает на подтаб, активируем подтаб по умолчанию
             if (tabName === 'integrations') {
@@ -42,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.history.replaceState(null, '', '#' + tabName);
                 }
             }
-        }
+        return true;
     }
     
     // Обработка кликов по табам
@@ -83,6 +88,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     switchIntegrationTab(integration);
                 }, 100);
+            } else {
+                switchTab('integrations');
             }
         } else {
             // Обычный таб
@@ -237,7 +244,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const settingsForm = document.querySelector('.settings-form');
     if (settingsForm) {
         settingsForm.addEventListener('submit', function() {
             serializeGwarsDomainMap();
