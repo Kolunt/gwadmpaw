@@ -1,6 +1,6 @@
 """Jinja contact_usable and address line helpers."""
 
-from gwadm.jinja_filters import contact_usable, format_recipient_address_line
+from gwadm.jinja_filters import contact_usable, format_recipient_address_line, format_recipient_fio_line
 
 
 def test_contact_usable():
@@ -24,3 +24,14 @@ def test_format_recipient_address_line():
     assert '121467' in line
     assert 'Москва' in line
     assert 'кв. 12' in line
+
+
+def test_format_recipient_fio_line():
+    line = format_recipient_fio_line({
+        'recipient_last_name': 'Иванова',
+        'recipient_first_name': 'Евгения',
+        'recipient_middle_name': 'Александровна',
+    })
+    assert line == 'Иванова Евгения Александровна'
+    assert format_recipient_fio_line({'recipient_first_name': 'Иван'}) == 'Иван'
+    assert format_recipient_fio_line({}) == ''

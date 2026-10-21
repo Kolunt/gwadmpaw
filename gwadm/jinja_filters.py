@@ -70,9 +70,21 @@ def format_recipient_address_line(recipient) -> str:
     return ', '.join(chunks)
 
 
+def format_recipient_fio_line(recipient) -> str:
+    if not recipient:
+        return ''
+    parts = [
+        str(recipient.get('recipient_last_name') or '').strip(),
+        str(recipient.get('recipient_first_name') or '').strip(),
+        str(recipient.get('recipient_middle_name') or '').strip(),
+    ]
+    return ' '.join(part for part in parts if part)
+
+
 def register_template_filters(app):
     app.template_filter("format_gender")(format_gender)
     app.template_filter("format_rating")(format_rating)
     app.template_filter("format_multiline")(format_multiline_html)
     app.template_filter("contact_usable")(contact_usable)
     app.template_filter("format_recipient_address_line")(format_recipient_address_line)
+    app.template_filter("format_recipient_fio_line")(format_recipient_fio_line)

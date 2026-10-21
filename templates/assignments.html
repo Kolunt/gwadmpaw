@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
-{% from 'macros/assignment_recipient_display.html' import recipient_address_block, recipient_contacts_block %}
+{% from 'macros/assignment_recipient_display.html' import recipient_fio_block, recipient_address_block, recipient_contacts_block %}
 {% block title %}Задания - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -70,14 +70,7 @@
                         </div>
                         <p style="margin-bottom: 1rem; opacity: 0.9;">Вы должны отправить подарок:</p>
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                            {% if event_data.as_santa.get('recipient_last_name') or event_data.as_santa.get('recipient_first_name') %}
-                            <p style="margin: 0.5rem 0;">
-                                <strong>ФИО:</strong><br>
-                                {{ event_data.as_santa.get('recipient_last_name', '') }} 
-                                {{ event_data.as_santa.get('recipient_first_name', '') }} 
-                                {{ event_data.as_santa.get('recipient_middle_name', '') }}
-                            </p>
-                            {% endif %}
+                            {{ recipient_fio_block(event_data.as_santa) }}
                             {{ recipient_address_block(event_data.as_santa) }}
                             {{ recipient_contacts_block(event_data.as_santa) }}
                             {% if event_data.as_santa.get('recipient_bio') %}

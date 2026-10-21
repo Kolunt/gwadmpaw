@@ -1,3 +1,16 @@
+{% macro recipient_fio_block(recipient) %}
+    {% set fio_line = recipient | format_recipient_fio_line %}
+    {% if fio_line %}
+    <div class="assignment-info-block">
+        <div class="assignment-info-label-row">
+            <strong>ФИО:</strong>
+            <button type="button" class="assignment-copy-btn" data-copy-text="{{ fio_line|e }}" title="Скопировать ФИО" aria-label="Скопировать ФИО">📋</button>
+        </div>
+        <div class="assignment-info-value">{{ fio_line }}</div>
+    </div>
+    {% endif %}
+{% endmacro %}
+
 {% macro recipient_address_block(recipient) %}
     {% set address_line = recipient | format_recipient_address_line %}
     {% if address_line %}

@@ -85,7 +85,10 @@
 
                         <p class="chat-signoff">С любовью, <strong>{{ letter.grandchild.first_name }}</strong></p>
                     </div>
-                    <span class="chat-meta">{{ letter.date }}</span>
+                    <span class="chat-meta">
+                        {{ letter.date }}
+                        <span class="chat-meta-auto">Сообщение сформировано автоматически</span>
+                    </span>
                 </div>
 
                 <div class="chat-message message-santa">
@@ -99,7 +102,10 @@
 
                         <p class="chat-signoff">С любовью, твой <strong>Дед Мороз</strong></p>
                     </div>
-                    <span class="chat-meta">{{ letter.date }}</span>
+                    <span class="chat-meta">
+                        {{ letter.date }}
+                        <span class="chat-meta-auto">Сообщение сформировано автоматически</span>
+                    </span>
                 </div>
                 
                 {% for msg in chat_messages %}
@@ -162,14 +168,20 @@
                             placeholder="{% if user_role == 'santa' %}Напишите ответ Деда Мороза...{% else %}Напишите письмо Деду Морозу...{% endif %}"
                         ></textarea>
                         <div class="letter-attachment-group">
-                            <label for="letter-attachment-input" class="text-muted fw-semibold">Изображение (необязательно)</label>
-                            <input
-                                type="file"
-                                name="attachment"
-                                id="letter-attachment-input"
-                                accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
-                                class="setting-input"
-                            >
+                            <span class="text-muted fw-semibold">Изображение (необязательно)</span>
+                            <div class="file-upload-group">
+                                <input
+                                    type="file"
+                                    name="attachment"
+                                    id="letter-attachment-input"
+                                    accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
+                                    class="file-input letter-attachment-file"
+                                >
+                                <label for="letter-attachment-input" class="file-upload-label">
+                                    <span class="file-upload-text">Выбрать изображение</span>
+                                    <span class="file-upload-btn" aria-hidden="true">📁</span>
+                                </label>
+                            </div>
                             <span class="text-muted letter-attachment-hint">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
                         </div>
                         <button type="submit" class="btn btn-primary letter-submit-btn">Отправить сообщение</button>
@@ -228,6 +240,21 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    if (fileInput) {
+        const uploadGroup = fileInput.closest('.file-upload-group');
+        const fileNameEl = uploadGroup ? uploadGroup.querySelector('.file-upload-text') : null;
+        const defaultFileLabel = 'Выбрать изображение';
+        if (fileNameEl) {
+            fileInput.addEventListener('change', function () {
+                if (fileInput.files && fileInput.files.length > 0) {
+                    fileNameEl.textContent = 'Выбран файл: ' + fileInput.files[0].name;
+                } else {
+                    fileNameEl.textContent = defaultFileLabel;
+                }
+            });
+        }
+    }
 });
 </script>
 

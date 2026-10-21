@@ -7372,6 +7372,14 @@ html.dark .avatar-candidate-img {
     margin-top: 0.75rem;
 }
 
+.chat-meta-auto {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    font-style: italic;
+    opacity: 0.9;
+}
+
 .chat-attachment {
     margin-top: 0.75rem;
     border-radius: 14px;
