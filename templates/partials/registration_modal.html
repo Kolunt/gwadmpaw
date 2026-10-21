@@ -272,7 +272,7 @@
                 </div>
             </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer registration-modal-footer">
             <button type="button" class="btn btn-secondary modal-back-btn" id="registration-secondary-btn" style="display: none;" aria-label="Назад">🔙</button>
             <button type="button" class="btn btn-secondary" id="registration-tertiary-btn" style="display: none;"></button>
             <button type="button" class="btn btn-primary modal-primary-btn" id="registration-primary-btn">Продолжить</button>
@@ -930,6 +930,12 @@
                 updateCommitmentButtonState();
             } else if (!isBusy) {
                 primaryBtn.disabled = false;
+            }
+
+            const modalFooter = modal.querySelector('.registration-modal-footer');
+            if (modalFooter) {
+                const tertiaryVisible = tertiaryBtn.style.display !== 'none';
+                modalFooter.classList.toggle('registration-modal-footer--multi', tertiaryVisible);
             }
         }
 

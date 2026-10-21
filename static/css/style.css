@@ -6685,22 +6685,70 @@ html.dark .avatar-candidate-img {
         border-radius: 6px;
     }
 
-    .modal-footer {
+    .modal-footer:not(.registration-modal-footer) {
         justify-content: space-between;
         gap: 0.4rem;
     }
 
-    .modal-footer .btn {
+    .modal-footer:not(.registration-modal-footer) .btn {
         flex: 1 1 0;
         min-width: 0;
         padding: 0.55rem 0.6rem;
         white-space: normal;
     }
+}
 
-    .modal-footer .modal-primary-btn,
-    .modal-footer #registration-tertiary-btn {
-        min-width: 0;
+/* Registration modal: footer with up to 3 actions */
+#registration-modal .registration-modal-footer {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: stretch;
+    gap: 0.5rem 0.75rem;
+    padding: 0.75rem 1rem 1rem;
+}
+
+#registration-modal .registration-modal-footer .btn {
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+}
+
+#registration-modal .registration-modal-footer .modal-back-btn {
+    flex: 0 0 auto;
+    min-width: 2.75rem;
+    padding: 0.55rem 0.65rem;
+}
+
+#registration-modal .registration-modal-footer--multi #registration-primary-btn {
+    flex: 1 1 100%;
+    width: 100%;
+    order: 10;
+    margin-top: 0.15rem;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.9rem;
+}
+
+#registration-modal .registration-modal-footer--multi #registration-secondary-btn:not(.modal-back-btn),
+#registration-modal .registration-modal-footer--multi #registration-tertiary-btn {
+    flex: 1 1 calc(50% - 0.375rem);
+}
+
+#registration-modal .registration-modal-footer--multi #registration-secondary-btn.modal-back-btn {
+    flex: 0 0 2.75rem;
+}
+
+@media (max-width: 640px) {
+    #registration-modal .registration-modal-footer:not(.registration-modal-footer--multi) {
+        justify-content: space-between;
+    }
+
+    #registration-modal .registration-modal-footer:not(.registration-modal-footer--multi) #registration-primary-btn {
         flex: 1 1 0;
+    }
+
+    #registration-modal .registration-modal-footer:not(.registration-modal-footer--multi) #registration-secondary-btn.modal-back-btn {
+        flex: 0 0 2.75rem;
     }
 }
 
