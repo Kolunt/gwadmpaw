@@ -69,7 +69,12 @@
                         </div>
                         <div class="form-group">
                             <label for="registration-street" class="form-label">Улица / Переулок / Проспект / Проезд / … *</label>
-                            <input type="text" id="registration-street" class="form-input" placeholder="Ленина" autocomplete="address-line1">
+                            <div class="dadata-address-search" id="registration-street-dadata-root">
+                                <input type="text" id="registration-street" class="form-input" placeholder="Ленина" autocomplete="address-line1">
+                            </div>
+                            {% if dadata_address_enabled %}
+                            <small class="form-hint">Подсказки по улицам учитывают индекс и город выше (точнее после выбора адреса в поиске).</small>
+                            {% endif %}
                         </div>
                         <div class="form-group">
                             <label for="registration-house" class="form-label">Дом *</label>
@@ -991,11 +996,19 @@
         registerForms.forEach(form => form.addEventListener('submit', handleFormSubmit));
 
         {% if dadata_address_enabled %}
+        const registrationDadataLocation = { current: null };
+        const registrationDadataSuggestUrl = {{ url_for('integrations.dadata_suggest_address')|tojson }};
+        function registrationDadataContextFields() {
+            return {
+                postal_code: inputs.postal_code,
+                city: inputs.city,
+            };
+        }
         if (typeof window.initDadataAddressSearch === 'function') {
             window.initDadataAddressSearch({
                 searchInput: document.getElementById('registration-address-search'),
                 suggestionsRoot: document.getElementById('registration-dadata-root'),
-                suggestUrl: {{ url_for('integrations.dadata_suggest_address')|tojson }},
+                suggestUrl: registrationDadataSuggestUrl,
                 fields: {
                     postal_code: inputs.postal_code,
                     country: inputs.country,
@@ -1005,7 +1018,45 @@
                     building: inputs.building,
                     apartment: inputs.apartment,
                 },
+                onSelect: function (item) {
+                    if (item.location && Object.keys(item.location).length) {
+                        registrationDadataLocation.current = item.location;
+                    }
+                },
             });
+            window.initDadataAddressSearch({
+                mode: 'street',
+                searchInput: inputs.street,
+                suggestionsRoot: document.getElementById('registration-street-dadata-root'),
+                suggestUrl: registrationDadataSuggestUrl,
+                fields: {
+                    street: inputs.street,
+                    house: inputs.house,
+                    building: inputs.building,
+                    apartment: inputs.apartment,
+                },
+                getExtraPayload: function () {
+                    if (!window.isRussiaCountry(inputs.country.value)) {
+                        return { skip: true };
+                    }
+                    if (!(inputs.city.value || '').trim()) {
+                        return { skip: true };
+                    }
+                    var locations = window.buildDadataLocationsPayload(
+                        registrationDadataLocation.current,
+                        registrationDadataContextFields()
+                    );
+                    if (!locations) {
+                        return { skip: true };
+                    }
+                    return { street_only: true, locations: locations };
+                },
+            });
+            if (inputs.city) {
+                inputs.city.addEventListener('input', function () {
+                    registrationDadataLocation.current = null;
+                });
+            }
         }
         if (typeof window.bindAddressRegionToggle === 'function') {
             registrationAddressRegionToggle = window.bindAddressRegionToggle({

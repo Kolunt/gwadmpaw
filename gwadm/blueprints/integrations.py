@@ -27,8 +27,10 @@ from gwadm.logging_config import log_error
 from gwadm.services.settings import get_setting
 from gwadm.services.dadata import (
     DadataError,
+    extract_dadata_location,
     is_dadata_address_enabled,
     map_dadata_address_data,
+    sanitize_dadata_locations,
     suggest_address,
 )
 
@@ -205,8 +207,15 @@ def dadata_suggest_address():
     if len(query) < 2:
         return jsonify({'success': False, 'message': 'Введите не менее 2 символов'}), 400
 
+    locations = sanitize_dadata_locations(payload.get('locations'))
+    street_only = payload.get('street_only') in (True, 1, '1', 'true', 'True')
+
     try:
-        raw_suggestions = suggest_address(query)
+        raw_suggestions = suggest_address(
+            query,
+            locations=locations,
+            street_only=street_only,
+        )
     except DadataError as exc:
         return jsonify({'success': False, 'message': str(exc)}), 502
 
@@ -220,6 +229,7 @@ def dadata_suggest_address():
             'value': item.get('value') or '',
             'label': display,
             'fields': map_dadata_address_data(data, display_value=display),
+            'location': extract_dadata_location(data),
         })
 
     return jsonify({'success': True, 'suggestions': suggestions})

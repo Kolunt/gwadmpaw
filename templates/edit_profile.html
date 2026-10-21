@@ -303,15 +303,20 @@
                     <label for="street" class="form-label">
                         Улица / Переулок / Проспект / Проезд / … *
                     </label>
-                    <input 
-                        type="text" 
-                        id="street" 
-                        name="street" 
-                        class="form-input"
-                        placeholder="Ленина"
-                        value="{{ user.street or '' }}"
-                        required
-                    >
+                    <div class="dadata-address-search" id="profile-street-dadata-root">
+                        <input 
+                            type="text" 
+                            id="street" 
+                            name="street" 
+                            class="form-input"
+                            placeholder="Ленина"
+                            value="{{ user.street or '' }}"
+                            required
+                        >
+                    </div>
+                    {% if dadata_address_enabled %}
+                    <small class="form-hint">Подсказки по улицам учитывают индекс и город выше (точнее после выбора адреса в поиске).</small>
+                    {% endif %}
                 </div>
                 
                 <div class="form-group">
@@ -642,11 +647,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     {% if dadata_address_enabled %}
+    const profileDadataLocation = { current: null };
+    const profileDadataSuggestUrl = {{ url_for('integrations.dadata_suggest_address')|tojson }};
+    function profileDadataContextFields() {
+        return {
+            postal_code: document.getElementById('postal_code'),
+            city: document.getElementById('city'),
+        };
+    }
     if (typeof window.initDadataAddressSearch === 'function') {
         window.initDadataAddressSearch({
             searchInput: document.getElementById('profile-address-search'),
             suggestionsRoot: document.getElementById('profile-dadata-root'),
-            suggestUrl: {{ url_for('integrations.dadata_suggest_address')|tojson }},
+            suggestUrl: profileDadataSuggestUrl,
             fields: {
                 postal_code: '#postal_code',
                 country: '#country',
@@ -656,7 +669,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 building: '#building',
                 apartment: '#apartment',
             },
+            onSelect: function (item) {
+                if (item.location && Object.keys(item.location).length) {
+                    profileDadataLocation.current = item.location;
+                }
+            },
         });
+        window.initDadataAddressSearch({
+            mode: 'street',
+            searchInput: document.getElementById('street'),
+            suggestionsRoot: document.getElementById('profile-street-dadata-root'),
+            suggestUrl: profileDadataSuggestUrl,
+            fields: {
+                street: '#street',
+                house: '#house',
+                building: '#building',
+                apartment: '#apartment',
+            },
+            getExtraPayload: function () {
+                var countryInput = document.getElementById('country');
+                if (!window.isRussiaCountry(countryInput && countryInput.value)) {
+                    return { skip: true };
+                }
+                var cityInput = document.getElementById('city');
+                if (!(cityInput && cityInput.value || '').trim()) {
+                    return { skip: true };
+                }
+                var locations = window.buildDadataLocationsPayload(
+                    profileDadataLocation.current,
+                    profileDadataContextFields()
+                );
+                if (!locations) {
+                    return { skip: true };
+                }
+                return { street_only: true, locations: locations };
+            },
+        });
+        var profileCityInput = document.getElementById('city');
+        if (profileCityInput) {
+            profileCityInput.addEventListener('input', function () {
+                profileDadataLocation.current = null;
+            });
+        }
     }
     if (typeof window.bindAddressRegionToggle === 'function') {
         window.bindAddressRegionToggle({

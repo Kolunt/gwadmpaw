@@ -39,6 +39,9 @@
         var suggestionsRoot = options.suggestionsRoot;
         var fieldsMap = options.fields || {};
         var suggestUrl = options.suggestUrl;
+        var mode = options.mode || 'address';
+        var getExtraPayload = options.getExtraPayload;
+        var onSelect = options.onSelect;
         if (!searchInput || !suggestionsRoot || !suggestUrl) {
             return;
         }
@@ -81,8 +84,15 @@
             }
             var item = currentItems[index];
             fillFields(resolvedFields, item.fields || {});
-            if (item.value) {
+            if (mode === 'street') {
+                if (item.fields && item.fields.street) {
+                    searchInput.value = item.fields.street;
+                }
+            } else if (item.value) {
                 searchInput.value = item.value;
+            }
+            if (typeof onSelect === 'function') {
+                onSelect(item);
             }
             closeList();
         }
@@ -115,6 +125,19 @@
                 closeList();
                 return;
             }
+            var extra = typeof getExtraPayload === 'function' ? getExtraPayload() : {};
+            if (extra && extra.skip) {
+                closeList();
+                return;
+            }
+            var payload = { query: query };
+            if (extra && typeof extra === 'object') {
+                Object.keys(extra).forEach(function (key) {
+                    if (key !== 'skip') {
+                        payload[key] = extra[key];
+                    }
+                });
+            }
             fetch(suggestUrl, {
                 method: 'POST',
                 headers: {
@@ -123,7 +146,7 @@
                     'X-CSRF-Token': getCsrf(),
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ query: query }),
+                body: JSON.stringify(payload),
             })
                 .then(function (response) {
                     return response.json().then(function (body) {
@@ -243,5 +266,33 @@
         syncFromCountry();
 
         return { syncFromCountry: syncFromCountry };
+    };
+
+    window.buildDadataLocationsPayload = function (storedLocation, fallbackFields) {
+        var locations = [];
+        if (storedLocation && typeof storedLocation === 'object') {
+            var copy = {};
+            Object.keys(storedLocation).forEach(function (key) {
+                if (storedLocation[key]) {
+                    copy[key] = storedLocation[key];
+                }
+            });
+            if (Object.keys(copy).length) {
+                locations.push(copy);
+            }
+        }
+        if (!locations.length && fallbackFields) {
+            var fallback = {};
+            if (fallbackFields.postal_code && fallbackFields.postal_code.value) {
+                fallback.postal_code = fallbackFields.postal_code.value.trim();
+            }
+            if (fallbackFields.city && fallbackFields.city.value) {
+                fallback.city = fallbackFields.city.value.trim();
+            }
+            if (Object.keys(fallback).length) {
+                locations.push(fallback);
+            }
+        }
+        return locations.length ? locations : null;
     };
 })();
