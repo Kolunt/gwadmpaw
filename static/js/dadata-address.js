@@ -9,14 +9,18 @@
 
     function debounce(fn, ms) {
         var timer;
-        return function () {
+        function debounced() {
             var args = arguments;
             var self = this;
             clearTimeout(timer);
             timer = setTimeout(function () {
                 fn.apply(self, args);
             }, ms);
+        }
+        debounced.cancel = function () {
+            clearTimeout(timer);
         };
+        return debounced;
     }
 
     function fillFields(fieldsMap, data) {
@@ -64,6 +68,7 @@
 
         var activeIndex = -1;
         var currentItems = [];
+        var suppressFetch = false;
 
         function closeList() {
             listEl.hidden = true;
@@ -83,6 +88,8 @@
                 return;
             }
             var item = currentItems[index];
+            fetchSuggestions.cancel();
+            suppressFetch = true;
             fillFields(resolvedFields, item.fields || {});
             if (mode === 'street') {
                 if (item.fields && item.fields.street) {
@@ -95,6 +102,8 @@
                 onSelect(item);
             }
             closeList();
+            fetchSuggestions.cancel();
+            suppressFetch = false;
         }
 
         function renderList(items) {
@@ -120,6 +129,9 @@
         }
 
         var fetchSuggestions = debounce(function () {
+            if (suppressFetch) {
+                return;
+            }
             var query = (searchInput.value || '').trim();
             if (query.length < 2) {
                 closeList();
