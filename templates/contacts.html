@@ -18,55 +18,9 @@
         <div class="contacts-section">
             <h2>👑 Администрация</h2>
             <div class="contacts-grid">
-                {% for user in admins_moderators %}
-                <div class="contact-card user-contact-card">
-                    <div class="contact-avatar">
-                        {{ avatar(user, size=64, css_class='avatar-medium') }}
-                    </div>
-                    <div class="contact-info">
-                        <h3>
-                            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}">{{ user.username }}</a>
-                        </h3>
-                        <div class="contact-badges">
-                            {% for role in user.roles %}
-                                <span class="role-badge">{{ role.display_name }}</span>
-                            {% endfor %}
-                        </div>
-                        <div class="contact-details">
-                            {% if user.email %}
-                            <div class="contact-detail-item">
-                                <span class="contact-detail-icon">📧</span>
-                                <a href="mailto:{{ user.email }}">{{ user.email }}</a>
-                            </div>
-                            {% endif %}
-                            {% if user.phone %}
-                            <div class="contact-detail-item">
-                                <span class="contact-detail-icon">📱</span>
-                                <a href="tel:{{ user.phone|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ user.phone }}</a>
-                            </div>
-                            {% endif %}
-                            {% if user.telegram %}
-                            <div class="contact-detail-item">
-                                <span class="contact-detail-icon">✈️</span>
-                                <a href="https://t.me/{{ user.telegram|replace('@', '') }}" target="_blank" rel="noopener noreferrer">{{ user.telegram }}</a>
-                            </div>
-                            {% endif %}
-                            {% if user.whatsapp %}
-                            <div class="contact-detail-item">
-                                <span class="contact-detail-icon">💬</span>
-                                <a href="https://wa.me/{{ user.whatsapp|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank" rel="noopener noreferrer">{{ user.whatsapp }}</a>
-                            </div>
-                            {% endif %}
-                            {% if user.viber %}
-                            <div class="contact-detail-item">
-                                <span class="contact-detail-icon">💜</span>
-                                <a href="viber://chat?number={{ user.viber|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank" rel="noopener noreferrer">{{ user.viber }}</a>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
+                {% with link_profiles=true %}
+                {% include 'partials/admin_moderator_contact_cards.html' %}
+                {% endwith %}
             </div>
         </div>
         {% endif %}

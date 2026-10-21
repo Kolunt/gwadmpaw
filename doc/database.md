@@ -149,6 +149,7 @@ def get_db_connection():
 1. **users** - пользователи
    - `last_login` — время последнего входа через GWars (обновляется при авторизации)
    - `last_seen` — последняя активность в сессии (миграция 006; обновляется при запросах авторизованного пользователя, не чаще раза в 5 минут)
+   - `is_blocked`, `blocked_reason`, `blocked_by`, `blocked_at` — блокировка учётной записи (см. [user_blocking.md](user_blocking.md))
    - Счётчик «Онлайн» на главной и статус на `/participants` используют `COALESCE(last_seen, last_login)` за последний час (`gwadm/services/presence.py`)
 2. **events** - мероприятия
 3. **event_registrations** - регистрации на мероприятия

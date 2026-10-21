@@ -1,5 +1,7 @@
 """Admin: users."""
 
+from datetime import datetime
+
 from flask import (
     Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for,
 )
@@ -10,9 +12,9 @@ from gwadm.logging_config import log_error, log_debug
 from gwadm.blueprints.admin import bp
 from gwadm.services.activity import log_activity
 from gwadm.services.avatars import VALID_AVATAR_STYLES as AVATAR_STYLES
-from gwadm.services.roles import get_user_roles
+from gwadm.services.roles import assign_role, get_user_roles, remove_role
 from gwadm.services.multiline_text import normalize_multiline_text
-from gwadm.services.titles import get_all_titles, get_user_titles
+from gwadm.services.titles import assign_title, get_all_titles, get_user_titles, remove_title
 
 @bp.route('/users')
 @require_role('admin')
@@ -248,6 +250,10 @@ def admin_user_edit(user_id):
                 except Exception as e:
                     log_error(f"Error unblocking user: {e}")
                     flash(f'Ошибка разблокировки пользователя: {str(e)}', 'error')
+        
+        if role_action or title_action or block_action:
+            conn.close()
+            return redirect(url_for('admin.admin_user_edit', user_id=user_id))
         
         # Обновление основных данных пользователя
         username = request.form.get('username', '').strip()

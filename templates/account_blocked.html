@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Доступ ограничен — {{ get_setting('site_title', 'Анонимные Деды Морозы') }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="profile-card" style="max-width: 720px; margin: 0 auto;">
+        <div class="profile-header">
+            <h1 style="margin: 0 0 0.5rem;">Доступ к сайту ограничен</h1>
+            <p class="text-muted" style="margin: 0;">Ваша учётная запись заблокирована администрацией.</p>
+        </div>
+
+        <div class="layout-inner">
+            <div class="alert alert-danger" style="border-left: 4px solid #dc3545;">
+                <strong>⚠️ Учётная запись заблокирована</strong>
+                {% if block_info.blocked_reason %}
+                <p style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>Причина:</strong></p>
+                <p class="multiline-text" style="margin: 0;">{{ block_info.blocked_reason | format_multiline }}</p>
+                {% endif %}
+                {% if block_info.blocked_at %}
+                <p style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>Дата блокировки:</strong>
+                    {% set blocked_at_str = block_info.blocked_at|string %}
+                    {% if ' ' in blocked_at_str %}
+                        {% set date_time_parts = blocked_at_str.split(' ') %}
+                        {% set blocked_date = date_time_parts[0] %}
+                        {% set blocked_time = date_time_parts[1] if date_time_parts|length > 1 else '' %}
+                        {% if blocked_date %}
+                            {% set date_parts = blocked_date.split('-') %}
+                            {% if date_parts|length == 3 %}
+                                {{ date_parts[2] }}.{{ date_parts[1] }}.{{ date_parts[0] }}{% if blocked_time %} {{ blocked_time[:5] }}{% endif %}
+                            {% else %}
+                                {{ block_info.blocked_at }}
+                            {% endif %}
+                        {% else %}
+                            {{ block_info.blocked_at }}
+                        {% endif %}
+                    {% else %}
+                        {{ block_info.blocked_at }}
+                    {% endif %}
+                </p>
+                {% endif %}
+                {% if block_info.blocker and block_info.blocker.username %}
+                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>Заблокировал:</strong> {{ block_info.blocker.username }} (ID: {{ block_info.blocked_by }})</p>
+                {% elif block_info.blocked_by %}
+                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>Заблокировал:</strong> ID: {{ block_info.blocked_by }}</p>
+                {% endif %}
+            </div>
+
+            <p style="line-height: 1.6; margin: 1.5rem 0 1rem;">
+                Если вы считаете блокировку ошибочной, свяжитесь с администрацией проекта — контакты ниже.
+            </p>
+
+            {% if admins_moderators %}
+            <div class="contacts-section" style="margin-top: 1rem;">
+                <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">👑 Администрация</h2>
+                <div class="contacts-grid">
+                    {% with link_profiles=false %}
+                    {% include 'partials/admin_moderator_contact_cards.html' %}
+                    {% endwith %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div style="margin-top: 2rem;">
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary">Выйти из аккаунта</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -92,16 +92,24 @@ def register_context_processors(app):
     def inject_common_flags():
         user_id = session.get('user_id')
         assignments_sidebar_pulse = False
+        is_account_blocked = False
         if user_id:
             try:
                 assignments_sidebar_pulse = user_in_celebration_exchange_stage(int(user_id))
             except (TypeError, ValueError):
                 assignments_sidebar_pulse = False
+            try:
+                from gwadm.services.user_block import is_account_blocked_session
+
+                is_account_blocked = is_account_blocked_session()
+            except Exception:
+                is_account_blocked = False
         return {
             'is_production': is_production(),
             'is_dev_login_enabled': is_dev_login_enabled(),
             'app_config': app.config,
             'assignments_sidebar_pulse': assignments_sidebar_pulse,
             'dadata_address_enabled': is_dadata_address_enabled(),
+            'is_account_blocked': is_account_blocked,
         }
 

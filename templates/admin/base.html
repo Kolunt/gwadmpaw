@@ -68,7 +68,7 @@
                 </a>
                 {% if session.get('impersonation_original') %}
                 {% from 'macros/csrf.html' import csrf_input %}
-                <form method="POST" action="{{ url_for('admin.stop_impersonation') }}" class="impersonation-navbar-form">
+                <form method="POST" action="{{ url_for('impersonation.stop_impersonation') }}" class="impersonation-navbar-form">
                     {{ csrf_input() }}
                     <button type="submit" class="navbar-icon-btn" title="Вернуться к своей учетной записи" aria-label="Вернуться к своей учетной записи">
                         🔙

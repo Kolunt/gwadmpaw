@@ -85,11 +85,13 @@
     <nav class="navbar">
         <div class="navbar-content">
             <div class="navbar-left">
+                {% if not is_account_blocked %}
                 <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Открыть меню">
                     <span></span>
                     <span></span>
                     <span></span>
                 </button>
+                {% endif %}
                 <a href="{{ url_for('public.index') }}" class="navbar-brand-link">
                     <span class="navbar-logo-emoji">{{ site_logo }}</span>
                     {% set logo_text = get_setting('logo_text', 'Анонимные Деды Морозы') %}
@@ -115,7 +117,7 @@
                 </button>
                 {% if session.get('impersonation_original') %}
                 {% from 'macros/csrf.html' import csrf_input %}
-                <form method="POST" action="{{ url_for('admin.stop_impersonation') }}" class="impersonation-navbar-form">
+                <form method="POST" action="{{ url_for('impersonation.stop_impersonation') }}" class="impersonation-navbar-form">
         {{ csrf_input() }}
                     {{ csrf_input() }}
                     <button type="submit" class="navbar-icon-btn" title="Вернуться к своей учетной записи" aria-label="Вернуться к своей учетной записи">
@@ -124,6 +126,7 @@
                 </form>
                 {% endif %}
                 {% if session.user_id %}
+                {% if not is_account_blocked %}
                 <a href="{{ url_for('profile.dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="{{ _('Profile') }}">
                     {% if current_user_avatar_seed %}
                         <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="Аватар" class="navbar-avatar">
@@ -131,6 +134,7 @@
                         <span class="navbar-icon">👤</span>
                     {% endif %}
                 </a>
+                {% endif %}
                 <a href="{{ url_for('auth.logout') }}" class="navbar-icon-btn" title="{{ _('Logout') }}">
                     <span class="navbar-icon">🚪</span>
                 </a>
@@ -139,6 +143,7 @@
         </div>
     </nav>
 
+    {% if not is_account_blocked %}
     <!-- Overlay для мобильных -->
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
@@ -195,6 +200,7 @@
             </button>
         </div>
     </aside>
+    {% endif %}
 
     <!-- Основной контент -->
     <div class="content-wrapper">

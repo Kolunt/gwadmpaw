@@ -133,6 +133,12 @@ def register_presence_tracking(app) -> None:
         if not user_id:
             return None
 
+        if not session.get('impersonation_original'):
+            from gwadm.services.user_block import is_account_blocked_session
+
+            if is_account_blocked_session():
+                return None
+
         touched_at = session.get(SESSION_PRESENCE_KEY)
         if touched_at is not None:
             try:

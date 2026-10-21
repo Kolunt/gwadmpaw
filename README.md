@@ -1,6 +1,6 @@
 # Анонимные Деды Морозы
 
-**Версия: 1.36.3** · production: [gwadm.ru](https://gwadm.ru)
+**Версия: 1.36.4** · production: [gwadm.ru](https://gwadm.ru)
 
 Веб-приложение для организации «Анонимных Дедов Морозов» с авторизацией через GWars.
 
@@ -25,6 +25,7 @@ python app.py
 | [doc/dadata.md](doc/dadata.md) | DaData: подсказки адреса в регистрации и профиле |
 | [doc/lottery.md](doc/lottery.md) | Механизм жеребьёвки |
 | [doc/admin.md](doc/admin.md) | Админ-layout, тема, дашборд |
+| [doc/user_blocking.md](doc/user_blocking.md) | Блокировка участника и экран `/account/blocked` |
 | [doc/layout.md](doc/layout.md) | Full-width layout, токены `--layout-*` |
 | [doc/responsive.md](doc/responsive.md) | Breakpoints, drawer, адаптивные таблицы |
 | [doc/refactoring_backlog.md](doc/refactoring_backlog.md) | Бэклог рефакторинга |

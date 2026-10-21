@@ -8,6 +8,7 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 
 from gwadm.config import ADMIN_USER_IDS, is_debug, is_dev_login_enabled, is_gwars_password_configured, is_production
 from gwadm.db import ensure_db, get_db_connection
+from gwadm.decorators import require_login
 from gwadm.logging_config import log_debug, log_error
 from gwadm.services.activity import log_activity
 from gwadm.services.avatars import generate_unique_avatar_seed
@@ -39,8 +40,21 @@ from gwadm.services.login_flow import (
     start_login_flow,
 )
 from gwadm.services.roles import assign_role, get_user_role_names, get_user_roles, has_role
+from gwadm.services.user_block import (
+    get_user_block_info,
+    is_user_blocked,
+    list_admins_moderators_for_contact,
+    load_request_block_info,
+)
 
 bp = Blueprint('auth', __name__)
+
+
+def _redirect_after_authenticated_login(user_id):
+    """Post-login redirect; blocked users see the account_blocked page."""
+    if is_user_blocked(user_id):
+        return redirect(url_for('auth.account_blocked'))
+    return None
 
 @bp.route('/login/dev')
 def login_dev():
@@ -199,15 +213,20 @@ def login_dev():
     session['synd'] = synd
     session['roles'] = get_user_role_names(user_id)
     clear_login_flow()
-    touch_user_presence(user_id, force=True)
-    session[SESSION_PRESENCE_KEY] = time.time()
 
     log_activity(
         'login',
         details='Тестовый вход через login_dev',
         metadata={'source': 'dev', 'user_id': user_id, 'username': name}
     )
-    
+
+    blocked_redirect = _redirect_after_authenticated_login(user_id)
+    if blocked_redirect:
+        return blocked_redirect
+
+    touch_user_presence(user_id, force=True)
+    session[SESSION_PRESENCE_KEY] = time.time()
+
     flash('Тестовая авторизация выполнена успешно!', 'success')
     return redirect(url_for('profile.dashboard'))
 
@@ -514,6 +533,13 @@ def _handle_gwars_callback():
             metadata={'source': 'gwars', 'user_id': user_id, 'username': name}
         )
 
+        blocked_redirect = _redirect_after_authenticated_login(user_id)
+        if blocked_redirect:
+            return blocked_redirect
+
+        touch_user_presence(user_id, force=True)
+        session[SESSION_PRESENCE_KEY] = time.time()
+
         return_url = pop_return_url_after_login()
         return redirect(return_url or url_for('profile.dashboard'))
     except Exception as e:
@@ -521,6 +547,22 @@ def _handle_gwars_callback():
         log_error(f"Traceback: {traceback.format_exc()}")
         flash(f'Ошибка при входе: {str(e)}', 'error')
         return redirect(url_for('public.index'))
+
+@bp.route('/account/blocked')
+@require_login
+def account_blocked():
+    """Страница для заблокированных пользователей (единственный доступный раздел сайта)."""
+    load_request_block_info()
+    block_info = get_user_block_info(session['user_id'])
+    if not block_info:
+        return redirect(url_for('profile.dashboard'))
+    admins_moderators = list_admins_moderators_for_contact()
+    return render_template(
+        'account_blocked.html',
+        block_info=block_info,
+        admins_moderators=admins_moderators,
+    )
+
 
 @bp.route('/logout')
 def logout():

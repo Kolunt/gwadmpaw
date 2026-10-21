@@ -80,7 +80,9 @@ def create_app() -> Flask:
     init_csrf(app)
 
     from gwadm.services.presence import register_presence_tracking
+    from gwadm.services.user_block import register_blocked_user_gate
 
+    register_blocked_user_gate(app)
     register_presence_tracking(app)
 
     _init_database()

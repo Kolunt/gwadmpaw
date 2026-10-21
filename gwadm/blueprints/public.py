@@ -356,20 +356,11 @@ def rules():
 @bp.route('/contacts')
 def contacts():
     """Страница контактов - показывает администраторов/модераторов и пользователей со званиями."""
+    from gwadm.services.user_block import list_admins_moderators_for_contact
+
     conn = get_db_connection()
 
-    admins_moderators = conn.execute('''
-        SELECT DISTINCT u.*,
-               GROUP_CONCAT(DISTINCT r.name) as roles_list
-        FROM users u
-        INNER JOIN user_roles ur ON u.user_id = ur.user_id
-        INNER JOIN roles r ON ur.role_id = r.id
-        WHERE r.name IN ('admin', 'moderator')
-        GROUP BY u.user_id
-        ORDER BY
-            CASE WHEN r.name = 'admin' THEN 1 ELSE 2 END,
-            u.username
-    ''').fetchall()
+    admins_moderators_data = list_admins_moderators_for_contact(conn)
 
     users_with_titles = conn.execute('''
         SELECT DISTINCT u.*
@@ -392,13 +383,6 @@ def contacts():
         user_titles = get_user_titles(user['user_id'])
         user_dict['titles'] = user_titles
         users_with_titles_data.append(user_dict)
-
-    admins_moderators_data = []
-    for user in admins_moderators:
-        user_dict = dict(user)
-        user_roles = get_user_roles(user['user_id'])
-        user_dict['roles'] = user_roles
-        admins_moderators_data.append(user_dict)
 
     conn.close()
 
