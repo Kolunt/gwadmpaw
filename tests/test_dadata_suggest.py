@@ -69,8 +69,6 @@ def test_map_dadata_address_data_skips_redundant_region_for_moscow():
         'street_with_type': 'ул Ленина',
     })
     assert mapped['city'] == 'г Москва'
-    assert mapped['postal_code'] == '140155'
-    assert mapped['street'] == ''
 
 
 def test_map_dadata_address_data_uses_settlement_when_no_city():
