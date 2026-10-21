@@ -55,20 +55,40 @@ _LOCALITY_MARKERS = (
 )
 
 
+def _join_address_parts(*parts: str) -> str:
+    joined: list[str] = []
+    for part in parts:
+        text = (part or '').strip()
+        if text and text not in joined:
+            joined.append(text)
+    return ', '.join(joined)
+
+
 def _map_city(payload: dict) -> str:
     city = _str_field(payload.get('city'))
     settlement = _str_field(payload.get('settlement'))
     area = _str_field(payload.get('area'))
+    region = _str_field(payload.get('region'))
     if city and settlement:
-        return f'{_typed_address_part(payload, "city")}, {_typed_address_part(payload, "settlement")}'
+        return _join_address_parts(
+            _typed_address_part(payload, 'city'),
+            _typed_address_part(payload, 'settlement'),
+        )
     if city:
         return _typed_address_part(payload, 'city')
     if settlement:
-        if area:
-            return f'{_typed_address_part(payload, "area")}, {_typed_address_part(payload, "settlement")}'
-        return _typed_address_part(payload, 'settlement')
+        return _join_address_parts(
+            _typed_address_part(payload, 'region') if region else '',
+            _typed_address_part(payload, 'area') if area else '',
+            _typed_address_part(payload, 'settlement'),
+        )
     if area:
-        return _typed_address_part(payload, 'area')
+        return _join_address_parts(
+            _typed_address_part(payload, 'region') if region else '',
+            _typed_address_part(payload, 'area'),
+        )
+    if region:
+        return _typed_address_part(payload, 'region')
     return ''
 
 

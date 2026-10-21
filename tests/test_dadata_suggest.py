@@ -59,12 +59,27 @@ def test_map_dadata_address_data_joins_area_and_settlement_without_city():
     mapped = map_dadata_address_data({
         'postal_code': '347839',
         'country': 'Россия',
+        'region': 'Ростовская',
+        'region_with_type': 'Ростовская обл',
         'area': 'Каменский',
         'area_with_type': 'Каменский р-н',
         'settlement': 'Старая Станица',
         'settlement_with_type': 'хутор Старая Станица',
     })
-    assert mapped['city'] == 'Каменский р-н, хутор Старая Станица'
+    assert mapped['city'] == 'Ростовская обл, Каменский р-н, хутор Старая Станица'
+
+
+def test_map_dadata_address_data_includes_region_for_stanitsa_without_city():
+    mapped = map_dadata_address_data({
+        'country': 'Россия',
+        'region': 'Краснодарский',
+        'region_with_type': 'Краснодарский край',
+        'area': 'Анапский',
+        'area_with_type': 'Анапский р-н',
+        'settlement': 'Гостагаевская',
+        'settlement_with_type': 'ст-ца Гостагаевская',
+    })
+    assert mapped['city'] == 'Краснодарский край, Анапский р-н, ст-ца Гостагаевская'
 
 
 def test_map_dadata_address_data_enriches_city_from_display_when_settlement_missing():
