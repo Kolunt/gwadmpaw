@@ -123,7 +123,7 @@ systemctl --user start gwadm-rating-cache.service
 journalctl --user -u gwadm-rating-cache.service -n 20
 ```
 
-Рассылки из админки ставятся в очередь `broadcast_queue` и отправляются пакетами по timer. `/rating` читает из `user_rating_cache` (пересборка hourly).
+Рассылки из админки ставятся в очередь `broadcast_queue` и отправляются пакетами по timer. `/reputation` читает из `user_rating_cache` (пересборка hourly). Старый URL `/rating` отдаёт 301 на `/reputation`.
 
 Опционально в `.env`: `AVATAR_CACHE_MAX_MB=500`, `AVATAR_CACHE_MAX_AGE_DAYS=30`.
 

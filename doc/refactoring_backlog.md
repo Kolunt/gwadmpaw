@@ -46,7 +46,7 @@
 |----|--------|--------|------------|
 | R-201 | Пакет `gwadm/` (или `app/`) + `create_app()` factory | done | `gwadm/factory.py`, `app = create_app()` |
 | R-202 | Blueprint `auth` — `/login`, `/logout`, `/login/dev`, `/gwars-required`, verify_sign* | done | R-201 |
-| R-203 | Blueprint `public` — `/`, `/participants`, `/faq`, `/rules`, `/rating`, `/contacts` | done | R-201 |
+| R-203 | Blueprint `public` — `/`, `/participants`, `/faq`, `/rules`, `/reputation`, `/contacts` | done | R-201 |
 | R-204 | Blueprint `profile` — `/dashboard`, `/profile/*`, edit profile | done | R-201 |
 | R-205 | Blueprint `events` — события, регистрация, просмотр | done | R-201 |
 | R-206 | Blueprint `assignments` — задания, письма, чаты | done | R-201 |
@@ -131,8 +131,8 @@
 | ID | Задача | Статус | Триггер |
 |----|--------|--------|---------|
 | R-801 | Оценка миграции на PostgreSQL | cancelled | решение: не масштабируем сервер, SQLite достаточен |
-| R-802 | Фоновые задачи через systemd timer: рассылки, пересчёт рейтинга (не в HTTP-запросе) | done | `broadcast_queue`, `gwadm-broadcast-queue.timer` |
-| R-803 | Кэш рейтинга: материализованная таблица в **той же SQLite** + пересчёт по timer | done | `user_rating_cache`, `gwadm-rating-cache.timer` |
+| R-802 | Фоновые задачи через systemd timer: рассылки, пересчёт репутации (не в HTTP-запросе) | done | `broadcast_queue`, `gwadm-broadcast-queue.timer` |
+| R-803 | Кэш репутации: материализованная таблица в **той же SQLite** + пересчёт по timer | done | `user_rating_cache`, `gwadm-rating-cache.timer` |
 | R-804 | Аудит SQLite под нагрузку: индексы, число воркеров gunicorn, долгие запросы, `EXPLAIN QUERY PLAN` | done | `scripts/sqlite_audit.py`, weekly timer |
 | R-805 | Ротация/очистка avatar cache по порогу (дополнение к мониторингу R-705) | done | `cleanup_avatar_cache.py`, weekly timer |
 

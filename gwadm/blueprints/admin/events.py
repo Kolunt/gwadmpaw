@@ -82,7 +82,7 @@ def admin_event_create():
         award_id = request.form.get('award_id', '').strip()
         award_id = int(award_id) if award_id else None
         
-        # Получаем настройки рейтинга
+        # Получаем настройки репутации (rating_*)
         rating_registration = request.form.get('rating_registration', '').strip()
         rating_registration = int(rating_registration) if rating_registration else None
         rating_gift_not_sent = request.form.get('rating_gift_not_sent', '').strip()
@@ -225,7 +225,7 @@ def admin_event_view(event_id):
     # Преобразуем event в словарь для корректной работы в шаблоне
     event_dict = dict(event) if event else {}
     
-    # Получаем глобальные настройки рейтинга для сравнения
+    # Получаем глобальные настройки репутации для сравнения
     global_rating_registration = get_rating_setting('rating_event_registration', 1)
     global_rating_gift_not_sent = get_rating_setting('rating_event_gift_not_sent', 0)
     global_rating_gift_sent = get_rating_setting('rating_event_gift_sent', 0)
@@ -1780,7 +1780,7 @@ def admin_event_edit(event_id):
         award_id = request.form.get('award_id', '').strip()
         award_id = int(award_id) if award_id else None
         
-        # Получаем настройки рейтинга
+        # Получаем настройки репутации (rating_*)
         rating_registration = request.form.get('rating_registration', '').strip()
         rating_registration = int(rating_registration) if rating_registration else None
         rating_gift_not_sent = request.form.get('rating_gift_not_sent', '').strip()
@@ -1797,7 +1797,7 @@ def admin_event_edit(event_id):
             return render_template('admin/event_form.html', event=event, stages=EVENT_STAGES, existing_stages=stages_dict, awards=awards)
         
         try:
-            # Получаем старые настройки рейтинга до обновления
+            # Получаем старые настройки репутации до обновления
             old_event = conn.execute('SELECT rating_registration, rating_gift_not_sent, rating_gift_sent, rating_order_coefficient FROM events WHERE id = ?', (event_id,)).fetchone()
             
             previous_end = None
@@ -1894,7 +1894,7 @@ def admin_event_edit(event_id):
                 
                 previous_end = end_datetime or previous_end
             
-            # Если изменились настройки рейтинга, обновляем существующие события
+            # Если изменились настройки репутации, обновляем существующие события
             if old_event:
                 # Обновляем события регистрации
                 old_reg = old_event['rating_registration']

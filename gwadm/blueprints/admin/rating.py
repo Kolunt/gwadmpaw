@@ -1,4 +1,4 @@
-"""Admin: rating."""
+"""Admin: reputation (bubenchiki settings and detail)."""
 
 from flask import (
     Blueprint, flash, jsonify, redirect, render_template, request, session, url_for,
@@ -15,9 +15,10 @@ from gwadm.services.rating import (
 
 from gwadm.blueprints.admin import bp
 
+@bp.route('/reputation-settings/fix-points', methods=['POST'])
 @bp.route('/rating-settings/fix-points', methods=['POST'])
 @require_role('admin')
-def admin_rating_settings_fix_points():
+def admin_reputation_settings_fix_points():
     """Исправляет значения points в snowflake_events, преобразуя строки в числа"""
     conn = get_db_connection()
     try:
@@ -57,20 +58,25 @@ def admin_rating_settings_fix_points():
     finally:
         conn.close()
     
-    return redirect(url_for('admin.admin_rating_settings'))
+    return redirect(url_for('admin.admin_reputation_settings'))
 
 
-
-@bp.route('/rating-settings', methods=['GET', 'POST'])
+@bp.route('/rating-settings', methods=['GET'])
 @require_role('admin')
-def admin_rating_settings():
-    """Страница настроек рейтинга (цыфорки)"""
+def admin_rating_settings_legacy_redirect():
+    return redirect(url_for('admin.admin_reputation_settings'), code=301)
+
+
+@bp.route('/reputation-settings', methods=['GET', 'POST'])
+@require_role('admin')
+def admin_reputation_settings():
+    """Страница настроек репутации (цыфорки)"""
     conn = get_db_connection()
     
     if request.method == 'POST':
         action = request.form.get('action', 'save')  # 'save' или 'update'
         
-        # Обновляем настройки рейтинга
+        # Обновляем настройки репутации (ключи settings rating_*)
         settings_dict = {}
         for key in request.form:
             if key.startswith('setting_'):
@@ -183,12 +189,12 @@ def admin_rating_settings():
                 'success',
             )
         else:
-            flash('Настройки рейтинга успешно сохранены', 'success')
+            flash('Настройки репутации успешно сохранены', 'success')
         
         conn.close()
-        return redirect(url_for('admin.admin_rating_settings'))
+        return redirect(url_for('admin.admin_reputation_settings'))
     
-    # Получаем все настройки рейтинга
+    # Получаем все настройки репутации (category rating)
     rating_settings = conn.execute('''
         SELECT * FROM settings 
         WHERE category = 'rating' OR key LIKE 'rating_%'
@@ -285,9 +291,15 @@ def admin_rating_settings():
                          titles=titles)
 
 
-@bp.route('/rating/<int:user_id>')
+@bp.route('/rating/<int:user_id>', methods=['GET'])
 @require_role('admin')
-def admin_rating_detail(user_id):
+def admin_rating_detail_legacy_redirect(user_id):
+    return redirect(url_for('admin.admin_reputation_detail', user_id=user_id), code=301)
+
+
+@bp.route('/reputation/<int:user_id>')
+@require_role('admin')
+def admin_reputation_detail(user_id):
     conn = get_db_connection()
     try:
         user_row = conn.execute('''
@@ -297,7 +309,7 @@ def admin_rating_detail(user_id):
         ''', (user_id,)).fetchone()
         if not user_row:
             flash('Пользователь не найден', 'error')
-            return redirect(url_for('public.user_rating'))
+            return redirect(url_for('public.user_reputation'))
 
         user_dict = dict(user_row)
         _sync_contact_snowflakes(conn, user_dict)
@@ -336,15 +348,16 @@ def admin_rating_detail(user_id):
 
 
 
+@bp.route('/reputation/events/<int:event_id>/annul', methods=['POST'])
 @bp.route('/rating/events/<int:event_id>/annul', methods=['POST'])
 @require_role('admin')
-def admin_rating_event_annul(event_id):
+def admin_reputation_event_annul(event_id):
     conn = get_db_connection()
     try:
         event = conn.execute('SELECT id, user_id, active, manual_revoked FROM snowflake_events WHERE id = ?', (event_id,)).fetchone()
         if not event:
             flash('Запись не найдена', 'error')
-            return redirect(url_for('public.user_rating'))
+            return redirect(url_for('public.user_reputation'))
 
         user_id = event['user_id']
         if event['manual_revoked'] and not event['active']:
@@ -364,19 +377,19 @@ def admin_rating_event_annul(event_id):
     finally:
         conn.close()
 
-    return redirect(url_for('admin.admin_rating_detail', user_id=user_id))
+    return redirect(url_for('admin.admin_reputation_detail', user_id=user_id))
 
 
-
+@bp.route('/reputation/events/<int:event_id>/restore', methods=['POST'])
 @bp.route('/rating/events/<int:event_id>/restore', methods=['POST'])
 @require_role('admin')
-def admin_rating_event_restore(event_id):
+def admin_reputation_event_restore(event_id):
     conn = get_db_connection()
     try:
         event = conn.execute('SELECT id, user_id, manual_revoked FROM snowflake_events WHERE id = ?', (event_id,)).fetchone()
         if not event:
             flash('Запись не найдена', 'error')
-            return redirect(url_for('public.user_rating'))
+            return redirect(url_for('public.user_reputation'))
 
         user_id = event['user_id']
         conn.execute('''
@@ -393,4 +406,4 @@ def admin_rating_event_restore(event_id):
     finally:
         conn.close()
 
-    return redirect(url_for('admin.admin_rating_detail', user_id=user_id))
+    return redirect(url_for('admin.admin_reputation_detail', user_id=user_id))

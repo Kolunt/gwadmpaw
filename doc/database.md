@@ -134,13 +134,13 @@ def get_db_connection():
 
 Еженедельный `scripts/sqlite_audit.py` (timer `gwadm-sqlite-audit`) пишет в journalctl:
 - размер `database.db`, `journal_mode`, `page_count`;
-- `EXPLAIN QUERY PLAN` для `/rating` (кэш и live);
+- `EXPLAIN QUERY PLAN` для `/reputation` (кэш и live);
 - список индексов на `snowflake_events`, `users`, `user_rating_cache`;
 - предупреждение, если `user_rating_cache` пуст.
 
 Рекомендации для gwadm.ru: **2 worker** gunicorn (см. `deploy/gwadm-user.service`), не увеличивать без необходимости — SQLite один writer.
 
-Кэш рейтинга: таблица `user_rating_cache`, пересборка `scripts/rebuild_rating_cache.py` (hourly). Очередь рассылок: `broadcast_queue`.
+Кэш репутации: таблица `user_rating_cache`, пересборка `scripts/rebuild_rating_cache.py` (hourly). Очередь рассылок: `broadcast_queue`.
 
 ## Структура базы данных
 
@@ -227,7 +227,7 @@ Copy-Item database.db "database_$(Get-Date -Format 'yyyyMMdd').db"
 | `004_seed_data.py` | Роли, права, настройки по умолчанию, seed-данные |
 | `008_assignment_viewed.py` | `santa_viewed_at`, `recipient_viewed_at` на `event_assignments` |
 | `009_profile_max_and_policy.py` | Колонка `max` в `users` и `event_registration_details`; настройка `profile_data_policy` (JSON) |
-| `010_rating_contact_max.py` | Настройка `rating_contact_max` (очки за заполненный Max в рейтинге) |
+| `010_rating_contact_max.py` | Настройка `rating_contact_max` (очки за заполненный Max в репутации) |
 
 Колонка **`users.max`** / **`event_registration_details.max`** — номер телефона в мессенджере Max.
 

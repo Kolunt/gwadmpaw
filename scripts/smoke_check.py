@@ -59,7 +59,7 @@ def main() -> int:
     if response.status_code != 200:
         errors.append(f"GET / expected 200, got {response.status_code}")
 
-    for path in ("/participants", "/faq", "/rules", "/rating", "/contacts"):
+    for path in ("/participants", "/faq", "/rules", "/reputation", "/contacts"):
         response = client.get(path)
         if response.status_code != 200:
             errors.append(f"GET {path} expected 200, got {response.status_code}")

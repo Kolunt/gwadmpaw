@@ -20,7 +20,7 @@ ADMIN_LIST_ROUTES = [
     ('GET', '/admin/letters'),
     ('GET', '/admin/rules'),
     ('GET', '/admin/broadcasts'),
-    ('GET', '/admin/rating-settings'),
+    ('GET', '/admin/reputation-settings'),
     ('GET', '/admin/titles'),
     ('GET', '/admin/hero-whispers'),
     ('GET', '/admin/letters/archived'),
@@ -94,7 +94,8 @@ def _routes(ids):
         ('GET', '/faq'),
         ('GET', '/rules'),
         ('GET', '/contacts'),
-        ('GET', '/rating'),
+        ('GET', '/reputation'),
+        ('GET', '/rating', 301),
         ('GET', '/events'),
         ('GET', '/login'),
         ('GET', '/gwars-required'),
@@ -125,7 +126,7 @@ def _routes(ids):
             ('GET', f'/admin/users/{uid}/edit', 200),
             ('GET', f'/admin/users/{uid}/roles', 200),
             ('GET', f'/admin/users/{uid}/titles', 200),
-            ('GET', f'/admin/rating/{uid}', 200),
+            ('GET', f'/admin/reputation/{uid}', 200),
         ])
     if aid:
         admin.append(('GET', f'/admin/awards/{aid}/edit', 200))
@@ -190,8 +191,10 @@ def run_checks(flask_app=None):
                 return
         ok += 1
 
-    for method, path in public:
-        check('public', method, path, 200)
+    for entry in public:
+        method, path, *rest = entry
+        expect = rest[0] if rest else 200
+        check('public', method, path, expect)
 
     for method, path in user:
         check('anon-user', method, path, 302)

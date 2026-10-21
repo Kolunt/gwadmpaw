@@ -1,12 +1,12 @@
 {% extends "admin/base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
-{% block title %}Настройки рейтинга (Цыфорки) - Админ-панель{% endblock %}
+{% block title %}Настройки репутации (Цыфорки) - Админ-панель{% endblock %}
 
 {% block admin_content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>🔔 Настройки рейтинга (Цыфорки)</h1>
+        <h1>🔔 Настройки репутации (Цыфорки)</h1>
         <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
     </div>
     
@@ -267,7 +267,7 @@
         <div class="form-actions">
             <button type="submit" class="btn btn-primary" onclick="document.getElementById('form-action').value='save';">Сохранить настройки</button>
             <button type="submit" class="btn btn-warning" onclick="if(confirm('Вы уверены? Это пересчитает все уже начисленные очки на основе новых настроек.')) { document.getElementById('form-action').value='update'; } else { return false; }">Обновить и пересчитать</button>
-            <form method="POST" action="{{ url_for('admin.admin_rating_settings_fix_points') }}" style="display: inline;" onsubmit="return confirm('Исправить значения points в базе данных? Это преобразует все строковые значения в числа.');">
+            <form method="POST" action="{{ url_for('admin.admin_reputation_settings_fix_points') }}" style="display: inline;" onsubmit="return confirm('Исправить значения points в базе данных? Это преобразует все строковые значения в числа.');">
         {{ csrf_input() }}
                 <button type="submit" class="btn btn-outline-warning">Исправить данные в БД</button>
             </form>

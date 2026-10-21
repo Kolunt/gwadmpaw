@@ -15,11 +15,11 @@
         </a>
         <a href="{{ url_for('admin.admin_users', filter='rating_positive') }}" class="admin-dashboard-card admin-dashboard-card-link">
             <div class="stat-number">{{ stats.rating_positive }}</div>
-            <div class="stat-label">Рейтинг +</div>
+            <div class="stat-label">Репутация +</div>
         </a>
         <a href="{{ url_for('admin.admin_users', filter='rating_negative') }}" class="admin-dashboard-card admin-dashboard-card-link">
             <div class="stat-number">{{ stats.rating_negative }}</div>
-            <div class="stat-label">Рейтинг −</div>
+            <div class="stat-label">Репутация −</div>
         </a>
         <a href="{{ url_for('admin.admin_users', filter='never_participated') }}" class="admin-dashboard-card admin-dashboard-card-link">
             <div class="stat-number">{{ stats.never_participated }}</div>
@@ -75,7 +75,7 @@
         </a>
         <div class="admin-dashboard-card">
             <div class="stat-number">{% if stats.rating_cache_populated %}OK{% else %}!{% endif %}</div>
-            <div class="stat-label">Кэш рейтинга</div>
+            <div class="stat-label">Кэш репутации</div>
             <p class="stat-hint">
                 {% if stats.rating_cache_updated_at %}{{ stats.rating_cache_updated_at }}{% else %}пусто{% endif %}
             </p>

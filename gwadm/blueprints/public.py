@@ -1,11 +1,11 @@
-"""Public pages: landing, participants, FAQ, rules, contacts, rating."""
+"""Public pages: landing, participants, FAQ, rules, contacts, reputation."""
 
 import json
 import traceback
 from collections import OrderedDict
 from datetime import datetime
 
-from flask import Blueprint, make_response, render_template, request, session
+from flask import Blueprint, make_response, redirect, render_template, request, session, url_for
 
 from gwadm.db import get_db_connection
 from gwadm.logging_config import log_debug, log_error
@@ -390,9 +390,9 @@ def contacts():
     )
 
 
-@bp.route('/rating')
-def user_rating():
-    """Простая система рейтинга участников (прямая ссылка)."""
+@bp.route('/reputation')
+def user_reputation():
+    """Публичная таблица репутации участников (бубенчики)."""
     roles = session.get('roles')
     if isinstance(roles, (list, tuple, set)):
         is_admin = 'admin' in roles
@@ -438,7 +438,7 @@ def user_rating():
     has_next = page < total_pages
 
     resp = make_response(render_template(
-        'rating.html',
+        'reputation.html',
         rating_rows=rating_rows,
         is_admin=is_admin,
         page=page,
@@ -452,3 +452,10 @@ def user_rating():
     resp.headers['Pragma'] = 'no-cache'
     resp.headers['Expires'] = '0'
     return resp
+
+
+@bp.route('/rating')
+def user_rating_legacy_redirect():
+    """301 со старого URL /rating на /reputation."""
+    target = url_for('public.user_reputation', **request.args)
+    return redirect(target, code=301)

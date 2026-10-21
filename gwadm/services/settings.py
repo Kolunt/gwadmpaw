@@ -49,7 +49,7 @@ def set_setting(key, value, category=None):
 
 
 def get_rating_setting(key, default=1):
-    """Получает настройку рейтинга как целое число."""
+    """Получает настройку репутации (rating_*) как целое число."""
     try:
         value = get_setting(key, str(default))
         return int(value) if value else default

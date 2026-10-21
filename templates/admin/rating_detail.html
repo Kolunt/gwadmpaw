@@ -14,7 +14,7 @@
                 </p>
             </div>
             <div style="display: flex; gap: 0.75rem;">
-                <a href="{{ url_for('public.user_rating') }}" class="btn btn-secondary">← К рейтингу</a>
+                <a href="{{ url_for('public.user_reputation') }}" class="btn btn-secondary">← К репутации</a>
                 <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}" class="btn btn-outline-secondary">Профиль</a>
             </div>
         </div>
@@ -71,13 +71,13 @@
                             </td>
                             <td data-label="Действия">
                                 {% if event.active %}
-                                <form method="post" action="{{ url_for('admin.admin_rating_event_annul', event_id=event.id) }}" onsubmit="return confirm('Аннулировать бубенчик?');">
+                                <form method="post" action="{{ url_for('admin.admin_reputation_event_annul', event_id=event.id) }}" onsubmit="return confirm('Аннулировать бубенчик?');">
         {{ csrf_input() }}
                                     <button type="submit" class="btn btn-outline-danger btn-sm">Аннулировать</button>
                                 </form>
                                 {% else %}
                                     {% if event.manual_revoked %}
-                                    <form method="post" action="{{ url_for('admin.admin_rating_event_restore', event_id=event.id) }}" onsubmit="return confirm('Восстановить бубенчик?');">
+                                    <form method="post" action="{{ url_for('admin.admin_reputation_event_restore', event_id=event.id) }}" onsubmit="return confirm('Восстановить бубенчик?');">
         {{ csrf_input() }}
                                         <button type="submit" class="btn btn-outline-success btn-sm">Восстановить</button>
                                     </form>

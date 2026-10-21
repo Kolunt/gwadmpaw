@@ -19,8 +19,8 @@ from gwadm.migrations.runner import column_exists
 from gwadm.services.presence import ONLINE_WINDOW_SECONDS
 
 ADMIN_USERS_LIST_FILTERS = {
-    'rating_positive': 'Рейтинг +',
-    'rating_negative': 'Рейтинг −',
+    'rating_positive': 'Репутация +',
+    'rating_negative': 'Репутация −',
     'never_participated': 'Без участия в мероприятиях',
     'online': 'Онлайн сейчас',
 }
