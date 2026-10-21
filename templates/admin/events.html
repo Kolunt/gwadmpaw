@@ -51,11 +51,11 @@
                             <a href="{{ url_for('admin.admin_event_edit', event_id=event.id) }}" class="btn btn-sm btn-primary" title="Редактировать">
                                 <span style="font-size: 1.2em;">✏️</span>
                             </a>
-                            <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Распределение (позитив)">
-                                <span style="font-size: 1.2em;">🎲</span>
-                            </a>
                             <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Участники (админ)">
                                 <span style="font-size: 1.2em;">👥</span>
+                            </a>
+                            <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Распределение (позитив)">
+                                <span style="font-size: 1.2em;">🎲</span>
                             </a>
                             <a href="{{ url_for('admin.admin_event_progress', event_id=event.id) }}" class="btn btn-sm btn-secondary" title="Прогресс обмена">
                                 <span style="font-size: 1.2em;">📊</span>

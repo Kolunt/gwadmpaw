@@ -76,10 +76,9 @@
     color: var(--text-primary);
 }
 
-[data-theme="admin"] .sidebar-section-site {
+[data-theme="admin"] .sidebar-link.sidebar-link-site {
     border-top: 1px solid var(--border-color);
-    margin-top: 1rem;
-    padding-top: 0.5rem;
+    margin-top: 0.5rem;
 }
 
 [data-theme="admin"] .sidebar-link-admin-entry {
@@ -2387,6 +2386,19 @@ a.event-card-footer-link:focus-visible {
     background-color: #c82333;
 }
 
+.btn-success {
+    background-color: #2f8f57;
+    color: #fff;
+    border: 1px solid #267347;
+}
+
+.btn-success:hover {
+    background-color: #267347;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+}
+
 /* Badges */
 /* Table Controls */
 .table-controls {
@@ -4288,6 +4300,38 @@ input[type="datetime-local"].datetime-local-input::-webkit-calendar-picker-indic
 .admin-header .btn span {
     display: inline-block;
     line-height: 1;
+}
+
+.admin-header .action-buttons.event-header-actions .btn {
+    width: auto;
+    min-width: unset;
+    height: auto;
+    min-height: 2.5rem;
+    padding: 0.55rem 1rem;
+    line-height: 1.25;
+    white-space: normal;
+}
+
+.admin-header .btn-admin-review {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-weight: 600;
+}
+
+.admin-header .btn-admin-review__icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+[data-theme="admin"] .admin-header .btn-admin-review {
+    background-color: #3a9d63;
+    border-color: #2f8f57;
+}
+
+[data-theme="admin"] .admin-header .btn-admin-review:hover {
+    background-color: #2f8f57;
 }
 
 .empty-state .btn {
