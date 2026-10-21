@@ -3869,6 +3869,10 @@ a.event-card-footer-link:focus-visible {
     font-style: italic;
 }
 
+.form-hint[hidden] {
+    display: none;
+}
+
 .form-input,
 .form-textarea {
     width: 100%;
@@ -4457,6 +4461,20 @@ input[type="datetime-local"].datetime-local-input::-webkit-calendar-picker-indic
 
 .modal-large {
     max-width: 900px;
+}
+
+/* Registration modal: tight inset instead of centered 90% + 5% margin */
+#registration-modal {
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0.5rem;
+    box-sizing: border-box;
+}
+
+#registration-modal .modal-content {
+    margin: 0;
+    width: 100%;
+    max-height: calc(100dvh - 1rem);
 }
 
 .modal-header {
@@ -6658,29 +6676,33 @@ html.dark .avatar-candidate-img {
 }
 
 @media (max-width: 640px) {
-     .modal-footer {
--        justify-content: space-between;
--        gap: 0.5rem;
+    #registration-modal {
+        padding: 0.25rem;
+    }
+
+    #registration-modal .modal-content {
+        max-height: calc(100dvh - 0.5rem);
+        border-radius: 6px;
+    }
+
+    .modal-footer {
         justify-content: space-between;
         gap: 0.4rem;
-     }
- 
-     .modal-footer .btn {
--        flex: 1 1 0;
--        min-width: 0;
--        padding: 0.65rem 0.75rem;
+    }
+
+    .modal-footer .btn {
         flex: 1 1 0;
         min-width: 0;
         padding: 0.55rem 0.6rem;
         white-space: normal;
-     }
+    }
 
     .modal-footer .modal-primary-btn,
     .modal-footer #registration-tertiary-btn {
         min-width: 0;
         flex: 1 1 0;
     }
- }
+}
 
 .assignment-finished-note {
     background: rgba(255, 193, 7, 0.12);
