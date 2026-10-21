@@ -1,5 +1,7 @@
 """Default content and settings helpers."""
 
+from datetime import datetime
+
 from gwadm.db import get_db_connection
 from gwadm.logging_config import log_debug, log_error
 from gwadm.services.settings import get_setting

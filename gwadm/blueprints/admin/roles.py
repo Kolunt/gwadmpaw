@@ -8,6 +8,12 @@ from gwadm.decorators import require_login, require_role, require_any_role
 from gwadm.logging_config import log_error, log_debug
 
 from gwadm.blueprints.admin import bp
+from gwadm.services.permissions import (
+    assign_permission_to_role,
+    get_all_permissions,
+    get_role_permissions,
+    remove_permission_from_role,
+)
 
 @bp.route('/roles')
 @require_role('admin')

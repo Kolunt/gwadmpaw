@@ -20,3 +20,5 @@ jobs:
         run: pytest -q
       - name: Run smoke check
         run: python scripts/smoke_check.py
+      - name: Verify web routes
+        run: python scripts/verify_web_routes.py

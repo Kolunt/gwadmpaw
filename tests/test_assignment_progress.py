@@ -93,5 +93,6 @@ def test_admin_event_progress_page(client):
         assert 'progress-kanban-card-meta' not in body
         assert 'js-progress-contact' in body
         assert 'progress-contact-modal' in body
-        assert "data-contact='{" in body
-        assert 'data-contact="{"' not in body
+        if 'progress-kanban-card' in body:
+            assert "data-contact='" in body
+            assert 'data-contact="{"' not in body

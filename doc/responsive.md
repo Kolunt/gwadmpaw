@@ -111,5 +111,6 @@ DevTools, ширины: **390**, **768**, **1024**, **1280** px.
 python -m pytest tests/test_multiline_text.py tests/test_letter_navigation.py tests/test_responsive_layout.py -v
 python -m pytest -q
 python scripts/smoke_check.py
-python scripts/verify_web_routes.py
+python scripts/verify_web_routes.py   # GET всех основных и админ-форм
+# на проде после рефакторинга: bash scripts/audit_prod_errors.sh  (120 ч)
 ```

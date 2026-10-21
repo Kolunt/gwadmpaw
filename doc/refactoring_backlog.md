@@ -216,3 +216,4 @@ gwadmpaw/
 | 2025-09-25 | R-705: `monitor_prod.sh` + `gwadm-monitor.timer` (health, disk, avatar cache, journal) |
 | 2026-09-25 | Фаза 8 переформулирована: R-801 cancelled (без PostgreSQL); R-802–R-805 — оптимизация в рамках SQLite + systemd на текущем VPS |
 | 2026-09-25 | R-802–R-805: rating cache, broadcast queue, sqlite audit, avatar cleanup (v1.29.0) |
+| 2026-10-21 | Расширен `verify_web_routes.py` (админ create/edit), `audit_prod_errors.sh` (120 ч), CI verify; фиксы импортов roles/faq |

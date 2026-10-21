@@ -22,7 +22,24 @@ pip install -r requirements-dev.txt
 python app.py
 ```
 
-Проверка: `python -m pytest -q`, `python scripts/smoke_check.py`.
+Проверка: `python -m pytest -q`, `python scripts/smoke_check.py`, `python scripts/verify_web_routes.py`.
+
+## Диагностика 500 после рефакторинга
+
+**Локально (до push):**
+
+1. `python scripts/verify_web_routes.py` — GET публичных, пользовательских и админ-маршрутов (включая формы create/edit); ловит 500 и страницы с Traceback в теле ответа.
+2. `python -m pytest -q` и `python scripts/smoke_check.py`.
+
+**На проде (сводка за 120 часов):**
+
+```bash
+ssh gwadmpaw-prod "cd ~/gwadm && bash scripts/audit_prod_errors.sh"
+```
+
+Переменные: `AUDIT_HOURS=120` (по умолчанию), `AUDIT_UNIT=gwadm`. Скрипт информационный (exit 0), не заменяет [`scripts/monitor_prod.sh`](scripts/monitor_prod.sh) (окно 1 ч).
+
+После исправлений по отчёту — снова локальный `verify_web_routes`, деплой, [`scripts/post_deploy_smoke.sh`](scripts/post_deploy_smoke.sh), при необходимости повторный audit.
 
 ## Деплой на прод
 
