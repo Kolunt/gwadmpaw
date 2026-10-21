@@ -3908,6 +3908,35 @@ a.event-card-footer-link:focus-visible {
     gap: 1rem;
 }
 
+.datetime-field-wrap {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+.datetime-field-wrap .datetime-local-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.datetime-field-wrap .datetime-picker-btn {
+    flex-shrink: 0;
+    align-self: stretch;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+input[type="datetime-local"].datetime-local-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.85;
+    padding: 0.25rem;
+}
+
+[data-theme="admin"] input[type="datetime-local"].datetime-local-input::-webkit-calendar-picker-indicator {
+    filter: invert(0.9);
+    opacity: 1;
+}
+
 .stage-info {
     color: var(--text-secondary);
     font-style: italic;
@@ -4136,6 +4165,24 @@ a.event-card-footer-link:focus-visible {
     gap: 0.5rem;
     flex-wrap: wrap;
     align-items: center;
+    flex-direction: row;
+}
+
+.admin-table .action-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.admin-table .action-buttons form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.admin-table .action-buttons .btn,
+.admin-table .action-buttons .btn-sm {
+    width: auto;
+    flex: 0 0 auto;
 }
 
 .btn-sm {
@@ -4590,11 +4637,14 @@ html.dark .avatar-candidate-img {
         padding: 1rem;
     }
     
-    .action-buttons {
+    .admin-header .action-buttons,
+    .event-header-actions .action-buttons {
         flex-direction: column;
+        align-items: stretch;
     }
     
-    .action-buttons .btn {
+    .admin-header .action-buttons .btn,
+    .event-header-actions .action-buttons .btn {
         width: 100%;
     }
 }

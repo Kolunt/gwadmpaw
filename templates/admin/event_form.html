@@ -165,14 +165,17 @@
                             Дата и время начала
                             {% if stage.required %}<span class="required">*</span>{% endif %}
                         </label>
-                        <input 
-                            type="datetime-local" 
-                            id="stage_{{ stage.type }}_start" 
-                            name="stage_{{ stage.type }}_start" 
-                            value="{% if existing_stage and existing_stage.start_datetime %}{{ existing_stage.start_datetime.replace(' ', 'T')[:16] }}{% endif %}"
-                            class="form-input"
-                            {% if stage.required %}required{% endif %}
-                        >
+                        <div class="datetime-field-wrap">
+                            <input 
+                                type="datetime-local" 
+                                id="stage_{{ stage.type }}_start" 
+                                name="stage_{{ stage.type }}_start" 
+                                value="{% if existing_stage and existing_stage.start_datetime %}{{ existing_stage.start_datetime.replace(' ', 'T')[:16] }}{% endif %}"
+                                class="form-input datetime-local-input"
+                                {% if stage.required %}required{% endif %}
+                            >
+                            <button type="button" class="btn btn-secondary btn-sm datetime-picker-btn" aria-label="Выбрать дату и время" title="Календарь">📅</button>
+                        </div>
                         <small class="form-hint">Этап закончится, когда начнется следующий этап</small>
                     </div>
                     {% endif %}
@@ -183,14 +186,17 @@
                             Дата и время окончания
                             {% if stage.required %}<span class="required">*</span>{% endif %}
                         </label>
-                        <input 
-                            type="datetime-local" 
-                            id="stage_{{ stage.type }}_end" 
-                            name="stage_{{ stage.type }}_end" 
-                            value="{% if existing_stage and existing_stage.end_datetime %}{{ existing_stage.end_datetime.replace(' ', 'T')[:16] }}{% endif %}"
-                            class="form-input"
-                            {% if stage.required %}required{% endif %}
-                        >
+                        <div class="datetime-field-wrap">
+                            <input 
+                                type="datetime-local" 
+                                id="stage_{{ stage.type }}_end" 
+                                name="stage_{{ stage.type }}_end" 
+                                value="{% if existing_stage and existing_stage.end_datetime %}{{ existing_stage.end_datetime.replace(' ', 'T')[:16] }}{% endif %}"
+                                class="form-input datetime-local-input"
+                                {% if stage.required %}required{% endif %}
+                            >
+                            <button type="button" class="btn btn-secondary btn-sm datetime-picker-btn" aria-label="Выбрать дату и время" title="Календарь">📅</button>
+                        </div>
                     </div>
                     {% endif %}
                     
@@ -212,5 +218,9 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin-event-form.js') }}?v={{ app_config.VERSION }}"></script>
 {% endblock %}
 
