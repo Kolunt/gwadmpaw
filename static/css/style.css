@@ -1211,6 +1211,15 @@ html.sidebar-collapsed .sidebar-collapse-icon {
     flex-wrap: wrap;
 }
 
+.hero-actions .btn-hero-assignment {
+    padding: 1.15rem 2.4rem;
+    font-size: 1.35rem;
+    font-weight: 600;
+    line-height: 1.25;
+    min-height: 4.75rem;
+    min-width: 17rem;
+}
+
 .btn-large {
     padding: 1rem 2rem;
     font-size: 1.1rem;

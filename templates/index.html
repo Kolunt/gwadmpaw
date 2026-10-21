@@ -11,7 +11,7 @@
         {% if session.user_id and assignments_sidebar_pulse %}
         <p class="hero-description">У вас есть задание!</p>
         <div class="hero-actions">
-            <a href="{{ url_for('assignments.assignments') }}" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">➡️Задание📋‼️</a>
+            <a href="{{ url_for('assignments.assignments') }}" class="btn btn-light btn-hero-assignment letter-button-animated" style="color: #333;">➡️Задание📋‼️</a>
         </div>
         {% else %}
         <p class="hero-description">
