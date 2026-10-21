@@ -36,12 +36,39 @@ def test_map_dadata_address_data_joins_city_and_settlement():
     mapped = map_dadata_address_data({
         'postal_code': '140155',
         'country': 'Россия',
+        'region': 'Московская',
+        'region_with_type': 'Московская обл',
         'city': 'Раменское',
         'city_with_type': 'г Раменское',
         'settlement': 'Донино',
         'settlement_with_type': 'деревня Донино',
     })
-    assert mapped['city'] == 'г Раменское, деревня Донино'
+    assert mapped['city'] == 'Московская обл, г Раменское, деревня Донино'
+
+
+def test_map_dadata_address_data_joins_region_city_and_village():
+    mapped = map_dadata_address_data({
+        'country': 'Россия',
+        'region': 'Московская',
+        'region_with_type': 'Московская обл',
+        'city': 'Раменское',
+        'city_with_type': 'г Раменское',
+        'settlement': 'Гжель',
+        'settlement_with_type': 'село Гжель',
+    })
+    assert mapped['city'] == 'Московская обл, г Раменское, село Гжель'
+
+
+def test_map_dadata_address_data_skips_redundant_region_for_moscow():
+    mapped = map_dadata_address_data({
+        'country': 'Россия',
+        'region': 'Москва',
+        'region_with_type': 'г Москва',
+        'city': 'Москва',
+        'city_with_type': 'г Москва',
+        'street_with_type': 'ул Ленина',
+    })
+    assert mapped['city'] == 'г Москва'
     assert mapped['postal_code'] == '140155'
     assert mapped['street'] == ''
 

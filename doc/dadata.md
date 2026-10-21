@@ -49,7 +49,7 @@
 |------------|----------------|
 | `postal_code` | `postal_code` |
 | `country` | `country` |
-| `city` | Склейка частей (с типом): `city` + `settlement`; без города — `region` + `area` + `settlement` (что есть); иначе `area` / `settlement` / `city` / `region`. Если в `data` нет `settlement`, но в тексте подсказки есть хутор/деревня/станица и т.п. — последний фрагмент строки подсказки дописывается |
+| `city` | Склейка частей (с типом): при `city` + `settlement` — `region` (если не дублирует город) + `city` + `settlement`; без города — `region` + `area` + `settlement`; иначе отдельные части. Хвост из текста подсказки — если нет `settlement` в `data`, но есть маркеры хутор/село/станица |
 | `street` | `street_with_type` или `street` |
 | `house` | `house` |
 | `building` | `block` |

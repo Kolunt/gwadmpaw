@@ -64,6 +64,29 @@ def _join_address_parts(*parts: str) -> str:
     return ', '.join(joined)
 
 
+def _region_redundant_with_city(payload: dict) -> bool:
+    region = _str_field(payload.get('region'))
+    city = _str_field(payload.get('city'))
+    if not region or not city:
+        return False
+    if region.lower() == city.lower():
+        return True
+    region_with_type = _str_field(payload.get('region_with_type')).lower()
+    city_with_type = _typed_address_part(payload, 'city').lower()
+    if region_with_type and city_with_type:
+        if region_with_type == city_with_type:
+            return True
+        if region_with_type in city_with_type or city_with_type in region_with_type:
+            return True
+    return False
+
+
+def _region_part_for_locality(payload: dict) -> str:
+    if not _str_field(payload.get('region')) or _region_redundant_with_city(payload):
+        return ''
+    return _typed_address_part(payload, 'region')
+
+
 def _map_city(payload: dict) -> str:
     city = _str_field(payload.get('city'))
     settlement = _str_field(payload.get('settlement'))
@@ -71,11 +94,15 @@ def _map_city(payload: dict) -> str:
     region = _str_field(payload.get('region'))
     if city and settlement:
         return _join_address_parts(
+            _region_part_for_locality(payload),
             _typed_address_part(payload, 'city'),
             _typed_address_part(payload, 'settlement'),
         )
     if city:
-        return _typed_address_part(payload, 'city')
+        return _join_address_parts(
+            _region_part_for_locality(payload),
+            _typed_address_part(payload, 'city'),
+        )
     if settlement:
         return _join_address_parts(
             _typed_address_part(payload, 'region') if region else '',
