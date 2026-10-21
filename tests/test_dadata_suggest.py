@@ -49,6 +49,33 @@ def test_map_dadata_address_data_uses_settlement_when_no_city():
     assert mapped['city'] == 'деревня Донино'
 
 
+def test_map_dadata_address_data_joins_area_and_settlement_without_city():
+    mapped = map_dadata_address_data({
+        'postal_code': '347839',
+        'country': 'Россия',
+        'area': 'Каменский',
+        'area_with_type': 'Каменский р-н',
+        'settlement': 'Старая Станица',
+        'settlement_with_type': 'хутор Старая Станица',
+    })
+    assert mapped['city'] == 'Каменский р-н, хутор Старая Станица'
+
+
+def test_map_dadata_address_data_enriches_city_from_display_when_settlement_missing():
+    mapped = map_dadata_address_data(
+        {
+            'postal_code': '347839',
+            'country': 'Россия',
+            'area': 'Каменский',
+            'area_with_type': 'Каменский р-н',
+            'city': 'Каменск-Шахтинский',
+            'city_with_type': 'г Каменск-Шахтинский',
+        },
+        display_value='347839, Ростовская обл, Каменский р-н, хутор Старая Станица',
+    )
+    assert mapped['city'] == 'г Каменск-Шахтинский, хутор Старая Станица'
+
+
 def test_suggest_address_parses_response(monkeypatch):
     monkeypatch.setattr(
         'gwadm.services.dadata.is_dadata_address_enabled',

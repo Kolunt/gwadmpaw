@@ -215,10 +215,11 @@ def dadata_suggest_address():
         if not isinstance(item, dict):
             continue
         data = item.get('data') if isinstance(item.get('data'), dict) else {}
+        display = item.get('unrestricted_value') or item.get('value') or ''
         suggestions.append({
             'value': item.get('value') or '',
-            'label': item.get('unrestricted_value') or item.get('value') or '',
-            'fields': map_dadata_address_data(data),
+            'label': display,
+            'fields': map_dadata_address_data(data, display_value=display),
         })
 
     return jsonify({'success': True, 'suggestions': suggestions})

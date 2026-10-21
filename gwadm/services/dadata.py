@@ -24,27 +24,77 @@ def _str_field(value) -> str:
     return str(value).strip()
 
 
+def _typed_address_part(payload: dict, key: str) -> str:
+    return _str_field(payload.get(f'{key}_with_type')) or _str_field(payload.get(key))
+
+
+_LOCALITY_MARKERS = (
+    'хутор',
+    'деревня',
+    'село',
+    'посёлок',
+    'поселок',
+    'пгт',
+    'рп',
+    'ст-ца',
+    'станица',
+    'мкр',
+    'аул',
+    'сл',
+)
+
+
 def _map_city(payload: dict) -> str:
     city = _str_field(payload.get('city'))
     settlement = _str_field(payload.get('settlement'))
+    area = _str_field(payload.get('area'))
     if city and settlement:
-        city_part = _str_field(payload.get('city_with_type')) or city
-        settlement_part = _str_field(payload.get('settlement_with_type')) or settlement
-        return f'{city_part}, {settlement_part}'
+        return f'{_typed_address_part(payload, "city")}, {_typed_address_part(payload, "settlement")}'
     if city:
-        return _str_field(payload.get('city_with_type')) or city
+        return _typed_address_part(payload, 'city')
     if settlement:
-        return _str_field(payload.get('settlement_with_type')) or settlement
+        if area:
+            return f'{_typed_address_part(payload, "area")}, {_typed_address_part(payload, "settlement")}'
+        return _typed_address_part(payload, 'settlement')
+    if area:
+        return _typed_address_part(payload, 'area')
     return ''
 
 
-def map_dadata_address_data(data: dict | None) -> dict:
+def _enrich_city_from_display(city: str, payload: dict, display_value: str | None) -> str:
+    """Append locality from suggestion text when DaData omits settlement in structured data."""
+    if _str_field(payload.get('settlement')):
+        return city
+    street = _str_field(payload.get('street_with_type')) or _str_field(payload.get('street'))
+    if street:
+        return city
+    value = _str_field(display_value)
+    if not value:
+        return city
+    parts = [p.strip() for p in value.split(',') if p.strip()]
+    if parts and parts[0].isdigit() and len(parts[0]) == 6:
+        parts = parts[1:]
+    if not parts:
+        return city
+    tail = parts[-1]
+    tail_lower = tail.lower()
+    if not any(marker in tail_lower for marker in _LOCALITY_MARKERS):
+        return city
+    if city and tail_lower in city.lower():
+        return city
+    if city:
+        return f'{city}, {tail}'
+    return tail
+
+
+def map_dadata_address_data(data: dict | None, display_value: str | None = None) -> dict:
     payload = data or {}
     street = payload.get('street_with_type') or payload.get('street') or ''
+    city = _enrich_city_from_display(_map_city(payload), payload, display_value)
     return {
         'postal_code': _str_field(payload.get('postal_code')),
         'country': _str_field(payload.get('country')),
-        'city': _map_city(payload),
+        'city': city,
         'street': _str_field(street),
         'house': _str_field(payload.get('house')),
         'building': _str_field(payload.get('block')),
