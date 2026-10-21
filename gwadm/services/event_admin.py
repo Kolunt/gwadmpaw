@@ -100,7 +100,7 @@ def get_events_requiring_review():
         INNER JOIN event_stages es ON e.id = es.event_id
         INNER JOIN event_registrations er ON e.id = er.event_id
         LEFT JOIN event_participant_approvals epa ON e.id = epa.event_id AND er.user_id = epa.user_id
-        WHERE es.stage_type = 'registration_closed'
+        WHERE es.stage_type = 'lottery'
         AND es.start_datetime IS NOT NULL
         AND datetime(es.start_datetime) <= datetime(?)
         AND (epa.approved IS NULL OR epa.approved = 0)

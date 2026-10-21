@@ -47,7 +47,7 @@ def admin_events():
         event_dict['review_pending_count'] = 0
         event_dict['review_approved_count'] = 0
         
-        if current_stage and current_stage.get('info', {}).get('type') == 'registration_closed':
+        if current_stage and current_stage.get('info', {}).get('type') == 'lottery':
             event_id = event_dict['id']
             create_participant_approvals_for_event(event_id)
             conn_counts = get_db_connection()
@@ -419,7 +419,7 @@ def admin_event_participants(event_id):
 
     pre_start = parse_dt(stage_times.get('pre_registration'))
     main_start = parse_dt(stage_times.get('main_registration'))
-    registration_closed_start = parse_dt(stage_times.get('registration_closed'))
+    lottery_start = parse_dt(stage_times.get('lottery'))
 
     participants_data = []
     for row in participants:
@@ -437,7 +437,7 @@ def admin_event_participants(event_id):
         elif main_start and registered_at_dt:
             stage_label = 'pre' if registered_at_dt < main_start else 'main'
 
-        if registration_closed_start and registered_at_dt and registered_at_dt >= registration_closed_start:
+        if lottery_start and registered_at_dt and registered_at_dt >= lottery_start:
             stage_label = 'main'
 
         approval_flag = row['approval_flag']
@@ -1435,14 +1435,14 @@ def admin_event_participant_confirm(event_id):
 
         pre_start = None
         main_start = None
-        registration_closed_start = None
+        lottery_start = None
         for stage in stages:
             if stage['stage_type'] == 'pre_registration':
                 pre_start = parse_dt(stage['start_datetime'])
             elif stage['stage_type'] == 'main_registration':
                 main_start = parse_dt(stage['start_datetime'])
-            elif stage['stage_type'] == 'registration_closed':
-                registration_closed_start = parse_dt(stage['start_datetime'])
+            elif stage['stage_type'] == 'lottery':
+                lottery_start = parse_dt(stage['start_datetime'])
 
         registered_at_dt = parse_dt(registration['registered_at'])
 
@@ -1456,7 +1456,7 @@ def admin_event_participant_confirm(event_id):
         elif main_start and registered_at_dt:
             stage_label = 'pre' if registered_at_dt < main_start else 'main'
 
-        if registration_closed_start and registered_at_dt and registered_at_dt >= registration_closed_start:
+        if lottery_start and registered_at_dt and registered_at_dt >= lottery_start:
             stage_label = 'main'
 
         if stage_label != 'main' and main_start:
@@ -1543,14 +1543,14 @@ def admin_event_participant_reject(event_id):
 
         pre_start = None
         main_start = None
-        registration_closed_start = None
+        lottery_start = None
         for stage in stages:
             if stage['stage_type'] == 'pre_registration':
                 pre_start = parse_dt(stage['start_datetime'])
             elif stage['stage_type'] == 'main_registration':
                 main_start = parse_dt(stage['start_datetime'])
-            elif stage['stage_type'] == 'registration_closed':
-                registration_closed_start = parse_dt(stage['start_datetime'])
+            elif stage['stage_type'] == 'lottery':
+                lottery_start = parse_dt(stage['start_datetime'])
 
         registered_at_dt = parse_dt(registration['registered_at'])
 
@@ -1564,7 +1564,7 @@ def admin_event_participant_reject(event_id):
         elif main_start and registered_at_dt:
             stage_label = 'pre' if registered_at_dt < main_start else 'main'
 
-        if registration_closed_start and registered_at_dt and registered_at_dt >= registration_closed_start:
+        if lottery_start and registered_at_dt and registered_at_dt >= lottery_start:
             stage_label = 'main'
 
         if stage_label != 'main':

@@ -8,7 +8,11 @@ from flask import session
 
 from gwadm.db import get_db_connection
 from gwadm.logging_config import log_debug, log_error
-from gwadm.services.events_stages import get_current_event_stage, get_event_now
+from gwadm.services.events_stages import (
+    REGISTRATION_OPEN_STAGE_TYPES,
+    get_current_event_stage,
+    get_event_now,
+)
 
 
 def _parse_stage_datetime(value):
@@ -212,7 +216,7 @@ def is_registration_open(event_id):
         return False
 
     stage_type = current_stage['info']['type']
-    return stage_type in ['pre_registration', 'main_registration']
+    return stage_type in REGISTRATION_OPEN_STAGE_TYPES
 
 
 def get_event_registrations_paginated(event_id, page=1, per_page=20):

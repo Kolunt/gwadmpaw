@@ -10,7 +10,7 @@ from gwadm.services.events_stages import (
 def test_is_post_lottery_stage():
     assert is_post_lottery_stage('celebration_date') is True
     assert is_post_lottery_stage('after_party') is True
-    assert is_post_lottery_stage('registration_closed') is False
+    assert is_post_lottery_stage('lottery') is False
     assert is_post_lottery_stage(None) is False
 
 
@@ -36,7 +36,7 @@ def test_event_assignments_button_early_assignment_no_pulse(monkeypatch):
     )
     show, pulse = event_assignments_button_state(
         is_registered=True,
-        stage_type='registration_closed',
+        stage_type='lottery',
         user_id=1,
         event_id=10,
     )

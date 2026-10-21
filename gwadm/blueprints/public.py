@@ -61,9 +61,6 @@ def index():
         next_stage = None
         if current_stage:
             display_stage_name = current_stage['info']['name']
-            if current_stage['info']['type'] == 'registration_closed':
-                lottery_stage = next((stage for stage in EVENT_STAGES if stage['type'] == 'lottery'), None)
-                display_stage_name = lottery_stage['name'] if lottery_stage else 'Жеребьёвка'
 
         stages = get_event_stages(event['id'])
         stages_dict = {stage['stage_type']: dict(stage) for stage in stages}

@@ -10,11 +10,15 @@ from gwadm.services.settings import get_rating_setting
 EVENT_STAGES = [
     {'type': 'pre_registration', 'name': 'Предварительная регистрация', 'required': False, 'has_start': True, 'has_end': False},
     {'type': 'main_registration', 'name': 'Основная регистрация', 'required': True, 'has_start': True, 'has_end': False},
-    {'type': 'registration_closed', 'name': 'Закрытие регистрации', 'required': True, 'has_start': True, 'has_end': False},
-    {'type': 'lottery', 'name': 'Жеребьёвка', 'required': False, 'has_start': False, 'has_end': False},
+    {'type': 'lottery', 'name': 'Жеребьёвка', 'required': True, 'has_start': True, 'has_end': False},
     {'type': 'celebration_date', 'name': 'Обмен подарками', 'required': True, 'has_start': True, 'has_end': False},
     {'type': 'after_party', 'name': 'Мероприятие завершено', 'required': True, 'has_start': False, 'has_end': True},
 ]
+
+REGISTRATION_OPEN_STAGE_TYPES = frozenset({'pre_registration', 'main_registration'})
+LOTTERY_STAGE_TYPE = 'lottery'
+POST_REGISTRATION_STAGE_TYPES = frozenset({'lottery', 'celebration_date', 'after_party'})
+STAGE_ORDER_BY_TYPE = {stage['type']: index + 1 for index, stage in enumerate(EVENT_STAGES)}
 
 
 def get_event_now():
@@ -81,21 +85,16 @@ def get_current_event_stage(event_id):
 
     now = get_event_now()
 
-    registration_closed_stage = None
+    lottery_started = False
     for stage in stages:
-        if stage['stage_type'] == 'registration_closed' and stage['start_datetime']:
-            try:
-                start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%d %H:%M:%S')
-            except ValueError:
-                try:
-                    start_dt = datetime.strptime(stage['start_datetime'], '%Y-%m-%dT%H:%M')
-                except ValueError:
-                    continue
-            if now >= start_dt:
-                registration_closed_stage = stage
-                break
+        if stage['stage_type'] != LOTTERY_STAGE_TYPE or not stage.get('start_datetime'):
+            continue
+        start_dt = parse_event_datetime(stage['start_datetime'])
+        if start_dt and now >= start_dt:
+            lottery_started = True
+            break
 
-    if registration_closed_stage:
+    if lottery_started:
         create_participant_approvals_for_event(event_id)
 
     stages_dict = {stage['stage_type']: dict(stage) for stage in stages}
@@ -271,7 +270,7 @@ def get_event_stages(event_id):
 
 
 def create_participant_approvals_for_event(event_id):
-    """Создает записи для ревью участников при закрытии регистрации."""
+    """Создает записи для ревью участников при наступлении этапа жеребьёвки."""
     conn = get_db_connection()
     try:
         _revoke_gift_events(conn, event_id)

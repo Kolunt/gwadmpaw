@@ -54,7 +54,7 @@ def _count_events_review_pending(conn) -> int:
     for event in events:
         event_id = event['id']
         current_stage = get_current_event_stage(event_id)
-        if not current_stage or current_stage.get('info', {}).get('type') != 'registration_closed':
+        if not current_stage or current_stage.get('info', {}).get('type') != 'lottery':
             continue
         create_participant_approvals_for_event(event_id)
         row = conn.execute(

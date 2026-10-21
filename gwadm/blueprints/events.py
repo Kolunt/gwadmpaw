@@ -12,6 +12,7 @@ from gwadm.logging_config import log_error, log_debug
 
 from gwadm.services.events_stages import (
     EVENT_STAGES,
+    POST_REGISTRATION_STAGE_TYPES,
     event_assignments_button_state,
     get_current_event_stage,
     get_event_now,
@@ -89,10 +90,7 @@ def events():
         next_stage = None
         if current_stage:
             display_stage_name = current_stage['info']['name']
-            if current_stage['info']['type'] == 'registration_closed':
-                lottery_stage = next((stage for stage in EVENT_STAGES if stage['type'] == 'lottery'), None)
-                display_stage_name = lottery_stage['name'] if lottery_stage else 'Жеребьёвка'
-        
+
         # Определяем следующий этап для таймера
         stages = get_event_stages(event['id'])
         for stage in stages:
@@ -450,7 +448,7 @@ def event_view(event_id):
     if current_stage:
         stage_type = current_stage['info']['type']
         # Показываем статистику после закрытия регистрации
-        if stage_type in ['registration_closed', 'lottery', 'celebration_date', 'after_party']:
+        if stage_type in POST_REGISTRATION_STAGE_TYPES:
             show_gifts_stats = True
             gifts_stats = get_event_gifts_statistics(event_id)
 

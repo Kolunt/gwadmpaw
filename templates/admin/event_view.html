@@ -6,10 +6,13 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{{ event.name }}</h1>
-        <div class="action-buttons">
+        <div class="action-buttons event-header-actions">
             <a href="{{ url_for('admin.admin_event_edit', event_id=event.id) }}" class="btn btn-primary">Редактировать</a>
-            {% if current_stage and current_stage.info.type == 'registration_closed' %}
-            <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn btn-success">Ревью участников</a>
+            {% if current_stage and current_stage.info.type == 'lottery' %}
+            <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn btn-success btn-admin-review">
+                <span class="btn-admin-review__icon" aria-hidden="true">📋</span>
+                <span>Ревью участников</span>
+            </a>
             {% endif %}
             <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">← Назад</a>
         </div>
