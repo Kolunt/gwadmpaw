@@ -198,6 +198,17 @@ def is_post_lottery_stage(stage_type: str | None) -> bool:
     return stage_type in POST_LOTTERY_ASSIGNMENT_STAGES
 
 
+def assignments_revealed_for_event(event_id) -> bool:
+    """True when participants may see pairs, addresses, and letter chat for this event."""
+    if not event_id:
+        return False
+    current_stage = get_current_event_stage(event_id)
+    if not current_stage:
+        return False
+    stage_type = current_stage.get('info', {}).get('type')
+    return is_post_lottery_stage(stage_type)
+
+
 def user_has_event_assignment(user_id, event_id) -> bool:
     if not user_id or not event_id:
         return False
@@ -228,7 +239,7 @@ def event_assignments_button_state(
     """Return (show_button, pulse_animation) for event_view header."""
     if not is_registered:
         return False, False
-    show = is_post_lottery_stage(stage_type) or user_has_event_assignment(user_id, event_id)
+    show = is_post_lottery_stage(stage_type)
     pulse = stage_type == 'celebration_date'
     return show, pulse
 

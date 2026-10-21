@@ -382,12 +382,23 @@ def handle_assignments_command(chat_id):
             LIMIT 10
         ''', (user_id,)).fetchall()
         conn.close()
-        
+
+        from gwadm.services.events_stages import assignments_revealed_for_event
+
+        all_rows = list(assignments)
+        assignments = [row for row in all_rows if assignments_revealed_for_event(row['event_id'])]
+
         if not assignments:
-            send_telegram_message_with_keyboard(
-                "У вас пока нет заданий.",
-                chat_id
-            )
+            if all_rows:
+                send_telegram_message_with_keyboard(
+                    "Задания появятся на сайте после начала этапа «Обмен подарками».",
+                    chat_id,
+                )
+            else:
+                send_telegram_message_with_keyboard(
+                    "У вас пока нет заданий.",
+                    chat_id,
+                )
             return jsonify({'ok': True})
         
         base_url = get_base_url()

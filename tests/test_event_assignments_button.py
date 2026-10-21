@@ -29,7 +29,7 @@ def test_event_assignments_button_hidden_before_lottery_without_assignment(monke
     assert pulse is False
 
 
-def test_event_assignments_button_early_assignment_no_pulse(monkeypatch):
+def test_event_assignments_button_hidden_during_lottery_even_with_assignment(monkeypatch):
     monkeypatch.setattr(
         'gwadm.services.events_stages.user_has_event_assignment',
         lambda user_id, event_id: True,
@@ -40,7 +40,7 @@ def test_event_assignments_button_early_assignment_no_pulse(monkeypatch):
         user_id=1,
         event_id=10,
     )
-    assert show is True
+    assert show is False
     assert pulse is False
 
 

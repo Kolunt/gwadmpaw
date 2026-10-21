@@ -25,7 +25,7 @@ from gwadm.services.assignments import (
     mark_assignment_viewed_for_user,
 )
 from gwadm.services.events import is_event_finished
-from gwadm.services.events_stages import parse_event_datetime
+from gwadm.services.events_stages import assignments_revealed_for_event, parse_event_datetime
 from gwadm.services.letter_navigation import (
     build_letter_events,
     build_letter_item,
@@ -64,6 +64,7 @@ def letter():
         return redirect(url_for('assignments.letter', assignment_id=assignment_id, admin=1) if assignment_id else url_for('admin.admin_letters'))
 
     accessible_assignments = []
+    hidden_assignment_requested = False
     if admin_override:
         # Для админа показываем активные чаты
         accessible_assignments = get_admin_letter_assignments()
@@ -121,8 +122,14 @@ def letter():
                     archived_dict['is_archived'] = True
                     accessible_assignments.append(archived_dict)
     else:
+        hidden_assignment_requested = False
         user_assignments = get_user_assignments(user_id_int)
         for assignment in user_assignments:
+            event_id = assignment.get('event_id')
+            if not assignments_revealed_for_event(event_id):
+                if assignment_id and assignment.get('id') == assignment_id:
+                    hidden_assignment_requested = True
+                continue
             role = None
             if assignment.get('santa_user_id') == user_id_int:
                 role = 'santa'
@@ -138,6 +145,9 @@ def letter():
         if admin_override:
             flash('Пока нет переписок для отображения.', 'info')
             return redirect(url_for('admin.admin_letters'))
+        if hidden_assignment_requested:
+            flash('Задание откроется с начала этапа «Обмен подарками».', 'info')
+            return redirect(url_for('assignments.assignments'))
         flash('У вас пока нет переписок для отображения.', 'info')
         return redirect(url_for('assignments.assignments'))
 
@@ -382,10 +392,6 @@ def assignments():
         return redirect(url_for('auth.login'))
     
     user_assignments = get_user_assignments(user_id_int)
-    for assignment in user_assignments:
-        aid = assignment.get('id')
-        if aid:
-            mark_assignment_viewed_for_user(aid, user_id_int)
 
     # Группируем задания по мероприятиям
     assignments_by_event = {}
@@ -393,19 +399,27 @@ def assignments():
         event_id = assignment.get('event_id')
         if not event_id:
             continue
-        
+
+        revealed = assignments_revealed_for_event(event_id)
+
         if event_id not in assignments_by_event:
             assignments_by_event[event_id] = {
                 'event_name': assignment.get('event_name', 'Мероприятие'),
-                'as_santa': None,  # Где пользователь Дед Мороз
-                'as_recipient': None,  # Где пользователь Внучка
-                'event_finished': is_event_finished(event_id)
+                'as_santa': None,
+                'as_recipient': None,
+                'event_finished': is_event_finished(event_id),
+                'assignments_pending': not revealed,
             }
-        
-        # Проверяем, является ли пользователь Дедом Морозом в этом задании
+
+        if not revealed:
+            continue
+
+        aid = assignment.get('id')
+        if aid:
+            mark_assignment_viewed_for_user(aid, user_id_int)
+
         if assignment.get('santa_user_id') == user_id_int:
             assignments_by_event[event_id]['as_santa'] = assignment
-        # Проверяем, является ли пользователь Внучкой в этом задании
         elif assignment.get('recipient_user_id') == user_id_int:
             assignments_by_event[event_id]['as_recipient'] = assignment
     

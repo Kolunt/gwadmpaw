@@ -20,6 +20,11 @@
                     <span class="faq-toggle-icon" aria-hidden="true">⌄</span>
                 </div>
                 <div class="faq-answer assignment-answer"{% if event_finished %} hidden{% endif %}>
+                    {% if event_data.assignments_pending %}
+                    <div class="assignment-pending-note">
+                        <p>Задание по этому мероприятию откроется с начала этапа «Обмен подарками». Пока идёт жеребьёвка и подготовка, данные получателя недоступны.</p>
+                    </div>
+                    {% else %}
                     {% if event_finished %}
                     <div class="assignment-finished-note">
                         <span>Мероприятие завершено. Действия с заданиями недоступны, информация сохранена для истории.</span>
@@ -249,6 +254,7 @@
                     </div>
                     {% endif %}
                 </div>
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}

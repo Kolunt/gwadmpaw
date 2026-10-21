@@ -14,6 +14,7 @@ from gwadm.config import (
 from gwadm.services.activity import log_activity
 from gwadm.services.event_admin import get_approved_participants
 from gwadm.services.events import is_event_finished
+from gwadm.services.events_stages import assignments_revealed_for_event
 from gwadm.services.multiline_text import normalize_multiline_text
 from gwadm.services.profile_comments import add_thanks_comment_from_recipient
 from gwadm.services.uploads import save_validated_image, validate_image_upload
@@ -696,6 +697,10 @@ def mark_assignment_sent(assignment_id, user_id, send_info):
         conn.close()
         return False, 'Мероприятие завершено. Действия с заданием недоступны.'
 
+    if not assignments_revealed_for_event(assignment['event_id']):
+        conn.close()
+        return False, 'Задание откроется с начала этапа «Обмен подарками».'
+
     try:
         chat_message = None
         if clear_requested:
@@ -778,6 +783,10 @@ def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_
     if is_event_finished(assignment['event_id']):
         conn.close()
         return False, 'Мероприятие завершено. Действия с заданием недоступны.'
+
+    if not assignments_revealed_for_event(assignment['event_id']):
+        conn.close()
+        return False, 'Задание откроется с начала этапа «Обмен подарками».'
     
     if not assignment['santa_sent_at']:
         conn.close()
