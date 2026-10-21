@@ -89,8 +89,6 @@
                                                 <button type="submit" class="btn-icon btn-icon-success" title="Записаться" aria-label="Записаться">✅</button>
                                             </form>
                                         {% endif %}
-                                    {% else %}
-                                        <span class="text-muted small">Регистрация закрыта</span>
                                     {% endif %}
                                 {% endif %}
                                 <a href="{{ url_for('events.event_view', event_id=event.id) }}" class="btn-icon" title="Просмотр" aria-label="Просмотр">👁️</a>
