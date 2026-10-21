@@ -1,6 +1,6 @@
 """Admin: users."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import (
     Blueprint, current_app, flash, jsonify, redirect, render_template, request, session, url_for,
@@ -15,22 +15,70 @@ from gwadm.services.avatars import VALID_AVATAR_STYLES as AVATAR_STYLES
 from gwadm.services.roles import assign_role, get_user_roles, remove_role
 from gwadm.services.multiline_text import normalize_multiline_text
 from gwadm.services.titles import assign_title, get_all_titles, get_user_titles, remove_title
+from gwadm.migrations.runner import column_exists
+from gwadm.services.presence import ONLINE_WINDOW_SECONDS
+
+ADMIN_USERS_LIST_FILTERS = {
+    'rating_positive': 'Рейтинг +',
+    'rating_negative': 'Рейтинг −',
+    'never_participated': 'Без участия в мероприятиях',
+    'online': 'Онлайн сейчас',
+}
+
+
+def _admin_users_list_filter_sql(filter_key, conn):
+    """Return (extra_join, where_clause, params) for dashboard deep-links."""
+    if filter_key == 'rating_positive':
+        return (
+            ' INNER JOIN user_rating_cache urc ON urc.user_id = u.user_id AND urc.total_points > 0',
+            '',
+            [],
+        )
+    if filter_key == 'rating_negative':
+        return (
+            ' INNER JOIN user_rating_cache urc ON urc.user_id = u.user_id AND urc.total_points < 0',
+            '',
+            [],
+        )
+    if filter_key == 'never_participated':
+        return (
+            '',
+            ' WHERE u.user_id NOT IN (SELECT DISTINCT user_id FROM event_registrations WHERE user_id IS NOT NULL)',
+            [],
+        )
+    if filter_key == 'online':
+        cutoff = (datetime.now() - timedelta(seconds=ONLINE_WINDOW_SECONDS)).strftime('%Y-%m-%d %H:%M:%S')
+        if column_exists(conn, 'users', 'last_seen'):
+            return ('', ' WHERE COALESCE(u.last_seen, u.last_login) >= ?', [cutoff])
+        return ('', ' WHERE u.last_login >= ?', [cutoff])
+    return ('', '', [])
+
 
 @bp.route('/users')
 @require_role('admin')
 def admin_users():
     """Управление пользователями"""
+    filter_key = request.args.get('filter', '').strip()
+    if filter_key not in ADMIN_USERS_LIST_FILTERS:
+        filter_key = None
+
     conn = get_db_connection()
-    users = conn.execute('''
+    extra_join, where_clause, filter_params = _admin_users_list_filter_sql(filter_key, conn) if filter_key else ('', '', [])
+    users = conn.execute(
+        f'''
         SELECT u.*,
                GROUP_CONCAT(r.display_name, ', ') as roles,
                (SELECT COUNT(*) FROM user_admin_comments WHERE user_id = u.user_id) as comments_count
         FROM users u
+        {extra_join}
         LEFT JOIN user_roles ur ON u.user_id = ur.user_id
         LEFT JOIN roles r ON ur.role_id = r.id
+        {where_clause}
         GROUP BY u.user_id
         ORDER BY u.created_at DESC
-    ''').fetchall()
+        ''',
+        tuple(filter_params),
+    ).fetchall()
     
     roles = conn.execute('SELECT * FROM roles ORDER BY is_system DESC, display_name').fetchall()
     roles_with_counts = []
@@ -45,7 +93,13 @@ def admin_users():
     
     conn.close()
     
-    return render_template('admin/users.html', users=users, roles=roles_with_counts)
+    return render_template(
+        'admin/users.html',
+        users=users,
+        roles=roles_with_counts,
+        users_filter=filter_key,
+        users_filter_label=ADMIN_USERS_LIST_FILTERS.get(filter_key) if filter_key else None,
+    )
 
 
 @bp.route('/users/create', methods=['GET', 'POST'])

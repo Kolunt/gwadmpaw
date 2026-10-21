@@ -11,6 +11,18 @@ def test_admin_dashboard_uses_admin_theme(client):
     assert 'data-theme="admin"' in body
     assert 'id="theme-toggle"' not in body
     assert 'Админ-панель' in body
+    assert 'filter=rating_positive' in body
+    assert 'filter=online' in body
+    assert 'admin-dashboard-card-link' in body
+
+
+def test_admin_users_dashboard_filters(client):
+    client.get('/login/dev')
+    response = client.get('/admin/users?filter=never_participated')
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert 'admin-users-filter-banner' in body
+    assert 'Без участия в мероприятиях' in body
 
 
 def test_admin_users_uses_admin_sidebar(client):

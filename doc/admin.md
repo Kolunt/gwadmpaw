@@ -68,7 +68,7 @@
 2. Оставляет только те, где `is_event_finished(event_id)` — этап `after_party` уже закончился.
 3. Выбирает мероприятие с **максимальной** датой `after_party.end_datetime` (не по `created_at`).
 
-Карточки дашборда ссылаются на соответствующие разделы (`/admin/users`, `/admin/events/{id}`, `/admin/broadcasts` и т.д.).
+Карточки дашборда ссылаются на соответствующие разделы: метрики участников (рейтинг +/−, без участия, онлайн) — на `/admin/users?filter=…` (`rating_positive`, `rating_negative`, `never_participated`, `online`); рассылки и ревью — на `/admin/broadcasts`, `/admin/events` и т.д.
 
 ## Участники: блокировка
 
