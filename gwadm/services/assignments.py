@@ -415,6 +415,7 @@ def get_user_assignments(user_id):
             COALESCE(rd.telegram, recipient.telegram) AS recipient_telegram,
             COALESCE(rd.whatsapp, recipient.whatsapp) AS recipient_whatsapp,
             COALESCE(rd.viber, recipient.viber) AS recipient_viber,
+            COALESCE(rd.max, recipient.max) AS recipient_max,
             rd.bio AS recipient_bio
         FROM event_assignments ea
         JOIN events e ON ea.event_id = e.id
@@ -462,6 +463,7 @@ def get_user_assignments(user_id):
             COALESCE(rd.telegram, recipient.telegram) AS recipient_telegram,
             COALESCE(rd.whatsapp, recipient.whatsapp) AS recipient_whatsapp,
             COALESCE(rd.viber, recipient.viber) AS recipient_viber,
+            COALESCE(rd.max, recipient.max) AS recipient_max,
             rd.bio AS recipient_bio
         FROM event_assignments ea
         JOIN events e ON ea.event_id = e.id

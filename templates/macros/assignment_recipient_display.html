@@ -1,0 +1,52 @@
+{% macro recipient_address_block(recipient) %}
+    {% set address_line = recipient | format_recipient_address_line %}
+    {% if address_line %}
+    <div class="assignment-info-block">
+        <div class="assignment-info-label-row">
+            <strong>Адрес для отправки:</strong>
+            <button type="button" class="assignment-copy-btn" data-copy-text="{{ address_line|e }}" title="Скопировать адрес" aria-label="Скопировать адрес">📋</button>
+        </div>
+        <div class="assignment-info-value">{{ address_line }}</div>
+    </div>
+    {% endif %}
+{% endmacro %}
+
+{% macro recipient_contacts_block(recipient) %}
+    {% set phone = recipient.get('recipient_phone') %}
+    {% set tg = recipient.get('recipient_telegram') %}
+    {% set wa = recipient.get('recipient_whatsapp') %}
+    {% set vb = recipient.get('recipient_viber') %}
+    {% set mx = recipient.get('recipient_max') %}
+    {% set has_phone = phone | contact_usable %}
+    {% set has_tg = tg | contact_usable %}
+    {% set has_wa = wa | contact_usable %}
+    {% set has_vb = vb | contact_usable %}
+    {% set has_mx = mx | contact_usable %}
+    {% if has_phone or has_tg or has_wa or has_vb or has_mx %}
+    <div class="assignment-info-block">
+        <strong>Контакты</strong>
+        <div class="assignment-contacts-row">
+            {% if has_phone %}
+            <div class="assignment-phone-row">
+                <a href="tel:{{ phone|replace(' ', '') }}" class="assignment-contact-link">{{ phone }}</a>
+                <button type="button" class="assignment-copy-btn" data-copy-text="{{ phone|e }}" title="Скопировать телефон" aria-label="Скопировать телефон">📋</button>
+            </div>
+            {% endif %}
+            <div class="assignment-messenger-links">
+                {% if has_tg %}
+                <a href="https://t.me/{{ tg|replace('@', '')|replace(' ', '') }}" class="assignment-messenger-btn" target="_blank" rel="noopener" title="Telegram">TG</a>
+                {% endif %}
+                {% if has_wa %}
+                <a href="https://wa.me/{{ wa|replace(' ', '')|replace('+', '') }}" class="assignment-messenger-btn assignment-messenger-btn--wa" target="_blank" rel="noopener" title="WhatsApp">WA</a>
+                {% endif %}
+                {% if has_vb %}
+                <a href="viber://chat?number={{ vb|replace(' ', '') }}" class="assignment-messenger-btn assignment-messenger-btn--vb" title="Viber">VB</a>
+                {% endif %}
+                {% if has_mx %}
+                <a href="tel:{{ mx|replace(' ', '') }}" class="assignment-messenger-btn assignment-messenger-btn--max" title="Max">MAX</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endmacro %}

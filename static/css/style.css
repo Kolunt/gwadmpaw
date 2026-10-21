@@ -7585,6 +7585,102 @@ html.dark .avatar-candidate-img {
 }
 
 /* Assignments page */
+.assignment-info-block {
+    margin: 0.75rem 0;
+}
+
+.assignment-info-label-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.35rem;
+}
+
+.assignment-info-value {
+    line-height: 1.45;
+    opacity: 0.95;
+}
+
+.assignment-contacts-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    margin-top: 0.5rem;
+}
+
+.assignment-phone-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.assignment-contact-link {
+    color: rgba(255, 255, 255, 0.95);
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.assignment-copy-btn {
+    border: none;
+    background: rgba(255, 255, 255, 0.25);
+    color: inherit;
+    border-radius: 6px;
+    padding: 0.2rem 0.45rem;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.assignment-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.assignment-copy-btn.is-copied {
+    background: rgba(40, 167, 69, 0.55);
+}
+
+.assignment-messenger-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.assignment-messenger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    padding: 0.35rem 0.55rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #333;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+}
+
+.assignment-messenger-btn:hover {
+    background: #fff;
+    color: #111;
+}
+
+.assignment-messenger-btn--wa {
+    color: #128c7e;
+}
+
+.assignment-messenger-btn--vb {
+    color: #7360f2;
+}
+
+.assignment-messenger-btn--max {
+    color: #2563eb;
+}
+
 @keyframes letterButtonPulse {
     0% { background-color: #ffffff; }
     50% { background-color: #28a745; }

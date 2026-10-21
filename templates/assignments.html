@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
+{% from 'macros/assignment_recipient_display.html' import recipient_address_block, recipient_contacts_block %}
 {% block title %}Задания - Анонимные Деды Морозы{% endblock %}
 
 {% block content %}
@@ -77,24 +78,8 @@
                                 {{ event_data.as_santa.get('recipient_middle_name', '') }}
                             </p>
                             {% endif %}
-                            {% if event_data.as_santa.get('recipient_postal_code') or event_data.as_santa.get('recipient_country') or event_data.as_santa.get('recipient_city') %}
-                            <p style="margin: 0.5rem 0;">
-                                <strong>Адрес для отправки:</strong><br>
-                                {{ event_data.as_santa.get('recipient_postal_code', '') }}, 
-                                {{ event_data.as_santa.get('recipient_country', '') }},
-                                {{ event_data.as_santa.get('recipient_city', '') }}<br>
-                                {{ event_data.as_santa.get('recipient_street', '') }}, 
-                                д. {{ event_data.as_santa.get('recipient_house', '') }}
-                                {% if event_data.as_santa.get('recipient_building') %}, корп. {{ event_data.as_santa.get('recipient_building') }}{% endif %}
-                                {% if event_data.as_santa.get('recipient_apartment') %}, кв. {{ event_data.as_santa.get('recipient_apartment') }}{% endif %}
-                            </p>
-                            {% endif %}
-                            {% if event_data.as_santa.get('recipient_phone') %}
-                            <p style="margin: 0.5rem 0;">
-                                <strong>Телефон:</strong><br>
-                                <a href="tel:{{ event_data.as_santa.get('recipient_phone') }}" style="color: rgba(255,255,255,0.95); text-decoration: underline;">{{ event_data.as_santa.get('recipient_phone') }}</a>
-                            </p>
-                            {% endif %}
+                            {{ recipient_address_block(event_data.as_santa) }}
+                            {{ recipient_contacts_block(event_data.as_santa) }}
                             {% if event_data.as_santa.get('recipient_bio') %}
                             <p style="margin: 0.5rem 0;">
                                 <strong>О себе:</strong><br>
@@ -296,6 +281,47 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    function copyTextToClipboard(text) {
+        if (!text) {
+            return Promise.reject();
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.left = '-9999px';
+        document.body.appendChild(area);
+        area.select();
+        try {
+            document.execCommand('copy');
+            return Promise.resolve();
+        } finally {
+            document.body.removeChild(area);
+        }
+    }
+
+    document.querySelectorAll('.assignment-copy-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const text = button.getAttribute('data-copy-text');
+            copyTextToClipboard(text).then(function () {
+                button.classList.add('is-copied');
+                const prev = button.getAttribute('title');
+                button.setAttribute('title', 'Скопировано');
+                window.setTimeout(function () {
+                    button.classList.remove('is-copied');
+                    if (prev) {
+                        button.setAttribute('title', prev);
+                    }
+                }, 1500);
+            }).catch(function () {
+                window.alert('Не удалось скопировать в буфер обмена');
+            });
+        });
+    });
+
     document.querySelectorAll('.assignment-receipt-file').forEach(function (input) {
         const group = input.closest('.file-upload-group');
         const textEl = group ? group.querySelector('.file-upload-text') : null;
