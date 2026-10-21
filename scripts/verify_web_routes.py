@@ -134,6 +134,7 @@ def _routes(ids):
             ('GET', f'/admin/events/{eid}', 200),
             ('GET', f'/admin/events/{eid}/edit', 200),
             ('GET', f'/admin/events/{eid}/participants', 200),
+            ('GET', f'/admin/events/{eid}/review', 200),
             ('GET', f'/admin/events/{eid}/distribution/positive', 200),
             ('GET', f'/admin/events/{eid}/progress', 200),
         ])

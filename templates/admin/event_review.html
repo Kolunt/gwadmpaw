@@ -10,7 +10,7 @@
         <div class="action-buttons">
             <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn btn-secondary">← Назад к мероприятию</a>
             {% if approved_count >= 2 %}
-            <a href="{{ url_for('admin_event_distribution', event_id=event.id) }}" class="btn btn-primary">Перейти к жеребьёвке</a>
+            <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}" class="btn btn-primary">Перейти к жеребьёвке</a>
             {% endif %}
         </div>
     </div>
@@ -86,20 +86,25 @@
                                 {% endif %}
                             </td>
                             <td data-label="Действия">
-                                <form method="POST" action="{{ url_for('admin_event_approve', event_id=event.id) }}" style="display: inline;">
+                                {% if participant.approved %}
+                                <form method="POST" action="{{ url_for('admin.admin_event_participant_reject', event_id=event.id) }}" style="display: inline;">
         {{ csrf_input() }}
                                     <input type="hidden" name="user_id" value="{{ participant.user_id }}">
-                                    {% if participant.approved %}
-                                    <button type="submit" name="approved" value="0" class="btn btn-sm btn-warning" 
+                                    <input type="hidden" name="reason" value="">
+                                    <button type="submit" class="btn btn-sm btn-warning"
                                             onclick="return confirm('Отменить утверждение участника?');">
                                         Отменить
                                     </button>
-                                    {% else %}
-                                    <button type="submit" name="approved" value="1" class="btn btn-sm btn-success">
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('admin.admin_event_participant_confirm', event_id=event.id) }}" style="display: inline;">
+        {{ csrf_input() }}
+                                    <input type="hidden" name="user_id" value="{{ participant.user_id }}">
+                                    <button type="submit" class="btn btn-sm btn-success">
                                         Утвердить
                                     </button>
-                                    {% endif %}
                                 </form>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

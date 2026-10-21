@@ -239,6 +239,85 @@ def admin_event_view(event_id):
                          global_rating_gift_sent=global_rating_gift_sent)
 
 
+@bp.route('/events/<int:event_id>/review')
+@require_role('admin')
+def admin_event_review(event_id):
+    """Ревью участников перед распределением."""
+    conn = get_db_connection()
+    event = conn.execute('SELECT * FROM events WHERE id = ?', (event_id,)).fetchone()
+    if not event:
+        conn.close()
+        flash('Мероприятие не найдено', 'error')
+        return redirect(url_for('admin.admin_events'))
+
+    rows = conn.execute('''
+        SELECT
+            er.user_id,
+            u.username,
+            u.level,
+            COALESCE(d.last_name, u.last_name) AS last_name,
+            COALESCE(d.first_name, u.first_name) AS first_name,
+            COALESCE(d.middle_name, u.middle_name) AS middle_name,
+            COALESCE(d.postal_code, u.postal_code) AS postal_code,
+            COALESCE(d.country, u.country) AS country,
+            COALESCE(d.city, u.city) AS city,
+            COALESCE(d.street, u.street) AS street,
+            COALESCE(d.house, u.house) AS house,
+            COALESCE(d.building, u.building) AS building,
+            COALESCE(d.apartment, u.apartment) AS apartment,
+            COALESCE(d.phone, u.phone) AS phone,
+            COALESCE(d.telegram, u.telegram) AS telegram,
+            COALESCE(d.whatsapp, u.whatsapp) AS whatsapp,
+            COALESCE(d.viber, u.viber) AS viber,
+            u.email,
+            epa.approved AS approval_flag,
+            epa.approved_at AS approval_timestamp
+        FROM event_registrations er
+        LEFT JOIN users u ON er.user_id = u.user_id
+        LEFT JOIN event_registration_details d ON d.event_id = er.event_id AND d.user_id = er.user_id
+        LEFT JOIN event_participant_approvals epa ON epa.event_id = er.event_id AND epa.user_id = er.user_id
+        WHERE er.event_id = ?
+        ORDER BY u.username COLLATE NOCASE
+    ''', (event_id,)).fetchall()
+    conn.close()
+
+    participants = []
+    approved_count = 0
+    for row in rows:
+        approved = row['approval_flag'] == 1
+        if approved:
+            approved_count += 1
+        participants.append({
+            'user_id': row['user_id'],
+            'username': row['username'] or f'ID {row["user_id"]}',
+            'level': row['level'],
+            'last_name': row['last_name'],
+            'first_name': row['first_name'],
+            'middle_name': row['middle_name'],
+            'postal_code': row['postal_code'],
+            'country': row['country'],
+            'city': row['city'],
+            'street': row['street'],
+            'house': row['house'],
+            'building': row['building'],
+            'apartment': row['apartment'],
+            'phone': row['phone'],
+            'telegram': row['telegram'],
+            'whatsapp': row['whatsapp'],
+            'viber': row['viber'],
+            'email': row['email'],
+            'approved': approved,
+            'approved_at': row['approval_timestamp'],
+        })
+
+    return render_template(
+        'admin/event_review.html',
+        event=dict(event),
+        participants=participants,
+        approved_count=approved_count,
+    )
+
+
 @bp.route('/events/<int:event_id>/progress')
 @require_role('admin')
 def admin_event_progress(event_id):

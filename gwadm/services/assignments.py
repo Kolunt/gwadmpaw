@@ -15,6 +15,7 @@ from gwadm.services.activity import log_activity
 from gwadm.services.event_admin import get_approved_participants
 from gwadm.services.events import is_event_finished
 from gwadm.services.multiline_text import normalize_multiline_text
+from gwadm.services.profile_comments import add_thanks_comment_from_recipient
 from gwadm.services.uploads import save_validated_image, validate_image_upload
 
 
@@ -810,6 +811,7 @@ def mark_assignment_received(assignment_id, user_id, thank_you_message, receipt_
         return False, 'Не удалось загрузить изображение.'
 
     receipt_relative_path = f"{ASSIGNMENT_RECEIPT_RELATIVE}/{unique_name}"
+    saved_filepath = os.path.join(ASSIGNMENT_RECEIPT_FOLDER, unique_name)
 
     conn = get_db_connection()
     try:
