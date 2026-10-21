@@ -1532,11 +1532,16 @@ a.event-card-footer-link:focus-visible {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 2rem;
+    padding: 0;
     box-shadow: var(--shadow-lg);
     max-width: 400px;
     width: 100%;
     text-align: center;
+    overflow: hidden;
+}
+
+.auth-card-body {
+    padding: var(--layout-inner);
 }
 
 .auth-card h2 {
@@ -1650,7 +1655,7 @@ a.event-card-footer-link:focus-visible {
     width: 100%;
 }
 
-/* Dashboard */
+/* Dashboard — card shell: outer .profile-card padding 0; sections use --layout-inner */
 .dashboard-container {
     max-width: none;
     width: 100%;
@@ -1669,18 +1674,19 @@ a.event-card-footer-link:focus-visible {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 0;
-    padding: var(--layout-inner);
+    padding: 0;
     box-shadow: none;
     max-width: var(--layout-narrow);
     margin: 0 auto;
+    overflow: hidden;
 }
 
 .profile-header {
     display: flex;
     align-items: flex-start;
     gap: var(--layout-inner);
-    margin-bottom: var(--layout-inner);
-    padding-bottom: var(--layout-inner);
+    margin-bottom: 0;
+    padding: var(--layout-inner);
     border-bottom: 2px solid var(--border-color);
 }
 
@@ -2014,15 +2020,6 @@ a.event-card-footer-link:focus-visible {
         justify-content: space-between;
     }
 
-    .auth-card {
-        padding: 1.5rem;
-        margin: 1rem;
-    }
-
-    .profile-card {
-        padding: 1.5rem;
-    }
-    
     .profile-header {
         flex-direction: column;
         align-items: center;
@@ -5598,10 +5595,6 @@ html.dark .avatar-candidate-img {
     .admin-table {
         font-size: 0.8rem;
         min-width: 0;
-    }
-
-    .form-container {
-        padding: 1.5rem;
     }
 
     .table-container {

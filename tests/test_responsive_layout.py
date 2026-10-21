@@ -119,6 +119,26 @@ def test_event_view_card_minimal_outer_padding():
     assert 'padding: 0' in block
 
 
+def test_profile_card_shell_no_outer_padding():
+    css = Path('static/css/style.css').read_text(encoding='utf-8')
+    idx = css.index('.profile-card {')
+    block = css[idx:idx + 220]
+    assert 'padding: 0' in block
+
+
+def test_mobile_no_profile_card_padding_boost():
+    css = Path('static/css/style.css').read_text(encoding='utf-8')
+    assert '.profile-card {\n        padding: 1.5rem' not in css
+
+
+def test_form_container_no_480_padding_boost():
+    css = Path('static/css/style.css').read_text(encoding='utf-8')
+    marker = '@media (max-width: 480px)'
+    idx = css.rfind(marker)
+    block = css[idx:]
+    assert '.form-container {\n        padding: 1.5rem' not in block
+
+
 def test_home_stats_section_no_nested_container(client):
     body = client.get('/').get_data(as_text=True)
     match = re.search(

@@ -31,9 +31,24 @@
 - Между соседними `<section>` в `.layout-main` — `margin-top: var(--layout-section-gap)` (главная: hero → events → features → CTA).
 - `.main-content`, `.layout-main`, page shells — `padding-block: 0` (включая mobile breakpoints).
 - Navbar (60px) и sidebar (250px на desktop) не меняются; отступ под navbar задаёт `.content-wrapper { margin-top: 60px }`.
-- Карточки и плитки: `border-radius: 0`, `padding: var(--layout-inner)`.
+- Карточки-оболочки страниц: см. **Card shell** ниже; не дублировать `padding` на shell и на каждой внутренней секции.
 - Узкий контент только точечно: `.form-container`, `.layout-inner`, `.profile-card`, `.letter-page-card`.
 - Hero на главной (`.hero-section`) — на всю высоту области контента: `min-height: calc(100dvh - 60px)`.
+
+## Card shell (оболочка карточки)
+
+Один горизонтальный gutter на «страницу в карточке»:
+
+| Shell (`padding: 0`, `overflow: hidden`) | Секции (`padding: var(--layout-inner)`) |
+|------------------------------------------|----------------------------------------|
+| `.event-view-card` | `.event-info-section` |
+| `.event-form` | `.form-section`, `.form-actions` |
+| `.profile-card` | `.profile-header`, `.dashboard-tab-content` |
+| `.auth-card` | `.auth-card-body` (в разметке при использовании) |
+
+`.form-container` — один слой: `padding: var(--layout-inner)` на самой оболочке (без вложенных секций с тем же отступом).
+
+На mobile **не увеличивать** padding shell (раньше ломало профиль: `1.5rem` на `.profile-card` и `.form-container`).
 
 ## Features (главная)
 

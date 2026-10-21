@@ -21,6 +21,10 @@
 - **Desktop (≥1024):** `.admin-table` / `.participants-table` с горизонтальным scroll в `.table-container` или `.table-scroll-desktop`.
 - **≤1023:** card-layout — `thead` скрыт, строки как карточки, подписи через `data-label` на `<td>`.
 
+## Card shell и боковые отступы
+
+Паттерн «оболочка без padding, секции с `--layout-inner`» — [layout.md](layout.md#card-shell-оболочка-карточки). На mobile сняты оверрайды, раздувавшие поля: `.profile-card { padding: 1.5rem }`, `.form-container { padding: 1.5rem }` (≤480px), лишний padding у `.auth-card`.
+
 ## Кнопки (админка, ≤768px)
 
 На узком экране **на всю ширину** растягиваются основные действия в блоках вроде `.form-actions .btn` и `.settings-form .form-actions .btn` — удобно для тача.

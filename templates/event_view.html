@@ -16,10 +16,12 @@
         </div>
         
         <div class="event-view-card">
+            {% if event.description and event.description|trim %}
             <div class="event-info-section">
                 <h3>Описание</h3>
-                <p>{{ event.description or 'Описание не указано' }}</p>
+                <p>{{ event.description|format_multiline }}</p>
             </div>
+            {% endif %}
 
             {% if next_stage %}
             <div class="event-info-section countdown-section" data-start="{{ next_stage.start_iso }}">
