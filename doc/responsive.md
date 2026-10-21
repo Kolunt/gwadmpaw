@@ -21,6 +21,12 @@
 - **Desktop (≥1024):** `.admin-table` / `.participants-table` с горизонтальным scroll в `.table-container` или `.table-scroll-desktop`.
 - **≤1023:** card-layout — `thead` скрыт, строки как карточки, подписи через `data-label` на `<td>`.
 
+## Кнопки (админка, ≤768px)
+
+На узком экране **на всю ширину** растягиваются основные действия в блоках вроде `.form-actions .btn` и `.settings-form .form-actions .btn` — удобно для тача.
+
+Мелкие `.btn-sm` в таблицах (`.admin-table .action-buttons`), inline-фильтрах и в `.datetime-field-wrap` остаются **компактными** (`width: auto`). Не задавать глобально `width: 100%` для всех `.btn-sm` в админке — это ломает иконки в строках и кнопку календаря в форме мероприятия.
+
 ## Сетки
 
 На tablet (768–1023) основные сетки (`stats-grid`, `events-grid`, `admin-grid`, `contacts-grid`, `assignments-grid`) — **2 колонки**.

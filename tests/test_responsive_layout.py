@@ -85,6 +85,25 @@ def test_sidebar_toggle_desktop_rule_follows_base_rule():
     assert css.index(desktop_rule) > css.index(base_rule)
 
 
+def test_admin_mobile_no_global_btn_sm_full_width():
+    css = Path('static/css/style.css').read_text(encoding='utf-8')
+    marker = '/* Mobile Responsive for Admin */'
+    idx = css.index(marker)
+    admin_mobile = css[idx:]
+    assert not re.search(
+        r'(?m)^\s*\.btn-sm\s*\{[^}]*width:\s*100%',
+        admin_mobile,
+    )
+
+
+def test_datetime_picker_btn_compact_styles():
+    css = Path('static/css/style.css').read_text(encoding='utf-8')
+    assert '.datetime-field-wrap .datetime-picker-btn' in css
+    block_start = css.index('.datetime-field-wrap .datetime-picker-btn')
+    block = css[block_start:block_start + 500]
+    assert 'width: auto' in block or 'flex: 0 0 auto' in block
+
+
 def test_home_stats_section_no_nested_container(client):
     body = client.get('/').get_data(as_text=True)
     match = re.search(

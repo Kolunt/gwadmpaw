@@ -3920,10 +3920,16 @@ a.event-card-footer-link:focus-visible {
 }
 
 .datetime-field-wrap .datetime-picker-btn {
-    flex-shrink: 0;
-    align-self: stretch;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    flex: 0 0 auto;
+    width: auto;
+    margin-bottom: 0;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
 }
 
 input[type="datetime-local"].datetime-local-input::-webkit-calendar-picker-indicator {
@@ -5487,12 +5493,6 @@ html.dark .avatar-candidate-img {
 
     .user-info-card {
         padding: 1rem;
-    }
-
-    .btn-sm {
-        width: 100%;
-        margin-bottom: 0.5rem;
-        text-align: center;
     }
 
     .admin-header > div:not(.event-header-actions) {
