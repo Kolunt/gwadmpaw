@@ -5,7 +5,10 @@ from datetime import datetime
 import gwadm.db as gwadm_db
 from gwadm.db import get_db_connection
 from gwadm.services.assignments import mark_assignment_sent
-from gwadm.services.events_stages import assignments_revealed_for_event
+from gwadm.services.events_stages import (
+    assignments_revealed_for_event,
+    get_event_stage_start_iso,
+)
 
 SANTA_ID = 88001
 RECIPIENT_ID = 88002
@@ -56,6 +59,15 @@ def _seed_event_with_assignment(conn, event_id=880):
     conn.commit()
 
 
+def test_get_event_stage_start_iso_celebration(app):
+    gwadm_db.ensure_db()
+    conn = get_db_connection()
+    _seed_event_with_assignment(conn)
+    conn.close()
+    assert get_event_stage_start_iso(880) == '2025-01-20T00:00:00'
+    assert get_event_stage_start_iso(880, 'lottery') == '2025-01-10T00:00:00'
+
+
 def test_assignments_revealed_for_event_lottery_vs_celebration(app, monkeypatch):
     gwadm_db.ensure_db()
     conn = get_db_connection()
@@ -101,6 +113,9 @@ def test_assignments_page_stub_during_lottery(client, app, monkeypatch):
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert 'Обмен подарками' in body
+    assert 'Этап обмена подарками начнётся через' in body
+    assert 'countdown-timer' in body
+    assert 'data-start="2025-01-20T00:00:00"' in body
     assert SECRET_ADDRESS not in body
     assert 'Вы - Дед Мороз' not in body
 

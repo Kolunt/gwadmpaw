@@ -23,6 +23,29 @@
                     {% if event_data.assignments_pending %}
                     <div class="assignment-pending-note">
                         <p>Задание по этому мероприятию откроется с начала этапа «Обмен подарками». Пока идёт жеребьёвка и подготовка, данные получателя недоступны.</p>
+                        {% if event_data.celebration_start_iso %}
+                        <p class="assignment-pending-countdown-lead">Этап обмена подарками начнётся через</p>
+                        <div class="countdown-section assignment-pending-countdown" data-start="{{ event_data.celebration_start_iso }}">
+                            <div class="countdown-timer" data-stage-type="celebration_date">
+                                <div class="countdown-item">
+                                    <span class="countdown-value" data-unit="days">0</span>
+                                    <span class="countdown-label">дней</span>
+                                </div>
+                                <div class="countdown-item">
+                                    <span class="countdown-value" data-unit="hours">00</span>
+                                    <span class="countdown-label">часов</span>
+                                </div>
+                                <div class="countdown-item">
+                                    <span class="countdown-value" data-unit="minutes">00</span>
+                                    <span class="countdown-label">минут</span>
+                                </div>
+                                <div class="countdown-item">
+                                    <span class="countdown-value" data-unit="seconds">00</span>
+                                    <span class="countdown-label">секунд</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                     {% else %}
                     {% if event_finished %}
@@ -221,17 +244,21 @@
                                             required
                                         ></textarea>
                                     </div>
-                                    <div>
-                                    <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" style="font-weight: 600;">Фотография подарка</label>
+                                    <div class="file-upload-group">
+                                        <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" style="font-weight: 600;">Фотография подарка</label>
                                         <input
                                             type="file"
                                             id="receipt_image_{{ event_data.as_recipient.get('id') }}"
                                             name="receipt_image"
                                             accept="image/png, image/jpeg, image/jpg, image/gif, image/webp"
-                                            class="setting-input"
+                                            class="file-input assignment-receipt-file"
                                             required
                                         >
-                                    <span style="font-size: 0.85rem;">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
+                                        <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" class="file-upload-label">
+                                            <span class="file-upload-text">Выбрать фотографию</span>
+                                            <span class="file-upload-btn" aria-hidden="true">📁</span>
+                                        </label>
+                                        <small class="form-hint">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</small>
                                     </div>
                                     <button type="submit" class="btn btn-light">Получил</button>
                                 </form>
@@ -269,6 +296,22 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.assignment-receipt-file').forEach(function (input) {
+        const group = input.closest('.file-upload-group');
+        const textEl = group ? group.querySelector('.file-upload-text') : null;
+        const defaultLabel = 'Выбрать фотографию';
+        if (!textEl) {
+            return;
+        }
+        input.addEventListener('change', function () {
+            if (input.files && input.files.length > 0) {
+                textEl.textContent = 'Выбран файл: ' + input.files[0].name;
+            } else {
+                textEl.textContent = defaultLabel;
+            }
+        });
+    });
+
     const eventCards = document.querySelectorAll('.faq-item[data-event-id]');
 
     eventCards.forEach((card) => {
@@ -313,6 +356,17 @@ document.addEventListener('DOMContentLoaded', function () {
         content.hidden = true;
         card.classList.remove('expanded');
         toggle.setAttribute('aria-expanded', 'false');
+    }
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/countdown-timers.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof initCountdownTimers === 'function') {
+        initCountdownTimers('.assignment-pending-countdown');
     }
 });
 </script>

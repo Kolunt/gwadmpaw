@@ -25,7 +25,11 @@ from gwadm.services.assignments import (
     mark_assignment_viewed_for_user,
 )
 from gwadm.services.events import is_event_finished
-from gwadm.services.events_stages import assignments_revealed_for_event, parse_event_datetime
+from gwadm.services.events_stages import (
+    assignments_revealed_for_event,
+    get_event_stage_start_iso,
+    parse_event_datetime,
+)
 from gwadm.services.letter_navigation import (
     build_letter_events,
     build_letter_item,
@@ -403,12 +407,16 @@ def assignments():
         revealed = assignments_revealed_for_event(event_id)
 
         if event_id not in assignments_by_event:
+            pending = not revealed
             assignments_by_event[event_id] = {
                 'event_name': assignment.get('event_name', 'Мероприятие'),
                 'as_santa': None,
                 'as_recipient': None,
                 'event_finished': is_event_finished(event_id),
-                'assignments_pending': not revealed,
+                'assignments_pending': pending,
+                'celebration_start_iso': (
+                    get_event_stage_start_iso(event_id) if pending else None
+                ),
             }
 
         if not revealed:

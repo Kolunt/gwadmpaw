@@ -198,6 +198,21 @@ def is_post_lottery_stage(stage_type: str | None) -> bool:
     return stage_type in POST_LOTTERY_ASSIGNMENT_STAGES
 
 
+def get_event_stage_start_iso(event_id, stage_type: str = 'celebration_date') -> str | None:
+    """ISO datetime string for a stage start (for client countdown), or None."""
+    for stage in get_event_stages(event_id):
+        if stage.get('stage_type') != stage_type:
+            continue
+        raw = stage.get('start_datetime')
+        if not raw:
+            return None
+        parsed = parse_event_datetime(raw)
+        if not parsed:
+            return None
+        return parsed.strftime('%Y-%m-%dT%H:%M:%S')
+    return None
+
+
 def assignments_revealed_for_event(event_id) -> bool:
     """True when participants may see pairs, addresses, and letter chat for this event."""
     if not event_id:

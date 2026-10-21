@@ -73,7 +73,7 @@
 | Этап «Обмен подарками» | видна | да |
 | Этап «Мероприятие завершено» | видна | нет |
 
-На `/assignments` до `celebration_date` — заглушка без PII; полные карточки с адресом — с начала обмена подарками. Тесты: [`tests/test_assignments_visibility.py`](../tests/test_assignments_visibility.py).
+На `/assignments` до `celebration_date` — заглушка без PII и таймер до `celebration_date.start` (разметка как `.countdown-timer` на карточке мероприятия, скрипт [`static/js/countdown-timers.js`](../static/js/countdown-timers.js)); полные карточки с адресом — с начала обмена подарками. Тесты: [`tests/test_assignments_visibility.py`](../tests/test_assignments_visibility.py).
 
 «После жеребьёвки» по календарю: `celebration_date` или `after_party`. Иконки админа и кнопка — в один горизонтальный ряд.
 
