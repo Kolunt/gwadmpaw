@@ -36,6 +36,21 @@
             <div class="registration-step" data-step="step3">
                 <div class="registration-step-content">
                     <h3>Адрес для отправки подарка</h3>
+                    {% if dadata_address_enabled %}
+                    <div class="form-group dadata-address-search-wrap">
+                        <label for="registration-address-search" class="form-label">Поиск адреса</label>
+                        <div class="dadata-address-search" id="registration-dadata-root">
+                            <input
+                                type="text"
+                                id="registration-address-search"
+                                class="form-input"
+                                placeholder="Начните вводить адрес (РФ)"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <small class="form-hint">Выберите подсказку — поля ниже заполнятся автоматически, их можно поправить вручную.</small>
+                    </div>
+                    {% endif %}
                     <div class="form-grid-two">
                         <div class="form-group">
                             <label for="registration-postal-code" class="form-label">Индекс *</label>
@@ -966,6 +981,25 @@
 
         const registerForms = document.querySelectorAll('form.register-form');
         registerForms.forEach(form => form.addEventListener('submit', handleFormSubmit));
+
+        {% if dadata_address_enabled %}
+        if (typeof window.initDadataAddressSearch === 'function') {
+            window.initDadataAddressSearch({
+                searchInput: document.getElementById('registration-address-search'),
+                suggestionsRoot: document.getElementById('registration-dadata-root'),
+                suggestUrl: {{ url_for('integrations.dadata_suggest_address')|tojson }},
+                fields: {
+                    postal_code: inputs.postal_code,
+                    country: inputs.country,
+                    city: inputs.city,
+                    street: inputs.street,
+                    house: inputs.house,
+                    building: inputs.building,
+                    apartment: inputs.apartment,
+                },
+            });
+        }
+        {% endif %}
     });
 })();
 </script>

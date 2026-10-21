@@ -25,6 +25,12 @@ from gwadm.decorators import require_login, require_role
 from gwadm.csrf import csrf_exempt
 from gwadm.logging_config import log_error
 from gwadm.services.settings import get_setting
+from gwadm.services.dadata import (
+    DadataError,
+    is_dadata_address_enabled,
+    map_dadata_address_data,
+    suggest_address,
+)
 
 bp = Blueprint("integrations", __name__)
 
@@ -185,6 +191,37 @@ def verify_dadata():
         conn.close()
     
     return jsonify({'success': success, 'message': message})
+
+
+@bp.route('/dadata/suggest/address', methods=['POST'])
+@require_login
+def dadata_suggest_address():
+    """Подсказки адреса DaData для регистрации и профиля."""
+    if not is_dadata_address_enabled():
+        return jsonify({'success': False, 'message': 'Интеграция DaData отключена'}), 403
+
+    payload = request.get_json(silent=True) or {}
+    query = str(payload.get('query', '')).strip()
+    if len(query) < 2:
+        return jsonify({'success': False, 'message': 'Введите не менее 2 символов'}), 400
+
+    try:
+        raw_suggestions = suggest_address(query)
+    except DadataError as exc:
+        return jsonify({'success': False, 'message': str(exc)}), 502
+
+    suggestions = []
+    for item in raw_suggestions:
+        if not isinstance(item, dict):
+            continue
+        data = item.get('data') if isinstance(item.get('data'), dict) else {}
+        suggestions.append({
+            'value': item.get('value') or '',
+            'label': item.get('unrestricted_value') or item.get('value') or '',
+            'fields': map_dadata_address_data(data),
+        })
+
+    return jsonify({'success': True, 'suggestions': suggestions})
 
 
 @bp.route('/admin/settings/verify-smtp', methods=['POST'])

@@ -104,6 +104,21 @@ def test_datetime_picker_btn_compact_styles():
     assert 'width: auto' in block or 'flex: 0 0 auto' in block
 
 
+def test_event_form_minimal_outer_padding():
+    css = Path('static/css/style.css').read_text(encoding='utf-8')
+    idx = css.index('/* Events */')
+    block = css[idx:idx + 600]
+    assert '.event-form {' in block
+    assert 'padding: 0' in block.split('.stage-form-group')[0]
+
+
+def test_event_view_card_minimal_outer_padding():
+    css = Path('static/css/style.css').read_text(encoding='utf-8')
+    idx = css.index('.event-view-card {')
+    block = css[idx:idx + 200]
+    assert 'padding: 0' in block
+
+
 def test_home_stats_section_no_nested_container(client):
     body = client.get('/').get_data(as_text=True)
     match = re.search(

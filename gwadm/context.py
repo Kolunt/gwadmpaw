@@ -10,6 +10,7 @@ from gwadm.services.awards import get_user_awards
 from gwadm.services.avatars import get_avatar_url
 from gwadm.services.permissions import get_role_permissions
 from gwadm.services.events_stages import user_in_celebration_exchange_stage
+from gwadm.services.dadata import is_dadata_address_enabled
 from gwadm.services.settings import get_setting
 from gwadm.services.titles import get_user_titles
 
@@ -101,5 +102,6 @@ def register_context_processors(app):
             'is_dev_login_enabled': is_dev_login_enabled(),
             'app_config': app.config,
             'assignments_sidebar_pulse': assignments_sidebar_pulse,
+            'dadata_address_enabled': is_dadata_address_enabled(),
         }
 

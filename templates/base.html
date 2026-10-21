@@ -225,6 +225,9 @@
     </script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sidebar.js') }}?v={{ app_config.VERSION }}"></script>
+    {% if dadata_address_enabled %}
+    <script src="{{ url_for('static', filename='js/dadata-address.js') }}?v={{ app_config.VERSION }}"></script>
+    {% endif %}
     <script>
         // Регистрация Service Worker для PWA
         if ('serviceWorker' in navigator) {

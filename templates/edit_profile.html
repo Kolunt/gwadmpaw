@@ -232,6 +232,22 @@
             
             <div class="form-section">
                 <h3>Адрес (обязательно для регистрации на мероприятия)</h3>
+
+                {% if dadata_address_enabled %}
+                <div class="form-group dadata-address-search-wrap">
+                    <label for="profile-address-search" class="form-label">Поиск адреса</label>
+                    <div class="dadata-address-search" id="profile-dadata-root">
+                        <input
+                            type="text"
+                            id="profile-address-search"
+                            class="form-input"
+                            placeholder="Начните вводить адрес (РФ)"
+                            autocomplete="off"
+                        >
+                    </div>
+                    <small class="form-hint">Выберите подсказку — поля ниже заполнятся автоматически.</small>
+                </div>
+                {% endif %}
                 
                 <div class="form-group">
                     <label for="postal_code" class="form-label">
@@ -619,6 +635,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    {% if dadata_address_enabled %}
+    if (typeof window.initDadataAddressSearch === 'function') {
+        window.initDadataAddressSearch({
+            searchInput: document.getElementById('profile-address-search'),
+            suggestionsRoot: document.getElementById('profile-dadata-root'),
+            suggestUrl: {{ url_for('integrations.dadata_suggest_address')|tojson }},
+            fields: {
+                postal_code: '#postal_code',
+                country: '#country',
+                city: '#city',
+                street: '#street',
+                house: '#house',
+                building: '#building',
+                apartment: '#apartment',
+            },
+        });
+    }
+    {% endif %}
 });
 </script>
 {% endblock %}
