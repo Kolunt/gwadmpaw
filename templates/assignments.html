@@ -178,7 +178,7 @@
                     
                     <!-- Где пользователь Внучка -->
                     {% if event_data.as_recipient %}
-                    <div class="assignment-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px;">
+                    <div class="assignment-card assignment-card--recipient" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px;">
                         <div style="display: flex; align-items: center; margin-bottom: 1rem;">
                             <span style="font-size: 2rem; margin-right: 0.5rem;">🎁</span>
                             <h3 style="margin: 0; color: white;">Вы - Внучок</h3>
@@ -190,16 +190,16 @@
                             </form>
                         </div>
                         {% if event_data.as_recipient.get('santa_sent_at') %}
-                        <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px; display: grid; gap: 0.75rem;">
-                            <p style="margin: 0.5rem 0;"><strong>Дед Мороз сообщил об отправке:</strong> {{ event_data.as_recipient.get('santa_sent_at') }}</p>
+                        <div class="assignment-recipient-panel">
+                            <p class="assignment-recipient-panel__text"><strong>Дед Мороз сообщил об отправке:</strong> {{ event_data.as_recipient.get('santa_sent_at') }}</p>
                             {% if event_data.as_recipient.get('santa_send_info') %}
-                            <p style="margin: 0.5rem 0;"><strong>Информация от Деда Мороза:</strong><br>{{ event_data.as_recipient.get('santa_send_info') | format_multiline }}</p>
+                            <p class="assignment-recipient-panel__text"><strong>Информация от Деда Мороза:</strong><br>{{ event_data.as_recipient.get('santa_send_info') | format_multiline }}</p>
                             {% endif %}
                             <div>
                                 {% if event_data.as_recipient.get('recipient_received_at') %}
-                                <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Вы подтвердили получение {{ event_data.as_recipient.get('recipient_received_at') }}</p>
+                                <p class="assignment-recipient-panel__text"><strong>Статус:</strong> Вы подтвердили получение {{ event_data.as_recipient.get('recipient_received_at') }}</p>
                                 {% if event_data.as_recipient.get('recipient_thanks_message') %}
-                                <p style="margin: 0.5rem 0;"><strong>Ваше сообщение:</strong><br>{{ event_data.as_recipient.get('recipient_thanks_message') | format_multiline }}</p>
+                                <p class="assignment-recipient-panel__text"><strong>Ваше сообщение:</strong><br>{{ event_data.as_recipient.get('recipient_thanks_message') | format_multiline }}</p>
                                 {% endif %}
                                 {% if event_data.as_recipient.get('recipient_receipt_image') %}
                             <div style="margin-top: 0.75rem; display: inline-flex;">
@@ -216,10 +216,10 @@
                                 {% endif %}
                                 {% else %}
                                 {% if not event_finished %}
-                                <form method="POST" action="{{ url_for('assignments.assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" style="display: grid; gap: 0.75rem; margin-top: 0.5rem;">
+                                <form method="POST" action="{{ url_for('assignments.assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" class="assignment-recipient-form">
         {{ csrf_input() }}
                                     <div>
-                                    <label for="thank_you_{{ event_data.as_recipient.get('id') }}" style="font-weight: 600;">Сообщение благодарности</label>
+                                    <label for="thank_you_{{ event_data.as_recipient.get('id') }}" class="assignment-recipient-form__label">Сообщение благодарности</label>
                                         <textarea
                                             id="thank_you_{{ event_data.as_recipient.get('id') }}"
                                             name="thank_you_message"
@@ -230,7 +230,7 @@
                                         ></textarea>
                                     </div>
                                     <div class="file-upload-group">
-                                        <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" style="font-weight: 600;">Фотография подарка</label>
+                                        <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" class="assignment-recipient-form__label">Фотография подарка</label>
                                         <input
                                             type="file"
                                             id="receipt_image_{{ event_data.as_recipient.get('id') }}"
@@ -248,14 +248,14 @@
                                     <button type="submit" class="btn btn-light">Получил</button>
                                 </form>
                                 {% else %}
-                                <p style="margin: 0.5rem 0; opacity: 0.85;">Подтвердить получение после завершения мероприятия уже нельзя.</p>
+                                <p class="assignment-recipient-panel__text assignment-recipient-panel__text--muted">Подтвердить получение после завершения мероприятия уже нельзя.</p>
                                 {% endif %}
                                 {% endif %}
                             </div>
                         </div>
                         {% else %}
-                        <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
-                            <p style="margin: 0.5rem 0; opacity: 0.9;">Дед Мороз еще не отметил отправку подарка.</p>
+                        <div class="assignment-recipient-panel">
+                            <p class="assignment-recipient-panel__text">Дед Мороз еще не отметил отправку подарка.</p>
                         </div>
                         {% endif %}
                     </div>

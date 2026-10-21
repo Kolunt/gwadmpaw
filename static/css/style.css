@@ -7681,6 +7681,49 @@ html.dark .avatar-candidate-img {
     color: #2563eb;
 }
 
+.assignment-card--recipient .assignment-recipient-panel {
+    background: rgba(255, 255, 255, 0.94);
+    color: #1f2937;
+    padding: 1rem;
+    border-radius: 8px;
+    display: grid;
+    gap: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.assignment-card--recipient .assignment-recipient-panel__text {
+    margin: 0.5rem 0;
+    color: #1f2937;
+    line-height: 1.5;
+}
+
+.assignment-card--recipient .assignment-recipient-panel__text--muted {
+    color: #4b5563;
+}
+
+.assignment-card--recipient .assignment-recipient-form {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.assignment-card--recipient .assignment-recipient-form__label {
+    display: block;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.35rem;
+}
+
+.assignment-card--recipient .assignment-recipient-form .form-hint {
+    color: #4b5563;
+    font-style: normal;
+}
+
+.assignment-card--recipient .assignment-recipient-form .file-upload-label {
+    border-color: #d1d5db;
+    background-color: #fff;
+}
+
 @keyframes letterButtonPulse {
     0% { background-color: #ffffff; }
     50% { background-color: #28a745; }
