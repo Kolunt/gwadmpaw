@@ -18,7 +18,7 @@
         <div class="contacts-section">
             <h2>👑 Администрация</h2>
             <div class="contacts-grid">
-                {% with link_profiles=true %}
+                {% with gwars_links_only=true %}
                 {% include 'partials/admin_moderator_contact_cards.html' %}
                 {% endwith %}
             </div>
@@ -37,7 +37,7 @@
                     </div>
                     <div class="contact-info">
                         <h3>
-                            <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}">{{ user.username }}</a>
+                            <a href="{{ build_gwars_character_url(user.user_id) }}" target="_blank" rel="noopener noreferrer">{{ user.username }}</a>
                         </h3>
                         <div class="contact-badges">
                             {% for title in user.titles %}
@@ -45,36 +45,10 @@
                             {% endfor %}
                         </div>
                         <div class="contact-details">
-                            {% if user.email %}
                             <div class="contact-detail-item">
-                                <span class="contact-detail-icon">📧</span>
-                                <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                                <span class="contact-detail-icon">⚔️</span>
+                                <a href="{{ build_gwars_character_url(user.user_id) }}" target="_blank" rel="noopener noreferrer">Персонаж в GWars</a>
                             </div>
-                            {% endif %}
-                            {% if user.phone %}
-                            <div class="contact-detail-item">
-                                <span class="contact-detail-icon">📱</span>
-                                <a href="tel:{{ user.phone|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}">{{ user.phone }}</a>
-                            </div>
-                            {% endif %}
-                            {% if user.telegram %}
-                            <div class="contact-detail-item">
-                                <span class="contact-detail-icon">✈️</span>
-                                <a href="https://t.me/{{ user.telegram|replace('@', '') }}" target="_blank" rel="noopener noreferrer">{{ user.telegram }}</a>
-                            </div>
-                            {% endif %}
-                            {% if user.whatsapp %}
-                            <div class="contact-detail-item">
-                                <span class="contact-detail-icon">💬</span>
-                                <a href="https://wa.me/{{ user.whatsapp|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank" rel="noopener noreferrer">{{ user.whatsapp }}</a>
-                            </div>
-                            {% endif %}
-                            {% if user.viber %}
-                            <div class="contact-detail-item">
-                                <span class="contact-detail-icon">💜</span>
-                                <a href="viber://chat?number={{ user.viber|replace('+', '')|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}" target="_blank" rel="noopener noreferrer">{{ user.viber }}</a>
-                            </div>
-                            {% endif %}
                         </div>
                     </div>
                 </div>

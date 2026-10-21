@@ -49,7 +49,7 @@
 4. Callback URL всегда строится как `https://{текущий-host}/login` (на проде).
 5. `/login/go` редиректит на `https://www.gwars.io/cross-server-login.php?site_id=...&url=...`.
 
-Ссылка на персонажа: `build_gwars_character_url(user_id)` → `https://www.gwars.io/info.php?id=...` (используется на `/account/blocked`).
+Ссылка на персонажа: `build_gwars_character_url(user_id)` → `https://www.gwars.io/info.php?id=...` (страницы `/contacts` и `/account/blocked`).
 
 Логика в модуле `gwadm/services/gwars_domains.py` (корневой `gwars_domains.py` — обратносовместимый re-export).
 

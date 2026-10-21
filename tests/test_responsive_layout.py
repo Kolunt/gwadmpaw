@@ -42,6 +42,9 @@ def test_contacts_no_inline_page_styles(client):
     _assert_responsive_shell(body)
     assert '.contacts-container' not in body
     assert 'contacts-header' in body
+    if 'user-contact-card' in body:
+        assert 'info.php?id=' in body
+        assert 'mailto:' not in body
 
 
 def test_admin_settings_no_inline_min_width(client):
