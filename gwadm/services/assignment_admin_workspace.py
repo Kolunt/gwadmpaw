@@ -130,6 +130,7 @@ def build_workspace_entries(notes: list, tasks: list) -> list:
             'created_at': task.get('created_at'),
             'author_username': task.get('author_username'),
             'due_at': task.get('due_at'),
+            'completed_at': task.get('completed_at'),
             'is_completed': task.get('is_completed', False),
             'show_checkbox': task.get('show_checkbox', False),
         })

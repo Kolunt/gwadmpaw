@@ -156,6 +156,11 @@
         return String(dueAt).replace('T', ' ').slice(0, 16);
     }
 
+    function formatDateTimeDisplay(value) {
+        if (!value) return '';
+        return String(value).replace('T', ' ').slice(0, 19);
+    }
+
     function formatMeta(entry) {
         var author = entry.author_username || '—';
         var when = entry.created_at ? String(entry.created_at).replace('T', ' ').slice(0, 19) : '';
@@ -219,15 +224,26 @@
                 if (isEntryOverdue(entry)) rowClass += ' progress-task-overdue';
             }
             var bodyHtml;
+            var actionHtml = '';
             if (entry.show_checkbox) {
                 bodyHtml =
-                    '<label class="progress-workspace-task-check">' +
-                    '<input type="checkbox" class="js-task-complete" data-task-id="' + entry.id + '" ' +
-                    (entry.is_completed ? 'checked' : '') + '> ' +
-                    '<span class="progress-workspace-item-body">' + esc(entry.body) + '</span></label>';
+                    '<div class="progress-workspace-task-row">' +
+                    '<div class="progress-workspace-task-main">' +
+                    '<p class="progress-workspace-item-body">' + esc(entry.body) + '</p>';
                 if (entry.due_at) {
                     bodyHtml += '<span class="progress-workspace-task-due">Срок: ' + esc(formatDueDisplay(entry.due_at)) + '</span>';
                 }
+                if (entry.is_completed && entry.completed_at) {
+                    bodyHtml += '<span class="progress-workspace-task-completed">Выполнено: ' +
+                        esc(formatDateTimeDisplay(entry.completed_at)) + '</span>';
+                }
+                bodyHtml += '</div>';
+                if (!entry.is_completed) {
+                    actionHtml =
+                        '<button type="button" class="btn-icon progress-workspace-complete-btn js-task-complete-btn" ' +
+                        'data-task-id="' + entry.id + '" title="Выполнено" aria-label="Отметить выполненным">✅</button>';
+                }
+                bodyHtml += actionHtml + '</div>';
             } else {
                 bodyHtml = '<p class="progress-workspace-item-body">' + esc(entry.body) + '</p>';
             }
@@ -324,17 +340,19 @@
     }
 
     if (entriesListEl) {
-        entriesListEl.addEventListener('change', function (e) {
-            if (!e.target.classList.contains('js-task-complete') || !currentAssignmentId) {
+        entriesListEl.addEventListener('click', function (e) {
+            var completeBtn = e.target.closest('.js-task-complete-btn');
+            if (!completeBtn || !currentAssignmentId) {
                 return;
             }
-            var taskId = e.target.getAttribute('data-task-id');
+            var taskId = completeBtn.getAttribute('data-task-id');
+            completeBtn.disabled = true;
             apiFetch(workspaceBase(currentAssignmentId) + '/tasks/' + taskId, {
                 method: 'PATCH',
-                body: { completed: e.target.checked },
+                body: { completed: true },
             }).then(applyWorkspaceData).catch(function (err) {
                 showWorkspaceError(err.message);
-                e.target.checked = !e.target.checked;
+                completeBtn.disabled = false;
             });
         });
     }

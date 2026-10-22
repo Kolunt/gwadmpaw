@@ -57,6 +57,7 @@ def test_workspace_note_and_task_crud(app):
 
     done = update_task(task['id'], assignment_id, completed=True)
     assert done['is_completed'] is True
+    assert done.get('completed_at')
 
     reopened = update_task(task['id'], assignment_id, completed=False)
     assert reopened['is_completed'] is False
@@ -89,8 +90,12 @@ def test_open_tasks_count_requires_due_at(app):
     ws = get_workspace(assignment_id)
     assert ws['open_tasks_count'] == 1
 
-    update_task(with_due['id'], assignment_id, completed=True)
-    assert get_workspace(assignment_id)['open_tasks_count'] == 0
+    done = update_task(with_due['id'], assignment_id, completed=True)
+    ws_done = get_workspace(assignment_id)
+    assert ws_done['open_tasks_count'] == 0
+    task_entry = next(e for e in ws_done['entries'] if e['kind'] == 'task' and e['id'] == with_due['id'])
+    assert task_entry['is_completed'] is True
+    assert task_entry.get('completed_at')
 
 
 def test_build_workspace_entries_sorts_newest_first():

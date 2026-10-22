@@ -6447,11 +6447,27 @@ html.dark .avatar-candidate-img {
     width: 100%;
 }
 
-.progress-workspace-task-check {
+.progress-workspace-task-row {
     display: flex;
     align-items: flex-start;
-    gap: 0.4rem;
-    cursor: pointer;
+    gap: 0.5rem;
+}
+
+.progress-workspace-task-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.progress-workspace-complete-btn {
+    flex: 0 0 auto;
+    margin-top: 0.1rem;
+}
+
+.progress-workspace-task-completed {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--success-color, #28a745);
+    margin-top: 0.25rem;
 }
 
 .progress-workspace-task-done .progress-workspace-item-body {
