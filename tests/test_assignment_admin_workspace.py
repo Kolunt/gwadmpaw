@@ -177,6 +177,9 @@ def test_admin_progress_page_workspace_markup(client):
         body = response.get_data(as_text=True)
         assert 'progress-workspace-modal' in body
         assert 'progress-workspace-entry-form' in body
+        assert 'progress-workspace-entry-due' in body
+        assert 'datetime-field-wrap' in body
+        assert 'datetime-picker-btn' in body
         assert 'progress-workspace-entries-list' in body
         assert 'progress-workspace-notes-form' not in body
         assert 'progress-workspace-tasks-form' not in body

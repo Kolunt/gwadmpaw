@@ -95,7 +95,10 @@
                     <textarea id="progress-workspace-entry-input" class="setting-input" rows="2" placeholder="Текст заметки или задачи" maxlength="5000" required></textarea>
                     <label class="progress-workspace-due-label">
                         <span>Срок (необязательно; если указан — это задача с отметкой «выполнено»)</span>
-                        <input type="datetime-local" id="progress-workspace-entry-due" class="setting-input">
+                        <div class="datetime-field-wrap">
+                            <input type="datetime-local" id="progress-workspace-entry-due" class="setting-input datetime-local-input">
+                            <button type="button" class="btn btn-secondary btn-sm datetime-picker-btn" aria-label="Выбрать дату и время" title="Календарь">📅</button>
+                        </div>
                     </label>
                     <button type="submit" class="btn btn-primary btn-sm">Добавить</button>
                 </form>

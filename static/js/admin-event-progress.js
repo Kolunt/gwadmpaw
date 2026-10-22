@@ -20,8 +20,26 @@
     var entryForm = document.getElementById('progress-workspace-entry-form');
     var entryInput = document.getElementById('progress-workspace-entry-input');
     var entryDueInput = document.getElementById('progress-workspace-entry-due');
+    var entryDuePickerBtn = entryDueInput
+        ? entryDueInput.closest('.datetime-field-wrap')?.querySelector('.datetime-picker-btn')
+        : null;
 
     var currentAssignmentId = null;
+
+    if (entryDueInput && entryDuePickerBtn) {
+        entryDuePickerBtn.addEventListener('click', function () {
+            if (typeof entryDueInput.showPicker === 'function') {
+                try {
+                    entryDueInput.showPicker();
+                    return;
+                } catch (e) {
+                    /* showPicker may throw without user gesture or in unsupported builds */
+                }
+            }
+            entryDueInput.focus();
+            entryDueInput.click();
+        });
+    }
 
     function esc(text) {
         var div = document.createElement('div');

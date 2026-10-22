@@ -6426,6 +6426,10 @@ html.dark .avatar-candidate-img {
     font-size: 0.85rem;
 }
 
+.progress-workspace-due-label .datetime-field-wrap {
+    width: 100%;
+}
+
 .progress-workspace-task-check {
     display: flex;
     align-items: flex-start;
