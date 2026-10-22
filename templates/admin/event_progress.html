@@ -3,7 +3,7 @@
 {% block title %}Прогресс обмена — {{ event.name }}{% endblock %}
 
 {% block admin_content %}
-<div class="admin-container admin-event-progress-page">
+<div class="admin-container admin-event-progress-page" data-event-id="{{ event.id }}">
     <div class="admin-header">
         <h1>Прогресс обмена</h1>
         <div class="action-buttons">
@@ -30,7 +30,9 @@
             </header>
             <div class="progress-kanban-column-body">
                 {% for card in cards_by_stage[stage_id] %}
-                <article class="progress-kanban-card">
+                <article class="progress-kanban-card{% if card.open_tasks_count %} progress-kanban-card-pulse{% endif %}"
+                         data-assignment-id="{{ card.assignment_id }}"
+                         data-open-tasks="{{ card.open_tasks_count }}">
                     <div class="progress-kanban-card-head">
                         <button type="button"
                                 class="progress-kanban-card-name js-progress-contact"
@@ -41,8 +43,16 @@
                                 data-contact='{{ card.pair_contacts|tojson }}'
                                 title="Контакты пары">→ {{ card.pair_username }}</button>
                     </div>
-                    <a href="{{ url_for('assignments.letter', assignment_id=card.assignment_id, admin=1) }}"
-                       class="btn btn-secondary progress-kanban-card-link">Переписка</a>
+                    <div class="progress-kanban-card-actions">
+                        <button type="button"
+                                class="btn btn-secondary btn-sm js-progress-workspace"
+                                data-assignment-id="{{ card.assignment_id }}"
+                                data-pair-label="{{ card.username }} → {{ card.pair_username }}">
+                            Работа{% if card.open_tasks_count %} ({{ card.open_tasks_count }}){% endif %}
+                        </button>
+                        <a href="{{ url_for('assignments.letter', assignment_id=card.assignment_id, admin=1) }}"
+                           class="btn btn-secondary btn-sm progress-kanban-card-link">Переписка</a>
+                    </div>
                 </article>
                 {% else %}
                 <p class="progress-kanban-empty">Нет участников</p>
@@ -67,104 +77,43 @@
         </div>
     </div>
 </div>
+
+<div id="progress-workspace-modal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="progress-workspace-modal-title">
+    <div class="modal-content progress-workspace-modal-content">
+        <div class="modal-header">
+            <h2 id="progress-workspace-modal-title">Работа с парой</h2>
+            <button type="button" class="modal-close" id="progress-workspace-modal-close" aria-label="Закрыть">&times;</button>
+        </div>
+        <div class="modal-body progress-workspace-modal-body">
+            <p id="progress-workspace-pair-label" class="progress-workspace-pair-label text-muted"></p>
+            <div id="progress-workspace-error" class="alert alert-danger" style="display: none;" role="alert"></div>
+
+            <section class="progress-workspace-section" aria-labelledby="progress-workspace-notes-heading">
+                <h3 id="progress-workspace-notes-heading">Заметки</h3>
+                <div id="progress-workspace-notes-list" class="progress-workspace-list"></div>
+                <form id="progress-workspace-note-form" class="progress-workspace-form">
+                    <textarea id="progress-workspace-note-input" class="setting-input" rows="2" placeholder="Новая заметка" maxlength="5000"></textarea>
+                    <button type="submit" class="btn btn-primary btn-sm">Добавить заметку</button>
+                </form>
+            </section>
+
+            <section class="progress-workspace-section" aria-labelledby="progress-workspace-tasks-heading">
+                <h3 id="progress-workspace-tasks-heading">Задачи и напоминания</h3>
+                <div id="progress-workspace-tasks-list" class="progress-workspace-list"></div>
+                <form id="progress-workspace-task-form" class="progress-workspace-form">
+                    <input type="text" id="progress-workspace-task-input" class="setting-input" placeholder="Текст задачи" maxlength="500">
+                    <label class="progress-workspace-due-label">
+                        <span>Срок (необязательно)</span>
+                        <input type="datetime-local" id="progress-workspace-task-due" class="setting-input">
+                    </label>
+                    <button type="submit" class="btn btn-primary btn-sm">Добавить задачу</button>
+                </form>
+            </section>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-(function () {
-    var modal = document.getElementById('progress-contact-modal');
-    var bodyEl = document.getElementById('progress-contact-modal-body');
-    var titleEl = document.getElementById('progress-contact-modal-title');
-    var profileLink = document.getElementById('progress-contact-profile-link');
-    var closeBtn = document.getElementById('progress-contact-modal-close');
-
-    function esc(text) {
-        var div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    function tgHandle(raw) {
-        var t = (raw || '').trim();
-        if (!t) return '';
-        return t.charAt(0) === '@' ? t : '@' + t;
-    }
-
-    function tgUrl(raw) {
-        var t = (raw || '').trim().replace(/^@/, '');
-        return t ? 'https://t.me/' + encodeURIComponent(t) : '';
-    }
-
-    function digitsOnly(s) {
-        return (s || '').replace(/\s/g, '');
-    }
-
-    function openContacts(data) {
-        if (!data || !modal) return;
-        titleEl.textContent = 'Контакты: ' + (data.username || '—');
-        var html = '';
-        if (data.email) {
-            html += '<div><strong>Email:</strong> <a href="mailto:' + esc(data.email) + '" class="contact-link">' + esc(data.email) + '</a></div>';
-        }
-        if (data.phone) {
-            var tel = digitsOnly(data.phone);
-            html += '<div><strong>Телефон:</strong> <a href="tel:' + esc(tel) + '" class="contact-link">' + esc(data.phone) + '</a></div>';
-        }
-        if (data.telegram) {
-            var tUrl = tgUrl(data.telegram);
-            html += '<div><strong>Telegram:</strong> <a href="' + esc(tUrl) + '" class="contact-link" target="_blank" rel="noopener">' + esc(tgHandle(data.telegram)) + '</a></div>';
-        }
-        if (data.whatsapp) {
-            var wa = digitsOnly(data.whatsapp);
-            html += '<div><strong>WhatsApp:</strong> <a href="https://wa.me/' + esc(wa) + '" class="contact-link" target="_blank" rel="noopener">' + esc(data.whatsapp) + '</a></div>';
-        }
-        if (data.viber) {
-            var vb = digitsOnly(data.viber);
-            html += '<div><strong>Viber:</strong> <a href="viber://chat?number=' + esc(vb) + '" class="contact-link">' + esc(data.viber) + '</a></div>';
-        }
-        if (data.max) {
-            var mx = digitsOnly(data.max);
-            html += '<div><strong>Max:</strong> <a href="tel:' + esc(mx) + '" class="contact-link">' + esc(data.max) + '</a></div>';
-        }
-        if (!html) {
-            html = '<span class="text-muted">Контакты не указаны</span>';
-        }
-        bodyEl.innerHTML = html;
-        if (data.user_id) {
-            profileLink.href = '/profile/' + data.user_id;
-            profileLink.style.display = '';
-        } else {
-            profileLink.style.display = 'none';
-        }
-        modal.style.display = 'block';
-    }
-
-    function closeModal() {
-        if (modal) modal.style.display = 'none';
-    }
-
-    var board = document.querySelector('.admin-event-progress-page');
-    if (board) {
-        board.addEventListener('click', function (e) {
-            var btn = e.target.closest('.js-progress-contact');
-            if (!btn) return;
-            var raw = btn.getAttribute('data-contact');
-            if (!raw) return;
-            try {
-                openContacts(JSON.parse(raw));
-            } catch (err) { /* ignore */ }
-        });
-    }
-
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-    if (modal) {
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) closeModal();
-        });
-    }
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') closeModal();
-    });
-})();
-</script>
+<script src="{{ url_for('static', filename='js/admin-event-progress.js') }}?v={{ app_config.VERSION }}"></script>
 {% endblock %}

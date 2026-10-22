@@ -20,3 +20,23 @@
 Подтверждение: `recipient_received_at`.
 
 Подробная таблица этапов для ролей Дед / Внучок — в плане и в docstrings сервиса.
+
+## Workspace администратора на карточке канбана
+
+На каждой карточке пары кнопка **«Работа»** открывает модалку с заметками и задачами. Данные привязаны к `event_assignments.id` (одинаковы на вкладках «Дед Мороз» и «Внучок»).
+
+| Сущность | Возможности |
+|----------|-------------|
+| Заметки | создать, изменить, удалить (текст) |
+| Задачи | создать, изменить, удалить; опциональный срок (`due_at`); отметка «выполнена» |
+
+Если есть невыполненные задачи, карточка подсвечивается пульсирующей рамкой; на кнопке «Работа» показывается счётчик.
+
+Сервис: [`gwadm/services/assignment_admin_workspace.py`](../gwadm/services/assignment_admin_workspace.py). Таблицы: `assignment_admin_notes`, `assignment_admin_tasks` (миграция `012_assignment_admin_workspace.py`).
+
+JSON API (роль `admin`, CSRF):
+
+- `GET /admin/events/<event_id>/assignments/<assignment_id>/workspace`
+- `POST/PATCH/DELETE` … `/workspace/notes` и … `/workspace/tasks`
+
+Фронт: [`static/js/admin-event-progress.js`](../static/js/admin-event-progress.js).

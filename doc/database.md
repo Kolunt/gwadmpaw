@@ -228,6 +228,7 @@ Copy-Item database.db "database_$(Get-Date -Format 'yyyyMMdd').db"
 | `008_assignment_viewed.py` | `santa_viewed_at`, `recipient_viewed_at` на `event_assignments` |
 | `009_profile_max_and_policy.py` | Колонка `max` в `users` и `event_registration_details`; настройка `profile_data_policy` (JSON) |
 | `010_rating_contact_max.py` | Настройка `rating_contact_max` (очки за заполненный Max в репутации) |
+| `012_assignment_admin_workspace.py` | `assignment_admin_notes`, `assignment_admin_tasks` — заметки и задачи админа на канбане прогресса |
 
 Колонка **`users.max`** / **`event_registration_details.max`** — номер телефона в мессенджере Max.
 

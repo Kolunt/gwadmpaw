@@ -91,8 +91,11 @@ def test_admin_event_progress_page(client):
         assert 'progress-kanban' in body
         assert 'Дед Мороз' in body
         assert 'progress-kanban-card-meta' not in body
-        assert 'js-progress-contact' in body
         assert 'progress-contact-modal' in body
+        assert 'progress-workspace-modal' in body
+        assert 'admin-event-progress.js' in body
         if 'progress-kanban-card' in body:
+            assert 'js-progress-contact' in body
+            assert 'js-progress-workspace' in body
             assert "data-contact='" in body
             assert 'data-contact="{"' not in body

@@ -6335,15 +6335,129 @@ html.dark .avatar-candidate-img {
     outline: none;
 }
 
+.progress-kanban-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    align-items: center;
+}
+
 .progress-kanban-card-link {
     display: inline-block;
-    margin-top: 0.5rem;
     padding: 0.35rem 0.65rem;
     font-size: 0.8rem;
     font-weight: 600;
     text-decoration: none;
     width: auto;
     align-self: flex-start;
+}
+
+@keyframes progressKanbanCardPulse {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+    50% { box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.45); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+}
+
+.progress-kanban-card-pulse {
+    animation: progressKanbanCardPulse 2s ease-in-out infinite;
+}
+
+.progress-workspace-modal-content {
+    max-width: 36rem;
+    width: 100%;
+}
+
+.progress-workspace-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-height: min(70vh, 640px);
+    overflow-y: auto;
+}
+
+.progress-workspace-section h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.progress-workspace-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+}
+
+.progress-workspace-item {
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary, rgba(0, 0, 0, 0.03));
+}
+
+.progress-workspace-item-body {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.progress-workspace-item-meta {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.progress-workspace-item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+}
+
+.progress-workspace-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.progress-workspace-due-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+}
+
+.progress-workspace-task-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    cursor: pointer;
+}
+
+.progress-workspace-task-done .progress-workspace-item-body {
+    opacity: 0.65;
+    text-decoration: line-through;
+}
+
+.progress-workspace-task-due {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.progress-task-overdue:not(.progress-workspace-task-done) {
+    border-color: #dc3545;
+    background: rgba(220, 53, 69, 0.06);
+}
+
+.progress-workspace-empty {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.progress-workspace-pair-label {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
 }
 
 .progress-contact-modal-list {

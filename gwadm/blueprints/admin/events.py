@@ -15,6 +15,16 @@ from gwadm.logging_config import log_error, log_debug
 from gwadm.services.activity import log_activity
 from gwadm.services.assignments import save_event_assignments
 from gwadm.services.assignment_progress import get_event_progress_board
+from gwadm.services.assignment_admin_workspace import (
+    create_note,
+    create_task,
+    delete_note,
+    delete_task,
+    get_assignment_for_event,
+    update_note,
+    update_task,
+    workspace_payload,
+)
 from gwadm.services.events_stages import (
     EVENT_STAGES,
     create_participant_approvals_for_event,
@@ -343,6 +353,132 @@ def admin_event_progress(event_id):
         columns=columns,
         cards_by_stage=cards_by_stage,
     )
+
+
+def _workspace_assignment_or_404(event_id: int, assignment_id: int):
+    assignment = get_assignment_for_event(event_id, assignment_id)
+    if not assignment:
+        return None, (jsonify({'error': 'Задание не найдено'}), 404)
+    return assignment, None
+
+
+def _workspace_json_ok(event_id: int, assignment_id: int):
+    assignment = get_assignment_for_event(event_id, assignment_id)
+    if not assignment:
+        return jsonify({'error': 'Задание не найдено'}), 404
+    return jsonify(workspace_payload(assignment, assignment_id))
+
+
+@bp.route('/events/<int:event_id>/assignments/<int:assignment_id>/workspace')
+@require_role('admin')
+def admin_assignment_workspace_get(event_id, assignment_id):
+    return _workspace_json_ok(event_id, assignment_id)
+
+
+@bp.route('/events/<int:event_id>/assignments/<int:assignment_id>/workspace/notes', methods=['POST'])
+@require_role('admin')
+def admin_assignment_workspace_note_create(event_id, assignment_id):
+    assignment, err = _workspace_assignment_or_404(event_id, assignment_id)
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    try:
+        note = create_note(assignment_id, session['user_id'], data.get('body', ''))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    log_activity(
+        'assignment_workspace_note',
+        details=f'Заметка к заданию #{assignment_id}',
+        metadata={'assignment_id': assignment_id, 'event_id': event_id},
+    )
+    payload = workspace_payload(assignment, assignment_id)
+    payload['note'] = note
+    return jsonify(payload)
+
+
+@bp.route(
+    '/events/<int:event_id>/assignments/<int:assignment_id>/workspace/notes/<int:note_id>',
+    methods=['PATCH', 'DELETE'],
+)
+@require_role('admin')
+def admin_assignment_workspace_note_mutate(event_id, assignment_id, note_id):
+    assignment, err = _workspace_assignment_or_404(event_id, assignment_id)
+    if err:
+        return err
+    if request.method == 'DELETE':
+        if not delete_note(note_id, assignment_id):
+            return jsonify({'error': 'Заметка не найдена'}), 404
+        return _workspace_json_ok(event_id, assignment_id)
+    data = request.get_json(silent=True) or {}
+    try:
+        note = update_note(note_id, assignment_id, data.get('body', ''))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    if not note:
+        return jsonify({'error': 'Заметка не найдена'}), 404
+    payload = workspace_payload(assignment, assignment_id)
+    payload['note'] = note
+    return jsonify(payload)
+
+
+@bp.route('/events/<int:event_id>/assignments/<int:assignment_id>/workspace/tasks', methods=['POST'])
+@require_role('admin')
+def admin_assignment_workspace_task_create(event_id, assignment_id):
+    assignment, err = _workspace_assignment_or_404(event_id, assignment_id)
+    if err:
+        return err
+    data = request.get_json(silent=True) or {}
+    try:
+        task = create_task(
+            assignment_id,
+            session['user_id'],
+            data.get('body', ''),
+            data.get('due_at'),
+        )
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    log_activity(
+        'assignment_workspace_task',
+        details=f'Задача к заданию #{assignment_id}',
+        metadata={'assignment_id': assignment_id, 'event_id': event_id},
+    )
+    payload = workspace_payload(assignment, assignment_id)
+    payload['task'] = task
+    return jsonify(payload)
+
+
+@bp.route(
+    '/events/<int:event_id>/assignments/<int:assignment_id>/workspace/tasks/<int:task_id>',
+    methods=['PATCH', 'DELETE'],
+)
+@require_role('admin')
+def admin_assignment_workspace_task_mutate(event_id, assignment_id, task_id):
+    assignment, err = _workspace_assignment_or_404(event_id, assignment_id)
+    if err:
+        return err
+    if request.method == 'DELETE':
+        if not delete_task(task_id, assignment_id):
+            return jsonify({'error': 'Задача не найдена'}), 404
+        return _workspace_json_ok(event_id, assignment_id)
+    data = request.get_json(silent=True) or {}
+    completed = data.get('completed')
+    if completed is not None and not isinstance(completed, bool):
+        completed = str(completed).lower() in ('1', 'true', 'yes')
+    try:
+        task = update_task(
+            task_id,
+            assignment_id,
+            body=data.get('body') if 'body' in data else None,
+            due_at=data.get('due_at') if 'due_at' in data else ...,
+            completed=completed if 'completed' in data else None,
+        )
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    if not task:
+        return jsonify({'error': 'Задача не найдена'}), 404
+    payload = workspace_payload(assignment, assignment_id)
+    payload['task'] = task
+    return jsonify(payload)
 
 
 @bp.route('/events/<int:event_id>/participants')

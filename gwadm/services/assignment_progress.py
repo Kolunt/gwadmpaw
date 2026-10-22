@@ -133,8 +133,15 @@ def get_event_progress_board(event_id: int) -> dict | None:
                         WHERE lm.assignment_id = ea.id AND lm.sender = 'santa'
                     ) THEN 1
                     ELSE 0
-                END AS has_santa_message
+                END AS has_santa_message,
+                COALESCE(task_counts.open_tasks_count, 0) AS open_tasks_count
             FROM event_assignments ea
+            LEFT JOIN (
+                SELECT assignment_id, COUNT(*) AS open_tasks_count
+                FROM assignment_admin_tasks
+                WHERE completed_at IS NULL
+                GROUP BY assignment_id
+            ) task_counts ON task_counts.assignment_id = ea.id
             JOIN users santa ON santa.user_id = ea.santa_user_id
             JOIN users recipient ON recipient.user_id = ea.recipient_user_id
             LEFT JOIN event_registration_details santa_d
@@ -162,6 +169,7 @@ def get_event_progress_board(event_id: int) -> dict | None:
         recipient_contacts = _contacts_from_prefixed_row(row, 'recipient')
         s_stage = santa_stage(row)
         r_stage = recipient_stage(row)
+        open_tasks = int(row.get('open_tasks_count') or 0)
         boards['santa'][s_stage].append({
             'assignment_id': row['assignment_id'],
             'user_id': row['santa_user_id'],
@@ -171,6 +179,7 @@ def get_event_progress_board(event_id: int) -> dict | None:
             'contacts': santa_contacts,
             'pair_contacts': recipient_contacts,
             'stage': s_stage,
+            'open_tasks_count': open_tasks,
         })
         boards['recipient'][r_stage].append({
             'assignment_id': row['assignment_id'],
@@ -181,6 +190,7 @@ def get_event_progress_board(event_id: int) -> dict | None:
             'contacts': recipient_contacts,
             'pair_contacts': santa_contacts,
             'stage': r_stage,
+            'open_tasks_count': open_tasks,
         })
 
     return {

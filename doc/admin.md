@@ -17,7 +17,7 @@
 | Участники | `/admin/users` |
 | Настройки | `/admin/settings` |
 | Мероприятия | `/admin/events` |
-| Прогресс обмена (канбан по мероприятию) | `/admin/events/<id>/progress` — кнопка 📊 в списке мероприятий |
+| Прогресс обмена (канбан по мероприятию) | `/admin/events/<id>/progress` — кнопка 📊; на карточке «Работа» (заметки и задачи по паре, API `…/assignments/<assignment_id>/workspace`) |
 | FAQ | `/admin/faq` |
 | Награды | `/admin/awards` |
 | Звания | `/admin/titles` |
