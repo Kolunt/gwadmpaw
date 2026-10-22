@@ -180,9 +180,28 @@
             card.classList.remove('progress-kanban-card-pulse');
         }
         var btn = card.querySelector('.js-progress-workspace');
-        if (btn) {
-            var base = 'Работа';
-            btn.textContent = openCount > 0 ? base + ' (' + openCount + ')' : base;
+        if (!btn) {
+            return;
+        }
+        var titleBase = 'Работа';
+        if (openCount > 0) {
+            btn.title = titleBase + ' (' + openCount + ' открытых задач)';
+            btn.setAttribute('aria-label', titleBase + ' — ' + openCount + ' открытых задач');
+        } else {
+            btn.title = titleBase;
+            btn.setAttribute('aria-label', titleBase);
+        }
+        var badge = btn.querySelector('.js-progress-workspace-badge');
+        if (openCount > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'progress-kanban-badge js-progress-workspace-badge';
+                badge.setAttribute('aria-hidden', 'true');
+                btn.appendChild(badge);
+            }
+            badge.textContent = String(openCount);
+        } else if (badge) {
+            badge.remove();
         }
     }
 

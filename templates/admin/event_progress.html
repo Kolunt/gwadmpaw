@@ -45,13 +45,22 @@
                     </div>
                     <div class="progress-kanban-card-actions">
                         <button type="button"
-                                class="btn btn-secondary btn-sm js-progress-workspace"
+                                class="btn-icon progress-kanban-icon-btn js-progress-workspace"
                                 data-assignment-id="{{ card.assignment_id }}"
-                                data-pair-label="{{ card.username }} → {{ card.pair_username }}">
-                            Работа{% if card.open_tasks_count %} ({{ card.open_tasks_count }}){% endif %}
+                                data-pair-label="{{ card.username }} → {{ card.pair_username }}"
+                                title="Работа{% if card.open_tasks_count %} ({{ card.open_tasks_count }} открытых задач){% endif %}"
+                                aria-label="Работа{% if card.open_tasks_count %} — {{ card.open_tasks_count }} открытых задач{% endif %}">
+                            <span class="progress-kanban-icon" aria-hidden="true">📋</span>
+                            {% if card.open_tasks_count %}
+                            <span class="progress-kanban-badge js-progress-workspace-badge">{{ card.open_tasks_count }}</span>
+                            {% endif %}
                         </button>
                         <a href="{{ url_for('assignments.letter', assignment_id=card.assignment_id, admin=1) }}"
-                           class="btn btn-secondary btn-sm progress-kanban-card-link">Переписка</a>
+                           class="btn-icon progress-kanban-icon-btn progress-kanban-card-link"
+                           title="Переписка"
+                           aria-label="Переписка">
+                            <span class="progress-kanban-icon" aria-hidden="true">✉️</span>
+                        </a>
                     </div>
                 </article>
                 {% else %}

@@ -184,5 +184,7 @@ def test_admin_progress_page_workspace_markup(client):
         assert 'progress-workspace-notes-form' not in body
         assert 'progress-workspace-tasks-form' not in body
         assert 'admin-event-progress.js' in body
+        assert 'progress-kanban-icon-btn' in body
         if 'progress-kanban-card' in body:
             assert 'js-progress-workspace' in body
+            assert 'aria-label="Переписка"' in body

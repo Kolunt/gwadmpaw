@@ -6343,14 +6343,31 @@ html.dark .avatar-candidate-img {
     align-items: center;
 }
 
-.progress-kanban-card-link {
-    display: inline-block;
-    padding: 0.35rem 0.65rem;
-    font-size: 0.8rem;
-    font-weight: 600;
+.progress-kanban-icon-btn {
+    position: relative;
+    flex: 0 0 auto;
     text-decoration: none;
-    width: auto;
-    align-self: flex-start;
+}
+
+.progress-kanban-icon {
+    line-height: 1;
+}
+
+.progress-kanban-badge {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.35rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 0.2rem;
+    border-radius: 999px;
+    background: var(--error-color, #dc3545);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1.1rem;
+    text-align: center;
+    pointer-events: none;
 }
 
 @keyframes progressKanbanCardPulse {
