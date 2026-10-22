@@ -140,6 +140,8 @@ def get_event_progress_board(event_id: int) -> dict | None:
                 SELECT assignment_id, COUNT(*) AS open_tasks_count
                 FROM assignment_admin_tasks
                 WHERE completed_at IS NULL
+                  AND due_at IS NOT NULL
+                  AND TRIM(due_at) != ''
                 GROUP BY assignment_id
             ) task_counts ON task_counts.assignment_id = ea.id
             JOIN users santa ON santa.user_id = ea.santa_user_id

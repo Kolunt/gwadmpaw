@@ -88,25 +88,16 @@
             <p id="progress-workspace-pair-label" class="progress-workspace-pair-label text-muted"></p>
             <div id="progress-workspace-error" class="alert alert-danger" style="display: none;" role="alert"></div>
 
-            <section class="progress-workspace-section" aria-labelledby="progress-workspace-notes-heading">
-                <h3 id="progress-workspace-notes-heading">Заметки</h3>
-                <div id="progress-workspace-notes-list" class="progress-workspace-list"></div>
-                <form id="progress-workspace-note-form" class="progress-workspace-form">
-                    <textarea id="progress-workspace-note-input" class="setting-input" rows="2" placeholder="Новая заметка" maxlength="5000"></textarea>
-                    <button type="submit" class="btn btn-primary btn-sm">Добавить заметку</button>
-                </form>
-            </section>
-
-            <section class="progress-workspace-section" aria-labelledby="progress-workspace-tasks-heading">
-                <h3 id="progress-workspace-tasks-heading">Задачи и напоминания</h3>
-                <div id="progress-workspace-tasks-list" class="progress-workspace-list"></div>
-                <form id="progress-workspace-task-form" class="progress-workspace-form">
-                    <input type="text" id="progress-workspace-task-input" class="setting-input" placeholder="Текст задачи" maxlength="500">
+            <section class="progress-workspace-section" aria-labelledby="progress-workspace-entries-heading">
+                <h3 id="progress-workspace-entries-heading">Записи</h3>
+                <div id="progress-workspace-entries-list" class="progress-workspace-list"></div>
+                <form id="progress-workspace-entry-form" class="progress-workspace-form">
+                    <textarea id="progress-workspace-entry-input" class="setting-input" rows="2" placeholder="Текст заметки или задачи" maxlength="5000" required></textarea>
                     <label class="progress-workspace-due-label">
-                        <span>Срок (необязательно)</span>
-                        <input type="datetime-local" id="progress-workspace-task-due" class="setting-input">
+                        <span>Срок (необязательно; если указан — это задача с отметкой «выполнено»)</span>
+                        <input type="datetime-local" id="progress-workspace-entry-due" class="setting-input">
                     </label>
-                    <button type="submit" class="btn btn-primary btn-sm">Добавить задачу</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Добавить</button>
                 </form>
             </section>
         </div>

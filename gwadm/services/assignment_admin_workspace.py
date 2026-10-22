@@ -58,11 +58,22 @@ def count_open_tasks(conn, assignment_id: int) -> int:
     row = conn.execute(
         '''
         SELECT COUNT(*) AS c FROM assignment_admin_tasks
-        WHERE assignment_id = ? AND completed_at IS NULL
+        WHERE assignment_id = ?
+          AND completed_at IS NULL
+          AND due_at IS NOT NULL
+          AND TRIM(due_at) != ''
         ''',
         (assignment_id,),
     ).fetchone()
     return int(row['c'] or 0)
+
+
+def _author_username(row: dict) -> str:
+    name = (row.get('author_username') or '').strip()
+    if name:
+        return name
+    uid = row.get('author_user_id')
+    return f'ID {uid}' if uid is not None else '—'
 
 
 def _serialize_note(row) -> dict:
@@ -71,6 +82,7 @@ def _serialize_note(row) -> dict:
         'id': d['id'],
         'body': d['body'],
         'author_user_id': d['author_user_id'],
+        'author_username': _author_username(d),
         'created_at': d.get('created_at'),
         'updated_at': d.get('updated_at'),
     }
@@ -78,16 +90,54 @@ def _serialize_note(row) -> dict:
 
 def _serialize_task(row) -> dict:
     d = _row_dict(row)
+    due_at = d.get('due_at')
+    has_due = due_at is not None and str(due_at).strip() != ''
     return {
         'id': d['id'],
         'body': d['body'],
-        'due_at': d.get('due_at'),
+        'due_at': due_at,
         'completed_at': d.get('completed_at'),
         'author_user_id': d['author_user_id'],
+        'author_username': _author_username(d),
         'created_at': d.get('created_at'),
         'updated_at': d.get('updated_at'),
         'is_completed': d.get('completed_at') is not None and str(d.get('completed_at')).strip() != '',
+        'show_checkbox': has_due,
     }
+
+
+def _entry_sort_key(created_at, entry_id: int) -> tuple:
+    ts = str(created_at or '')
+    return (ts, entry_id)
+
+
+def build_workspace_entries(notes: list, tasks: list) -> list:
+    entries = []
+    for note in notes:
+        entries.append({
+            'kind': 'note',
+            'id': note['id'],
+            'body': note['body'],
+            'created_at': note.get('created_at'),
+            'author_username': note.get('author_username'),
+            'show_checkbox': False,
+        })
+    for task in tasks:
+        entries.append({
+            'kind': 'task',
+            'id': task['id'],
+            'body': task['body'],
+            'created_at': task.get('created_at'),
+            'author_username': task.get('author_username'),
+            'due_at': task.get('due_at'),
+            'is_completed': task.get('is_completed', False),
+            'show_checkbox': task.get('show_checkbox', False),
+        })
+    entries.sort(
+        key=lambda e: _entry_sort_key(e.get('created_at'), e['id']),
+        reverse=True,
+    )
+    return entries
 
 
 def get_workspace(assignment_id: int, conn=None) -> dict:
@@ -99,10 +149,12 @@ def get_workspace(assignment_id: int, conn=None) -> dict:
             _serialize_note(r)
             for r in conn.execute(
                 '''
-                SELECT id, body, author_user_id, created_at, updated_at
-                FROM assignment_admin_notes
-                WHERE assignment_id = ?
-                ORDER BY created_at DESC, id DESC
+                SELECT n.id, n.body, n.author_user_id, n.created_at, n.updated_at,
+                       u.username AS author_username
+                FROM assignment_admin_notes n
+                LEFT JOIN users u ON u.user_id = n.author_user_id
+                WHERE n.assignment_id = ?
+                ORDER BY n.created_at DESC, n.id DESC
                 ''',
                 (assignment_id,),
             ).fetchall()
@@ -111,22 +163,26 @@ def get_workspace(assignment_id: int, conn=None) -> dict:
             _serialize_task(r)
             for r in conn.execute(
                 '''
-                SELECT id, body, due_at, completed_at, author_user_id, created_at, updated_at
-                FROM assignment_admin_tasks
-                WHERE assignment_id = ?
+                SELECT t.id, t.body, t.due_at, t.completed_at, t.author_user_id,
+                       t.created_at, t.updated_at, u.username AS author_username
+                FROM assignment_admin_tasks t
+                LEFT JOIN users u ON u.user_id = t.author_user_id
+                WHERE t.assignment_id = ?
                 ORDER BY
-                    CASE WHEN completed_at IS NULL THEN 0 ELSE 1 END,
-                    due_at IS NULL,
-                    due_at ASC,
-                    id ASC
+                    CASE WHEN t.completed_at IS NULL THEN 0 ELSE 1 END,
+                    t.due_at IS NULL,
+                    t.due_at ASC,
+                    t.id ASC
                 ''',
                 (assignment_id,),
             ).fetchall()
         ]
         open_tasks_count = count_open_tasks(conn, assignment_id)
+        entries = build_workspace_entries(notes, tasks)
         return {
             'notes': notes,
             'tasks': tasks,
+            'entries': entries,
             'open_tasks_count': open_tasks_count,
         }
     finally:
@@ -161,7 +217,13 @@ def create_note(assignment_id: int, author_user_id: int, body: str) -> dict:
         conn.commit()
         note_id = cur.lastrowid
         row = conn.execute(
-            'SELECT id, body, author_user_id, created_at, updated_at FROM assignment_admin_notes WHERE id = ?',
+            '''
+            SELECT n.id, n.body, n.author_user_id, n.created_at, n.updated_at,
+                   u.username AS author_username
+            FROM assignment_admin_notes n
+            LEFT JOIN users u ON u.user_id = n.author_user_id
+            WHERE n.id = ?
+            ''',
             (note_id,),
         ).fetchone()
         return _serialize_note(row)
@@ -188,7 +250,13 @@ def update_note(note_id: int, assignment_id: int, body: str) -> dict | None:
         )
         conn.commit()
         updated = conn.execute(
-            'SELECT id, body, author_user_id, created_at, updated_at FROM assignment_admin_notes WHERE id = ?',
+            '''
+            SELECT n.id, n.body, n.author_user_id, n.created_at, n.updated_at,
+                   u.username AS author_username
+            FROM assignment_admin_notes n
+            LEFT JOIN users u ON u.user_id = n.author_user_id
+            WHERE n.id = ?
+            ''',
             (note_id,),
         ).fetchone()
         return _serialize_note(updated)
@@ -229,8 +297,11 @@ def create_task(assignment_id: int, author_user_id: int, body: str, due_at=None)
         task_id = cur.lastrowid
         row = conn.execute(
             '''
-            SELECT id, body, due_at, completed_at, author_user_id, created_at, updated_at
-            FROM assignment_admin_tasks WHERE id = ?
+            SELECT t.id, t.body, t.due_at, t.completed_at, t.author_user_id,
+                   t.created_at, t.updated_at, u.username AS author_username
+            FROM assignment_admin_tasks t
+            LEFT JOIN users u ON u.user_id = t.author_user_id
+            WHERE t.id = ?
             ''',
             (task_id,),
         ).fetchone()
@@ -283,8 +354,11 @@ def update_task(
         conn.commit()
         updated = conn.execute(
             '''
-            SELECT id, body, due_at, completed_at, author_user_id, created_at, updated_at
-            FROM assignment_admin_tasks WHERE id = ?
+            SELECT t.id, t.body, t.due_at, t.completed_at, t.author_user_id,
+                   t.created_at, t.updated_at, u.username AS author_username
+            FROM assignment_admin_tasks t
+            LEFT JOIN users u ON u.user_id = t.author_user_id
+            WHERE t.id = ?
             ''',
             (task_id,),
         ).fetchone()

@@ -2,6 +2,7 @@
 
 import gwadm.db as gwadm_db
 from gwadm.services.assignment_admin_workspace import (
+    build_workspace_entries,
     create_note,
     create_task,
     delete_note,
@@ -44,6 +45,7 @@ def test_workspace_note_and_task_crud(app):
 
     note = create_note(assignment_id, 91001, 'Позвонить участнику')
     assert note['body'] == 'Позвонить участнику'
+    assert note['author_username'] == 'ws_santa'
 
     updated = update_note(note['id'], assignment_id, 'Позвонить завтра')
     assert updated['body'] == 'Позвонить завтра'
@@ -51,6 +53,7 @@ def test_workspace_note_and_task_crud(app):
     task = create_task(assignment_id, 91001, 'Проверить трек', '2026-12-01T10:00')
     assert task['body'] == 'Проверить трек'
     assert task['is_completed'] is False
+    assert task['show_checkbox'] is True
 
     done = update_task(task['id'], assignment_id, completed=True)
     assert done['is_completed'] is True
@@ -62,17 +65,56 @@ def test_workspace_note_and_task_crud(app):
     assert len(ws['notes']) == 1
     assert len(ws['tasks']) == 1
     assert ws['open_tasks_count'] == 1
+    assert len(ws['entries']) == 2
+    kinds = {e['kind'] for e in ws['entries']}
+    assert kinds == {'note', 'task'}
 
     assert delete_task(task['id'], assignment_id)
     assert delete_note(note['id'], assignment_id)
     assert get_workspace(assignment_id)['open_tasks_count'] == 0
 
 
+def test_open_tasks_count_requires_due_at(app):
+    gwadm_db.ensure_db()
+    conn = gwadm_db.get_db_connection()
+    _, assignment_id = _seed_assignment(conn)
+    conn.close()
+
+    create_task(assignment_id, 91001, 'Без срока')
+    ws = get_workspace(assignment_id)
+    assert ws['open_tasks_count'] == 0
+    assert ws['tasks'][0]['show_checkbox'] is False
+
+    with_due = create_task(assignment_id, 91001, 'Со сроком', '2026-12-01T10:00')
+    ws = get_workspace(assignment_id)
+    assert ws['open_tasks_count'] == 1
+
+    update_task(with_due['id'], assignment_id, completed=True)
+    assert get_workspace(assignment_id)['open_tasks_count'] == 0
+
+
+def test_build_workspace_entries_sorts_newest_first():
+    notes = [{'id': 1, 'body': 'n', 'created_at': '2026-01-01 10:00:00', 'author_username': 'a'}]
+    tasks = [
+        {
+            'id': 2,
+            'body': 't',
+            'created_at': '2026-01-02 10:00:00',
+            'author_username': 'b',
+            'due_at': '2026-12-01 10:00:00',
+            'is_completed': False,
+            'show_checkbox': True,
+        },
+    ]
+    entries = build_workspace_entries(notes, tasks)
+    assert [e['kind'] for e in entries] == ['task', 'note']
+
+
 def test_progress_board_open_tasks_count(app):
     gwadm_db.ensure_db()
     conn = gwadm_db.get_db_connection()
     event_id, assignment_id = _seed_assignment(conn)
-    create_task(assignment_id, 91001, 'Open task')
+    create_task(assignment_id, 91001, 'Open task', '2026-12-01T10:00')
     conn.close()
 
     board = get_event_progress_board(event_id)
@@ -110,6 +152,7 @@ def test_workspace_api_requires_admin(client):
     assert resp.status_code == 200
     data = resp.get_json()
     assert data['assignment_id'] == assignment_id
+    assert 'entries' in data
     assert 'notes' in data and 'tasks' in data
 
     headers = _csrf_headers(client)
@@ -120,7 +163,9 @@ def test_workspace_api_requires_admin(client):
         headers=headers,
     )
     assert post.status_code == 200
-    assert post.get_json()['open_tasks_count'] >= 0
+    payload = post.get_json()
+    assert payload['open_tasks_count'] >= 0
+    assert any(e['kind'] == 'note' for e in payload.get('entries', []))
 
 
 def test_admin_progress_page_workspace_markup(client):
@@ -131,6 +176,10 @@ def test_admin_progress_page_workspace_markup(client):
     if response.status_code == 200:
         body = response.get_data(as_text=True)
         assert 'progress-workspace-modal' in body
+        assert 'progress-workspace-entry-form' in body
+        assert 'progress-workspace-entries-list' in body
+        assert 'progress-workspace-notes-form' not in body
+        assert 'progress-workspace-tasks-form' not in body
         assert 'admin-event-progress.js' in body
         if 'progress-kanban-card' in body:
             assert 'js-progress-workspace' in body

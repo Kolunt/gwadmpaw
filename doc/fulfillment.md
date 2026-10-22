@@ -23,20 +23,25 @@
 
 ## Workspace администратора на карточке канбана
 
-На каждой карточке пары кнопка **«Работа»** открывает модалку с заметками и задачами. Данные привязаны к `event_assignments.id` (одинаковы на вкладках «Дед Мороз» и «Внучок»).
+На каждой карточке пары кнопка **«Работа»** открывает модалку с **единой формой** и **лентой записей** (хронология по `created_at`, новые сверху). Данные привязаны к `event_assignments.id` (одинаковы на вкладках «Дед Мороз» и «Внучок»).
 
-| Сущность | Возможности |
-|----------|-------------|
-| Заметки | создать, изменить, удалить (текст) |
-| Задачи | создать, изменить, удалить; опциональный срок (`due_at`); отметка «выполнена» |
+| Условие | Хранение | В ленте |
+|---------|----------|---------|
+| Срок **не** указан | `assignment_admin_notes` | текст, автор, дата; без чекбокса |
+| Срок указан | `assignment_admin_tasks` | текст, срок, чекбокс «выполнено», автор, дата |
 
-Если есть невыполненные задачи, карточка подсвечивается пульсирующей рамкой; на кнопке «Работа» показывается счётчик.
+В UI нет кнопок «Изменить» / «Удалить» (эндпоинты PATCH/DELETE в API остаются для возможного будущего использования). Отметка задачи выполненной — `PATCH` … `/workspace/tasks/<id>` с `completed`.
+
+**Пульс** карточки и счётчик на «Работа» — только невыполненные задачи с заданным `due_at` (`completed_at IS NULL` и `due_at IS NOT NULL`).
+
+Ответ `GET workspace` включает массив `entries` (поля `kind`: `note` | `task`, `author_username`, для задачи с сроком — `show_checkbox`, `due_at`, `is_completed`) и `open_tasks_count`.
 
 Сервис: [`gwadm/services/assignment_admin_workspace.py`](../gwadm/services/assignment_admin_workspace.py). Таблицы: `assignment_admin_notes`, `assignment_admin_tasks` (миграция `012_assignment_admin_workspace.py`).
 
 JSON API (роль `admin`, CSRF):
 
 - `GET /admin/events/<event_id>/assignments/<assignment_id>/workspace`
-- `POST/PATCH/DELETE` … `/workspace/notes` и … `/workspace/tasks`
+- `POST` … `/workspace/notes` (текст без срока) или `POST` … `/workspace/tasks` (текст + опциональный `due_at`)
+- `PATCH/DELETE` … `/workspace/notes` и … `/workspace/tasks` (без UI)
 
 Фронт: [`static/js/admin-event-progress.js`](../static/js/admin-event-progress.js).
