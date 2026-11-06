@@ -15,6 +15,7 @@ _MSG_CACHE: dict[tuple[str, str], str] | None = None
 _CACHE_BUILT_AT: float | None = None
 
 _LOCALE_FALLBACK = 'ru'
+_EXPECTED_RU_ROWS = len(UI_STRING_SEEDS)
 
 
 def invalidate_ui_strings_cache() -> None:
@@ -36,6 +37,13 @@ def _load_cache_from_db(conn: sqlite3.Connection) -> dict[tuple[str, str], str]:
 
 def ensure_ui_strings_seeded(conn: sqlite3.Connection) -> None:
     """Insert missing rows from UI_STRING_SEEDS."""
+    row = conn.execute(
+        "SELECT COUNT(*) FROM ui_strings WHERE locale = 'ru'"
+    ).fetchone()
+    ru_count = int(row[0]) if row else 0
+    if ru_count >= _EXPECTED_RU_ROWS:
+        return
+
     now = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     for msg_key, category, ru_val, en_val in UI_STRING_SEEDS:
         conn.execute(
@@ -76,6 +84,18 @@ def get_string(
 ) -> str:
     """Resolve msg_key for locale using DB cache; fallback to static dicts then key."""
     loc = locale if locale in ('ru', 'en') else _LOCALE_FALLBACK
+
+    # Hot path: in-memory cache — no DB connection per _() call
+    with _CACHE_LOCK:
+        if _MSG_CACHE is not None:
+            hit = _MSG_CACHE.get((msg_key, loc))
+            if hit is not None:
+                return hit
+            if loc != _LOCALE_FALLBACK:
+                hit_fb = _MSG_CACHE.get((msg_key, _LOCALE_FALLBACK))
+                if hit_fb is not None:
+                    return hit_fb
+
     try:
         conn = conn_factory()
         try:
@@ -83,7 +103,6 @@ def get_string(
             hit = cache.get((msg_key, loc))
             if hit is not None:
                 return hit
-            # Try fallback locale
             if loc != _LOCALE_FALLBACK:
                 hit_fb = cache.get((msg_key, _LOCALE_FALLBACK))
                 if hit_fb is not None:
