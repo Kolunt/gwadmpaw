@@ -140,6 +140,8 @@ def get_db_connection():
 
 Рекомендации для gwadm.ru: **2 worker** gunicorn (см. `deploy/gwadm-user.service`), не увеличивать без необходимости — SQLite один writer.
 
+Тяжёлая инициализация `event_participant_approvals` при старте этапа жеребьёвки (`create_participant_approvals_for_event` в `gwadm/services/events_stages.py`) выполняется только пока число строк в `event_participant_approvals` для мероприятия меньше числа строк в `event_registrations`; после выравнивания счётчиков повторные запросы не разгоняют запись по SQLite. Внутри процесса запись сериализуется `threading.Lock`, чтобы уменьшить столкновения с одним writer.
+
 Кэш репутации: таблица `user_rating_cache`, пересборка `scripts/rebuild_rating_cache.py` (hourly). Очередь рассылок: `broadcast_queue`.
 
 ## Структура базы данных

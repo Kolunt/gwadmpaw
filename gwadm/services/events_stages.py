@@ -1,6 +1,7 @@
 """Event stages, registration counts, and snowflake side-effects on stage transitions."""
 
 from datetime import datetime, timedelta, timezone
+import threading
 
 from gwadm.config import EVENT_TIME_OFFSET_HOURS
 from gwadm.db import get_db_connection
@@ -19,6 +20,9 @@ REGISTRATION_OPEN_STAGE_TYPES = frozenset({'pre_registration', 'main_registratio
 LOTTERY_STAGE_TYPE = 'lottery'
 POST_REGISTRATION_STAGE_TYPES = frozenset({'lottery', 'celebration_date', 'after_party'})
 STAGE_ORDER_BY_TYPE = {stage['type']: index + 1 for index, stage in enumerate(EVENT_STAGES)}
+
+# Serialize writes from create_participant_approvals_for_event across gunicorn workers (SQLite single-writer).
+_PARTICIPANT_APPROVALS_LOCK = threading.Lock()
 
 
 def get_event_now():
@@ -295,35 +299,57 @@ def get_event_stages(event_id):
     return stages
 
 
+def _participant_approvals_need_seeding(conn, event_id):
+    """True if approval rows may be missing for some registrants (heavy path required)."""
+    reg_row = conn.execute(
+        'SELECT COUNT(*) AS c FROM event_registrations WHERE event_id = ?',
+        (event_id,),
+    ).fetchone()
+    reg_n = int(reg_row['c'] or 0) if reg_row else 0
+    if reg_n == 0:
+        # No registrants: still run (order bonus / revoke side effects may apply).
+        return True
+    appr_row = conn.execute(
+        'SELECT COUNT(*) AS c FROM event_participant_approvals WHERE event_id = ?',
+        (event_id,),
+    ).fetchone()
+    appr_n = int(appr_row['c'] or 0) if appr_row else 0
+    return appr_n < reg_n
+
+
 def create_participant_approvals_for_event(event_id):
     """Создает записи для ревью участников при наступлении этапа жеребьёвки."""
-    conn = get_db_connection()
-    try:
-        _revoke_gift_events(conn, event_id)
+    with _PARTICIPANT_APPROVALS_LOCK:
+        conn = get_db_connection()
+        try:
+            if not _participant_approvals_need_seeding(conn, event_id):
+                return
 
-        registrations = conn.execute('''
-            SELECT user_id FROM event_registrations WHERE event_id = ?
-        ''', (event_id,)).fetchall()
+            _revoke_gift_events(conn, event_id)
 
-        for reg in registrations:
-            conn.execute('''
-                INSERT OR IGNORE INTO event_participant_approvals
-                (event_id, user_id, approved)
-                VALUES (?, ?, 0)
-            ''', (event_id, reg['user_id']))
-            _ensure_registration_bonus_event(conn, event_id, reg['user_id'])
-            _ensure_gift_not_sent_event(conn, event_id, reg['user_id'])
-            _ensure_gift_sent_event(conn, event_id, reg['user_id'])
+            registrations = conn.execute('''
+                SELECT user_id FROM event_registrations WHERE event_id = ?
+            ''', (event_id,)).fetchall()
 
-        _ensure_order_bonus_events(conn, event_id)
+            for reg in registrations:
+                conn.execute('''
+                    INSERT OR IGNORE INTO event_participant_approvals
+                    (event_id, user_id, approved)
+                    VALUES (?, ?, 0)
+                ''', (event_id, reg['user_id']))
+                _ensure_registration_bonus_event(conn, event_id, reg['user_id'])
+                _ensure_gift_not_sent_event(conn, event_id, reg['user_id'])
+                _ensure_gift_sent_event(conn, event_id, reg['user_id'])
 
-        conn.commit()
-        log_debug(f"Created participant approvals for event {event_id}")
-    except Exception as e:
-        log_error(f"Error creating participant approvals: {e}")
-        conn.rollback()
-    finally:
-        conn.close()
+            _ensure_order_bonus_events(conn, event_id)
+
+            conn.commit()
+            log_debug(f"Created participant approvals for event {event_id}")
+        except Exception as e:
+            log_error(f"Error creating participant approvals: {e}")
+            conn.rollback()
+        finally:
+            conn.close()
 
 
 def _ensure_registration_bonus_event(conn, event_id, user_id):
