@@ -1,26 +1,26 @@
 {% extends "admin/base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
-{% block title %}Рассылки - Админ-панель{% endblock %}
+{% block title %}{{ _('Рассылки - Админ-панель') }}{% endblock %}
 
 {% block admin_content %}
 <div class="admin-container">
     <div class="admin-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>Рассылки</h1>
+        <h1>{{ _('Рассылки') }}</h1>
         <div style="display: flex; gap: 10px;">
             <button type="button" class="btn btn-primary" onclick="activateTab('send')" style="white-space: nowrap;">
-                📢 Отправить рассылку
+                {{ _('📢 Отправить рассылку') }}
             </button>
-            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
         </div>
     </div>
     
     <div class="admin-tabs">
         <button type="button" class="admin-tab-btn active" data-tab="history">
-            📋 История рассылок
+            {{ _('📋 История рассылок') }}
         </button>
         <button type="button" class="admin-tab-btn" data-tab="templates">
-            📝 Шаблоны
+            {{ _('📝 Шаблоны') }}
         </button>
     </div>
     
@@ -28,20 +28,20 @@
     <div class="admin-tab-content" data-tab="send">
         <div class="broadcasts-form-container">
             <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="margin: 0;">Отправка рассылки</h2>
+                <h2 style="margin: 0;">{{ _('Отправка рассылки') }}</h2>
                 <button type="button" class="btn btn-secondary" onclick="activateTab('history')">
-                    ← Назад к истории
+                    {{ _('← Назад к истории') }}
                 </button>
             </div>
             
             <div class="form-section" style="margin-bottom: 20px;">
-                <h2>Шаблоны</h2>
+                <h2>{{ _('Шаблоны') }}</h2>
                 <div class="template-selector">
                     <label for="template-select" class="template-label">
-                        Выберите шаблон:
+                        {{ _('Выберите шаблон:') }}
                     </label>
                     <select id="template-select" class="form-input" style="max-width: 400px; display: inline-block;">
-                        <option value="">-- Без шаблона --</option>
+                        <option value="">{{ _('-- Без шаблона --') }}</option>
                         {% for template in templates %}
                         <option value="{{ template.id }}" 
                                 data-method="{{ template.delivery_method }}"
@@ -58,22 +58,22 @@
         {{ csrf_input() }}
             <!-- Выбор получателей -->
             <div class="form-section">
-                <h2>Получатели</h2>
+                <h2>{{ _('Получатели') }}</h2>
                 <div class="form-group">
                     <label class="radio-label">
                         <input type="radio" name="recipient_type" value="all" checked id="recipient-all">
-                        <span>Всем пользователям</span>
+                        <span>{{ _('Всем пользователям') }}</span>
                     </label>
                     <label class="radio-label">
                         <input type="radio" name="recipient_type" value="selected" id="recipient-selected">
-                        <span>Выбранным пользователям</span>
+                        <span>{{ _('Выбранным пользователям') }}</span>
                     </label>
                 </div>
                 
                 <div id="users-selection" style="display: none; margin-top: 15px;">
                     <div class="users-list-container" style="max-height: 400px; overflow-y: auto; padding: 10px; border-radius: 4px;">
                         <div style="margin-bottom: 10px;">
-                            <input type="text" id="users-search" placeholder="Поиск пользователей..." class="form-input" style="width: 100%;">
+                            <input type="text" id="users-search" placeholder="{{ _('Поиск пользователей...') }}" class="form-input" style="width: 100%;">
                         </div>
                         <div id="users-checkboxes">
                             {% for user in users %}
@@ -82,13 +82,13 @@
                                 <span>
                                     {{ user.username }} (ID: {{ user.user_id }})
                                     {% if user.email %}
-                                        <span class="email-indicator" title="Есть email">📧</span>
+                                        <span class="email-indicator" title="{{ _('Есть email') }}">📧</span>
                                     {% endif %}
                                     {% if user.telegram %}
-                                        <span class="telegram-indicator" title="Есть Telegram">🤖</span>
+                                        <span class="telegram-indicator" title="{{ _('Есть Telegram') }}">🤖</span>
                                     {% endif %}
                                     {% if user.is_blocked %}
-                                        <span class="blocked-indicator" title="Заблокирован">🔒</span>
+                                        <span class="blocked-indicator" title="{{ _('Заблокирован') }}">🔒</span>
                                     {% endif %}
                                 </span>
                             </label>
@@ -100,14 +100,14 @@
             
             <!-- Выбор способа доставки -->
             <div class="form-section">
-                <h2>Способ доставки</h2>
+                <h2>{{ _('Способ доставки') }}</h2>
                 <div class="form-group">
                     <label class="radio-label">
                         <input type="radio" name="delivery_method" value="email" id="delivery-email" checked>
                         <span>Email</span>
                         {% if not smtp_available %}
                         <small class="warning-text" style="display: block; margin-left: 25px;">
-                            ⚠️ SMTP не настроен или не включен. Настройте в разделе "Интеграции"
+                            {{ _('⚠️ SMTP не настроен или не включен. Настройте в разделе "Интеграции"') }}
                         </small>
                         {% endif %}
                     </label>
@@ -116,7 +116,7 @@
                         <span>Telegram</span>
                         {% if not telegram_available %}
                         <small class="warning-text" style="display: block; margin-left: 25px;">
-                            ⚠️ Telegram бот не настроен или не включен. Настройте в разделе "Интеграции"
+                            {{ _('⚠️ Telegram бот не настроен или не включен. Настройте в разделе "Интеграции"') }}
                         </small>
                         {% endif %}
                     </label>
@@ -125,15 +125,15 @@
             
             <!-- Тема (только для email) -->
             <div class="form-section" id="subject-section">
-                <h2>Тема письма</h2>
-                <input type="text" name="subject" id="broadcast-subject" class="form-input" placeholder="Введите тему письма" required>
+                <h2>{{ _('Тема письма') }}</h2>
+                <input type="text" name="subject" id="broadcast-subject" class="form-input" placeholder="{{ _('Введите тему письма') }}" required>
             </div>
             
             <!-- Текст сообщения -->
             <div class="form-section">
-                <h2>Текст сообщения</h2>
+                <h2>{{ _('Текст сообщения') }}</h2>
                 <div style="margin-bottom: 10px;">
-                    <label class="form-label" style="font-size: 0.9em; margin-bottom: 5px;">Доступные плейсхолдеры (нажмите для вставки):</label>
+                    <label class="form-label" style="font-size: 0.9em; margin-bottom: 5px;">{{ _('Доступные плейсхолдеры (нажмите для вставки):') }}</label>
                     <div class="placeholders-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
                         <button type="button" class="placeholder-btn" data-placeholder="[name]">[name]</button>
                         <button type="button" class="placeholder-btn" data-placeholder="[username]">[username]</button>
@@ -149,16 +149,16 @@
                         <button type="button" class="placeholder-btn" data-placeholder="[country]">[country]</button>
                     </div>
                     <small style="color: var(--text-secondary, #666); font-size: 0.85em;">
-                        💡 Плейсхолдеры будут автоматически заменены на данные каждого получателя при отправке
+                        {{ _('💡 Плейсхолдеры будут автоматически заменены на данные каждого получателя при отправке') }}
                     </small>
                 </div>
-                <textarea name="message" id="broadcast-message" class="form-textarea" rows="10" placeholder="Введите текст сообщения. Используйте плейсхолдеры для персонализации, например: Привет, [name]!" required></textarea>
+                <textarea name="message" id="broadcast-message" class="form-textarea" rows="10" placeholder="{{ _('Введите текст сообщения. Используйте плейсхолдеры для персонализации, например: Привет, [name]!') }}" required></textarea>
             </div>
             
             <!-- Кнопка отправки -->
             <div class="form-section">
                 <button type="submit" class="btn btn-primary" id="send-broadcast-btn">
-                    📢 Отправить рассылку
+                    {{ _('📢 Отправить рассылку') }}
                 </button>
             </div>
             </form>
@@ -169,7 +169,7 @@
     <div class="admin-tab-content active" data-tab="history">
         <div class="broadcasts-history-container">
             {% if broadcast_queue %}
-            <h2>Очередь рассылок</h2>
+            <h2>{{ _('Очередь рассылок') }}</h2>
             <div class="broadcasts-history-list" style="margin-bottom: 24px;">
                 {% for job in broadcast_queue %}
                 <div class="broadcast-history-item">
@@ -193,7 +193,7 @@
                 {% endfor %}
             </div>
             {% endif %}
-            <h2>История рассылок</h2>
+            <h2>{{ _('История рассылок') }}</h2>
             {% if broadcasts_history %}
         <div class="broadcasts-history-list">
             {% for broadcast in broadcasts_history %}
@@ -225,30 +225,30 @@
                 </div>
                 <div class="broadcast-stats">
                     <span class="stat-item stat-total">
-                        Всего: <strong>{{ broadcast.total_recipients }}</strong>
+                        {{ _('Всего:') }} <strong>{{ broadcast.total_recipients }}</strong>
                     </span>
                     <span class="stat-item stat-success">
-                        Успешно: <strong>{{ broadcast.success_count }}</strong>
+                        {{ _('Успешно:') }} <strong>{{ broadcast.success_count }}</strong>
                     </span>
                     {% if broadcast.error_count > 0 %}
                     <span class="stat-item stat-error">
-                        Ошибок: <strong>{{ broadcast.error_count }}</strong>
+                        {{ _('Ошибок:') }} <strong>{{ broadcast.error_count }}</strong>
                     </span>
                     {% endif %}
                 </div>
                 <div class="broadcast-details" id="details-{{ broadcast.id }}" style="display: none;">
                     {% if broadcast.subject %}
                     <div class="detail-row">
-                        <strong>Тема:</strong> {{ broadcast.subject }}
+                        <strong>{{ _('Тема:') }}</strong> {{ broadcast.subject }}
                     </div>
                     {% endif %}
                     <div class="detail-row">
-                        <strong>Сообщение:</strong>
+                        <strong>{{ _('Сообщение:') }}</strong>
                         <div class="message-preview">{{ broadcast.message }}</div>
                     </div>
                     {% if broadcast.errors_parsed %}
                     <div class="detail-row">
-                        <strong>Ошибки:</strong>
+                        <strong>{{ _('Ошибки:') }}</strong>
                         <div class="errors-list">
                             <ul>
                                 {% for error in broadcast.errors_parsed[:10] %}
@@ -267,7 +267,7 @@
         </div>
         {% else %}
         <div class="no-history">
-            <p>История рассылок пуста. Отправьте первую рассылку, чтобы она появилась здесь.</p>
+            <p>{{ _('История рассылок пуста. Отправьте первую рассылку, чтобы она появилась здесь.') }}</p>
         </div>
         {% endif %}
         </div>
@@ -277,7 +277,7 @@
     <div class="admin-tab-content" data-tab="templates">
         <div class="templates-tab-header" style="margin-bottom: 20px;">
             <button type="button" class="btn btn-primary" onclick="showTemplateModal('create')">
-                ➕ Создать шаблон
+                {{ _('➕ Создать шаблон') }}
             </button>
         </div>
         
@@ -297,14 +297,14 @@
                         </span>
                     </div>
                     <div class="template-actions">
-                        <button type="button" class="btn-icon" onclick="showTemplateModal('edit', {{ template.id }})" title="Редактировать">
+                        <button type="button" class="btn-icon" onclick="showTemplateModal('edit', {{ template.id }})" title="{{ _('Редактировать') }}">
                             ✏️
                         </button>
                         <form method="POST" action="{{ url_for('admin.admin_broadcasts_templates') }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот шаблон?');">
         {{ csrf_input() }}
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="template_id" value="{{ template.id }}">
-                            <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
+                            <button type="submit" class="btn-icon" title="{{ _('Удалить') }}">🗑️</button>
                         </form>
                     </div>
                 </div>
@@ -313,11 +313,11 @@
                 {% endif %}
                 {% if template.subject %}
                 <div class="template-subject">
-                    <strong>Тема:</strong> {{ template.subject }}
+                    <strong>{{ _('Тема:') }}</strong> {{ template.subject }}
                 </div>
                 {% endif %}
                 <div class="template-message-preview">
-                    <strong>Сообщение:</strong>
+                    <strong>{{ _('Сообщение:') }}</strong>
                     <div class="message-text">{{ template.message[:200] }}{% if template.message|length > 200 %}...{% endif %}</div>
                 </div>
                 <div class="template-meta">
@@ -334,7 +334,7 @@
         </div>
         {% else %}
         <div class="no-templates">
-            <p>Шаблоны не созданы. Создайте первый шаблон для быстрой отправки рассылок.</p>
+            <p>{{ _('Шаблоны не созданы. Создайте первый шаблон для быстрой отправки рассылок.') }}</p>
         </div>
         {% endif %}
     </div>
@@ -344,7 +344,7 @@
 <div id="template-modal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="modal-title">Создать шаблон</h2>
+            <h2 id="modal-title">{{ _('Создать шаблон') }}</h2>
             <button type="button" class="modal-close" onclick="closeTemplateModal()">&times;</button>
         </div>
         <form method="POST" action="{{ url_for('admin.admin_broadcasts_templates') }}" id="template-form">
@@ -353,17 +353,17 @@
             <input type="hidden" name="template_id" id="template-id">
             
             <div class="form-group">
-                <label for="template-name" class="form-label">Название шаблона *</label>
+                <label for="template-name" class="form-label">{{ _('Название шаблона *') }}</label>
                 <input type="text" id="template-name" name="name" class="form-input" required>
             </div>
             
             <div class="form-group">
-                <label for="template-description" class="form-label">Описание</label>
+                <label for="template-description" class="form-label">{{ _('Описание') }}</label>
                 <textarea id="template-description" name="description" class="form-textarea" rows="2"></textarea>
             </div>
             
             <div class="form-group">
-                <label class="form-label">Способ доставки *</label>
+                <label class="form-label">{{ _('Способ доставки *') }}</label>
                 <div class="radio-group">
                     <label class="radio-label">
                         <input type="radio" name="delivery_method" value="email" id="template-email" checked>
@@ -377,14 +377,14 @@
             </div>
             
             <div class="form-group" id="template-subject-group">
-                <label for="template-subject" class="form-label">Тема письма *</label>
+                <label for="template-subject" class="form-label">{{ _('Тема письма *') }}</label>
                 <input type="text" id="template-subject" name="subject" class="form-input">
             </div>
             
             <div class="form-group">
-                <label for="template-message" class="form-label">Текст сообщения *</label>
+                <label for="template-message" class="form-label">{{ _('Текст сообщения *') }}</label>
                 <div style="margin-bottom: 10px;">
-                    <label class="form-label" style="font-size: 0.9em; margin-bottom: 5px;">Доступные плейсхолдеры (нажмите для вставки):</label>
+                    <label class="form-label" style="font-size: 0.9em; margin-bottom: 5px;">{{ _('Доступные плейсхолдеры (нажмите для вставки):') }}</label>
                     <div class="placeholders-list" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
                         <button type="button" class="placeholder-btn" data-placeholder="[name]">[name]</button>
                         <button type="button" class="placeholder-btn" data-placeholder="[username]">[username]</button>
@@ -400,15 +400,15 @@
                         <button type="button" class="placeholder-btn" data-placeholder="[country]">[country]</button>
                     </div>
                     <small style="color: var(--text-secondary, #666); font-size: 0.85em;">
-                        💡 Плейсхолдеры будут автоматически заменены на данные каждого получателя при отправке
+                        {{ _('💡 Плейсхолдеры будут автоматически заменены на данные каждого получателя при отправке') }}
                     </small>
                 </div>
-                <textarea id="template-message" name="message" class="form-textarea" rows="10" placeholder="Введите текст сообщения. Используйте плейсхолдеры для персонализации, например: Привет, [name]!" required></textarea>
+                <textarea id="template-message" name="message" class="form-textarea" rows="10" placeholder="{{ _('Введите текст сообщения. Используйте плейсхолдеры для персонализации, например: Привет, [name]!') }}" required></textarea>
             </div>
             
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeTemplateModal()">Отмена</button>
-                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button type="button" class="btn btn-secondary" onclick="closeTemplateModal()">{{ _('Отмена') }}</button>
+                <button type="submit" class="btn btn-primary">{{ _('Сохранить') }}</button>
             </div>
         </form>
     </div>

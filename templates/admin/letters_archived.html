@@ -1,17 +1,17 @@
 {% extends "admin/base.html" %}
-{% block title %}Архивные чаты - Админ-панель{% endblock %}
+{% block title %}{{ _('Архивные чаты - Админ-панель') }}{% endblock %}
 
 {% block admin_content %}
 <div class="dashboard-container">
     <div class="admin-container">
         <div class="admin-header" style="margin-bottom: 1.5rem;">
             <div>
-                <h1 style="margin: 0;">📦 Архивные чаты</h1>
-                <p class="text-muted" style="margin: 0.5rem 0 0;">Чаты расформированных пар. Все чаты сохранены навсегда.</p>
+                <h1 style="margin: 0;">{{ _('📦 Архивные чаты') }}</h1>
+                <p class="text-muted" style="margin: 0.5rem 0 0;">{{ _('Чаты расформированных пар. Все чаты сохранены навсегда.') }}</p>
             </div>
             <div style="display: flex; gap: 0.5rem;">
-                <a href="{{ url_for('admin.admin_letters') }}" class="btn btn-secondary">Активные чаты</a>
-                <a href="{{ url_for('admin.admin_panel') }}" class="btn-icon" title="Назад">←</a>
+                <a href="{{ url_for('admin.admin_letters') }}" class="btn btn-secondary">{{ _('Активные чаты') }}</a>
+                <a href="{{ url_for('admin.admin_panel') }}" class="btn-icon" title="{{ _('Назад') }}">←</a>
             </div>
         </div>
 
@@ -22,14 +22,14 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Мероприятие</th>
-                            <th>🎅 Дед Мороз</th>
-                            <th>🎁 Получатель</th>
-                            <th>Сообщений</th>
-                            <th>Последнее сообщение</th>
-                            <th>Расформировано</th>
-                            <th>Кем</th>
-                            <th style="width: 140px;">Действия</th>
+                            <th>{{ _('Мероприятие') }}</th>
+                            <th>{{ _('🎅 Дед Мороз') }}</th>
+                            <th>{{ _('🎁 Получатель') }}</th>
+                            <th>{{ _('Сообщений') }}</th>
+                            <th>{{ _('Последнее сообщение') }}</th>
+                            <th>{{ _('Расформировано') }}</th>
+                            <th>{{ _('Кем') }}</th>
+                            <th style="width: 140px;">{{ _('Действия') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -73,8 +73,8 @@
                                 <a href="{{ url_for('assignments.letter', assignment_id=chat.original_assignment_id, admin=1) }}" 
                                    class="btn btn-sm btn-primary" 
                                    style="min-width: 120px;"
-                                   title="Просмотр архивированного чата">
-                                    Открыть чат
+                                   title="{{ _('Просмотр архивированного чата') }}">
+                                    {{ _('Открыть чат') }}
                                 </a>
                             </td>
                         </tr>
@@ -82,7 +82,7 @@
                     </tbody>
                 </table>
                 {% else %}
-                <p class="text-muted" style="margin: 0;">Архивных чатов пока нет.</p>
+                <p class="text-muted" style="margin: 0;">{{ _('Архивных чатов пока нет.') }}</p>
                 {% endif %}
             </div>
         </div>

@@ -2,21 +2,21 @@
 {% from 'macros/avatar.html' import avatar %}
 {% from 'macros/badge.html' import title_badge_label %}
 
-{% block title %}Контакты - Анонимные Деды Морозы{% endblock %}
+{% block title %}{{ _('Контакты - Анонимные Деды Морозы') }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
         <div class="contacts-header">
-            <h1>Контакты</h1>
+            <h1>{{ _('Контакты') }}</h1>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin.admin_users') }}" class="btn btn-primary">Управление участниками</a>
+            <a href="{{ url_for('admin.admin_users') }}" class="btn btn-primary">{{ _('Управление участниками') }}</a>
             {% endif %}
         </div>
         
         <!-- Блок администраторов и модераторов -->
         {% if admins_moderators %}
         <div class="contacts-section">
-            <h2>👑 Администрация</h2>
+            <h2>{{ _('👑 Администрация') }}</h2>
             <div class="contacts-grid">
                 {% with gwars_links_only=true %}
                 {% include 'partials/admin_moderator_contact_cards.html' %}
@@ -28,7 +28,7 @@
         <!-- Блок пользователей со званиями -->
         {% if users_with_titles %}
         <div class="contacts-section">
-            <h2>🏆 Обладатели званий</h2>
+            <h2>{{ _('🏆 Обладатели званий') }}</h2>
             <div class="contacts-grid">
                 {% for user in users_with_titles %}
                 <div class="contact-card user-contact-card">
@@ -47,7 +47,7 @@
                         <div class="contact-details">
                             <div class="contact-detail-item">
                                 <span class="contact-detail-icon">⚔️</span>
-                                <a href="{{ build_gwars_character_url(user.user_id) }}" target="_blank" rel="noopener noreferrer">Персонаж в GWars</a>
+                                <a href="{{ build_gwars_character_url(user.user_id) }}" target="_blank" rel="noopener noreferrer">{{ _('Персонаж в GWars') }}</a>
                             </div>
                         </div>
                     </div>
@@ -59,7 +59,7 @@
         
         {% if not admins_moderators and not users_with_titles %}
         <div class="empty-state">
-            <p>Контакты пока не добавлены</p>
+            <p>{{ _('Контакты пока не добавлены') }}</p>
         </div>
         {% endif %}
 </div>

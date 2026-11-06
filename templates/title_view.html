@@ -26,12 +26,12 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th>Пользователь</th>
-                            <th>Уровень</th>
-                            <th>Синдикат</th>
-                            <th>Назначил</th>
-                            <th>Дата назначения</th>
-                            <th class="col-profile-action">Профиль</th>
+                            <th>{{ _('Пользователь') }}</th>
+                            <th>{{ _('Уровень') }}</th>
+                            <th>{{ _('Синдикат') }}</th>
+                            <th>{{ _('Назначил') }}</th>
+                            <th>{{ _('Дата назначения') }}</th>
+                            <th class="col-profile-action">{{ _('Профиль') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -41,7 +41,7 @@
                     </tbody>
                 </table>
                 {% else %}
-                <p class="text-muted empty-inline">Пользователи с этим званием пока не найдены.</p>
+                <p class="text-muted empty-inline">{{ _('Пользователи с этим званием пока не найдены.') }}</p>
                 {% endif %}
             </div>
         </div>

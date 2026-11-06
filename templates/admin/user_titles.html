@@ -1,18 +1,18 @@
 {% extends "admin/base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
-{% block title %}Звания пользователя - Админ-панель{% endblock %}
+{% block title %}{{ _('Звания пользователя - Админ-панель') }}{% endblock %}
 
 {% block admin_content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>Управление званиями пользователя</h1>
-        <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary">← Назад</a>
+        <h1>{{ _('Управление званиями пользователя') }}</h1>
+        <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
     </div>
     
     <div class="user-info-card">
         <h2>{{ user.username }} (ID: {{ user.user_id }})</h2>
-        <p><strong>Текущие звания:</strong> 
+        <p><strong>{{ _('Текущие звания:') }}</strong> 
             {% if user_titles %}
                 {% for title in user_titles %}
                     <span class="title-badge" style="background-color: {{ title.color }}20; color: {{ title.color }}; border-color: {{ title.color }};">
@@ -20,18 +20,18 @@
                     </span>
                 {% endfor %}
             {% else %}
-                <span class="text-muted">Нет званий</span>
+                <span class="text-muted">{{ _('Нет званий') }}</span>
             {% endif %}
         </p>
     </div>
     
     <div class="roles-management">
-        <h3>Назначить звание</h3>
+        <h3>{{ _('Назначить звание') }}</h3>
         <form method="POST" class="role-form">
         {{ csrf_input() }}
             <input type="hidden" name="action" value="assign">
             <select name="title_id" required>
-                <option value="">Выберите звание</option>
+                <option value="">{{ _('Выберите звание') }}</option>
                 {% for title in all_titles %}
                     {% if title.id not in user_title_ids %}
                     <option value="{{ title.id }}">
@@ -40,22 +40,22 @@
                     {% endif %}
                 {% endfor %}
             </select>
-            <button type="submit" class="btn btn-primary">Назначить</button>
+            <button type="submit" class="btn btn-primary">{{ _('Назначить') }}</button>
         </form>
         
-        <h3>Удалить звание</h3>
+        <h3>{{ _('Удалить звание') }}</h3>
         <form method="POST" class="role-form">
         {{ csrf_input() }}
             <input type="hidden" name="action" value="remove">
             <select name="title_id" required>
-                <option value="">Выберите звание</option>
+                <option value="">{{ _('Выберите звание') }}</option>
                 {% for title in user_titles %}
                 <option value="{{ title.id }}">
                     {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
                 </option>
                 {% endfor %}
             </select>
-            <button type="submit" class="btn btn-danger">Удалить</button>
+            <button type="submit" class="btn btn-danger">{{ _('Удалить') }}</button>
         </form>
     </div>
 </div>

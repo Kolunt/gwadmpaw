@@ -1,27 +1,27 @@
 {% extends "base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
-{% block title %}Письмо - Анонимные Деды Морозы{% endblock %}
+{% block title %}{{ _('Письмо - Анонимные Деды Морозы') }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
     <div class="admin-container">
         <div class="admin-header">
             <div>
-                <h1>✉️ Письмо Деду Морозу</h1>
+                <h1>{{ _('✉️ Письмо Деду Морозу') }}</h1>
                 {% if letter_events|length <= 1 %}
                 <p class="text-muted mb-0">Мероприятие: {{ letter.event_name }}</p>
                 {% endif %}
             </div>
-            <a href="{{ url_for('assignments.assignments') }}" class="btn btn-secondary">← Вернуться к заданиям</a>
+            <a href="{{ url_for('assignments.assignments') }}" class="btn btn-secondary">{{ _('← Вернуться к заданиям') }}</a>
         </div>
 
         {% if show_letter_switcher and current_letter_event %}
         <div class="card letter-switcher-panel">
             <div class="card-body letter-switcher-body">
                 {% if letter_events|length > 1 %}
-                <label class="letter-switcher-label" for="letter-event-select">Мероприятие</label>
-                <select id="letter-event-select" class="letter-event-select setting-input" aria-label="Выбор мероприятия">
+                <label class="letter-switcher-label" for="letter-event-select">{{ _('Мероприятие') }}</label>
+                <select id="letter-event-select" class="letter-event-select setting-input" aria-label="{{ _('Выбор мероприятия') }}">
                     {% for ev in letter_events %}
                     <option
                         value="{% if admin_view %}{{ ev.chats[0].assignment_id if ev.chats else '' }}{% else %}{{ ev.santa_assignment_id or ev.grandchild_assignment_id }}{% endif %}"
@@ -35,8 +35,8 @@
 
                 {% if admin_view %}
                 {% if current_letter_event.chats|length > 1 %}
-                <label class="letter-switcher-label" for="letter-chat-select">Переписка</label>
-                <select id="letter-chat-select" class="letter-chat-select setting-input" aria-label="Выбор переписки">
+                <label class="letter-switcher-label" for="letter-chat-select">{{ _('Переписка') }}</label>
+                <select id="letter-chat-select" class="letter-chat-select setting-input" aria-label="{{ _('Выбор переписки') }}">
                     {% for chat in current_letter_event.chats %}
                     <option
                         value="{{ chat.assignment_id }}"
@@ -48,13 +48,13 @@
                 </select>
                 {% endif %}
                 {% else %}
-                <div class="letter-role-switcher" role="group" aria-label="Роль в переписке">
+                <div class="letter-role-switcher" role="group" aria-label="{{ _('Роль в переписке') }}">
                     {% if current_letter_event.santa_assignment_id %}
                     <a
                         href="{{ url_for('assignments.letter', assignment_id=current_letter_event.santa_assignment_id) }}"
                         class="btn btn-sm letter-role-btn {% if assignment.id == current_letter_event.santa_assignment_id %}is-active{% endif %}"
                     >
-                        Дед Мороз
+                        {{ _('Дед Мороз') }}
                     </a>
                     {% endif %}
                     {% if current_letter_event.grandchild_assignment_id %}
@@ -62,7 +62,7 @@
                         href="{{ url_for('assignments.letter', assignment_id=current_letter_event.grandchild_assignment_id) }}"
                         class="btn btn-sm letter-role-btn {% if assignment.id == current_letter_event.grandchild_assignment_id %}is-active{% endif %}"
                     >
-                        Внучок
+                        {{ _('Внучок') }}
                     </a>
                     {% endif %}
                 </div>
@@ -77,34 +77,34 @@
                 <div class="chat-message message-grandchild">
                     <strong>✨ {{ letter.grandchild.first_name }}:</strong>
                     <div class="chat-message-body">
-                        <p>Здравствуй, Дедушка Мороз! Меня зовут <strong>{{ letter.grandchild.first_name }}</strong>, а полностью <strong>{{ letter.grandchild.full_name }}</strong>. Пишу тебе из <strong>{{ letter.grandchild.address }}</strong>. Весь год я вёл себя хорошо, заботился о родных и друзьях, сделал много хорошего и с нетерпением жду волшебства и чудес, которые ты даришь всем детям.</p>
+                        <p>{{ _('Здравствуй, Дедушка Мороз! Меня зовут') }} <strong>{{ letter.grandchild.first_name }}</strong>{{ _(', а полностью') }} <strong>{{ letter.grandchild.full_name }}</strong>{{ _('. Пишу тебе из') }} <strong>{{ letter.grandchild.address }}</strong>{{ _('. Весь год я вёл себя хорошо, заботился о родных и друзьях, сделал много хорошего и с нетерпением жду волшебства и чудес, которые ты даришь всем детям.') }}</p>
 
-                        <p>Несколько слов о себе: <span class="multiline-text">{{ letter.grandchild.bio | format_multiline }}</span></p>
+                        <p>{{ _('Несколько слов о себе:') }} <span class="multiline-text">{{ letter.grandchild.bio | format_multiline }}</span></p>
 
-                        <p>Спасибо тебе за всё, что ты делаешь! Желаю тебе крепкого здоровья и счастья. Надеюсь, что в следующем году я снова смогу написать тебе письмо и поделиться своими новыми достижениями!</p>
+                        <p>{{ _('Спасибо тебе за всё, что ты делаешь! Желаю тебе крепкого здоровья и счастья. Надеюсь, что в следующем году я снова смогу написать тебе письмо и поделиться своими новыми достижениями!') }}</p>
 
-                        <p class="chat-signoff">С любовью, <strong>{{ letter.grandchild.first_name }}</strong></p>
+                        <p class="chat-signoff">{{ _('С любовью,') }} <strong>{{ letter.grandchild.first_name }}</strong></p>
                     </div>
                     <span class="chat-meta">
                         {{ letter.date }}
-                        <span class="chat-meta-auto">Сообщение сформировано автоматически</span>
+                        <span class="chat-meta-auto">{{ _('Сообщение сформировано автоматически') }}</span>
                     </span>
                 </div>
 
                 <div class="chat-message message-santa">
-                    <strong>🎅 Дед Мороз:</strong>
+                    <strong>{{ _('🎅 Дед Мороз:') }}</strong>
                     <div class="chat-message-body">
-                        <p>Здравствуй, мой дорогой внучок! Пишет тебе Дед Мороз из России, город Великий Устюг — своей официальной резиденции. Я забочусь о том, чтобы чудеса и тепло доходили до каждого сердца, и очень рад, что ты со мной.</p>
+                        <p>{{ _('Здравствуй, мой дорогой внучок! Пишет тебе Дед Мороз из России, город Великий Устюг — своей официальной резиденции. Я забочусь о том, чтобы чудеса и тепло доходили до каждого сердца, и очень рад, что ты со мной.') }}</p>
 
-                        <p>Помни, что самое важное — сохранять доброту в душе, заботиться о близких и верить в чудеса. Тогда они обязательно сбудутся!</p>
+                        <p>{{ _('Помни, что самое важное — сохранять доброту в душе, заботиться о близких и верить в чудеса. Тогда они обязательно сбудутся!') }}</p>
 
-                        <p>Вскоре я найду способ прислать тебе подарок и сообщу координаты 👌</p>
+                        <p>{{ _('Вскоре я найду способ прислать тебе подарок и сообщу координаты 👌') }}</p>
 
-                        <p class="chat-signoff">С любовью, твой <strong>Дед Мороз</strong></p>
+                        <p class="chat-signoff">{{ _('С любовью, твой') }} <strong>{{ _('Дед Мороз') }}</strong></p>
                     </div>
                     <span class="chat-meta">
                         {{ letter.date }}
-                        <span class="chat-meta-auto">Сообщение сформировано автоматически</span>
+                        <span class="chat-meta-auto">{{ _('Сообщение сформировано автоматически') }}</span>
                     </span>
                 </div>
                 
@@ -123,7 +123,7 @@
                     {% if msg.attachment_url %}
                     <div class="chat-attachment">
                         <a href="{{ msg.attachment_url }}" target="_blank" rel="noopener">
-                            <img src="{{ msg.attachment_url }}" alt="Изображение из сообщения" loading="lazy">
+                            <img src="{{ msg.attachment_url }}" alt="{{ _('Изображение из сообщения') }}" loading="lazy">
                         </a>
                     </div>
                     {% endif %}
@@ -139,23 +139,23 @@
                     <h3 class="letter-compose-title">{% if event_finished and not admin_view %}Переписка завершена{% else %}Продолжить переписку{% endif %}</h3>
                     {% if admin_view %}
                     <p class="text-muted mb-0">
-                        Вы просматриваете переписку как администратор. Сообщения доступны только для чтения.
+                        {{ _('Вы просматриваете переписку как администратор. Сообщения доступны только для чтения.') }}
                     </p>
                     {% if admin_letters_url %}
                     <p class="mt-1">
-                        <a href="{{ admin_letters_url }}" class="btn btn-outline-secondary btn-sm">← К списку переписок</a>
+                        <a href="{{ admin_letters_url }}" class="btn btn-outline-secondary btn-sm">{{ _('← К списку переписок') }}</a>
                     </p>
                     {% endif %}
                     {% elif event_finished %}
                     <p class="text-muted mb-0">
-                        Мероприятие завершено. Переписка доступна только для чтения.
+                        {{ _('Мероприятие завершено. Переписка доступна только для чтения.') }}
                     </p>
                     {% else %}
                     <p class="text-muted mb-1">
                         {% if user_role == 'santa' %}
-                            Вы общаетесь как <strong>Дед Мороз</strong>. Сообщения от внучка добавляет ваш получатель.
+                            Вы общаетесь как <strong>{{ _('Дед Мороз') }}</strong>. Сообщения от внучка добавляет ваш получатель.
                         {% else %}
-                            Вы общаетесь как <strong>Внучок</strong>. Сообщения от Деда Мороза добавляет ваш даритель.
+                            Вы общаетесь как <strong>{{ _('Внучок') }}</strong>. Сообщения от Деда Мороза добавляет ваш даритель.
                         {% endif %}
                     </p>
                     <form id="letter-form" method="POST" action="{{ url_for('assignments.letter', assignment_id=assignment.id) }}" enctype="multipart/form-data" class="letter-form">
@@ -168,7 +168,7 @@
                             placeholder="{% if user_role == 'santa' %}Напишите ответ Деда Мороза...{% else %}Напишите письмо Деду Морозу...{% endif %}"
                         ></textarea>
                         <div class="letter-attachment-group">
-                            <span class="text-muted fw-semibold">Изображение (необязательно)</span>
+                            <span class="text-muted fw-semibold">{{ _('Изображение (необязательно)') }}</span>
                             <div class="file-upload-group">
                                 <input
                                     type="file"
@@ -178,13 +178,13 @@
                                     class="file-input letter-attachment-file"
                                 >
                                 <label for="letter-attachment-input" class="file-upload-label">
-                                    <span class="file-upload-text">Выбрать изображение</span>
+                                    <span class="file-upload-text">{{ _('Выбрать изображение') }}</span>
                                     <span class="file-upload-btn" aria-hidden="true">📁</span>
                                 </label>
                             </div>
-                            <span class="text-muted letter-attachment-hint">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</span>
+                            <span class="text-muted letter-attachment-hint">{{ _('Поддерживаются PNG, JPG, JPEG, GIF, WEBP.') }}</span>
                         </div>
-                        <button type="submit" class="btn btn-primary letter-submit-btn">Отправить сообщение</button>
+                        <button type="submit" class="btn btn-primary letter-submit-btn">{{ _('Отправить сообщение') }}</button>
                     </form>
                     {% endif %}
                 </div>

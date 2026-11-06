@@ -3,7 +3,7 @@
     <div><strong>Email:</strong> <a href="mailto:{{ entity.email }}" class="contact-link">{{ entity.email }}</a></div>
     {% endif %}
     {% if entity.phone %}
-    <div><strong>Телефон:</strong> <a href="tel:{{ entity.phone|replace(' ', '') }}" class="contact-link">{{ entity.phone }}</a></div>
+    <div><strong>{{ _('Телефон:') }}</strong> <a href="tel:{{ entity.phone|replace(' ', '') }}" class="contact-link">{{ entity.phone }}</a></div>
     {% endif %}
     {% if entity.telegram %}
     <div><strong>Telegram:</strong>

@@ -7,33 +7,33 @@
 <div class="admin-container">
     <div class="admin-header">
         <div>
-            <h1>Участники мероприятия</h1>
+            <h1>{{ _('Участники мероприятия') }}</h1>
             <p class="text-muted" style="margin: 0;">{{ event.name }}</p>
         </div>
         <div class="event-header-actions">
             <button type="button" class="btn btn-primary" id="open-manual-participant-modal">
-                ➕ Добавить участника
+                {{ _('➕ Добавить участника') }}
             </button>
-            <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn btn-secondary">← Назад к мероприятию</a>
-            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">Список мероприятий</a>
+            <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn btn-secondary">{{ _('← Назад к мероприятию') }}</a>
+            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">{{ _('Список мероприятий') }}</a>
         </div>
     </div>
 
     <div class="event-meta-card">
         <div class="event-meta-item">
-            <span class="event-meta-label">ID мероприятия</span>
+            <span class="event-meta-label">{{ _('ID мероприятия') }}</span>
             <span class="event-meta-value">#{{ event.id }}</span>
         </div>
         <div class="event-meta-item">
-            <span class="event-meta-label">Создатель</span>
+            <span class="event-meta-label">{{ _('Создатель') }}</span>
             <span class="event-meta-value">{{ event.creator_name or 'Не указан' }}</span>
         </div>
         <div class="event-meta-item">
-            <span class="event-meta-label">Всего участников</span>
+            <span class="event-meta-label">{{ _('Всего участников') }}</span>
             <span class="event-meta-value">{{ participants_count }}</span>
         </div>
         <div class="event-meta-item">
-            <span class="event-meta-label">Описание</span>
+            <span class="event-meta-label">{{ _('Описание') }}</span>
             <span class="event-meta-value">{{ event.description or '—' }}</span>
         </div>
     </div>
@@ -44,14 +44,14 @@
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Пользователь</th>
-                    <th>ФИО</th>
-                    <th>Адрес</th>
-                    <th>Контакты</th>
-                    <th>Дата регистрации</th>
-                    <th>Статус</th>
+                    <th>{{ _('Пользователь') }}</th>
+                    <th>{{ _('ФИО') }}</th>
+                    <th>{{ _('Адрес') }}</th>
+                    <th>{{ _('Контакты') }}</th>
+                    <th>{{ _('Дата регистрации') }}</th>
+                    <th>{{ _('Статус') }}</th>
                     {% if show_actions %}
-                    <th>Действия</th>
+                    <th>{{ _('Действия') }}</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -90,7 +90,7 @@
                             <div><strong>Email:</strong> <a href="mailto:{{ participant.email }}" class="contact-link">{{ participant.email }}</a></div>
                             {% endif %}
                             {% if participant.phone %}
-                            <div><strong>Телефон:</strong> <a href="tel:{{ participant.phone|replace(' ', '') }}" class="contact-link">{{ participant.phone }}</a></div>
+                            <div><strong>{{ _('Телефон:') }}</strong> <a href="tel:{{ participant.phone|replace(' ', '') }}" class="contact-link">{{ participant.phone }}</a></div>
                             {% endif %}
                             {% if participant.telegram %}
                             <div><strong>Telegram:</strong>
@@ -122,11 +122,11 @@
                     </td>
                     <td data-label="Статус">
                         {% if participant.approval_status == 'approved' %}
-                            <span class="badge badge-success">Подтвержден</span>
+                            <span class="badge badge-success">{{ _('Подтвержден') }}</span>
                         {% elif participant.approval_status == 'rejected' %}
-                            <span class="badge badge-danger">Отклонен</span>
+                            <span class="badge badge-danger">{{ _('Отклонен') }}</span>
                         {% else %}
-                            <span class="badge badge-warning">Ожидает решения</span>
+                            <span class="badge badge-warning">{{ _('Ожидает решения') }}</span>
                         {% endif %}
                         {% if participant.approval_notes %}
                         <div class="text-muted small" style="margin-top: 0.25rem;">{{ participant.approval_notes }}</div>
@@ -139,7 +139,7 @@
                             <form method="POST" action="{{ url_for('admin.admin_event_participant_confirm', event_id=event.id) }}">
         {{ csrf_input() }}
                                 <input type="hidden" name="user_id" value="{{ participant.user_id }}">
-                                <button type="submit" class="btn-icon" title="Подтвердить участие">✅</button>
+                                <button type="submit" class="btn-icon" title="{{ _('Подтвердить участие') }}">✅</button>
                             </form>
                             {% endif %}
                             {% if participant.can_reject_participant and participant.stage == 'main' %}
@@ -154,20 +154,20 @@
                             <form method="POST" action="{{ url_for('admin.admin_event_participant_upgrade', event_id=event.id) }}">
         {{ csrf_input() }}
                                 <input type="hidden" name="user_id" value="{{ participant.user_id }}">
-                                <button type="submit" class="btn-icon" title="Перевести в основную регистрацию">⬆️</button>
+                                <button type="submit" class="btn-icon" title="{{ _('Перевести в основную регистрацию') }}">⬆️</button>
                             </form>
                             {% endif %}
                             {% if participant.can_downgrade_to_pre %}
                             <form method="POST" action="{{ url_for('admin.admin_event_participant_downgrade', event_id=event.id) }}">
         {{ csrf_input() }}
                                 <input type="hidden" name="user_id" value="{{ participant.user_id }}">
-                                <button type="submit" class="btn-icon" title="Перевести в предварительную регистрацию">⬇️</button>
+                                <button type="submit" class="btn-icon" title="{{ _('Перевести в предварительную регистрацию') }}">⬇️</button>
                             </form>
                             {% endif %}
                             <form method="POST" action="{{ url_for('admin.admin_event_participant_remove', event_id=event.id) }}" onsubmit="return confirm('Удалить участника {{ participant.username }} из мероприятия?');">
         {{ csrf_input() }}
                                 <input type="hidden" name="user_id" value="{{ participant.user_id }}">
-                                <button type="submit" class="btn-icon btn-icon-danger" title="Удалить участника">🗑️</button>
+                                <button type="submit" class="btn-icon btn-icon-danger" title="{{ _('Удалить участника') }}">🗑️</button>
                             </form>
                         </div>
                     </td>
@@ -178,7 +178,7 @@
                 {% if not participants %}
                 <tr>
                     <td colspan="6" class="text-center text-muted">
-                        Участники не найдены.
+                        {{ _('Участники не найдены.') }}
                     </td>
                 </tr>
                 {% endif %}
@@ -189,19 +189,19 @@
 
     <div class="tabs-container">
         <a class="tab-button active" data-tab="all" href="#all">
-            Все <span class="tab-count">{{ participants_count }}</span>
+            {{ _('Все') }} <span class="tab-count">{{ participants_count }}</span>
         </a>
         <a class="tab-button" data-tab="pre" href="#pre">
-            Предварительная регистрация <span class="tab-count">{{ participants_pre_count }}</span>
+            {{ _('Предварительная регистрация') }} <span class="tab-count">{{ participants_pre_count }}</span>
         </a>
         <a class="tab-button" data-tab="main" href="#main">
-            Основная регистрация <span class="tab-count">{{ participants_main_count }}</span>
+            {{ _('Основная регистрация') }} <span class="tab-count">{{ participants_main_count }}</span>
         </a>
         <a class="tab-button" data-tab="positive" href="#positive">
-            Позитив <span class="tab-count">{{ participants_positive_count }}</span>
+            {{ _('Позитив') }} <span class="tab-count">{{ participants_positive_count }}</span>
         </a>
         <a class="tab-button" data-tab="negative" href="#negative">
-            Негатив <span class="tab-count">{{ participants_negative_count }}</span>
+            {{ _('Негатив') }} <span class="tab-count">{{ participants_negative_count }}</span>
         </a>
         <a class="tab-button" data-tab="na" href="#na">
             N/A <span class="tab-count">{{ participants_na_count }}</span>
@@ -231,33 +231,33 @@
 <div id="manual-participant-modal" class="modal manual-participant-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="manual-participant-modal-title" aria-hidden="true">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="manual-participant-modal-title">Добавить участника вручную</h2>
-            <button type="button" class="modal-close" id="close-manual-participant-modal" aria-label="Закрыть">&times;</button>
+            <h2 id="manual-participant-modal-title">{{ _('Добавить участника вручную') }}</h2>
+            <button type="button" class="modal-close" id="close-manual-participant-modal" aria-label="{{ _('Закрыть') }}">&times;</button>
         </div>
         <div class="modal-body">
             <p class="text-muted small-note manual-participant-modal-hint">
-                Пользователь будет добавлен в список участников и сразу одобрен.
+                {{ _('Пользователь будет добавлен в список участников и сразу одобрен.') }}
             </p>
             <form method="POST" action="{{ url_for('admin.admin_event_participant_add', event_id=event.id) }}" class="manual-add-form manual-add-form-modal">
                 {{ csrf_input() }}
                 <div class="form-group">
-                    <label for="user_identifier" class="form-label">ID или имя пользователя</label>
-                    <input type="text" id="user_identifier" name="user_identifier" class="form-input" placeholder="Например: 12345 или username" required autocomplete="off">
+                    <label for="user_identifier" class="form-label">{{ _('ID или имя пользователя') }}</label>
+                    <input type="text" id="user_identifier" name="user_identifier" class="form-input" placeholder="{{ _('Например: 12345 или username') }}" required autocomplete="off">
                 </div>
                 <div class="form-group">
-                    <label for="notes" class="form-label">Комментарий (опционально)</label>
-                    <input type="text" id="notes" name="notes" class="form-input" placeholder="Например: добавлен вручную">
+                    <label for="notes" class="form-label">{{ _('Комментарий (опционально)') }}</label>
+                    <input type="text" id="notes" name="notes" class="form-input" placeholder="{{ _('Например: добавлен вручную') }}">
                 </div>
                 <div class="form-group">
-                    <label for="stage" class="form-label">Этап регистрации</label>
+                    <label for="stage" class="form-label">{{ _('Этап регистрации') }}</label>
                     <select id="stage" name="stage" class="form-select" required>
-                        <option value="pre" selected>Предварительная регистрация</option>
-                        <option value="main">Основная регистрация</option>
+                        <option value="pre" selected>{{ _('Предварительная регистрация') }}</option>
+                        <option value="main">{{ _('Основная регистрация') }}</option>
                     </select>
                 </div>
                 <div class="modal-footer manual-participant-modal-footer">
-                    <button type="button" class="btn btn-secondary" id="cancel-manual-participant-modal">Отмена</button>
-                    <button type="submit" class="btn btn-primary">Добавить участника</button>
+                    <button type="button" class="btn btn-secondary" id="cancel-manual-participant-modal">{{ _('Отмена') }}</button>
+                    <button type="submit" class="btn btn-primary">{{ _('Добавить участника') }}</button>
                 </div>
             </form>
         </div>

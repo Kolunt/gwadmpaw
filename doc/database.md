@@ -165,7 +165,8 @@ def get_db_connection():
 13. **activity_logs** - логи действий
 14. **faq_items** - FAQ
 15. **letter_messages** - сообщения/письма
-16. И другие...
+16. **ui_strings** — редактируемые строки интерфейса (RU/EN): ключ `msg_key` (как в шаблонах), локаль `locale`, эталон `default_text`, текущее значение `value` (миграция `013_ui_strings.py`). Заполняется при первом обращении из реестра [`gwadm/ui_string_registry.py`](../gwadm/ui_string_registry.py) + [`gwadm/_ui_string_registry_generated.py`](../gwadm/_ui_string_registry_generated.py). Редактирование: **Админ → Локализация** (`/admin/localization`).
+17. И другие...
 
 ## Резервное копирование
 
@@ -229,6 +230,7 @@ Copy-Item database.db "database_$(Get-Date -Format 'yyyyMMdd').db"
 | `009_profile_max_and_policy.py` | Колонка `max` в `users` и `event_registration_details`; настройка `profile_data_policy` (JSON) |
 | `010_rating_contact_max.py` | Настройка `rating_contact_max` (очки за заполненный Max в репутации) |
 | `012_assignment_admin_workspace.py` | `assignment_admin_notes`, `assignment_admin_tasks` — заметки и задачи админа на канбане прогресса |
+| `013_ui_strings.py` | Таблица `ui_strings` — переводимые строки UI |
 
 Колонка **`users.max`** / **`event_registration_details.max`** — номер телефона в мессенджере Max.
 

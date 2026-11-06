@@ -1,16 +1,16 @@
 {% extends "admin/base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
-{% block title %}Шаблоны рассылок - Админ-панель{% endblock %}
+{% block title %}{{ _('Шаблоны рассылок - Админ-панель') }}{% endblock %}
 
 {% block admin_content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>Шаблоны рассылок</h1>
+        <h1>{{ _('Шаблоны рассылок') }}</h1>
         <div>
-            <a href="{{ url_for('admin.admin_broadcasts') }}" class="btn btn-secondary">← Назад к рассылкам</a>
+            <a href="{{ url_for('admin.admin_broadcasts') }}" class="btn btn-secondary">{{ _('← Назад к рассылкам') }}</a>
             <button type="button" class="btn btn-primary" onclick="showTemplateModal('create')" style="margin-left: 10px;">
-                ➕ Создать шаблон
+                {{ _('➕ Создать шаблон') }}
             </button>
         </div>
     </div>
@@ -31,14 +31,14 @@
                     </span>
                 </div>
                 <div class="template-actions">
-                    <button type="button" class="btn-icon" onclick="showTemplateModal('edit', {{ template.id }})" title="Редактировать">
+                    <button type="button" class="btn-icon" onclick="showTemplateModal('edit', {{ template.id }})" title="{{ _('Редактировать') }}">
                         ✏️
                     </button>
                     <form method="POST" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этот шаблон?');">
         {{ csrf_input() }}
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="template_id" value="{{ template.id }}">
-                        <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
+                        <button type="submit" class="btn-icon" title="{{ _('Удалить') }}">🗑️</button>
                     </form>
                 </div>
             </div>
@@ -47,11 +47,11 @@
             {% endif %}
             {% if template.subject %}
             <div class="template-subject">
-                <strong>Тема:</strong> {{ template.subject }}
+                <strong>{{ _('Тема:') }}</strong> {{ template.subject }}
             </div>
             {% endif %}
             <div class="template-message-preview">
-                <strong>Сообщение:</strong>
+                <strong>{{ _('Сообщение:') }}</strong>
                 <div class="message-text">{{ template.message[:200] }}{% if template.message|length > 200 %}...{% endif %}</div>
             </div>
             <div class="template-meta">
@@ -68,7 +68,7 @@
     </div>
     {% else %}
     <div class="no-templates">
-        <p>Шаблоны не созданы. Создайте первый шаблон для быстрой отправки рассылок.</p>
+        <p>{{ _('Шаблоны не созданы. Создайте первый шаблон для быстрой отправки рассылок.') }}</p>
     </div>
     {% endif %}
 </div>
@@ -77,7 +77,7 @@
 <div id="template-modal" class="modal" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="modal-title">Создать шаблон</h2>
+            <h2 id="modal-title">{{ _('Создать шаблон') }}</h2>
             <button type="button" class="modal-close" onclick="closeTemplateModal()">&times;</button>
         </div>
         <form method="POST" id="template-form">
@@ -86,17 +86,17 @@
             <input type="hidden" name="template_id" id="template-id">
             
             <div class="form-group">
-                <label for="template-name" class="form-label">Название шаблона *</label>
+                <label for="template-name" class="form-label">{{ _('Название шаблона *') }}</label>
                 <input type="text" id="template-name" name="name" class="form-input" required>
             </div>
             
             <div class="form-group">
-                <label for="template-description" class="form-label">Описание</label>
+                <label for="template-description" class="form-label">{{ _('Описание') }}</label>
                 <textarea id="template-description" name="description" class="form-textarea" rows="2"></textarea>
             </div>
             
             <div class="form-group">
-                <label class="form-label">Способ доставки *</label>
+                <label class="form-label">{{ _('Способ доставки *') }}</label>
                 <div class="radio-group">
                     <label class="radio-label">
                         <input type="radio" name="delivery_method" value="email" id="template-email" checked>
@@ -110,18 +110,18 @@
             </div>
             
             <div class="form-group" id="template-subject-group">
-                <label for="template-subject" class="form-label">Тема письма *</label>
+                <label for="template-subject" class="form-label">{{ _('Тема письма *') }}</label>
                 <input type="text" id="template-subject" name="subject" class="form-input">
             </div>
             
             <div class="form-group">
-                <label for="template-message" class="form-label">Текст сообщения *</label>
+                <label for="template-message" class="form-label">{{ _('Текст сообщения *') }}</label>
                 <textarea id="template-message" name="message" class="form-textarea" rows="10" required></textarea>
             </div>
             
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeTemplateModal()">Отмена</button>
-                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button type="button" class="btn btn-secondary" onclick="closeTemplateModal()">{{ _('Отмена') }}</button>
+                <button type="submit" class="btn btn-primary">{{ _('Сохранить') }}</button>
             </div>
         </form>
     </div>

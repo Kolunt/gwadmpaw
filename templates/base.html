@@ -86,7 +86,7 @@
         <div class="navbar-content">
             <div class="navbar-left">
                 {% if not is_account_blocked %}
-                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Открыть меню">
+                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="{{ _('Открыть меню') }}">
                     <span></span>
                     <span></span>
                     <span></span>
@@ -96,7 +96,7 @@
                     <span class="navbar-logo-emoji">{{ site_logo }}</span>
                     {% set logo_text = get_setting('logo_text', 'Анонимные Деды Морозы') %}
                     <span class="logo logo-desktop">{{ logo_text }}</span>
-                    <span class="logo logo-mobile">АДМ</span>
+                    <span class="logo logo-mobile">{{ _('АДМ') }}</span>
                 </a>
             </div>
             <div class="navbar-actions">
@@ -106,10 +106,10 @@
                     <span class="navbar-icon" style="display: none;">⚔️</span>
                 </a>
                 {% endif %}
-                <a href="https://max.ru/channel_GWADM" class="navbar-icon-btn" title="Наш канал в MAX!" aria-label="MAX" target="_blank" rel="noopener noreferrer">
+                <a href="https://max.ru/channel_GWADM" class="navbar-icon-btn" title="{{ _('Наш канал в MAX!') }}" aria-label="MAX" target="_blank" rel="noopener noreferrer">
                     <img src="{{ url_for('static', filename='images/max-logo.png') }}" alt="MAX" class="navbar-icon-image">
                 </a>
-                <a href="https://t.me/GWADMv2" class="navbar-icon-btn" title="Наш Telegram-канал" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
+                <a href="https://t.me/GWADMv2" class="navbar-icon-btn" title="{{ _('Наш Telegram-канал') }}" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
                     <img src="{{ url_for('static', filename='images/telegram-logo.svg') }}" alt="Telegram" class="navbar-icon-image">
                 </a>
                 <button id="theme-toggle" class="navbar-icon-btn" title="{{ _('Toggle theme') }}" aria-label="{{ _('Toggle theme') }}">
@@ -118,9 +118,8 @@
                 {% if session.get('impersonation_original') %}
                 {% from 'macros/csrf.html' import csrf_input %}
                 <form method="POST" action="{{ url_for('impersonation.stop_impersonation') }}" class="impersonation-navbar-form">
-        {{ csrf_input() }}
                     {{ csrf_input() }}
-                    <button type="submit" class="navbar-icon-btn" title="Вернуться к своей учетной записи" aria-label="Вернуться к своей учетной записи">
+                    <button type="submit" class="navbar-icon-btn" title="{{ _('Вернуться к своей учетной записи') }}" aria-label="{{ _('Вернуться к своей учетной записи') }}">
                         🔙
                     </button>
                 </form>
@@ -129,7 +128,7 @@
                 {% if not is_account_blocked %}
                 <a href="{{ url_for('profile.dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="{{ _('Profile') }}">
                     {% if current_user_avatar_seed %}
-                        <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="Аватар" class="navbar-avatar">
+                        <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="{{ _('Аватар') }}" class="navbar-avatar">
                     {% else %}
                         <span class="navbar-icon">👤</span>
                     {% endif %}
@@ -166,7 +165,7 @@
                 </a>
                 <a href="{{ url_for('public.user_reputation') }}" class="sidebar-link">
                     <span class="sidebar-icon">🏆</span>
-                    <span>Репутация</span>
+                    <span>{{ _('Репутация') }}</span>
                 </a>
                 <a href="{{ url_for('public.faq') }}" class="sidebar-link">
                     <span class="sidebar-icon">❓</span>
@@ -174,16 +173,16 @@
                 </a>
                 <a href="{{ url_for('public.rules') }}" class="sidebar-link">
                     <span class="sidebar-icon">📜</span>
-                    <span>Правила</span>
+                    <span>{{ _('Правила') }}</span>
                 </a>
                 <a href="{{ url_for('public.contacts') }}" class="sidebar-link">
                     <span class="sidebar-icon">📞</span>
-                    <span>Контакты</span>
+                    <span>{{ _('Контакты') }}</span>
                 </a>
                 {% if session.user_id %}
                 <a href="{{ url_for('assignments.assignments') }}" class="sidebar-link{% if assignments_sidebar_pulse and request.endpoint != 'assignments.assignments' %} sidebar-link-assignments-pulse{% endif %}">
                     <span class="sidebar-icon">📋</span>
-                    <span>Задания</span>
+                    <span>{{ _('Задания') }}</span>
                 </a>
                 {% endif %}
                 {% if 'admin' in session.get('roles', []) %}
@@ -195,7 +194,7 @@
             </div>
         </nav>
         <div class="sidebar-footer">
-            <button type="button" id="sidebar-collapse" class="sidebar-collapse-btn" aria-label="Свернуть меню" aria-expanded="true">
+            <button type="button" id="sidebar-collapse" class="sidebar-collapse-btn" aria-label="{{ _('Свернуть меню') }}" aria-expanded="true">
                 <span class="sidebar-collapse-icon" aria-hidden="true">‹</span>
             </button>
         </div>

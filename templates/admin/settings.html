@@ -1,13 +1,13 @@
 {% extends "admin/base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
-{% block title %}Настройки - Админ-панель{% endblock %}
+{% block title %}{{ _('Настройки - Админ-панель') }}{% endblock %}
 
 {% block admin_content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>Настройки системы</h1>
-        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        <h1>{{ _('Настройки системы') }}</h1>
+        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
     </div>
     
     <form method="POST" class="settings-form" enctype="multipart/form-data">
@@ -38,28 +38,28 @@
                 class="settings-tab"
                 data-tab="design"
             >
-                🎨 Дизайн
+                {{ _('🎨 Дизайн') }}
             </a>
             <a 
                 href="{{ url_for('admin.admin_settings') }}#profile-data"
                 class="settings-tab"
                 data-tab="profile-data"
             >
-                👤 Данные пользователей
+                {{ _('👤 Данные пользователей') }}
             </a>
             <a 
                 href="{{ url_for('admin.admin_settings') }}#localization"
                 class="settings-tab"
                 data-tab="localization"
             >
-                🌐 Локализация
+                {{ _('🌐 Локализация') }}
             </a>
             <a 
                 href="{{ url_for('admin.admin_settings') }}#modals"
                 class="settings-tab"
                 data-tab="modals"
             >
-                💬 Модальные окна
+                {{ _('💬 Модальные окна') }}
             </a>
         </div>
         
@@ -90,7 +90,7 @@
                 <!-- Содержимое подтабов -->
                 <div class="integration-content active" data-integration="dadata">
                     <div class="settings-section">
-                        <h2 class="settings-section-title">🔍 Интеграция Dadata</h2>
+                        <h2 class="settings-section-title">{{ _('🔍 Интеграция Dadata') }}</h2>
                         
                         {% set dadata_api_key = settings_dict.get('dadata_api_key', {}) %}
                         {% set dadata_secret_key = settings_dict.get('dadata_secret_key', {}) %}
@@ -100,8 +100,8 @@
                         <div class="dadata-integration-form">
                             <div class="setting-item">
                                 <label for="dadata_api_key" class="setting-label">
-                                    API ключ
-                                    <small class="setting-hint">API ключ от Dadata</small>
+                                    {{ _('API ключ') }}
+                                    <small class="setting-hint">{{ _('API ключ от Dadata') }}</small>
                                 </label>
                                 <input 
                                     type="text" 
@@ -109,14 +109,14 @@
                                     name="setting_dadata_api_key" 
                                     value="{{ dadata_api_key.get('value', '') if dadata_api_key else '' }}"
                                     class="setting-input"
-                                    placeholder="Введите API ключ"
+                                    placeholder="{{ _('Введите API ключ') }}"
                                 >
                             </div>
                             
                             <div class="setting-item">
                                 <label for="dadata_secret_key" class="setting-label">
-                                    Secret ключ
-                                    <small class="setting-hint">Secret ключ от Dadata</small>
+                                    {{ _('Secret ключ') }}
+                                    <small class="setting-hint">{{ _('Secret ключ от Dadata') }}</small>
                                 </label>
                                 <input 
                                     type="password" 
@@ -124,13 +124,13 @@
                                     name="setting_dadata_secret_key" 
                                     value="{{ dadata_secret_key.get('value', '') if dadata_secret_key else '' }}"
                                     class="setting-input"
-                                    placeholder="Введите Secret ключ"
+                                    placeholder="{{ _('Введите Secret ключ') }}"
                                 >
                             </div>
                             
                             <div class="setting-item">
                                 <button type="button" id="verify-dadata-btn" class="btn btn-secondary">
-                                    🔍 Проверить ключи
+                                    {{ _('🔍 Проверить ключи') }}
                                 </button>
                                 <span id="dadata-verify-status" class="verify-status"></span>
                             </div>
@@ -148,7 +148,7 @@
                                         onchange="document.getElementById('dadata_enabled_hidden').value = this.checked ? '1' : '0';"
                                     >
                                     <input type="hidden" id="dadata_enabled_hidden" name="setting_dadata_enabled" value="{% if dadata_enabled and dadata_enabled.get('value', '0') == '1' %}1{% else %}0{% endif %}">
-                                    <span>Включить интеграцию Dadata</span>
+                                    <span>{{ _('Включить интеграцию Dadata') }}</span>
                                     <small class="setting-hint">
                                         {% if not dadata_verified or dadata_verified.get('value', '0') != '1' %}
                                             Сначала проверьте ключи
@@ -165,7 +165,7 @@
                 <!-- Содержимое подтаба SMTP -->
                 <div class="integration-content" data-integration="smtp">
                     <div class="settings-section">
-                        <h2 class="settings-section-title">📧 Настройки SMTP</h2>
+                        <h2 class="settings-section-title">{{ _('📧 Настройки SMTP') }}</h2>
                         
                         {% set smtp_host = settings_dict.get('smtp_host', {}) %}
                         {% set smtp_port = settings_dict.get('smtp_port', {}) %}
@@ -180,8 +180,8 @@
                         <div class="smtp-integration-form">
                             <div class="setting-item">
                                 <label for="smtp_host" class="setting-label">
-                                    SMTP сервер
-                                    <small class="setting-hint">Адрес SMTP сервера (например: smtp.gmail.com)</small>
+                                    {{ _('SMTP сервер') }}
+                                    <small class="setting-hint">{{ _('Адрес SMTP сервера (например: smtp.gmail.com)') }}</small>
                                 </label>
                                 <input 
                                     type="text" 
@@ -195,8 +195,8 @@
                             
                             <div class="setting-item">
                                 <label for="smtp_port" class="setting-label">
-                                    Порт
-                                    <small class="setting-hint">Порт SMTP сервера (обычно 587 для TLS, 465 для SSL, 25 для без шифрования)</small>
+                                    {{ _('Порт') }}
+                                    <small class="setting-hint">{{ _('Порт SMTP сервера (обычно 587 для TLS, 465 для SSL, 25 для без шифрования)') }}</small>
                                 </label>
                                 <input 
                                     type="number" 
@@ -212,8 +212,8 @@
                             
                             <div class="setting-item">
                                 <label for="smtp_username" class="setting-label">
-                                    Логин
-                                    <small class="setting-hint">Имя пользователя для SMTP (обычно email адрес)</small>
+                                    {{ _('Логин') }}
+                                    <small class="setting-hint">{{ _('Имя пользователя для SMTP (обычно email адрес)') }}</small>
                                 </label>
                                 <input 
                                     type="text" 
@@ -227,8 +227,8 @@
                             
                             <div class="setting-item">
                                 <label for="smtp_password" class="setting-label">
-                                    Пароль
-                                    <small class="setting-hint">Пароль для SMTP (для Gmail используйте пароль приложения)</small>
+                                    {{ _('Пароль') }}
+                                    <small class="setting-hint">{{ _('Пароль для SMTP (для Gmail используйте пароль приложения)') }}</small>
                                 </label>
                                 <input 
                                     type="password" 
@@ -236,7 +236,7 @@
                                     name="setting_smtp_password" 
                                     value="{{ smtp_password.get('value', '') if smtp_password else '' }}"
                                     class="setting-input"
-                                    placeholder="Введите пароль"
+                                    placeholder="{{ _('Введите пароль') }}"
                                 >
                             </div>
                             
@@ -252,17 +252,17 @@
                                         onchange="document.getElementById('smtp_use_tls_hidden').value = this.checked ? '1' : '0';"
                                     >
                                     <input type="hidden" id="smtp_use_tls_hidden" name="setting_smtp_use_tls" value="{% if smtp_use_tls and smtp_use_tls.get('value', '0') == '1' %}1{% else %}0{% endif %}">
-                                    <span>Использовать TLS</span>
+                                    <span>{{ _('Использовать TLS') }}</span>
                                     <small class="setting-hint">
-                                        Включите для портов 587, выключите для порта 465 (SSL) или 25
+                                        {{ _('Включите для портов 587, выключите для порта 465 (SSL) или 25') }}
                                     </small>
                                 </label>
                             </div>
                             
                             <div class="setting-item">
                                 <label for="smtp_from_email" class="setting-label">
-                                    Email отправителя
-                                    <small class="setting-hint">Email адрес, с которого будут отправляться письма</small>
+                                    {{ _('Email отправителя') }}
+                                    <small class="setting-hint">{{ _('Email адрес, с которого будут отправляться письма') }}</small>
                                 </label>
                                 <input 
                                     type="email" 
@@ -276,8 +276,8 @@
                             
                             <div class="setting-item">
                                 <label for="smtp_from_name" class="setting-label">
-                                    Имя отправителя
-                                    <small class="setting-hint">Имя, которое будет отображаться в поле "От"</small>
+                                    {{ _('Имя отправителя') }}
+                                    <small class="setting-hint">{{ _('Имя, которое будет отображаться в поле "От"') }}</small>
                                 </label>
                                 <input 
                                     type="text" 
@@ -285,13 +285,13 @@
                                     name="setting_smtp_from_name" 
                                     value="{{ smtp_from_name.get('value', 'Анонимные Деды Морозы') if smtp_from_name else 'Анонимные Деды Морозы' }}"
                                     class="setting-input"
-                                    placeholder="Анонимные Деды Морозы"
+                                    placeholder="{{ _('Анонимные Деды Морозы') }}"
                                 >
                             </div>
                             
                             <div class="setting-item">
                                 <button type="button" id="verify-smtp-btn" class="btn btn-secondary">
-                                    🔍 Проверить подключение
+                                    {{ _('🔍 Проверить подключение') }}
                                 </button>
                                 <span id="smtp-verify-status" class="verify-status"></span>
                             </div>
@@ -309,7 +309,7 @@
                                         onchange="document.getElementById('smtp_enabled_hidden').value = this.checked ? '1' : '0';"
                                     >
                                     <input type="hidden" id="smtp_enabled_hidden" name="setting_smtp_enabled" value="{% if smtp_enabled and smtp_enabled.get('value', '0') == '1' %}1{% else %}0{% endif %}">
-                                    <span>Включить SMTP</span>
+                                    <span>{{ _('Включить SMTP') }}</span>
                                     <small class="setting-hint">
                                         {% if not smtp_verified or smtp_verified.get('value', '0') != '1' %}
                                             Сначала проверьте подключение
@@ -326,7 +326,7 @@
                 <!-- Содержимое подтаба Telegram -->
                 <div class="integration-content" data-integration="telegram">
                     <div class="settings-section">
-                        <h2 class="settings-section-title">🤖 Интеграция Telegram бота</h2>
+                        <h2 class="settings-section-title">{{ _('🤖 Интеграция Telegram бота') }}</h2>
                         
                         {% set telegram_bot_token = settings_dict.get('telegram_bot_token', {}) %}
                         {% set telegram_chat_id = settings_dict.get('telegram_chat_id', {}) %}
@@ -336,8 +336,8 @@
                         <div class="telegram-integration-form">
                             <div class="setting-item">
                                 <label for="telegram_bot_token" class="setting-label">
-                                    Токен бота
-                                    <small class="setting-hint">Токен бота от @BotFather в Telegram</small>
+                                    {{ _('Токен бота') }}
+                                    <small class="setting-hint">{{ _('Токен бота от @BotFather в Telegram') }}</small>
                                 </label>
                                 <input 
                                     type="password" 
@@ -351,8 +351,8 @@
                             
                             <div class="setting-item">
                                 <label for="telegram_chat_id" class="setting-label">
-                                    Chat ID (опционально)
-                                    <small class="setting-hint">ID чата для отправки уведомлений. Если не указан, можно отправлять сообщения по username</small>
+                                    {{ _('Chat ID (опционально)') }}
+                                    <small class="setting-hint">{{ _('ID чата для отправки уведомлений. Если не указан, можно отправлять сообщения по username') }}</small>
                                 </label>
                                 <input 
                                     type="text" 
@@ -360,13 +360,13 @@
                                     name="setting_telegram_chat_id" 
                                     value="{{ telegram_chat_id.get('value', '') if telegram_chat_id else '' }}"
                                     class="setting-input"
-                                    placeholder="@username или -1001234567890"
+                                    placeholder="{{ _('@username или -1001234567890') }}"
                                 >
                             </div>
                             
                             <div class="setting-item">
                                 <button type="button" id="verify-telegram-btn" class="btn btn-secondary">
-                                    🔍 Проверить подключение
+                                    {{ _('🔍 Проверить подключение') }}
                                 </button>
                                 <span id="telegram-verify-status" class="verify-status"></span>
                             </div>
@@ -383,7 +383,7 @@
                                         class="setting-checkbox"
                                     >
                                     <input type="hidden" id="telegram_enabled_hidden" name="setting_telegram_enabled" value="{% if telegram_enabled and telegram_enabled.get('value', '0') == '1' %}1{% else %}0{% endif %}">
-                                    <span>Включить интеграцию Telegram</span>
+                                    <span>{{ _('Включить интеграцию Telegram') }}</span>
                                     <small class="setting-hint">
                                         {% if not telegram_verified or telegram_verified.get('value', '0') != '1' %}
                                             Сначала проверьте подключение
@@ -396,25 +396,25 @@
                             
                             <!-- Настройка вебхука и базового URL -->
                             <div class="setting-item" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color, #e0e0e0);">
-                                <h3 style="margin-bottom: 1rem; color: var(--text-primary);">🔗 Настройка вебхука</h3>
+                                <h3 style="margin-bottom: 1rem; color: var(--text-primary);">{{ _('🔗 Настройка вебхука') }}</h3>
                                 <p style="color: var(--text-secondary, #666); font-size: 0.9em; margin-bottom: 1rem;">
-                                    Для работы бота необходимо настроить вебхук. URL вебхука:
+                                    {{ _('Для работы бота необходимо настроить вебхук. URL вебхука:') }}
                                 </p>
                                 <div style="padding: 1rem; background: var(--bg-secondary, #f5f5f5); border-radius: 6px; margin-bottom: 1rem;">
                                     <code id="webhook-url" style="font-size: 0.9em; word-break: break-all;">{{ request.host_url.rstrip('/') }}/telegram/webhook</code>
                                     <button type="button" class="btn btn-secondary" onclick="copyWebhookUrl()" style="margin-left: 1rem; padding: 0.5rem 1rem;">
-                                        📋 Копировать
+                                        {{ _('📋 Копировать') }}
                                     </button>
                                 </div>
                                 <p style="color: var(--text-secondary, #666); font-size: 0.85em; margin-bottom: 1rem;">
-                                    💡 Вебхук настраивается автоматически при проверке бота. Если нужно настроить вручную: /setwebhook в @BotFather → вставьте URL выше
+                                    {{ _('💡 Вебхук настраивается автоматически при проверке бота. Если нужно настроить вручную: /setwebhook в @BotFather → вставьте URL выше') }}
                                 </p>
                                 
                                 {% set site_url = settings_dict.get('site_url', {}) %}
                                 <div class="setting-item" style="margin-top: 1rem;">
                                     <label for="site_url" class="setting-label">
-                                        Базовый URL сайта
-                                        <small class="setting-hint">Используется для формирования ссылок в боте (оставьте пустым для автоматического определения)</small>
+                                        {{ _('Базовый URL сайта') }}
+                                        <small class="setting-hint">{{ _('Используется для формирования ссылок в боте (оставьте пустым для автоматического определения)') }}</small>
                                     </label>
                                     <input 
                                         type="text" 
@@ -430,15 +430,15 @@
                         
                         <!-- Управление меню бота -->
                         <div class="settings-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color, #e0e0e0);">
-                            <h2 class="settings-section-title">📋 Управление меню бота</h2>
+                            <h2 class="settings-section-title">{{ _('📋 Управление меню бота') }}</h2>
                             <p style="color: var(--text-secondary, #666); margin-bottom: 1.5rem;">
-                                Настройте пункты меню, которые будут отображаться в Telegram боте
+                                {{ _('Настройте пункты меню, которые будут отображаться в Telegram боте') }}
                             </p>
                             
                             <div id="bot-menu-container">
                                 <div style="margin-bottom: 1rem;">
                                     <button type="button" class="btn btn-primary" onclick="showMenuModal('create')">
-                                        ➕ Добавить пункт меню
+                                        {{ _('➕ Добавить пункт меню') }}
                                     </button>
                                 </div>
                                 
@@ -453,9 +453,9 @@
                 <!-- Содержимое подтаба GWars -->
                 <div class="integration-content" data-integration="gwars">
                     <div class="settings-section">
-                        <h2 class="settings-section-title">⚔️ Домены-зеркала GWars</h2>
+                        <h2 class="settings-section-title">{{ _('⚔️ Домены-зеркала GWars') }}</h2>
                         <p style="color: var(--text-secondary, #666); margin-bottom: 1rem;">
-                            Для каждого домена укажите <code>site_id</code> из кабинета GWars.
+                            {{ _('Для каждого домена укажите') }} <code>site_id</code> из кабинета GWars.
                             Callback URL для домена: <code>https://&lt;домен&gt;/login</code>
                         </p>
                         <input type="hidden" id="gwars_domain_map" name="setting_gwars_domain_map" value="">
@@ -464,7 +464,7 @@
                             <table class="admin-table" id="gwars-domain-table" style="width: 100%;">
                                 <thead>
                                     <tr>
-                                        <th>Домен</th>
+                                        <th>{{ _('Домен') }}</th>
                                         <th>site_id</th>
                                         <th>Primary</th>
                                         <th></th>
@@ -476,13 +476,13 @@
                                         <td><input type="text" class="setting-input gwars-host-input" value="{{ entry.host }}" placeholder="gwadm.ru"></td>
                                         <td><input type="number" min="1" class="setting-input gwars-site-id-input" value="{{ entry.site_id }}" style="width: 100px;"></td>
                                         <td style="text-align: center;"><input type="radio" name="gwars_domain_primary_row" class="gwars-primary-radio" {% if entry.primary %}checked{% endif %}></td>
-                                        <td><button type="button" class="btn btn-secondary btn-sm gwars-remove-row">Удалить</button></td>
+                                        <td><button type="button" class="btn btn-secondary btn-sm gwars-remove-row">{{ _('Удалить') }}</button></td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
-                        <button type="button" class="btn btn-secondary" id="gwars-add-row">➕ Добавить домен</button>
+                        <button type="button" class="btn btn-secondary" id="gwars-add-row">{{ _('➕ Добавить домен') }}</button>
                     </div>
                     </div>
                 </div>
@@ -490,16 +490,16 @@
             {% elif category == 'system' %}
             <!-- Специальная обработка для системных настроек (Блатные) -->
             <div class="settings-section">
-                <h2 class="settings-section-title">🔧 Блатные настройки</h2>
+                <h2 class="settings-section-title">{{ _('🔧 Блатные настройки') }}</h2>
                 
                 <!-- Список администраторов -->
                 <div class="setting-card" style="margin-bottom: 2rem;">
                     <div class="setting-card-header">
-                        <label class="setting-label">Администраторы системы</label>
-                        <span class="setting-badge">Пользователи</span>
+                        <label class="setting-label">{{ _('Администраторы системы') }}</label>
+                        <span class="setting-badge">{{ _('Пользователи') }}</span>
                     </div>
                     <div class="setting-card-body">
-                        <small class="setting-hint">Список всех пользователей с правами администратора</small>
+                        <small class="setting-hint">{{ _('Список всех пользователей с правами администратора') }}</small>
                         
                         {% if admin_users %}
                         <div class="admin-users-list" style="margin-top: 1rem;">
@@ -512,7 +512,7 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p style="color: var(--text-secondary); margin-top: 1rem;">Администраторы не найдены</p>
+                        <p style="color: var(--text-secondary); margin-top: 1rem;">{{ _('Администраторы не найдены') }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -520,11 +520,11 @@
                 <!-- Список системных ролей -->
                 <div class="setting-card" style="margin-bottom: 2rem;">
                     <div class="setting-card-header">
-                        <label class="setting-label">Системные роли</label>
-                        <span class="setting-badge">Роли</span>
+                        <label class="setting-label">{{ _('Системные роли') }}</label>
+                        <span class="setting-badge">{{ _('Роли') }}</span>
                     </div>
                     <div class="setting-card-body">
-                        <small class="setting-hint">Список всех ролей по умолчанию</small>
+                        <small class="setting-hint">{{ _('Список всех ролей по умолчанию') }}</small>
                         
                         {% if system_roles %}
                         <div class="system-items-list" style="margin-top: 1rem;">
@@ -540,7 +540,7 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p style="color: var(--text-secondary); margin-top: 1rem;">Роли не найдены</p>
+                        <p style="color: var(--text-secondary); margin-top: 1rem;">{{ _('Роли не найдены') }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -548,11 +548,11 @@
                 <!-- Список системных званий -->
                 <div class="setting-card" style="margin-bottom: 2rem;">
                     <div class="setting-card-header">
-                        <label class="setting-label">Системные звания</label>
-                        <span class="setting-badge">Звания</span>
+                        <label class="setting-label">{{ _('Системные звания') }}</label>
+                        <span class="setting-badge">{{ _('Звания') }}</span>
                     </div>
                     <div class="setting-card-body">
-                        <small class="setting-hint">Список всех званий по умолчанию</small>
+                        <small class="setting-hint">{{ _('Список всех званий по умолчанию') }}</small>
                         
                         {% if system_titles %}
                         <div class="system-items-list" style="margin-top: 1rem;">
@@ -571,7 +571,7 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p style="color: var(--text-secondary); margin-top: 1rem;">Звания не найдены</p>
+                        <p style="color: var(--text-secondary); margin-top: 1rem;">{{ _('Звания не найдены') }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -579,15 +579,15 @@
                 <!-- Управление званиями -->
                 <div class="setting-card" style="margin-bottom: 2rem;">
                     <div class="setting-card-header">
-                        <label class="setting-label">Управление званиями</label>
-                        <span class="setting-badge">Звания</span>
+                        <label class="setting-label">{{ _('Управление званиями') }}</label>
+                        <span class="setting-badge">{{ _('Звания') }}</span>
                     </div>
                     <div class="setting-card-body">
-                        <small class="setting-hint">Создание и редактирование званий для пользователей</small>
+                        <small class="setting-hint">{{ _('Создание и редактирование званий для пользователей') }}</small>
                         
                         <div style="margin-top: 1rem; margin-bottom: 1rem;">
                             <a href="{{ url_for('admin.admin_title_create') }}" class="btn btn-primary" style="display: inline-block;">
-                                ➕ Создать звание
+                                {{ _('➕ Создать звание') }}
                             </a>
                         </div>
                         
@@ -596,14 +596,14 @@
                             <table class="admin-table">
                                 <thead>
                                     <tr>
-                                        <th>Иконка</th>
-                                        <th>Название</th>
-                                        <th>Отображаемое имя</th>
-                                        <th>Описание</th>
-                                        <th>Цвет</th>
-                                        <th>Тип</th>
-                                        <th>Пользователей</th>
-                                        <th>Действия</th>
+                                        <th>{{ _('Иконка') }}</th>
+                                        <th>{{ _('Название') }}</th>
+                                        <th>{{ _('Отображаемое имя') }}</th>
+                                        <th>{{ _('Описание') }}</th>
+                                        <th>{{ _('Цвет') }}</th>
+                                        <th>{{ _('Тип') }}</th>
+                                        <th>{{ _('Пользователей') }}</th>
+                                        <th>{{ _('Действия') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -629,23 +629,23 @@
                                         </td>
                                         <td data-label="Тип">
                                             {% if title.is_system %}
-                                                <span class="badge badge-system">Системное</span>
+                                                <span class="badge badge-system">{{ _('Системное') }}</span>
                                             {% else %}
-                                                <span class="badge badge-custom">Кастомное</span>
+                                                <span class="badge badge-custom">{{ _('Кастомное') }}</span>
                                             {% endif %}
                                         </td>
                                         <td data-label="Пользователей">{{ title.user_count }}</td>
                                         <td data-label="Действия">
                                             {% if not title.is_system %}
                                             <div style="display: flex; gap: 0.5rem;">
-                                                <a href="{{ url_for('admin.admin_title_edit', title_id=title.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                                <a href="{{ url_for('admin.admin_title_edit', title_id=title.id) }}" class="btn-icon" title="{{ _('Редактировать') }}">✏️</a>
                                                 <form method="POST" action="{{ url_for('admin.admin_title_delete', title_id=title.id) }}" style="display: inline;" onsubmit="return confirm('Вы уверены, что хотите удалить это звание?');">
         {{ csrf_input() }}
-                                                    <button type="submit" class="btn-icon" title="Удалить" style="background-color: var(--error-color); color: white;">🗑️</button>
+                                                    <button type="submit" class="btn-icon" title="{{ _('Удалить') }}" style="background-color: var(--error-color); color: white;">🗑️</button>
                                                 </form>
                                             </div>
                                             {% else %}
-                                            <span class="text-muted">Системное</span>
+                                            <span class="text-muted">{{ _('Системное') }}</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -654,7 +654,7 @@
                             </table>
                         </div>
                         {% else %}
-                        <p style="color: var(--text-secondary); margin-top: 1rem;">Звания не найдены</p>
+                        <p style="color: var(--text-secondary); margin-top: 1rem;">{{ _('Звания не найдены') }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -668,26 +668,26 @@
                                 {{ setting.description or setting.key }}
                             </label>
                             {% if setting.key == 'admin_user_ids' %}
-                                <span class="setting-badge">Система</span>
+                                <span class="setting-badge">{{ _('Система') }}</span>
                             {% elif setting.key in ['default_theme', 'site_icon', 'site_logo', 'site_title', 'site_description', 'logo_text'] %}
-                                <span class="setting-badge">Внешний вид</span>
+                                <span class="setting-badge">{{ _('Внешний вид') }}</span>
                             {% endif %}
                         </div>
                         <div class="setting-card-body">
                             {% if setting.key == 'admin_user_ids' %}
-                                <small class="setting-hint">ID через запятую (например: 283494, 240139)</small>
+                                <small class="setting-hint">{{ _('ID через запятую (например: 283494, 240139)') }}</small>
                             {% elif setting.key == 'default_theme' %}
-                                <small class="setting-hint">Тема по умолчанию для новых пользователей</small>
+                                <small class="setting-hint">{{ _('Тема по умолчанию для новых пользователей') }}</small>
                             {% elif setting.key == 'site_icon' %}
-                                <small class="setting-hint">Иконка сайта (favicon). Форматы: .ico, .png, .jpg, .svg</small>
+                                <small class="setting-hint">{{ _('Иконка сайта (favicon). Форматы: .ico, .png, .jpg, .svg') }}</small>
                             {% elif setting.key == 'site_logo' %}
-                                <small class="setting-hint">Логотип сайта. Форматы: .png, .jpg, .svg, .gif, .webp</small>
+                                <small class="setting-hint">{{ _('Логотип сайта. Форматы: .png, .jpg, .svg, .gif, .webp') }}</small>
                             {% elif setting.key == 'site_title' %}
-                                <small class="setting-hint">Заголовок сайта, отображается во вкладке браузера</small>
+                                <small class="setting-hint">{{ _('Заголовок сайта, отображается во вкладке браузера') }}</small>
                             {% elif setting.key == 'site_description' %}
-                                <small class="setting-hint">Краткое описание сайта для поисковых систем</small>
+                                <small class="setting-hint">{{ _('Краткое описание сайта для поисковых систем') }}</small>
                             {% elif setting.key == 'logo_text' %}
-                                <small class="setting-hint">Текст, отображаемый рядом с логотипом в шапке сайта</small>
+                                <small class="setting-hint">{{ _('Текст, отображаемый рядом с логотипом в шапке сайта') }}</small>
                             {% endif %}
                         {% if setting.key == 'default_theme' %}
                         <select 
@@ -695,8 +695,8 @@
                             name="setting_{{ setting.key }}" 
                             class="setting-input"
                         >
-                            <option value="light" {% if setting.value == 'light' %}selected{% endif %}>Светлая</option>
-                            <option value="dark" {% if setting.value == 'dark' %}selected{% endif %}>Темная</option>
+                            <option value="light" {% if setting.value == 'light' %}selected{% endif %}>{{ _('Светлая') }}</option>
+                            <option value="dark" {% if setting.value == 'dark' %}selected{% endif %}>{{ _('Темная') }}</option>
                         </select>
                         {% elif setting.key == 'site_icon' %}
                         <input 
@@ -705,7 +705,7 @@
                             name="setting_{{ setting.key }}" 
                             value="🎅"
                         >
-                        <p class="text-muted small-note">Используется стандартная эмодзи 🎅. Изменение отключено.</p>
+                        <p class="text-muted small-note">{{ _('Используется стандартная эмодзи 🎅. Изменение отключено.') }}</p>
                         {% elif setting.key == 'site_logo' %}
                         <input 
                             type="hidden" 
@@ -713,14 +713,14 @@
                             name="setting_{{ setting.key }}" 
                             value="🎅"
                         >
-                        <p class="text-muted small-note">Используется стандартная эмодзи 🎅 в качестве логотипа. Изменение отключено.</p>
+                        <p class="text-muted small-note">{{ _('Используется стандартная эмодзи 🎅 в качестве логотипа. Изменение отключено.') }}</p>
                         {% elif setting.key == 'site_description' %}
                         <textarea 
                             id="setting_{{ setting.key }}" 
                             name="setting_{{ setting.key }}" 
                             rows="3"
                             class="setting-input"
-                            placeholder="Введите описание сайта"
+                            placeholder="{{ _('Введите описание сайта') }}"
                         >{{ setting.value or '' }}</textarea>
                         {% else %}
                         <input 
@@ -746,26 +746,26 @@
                             {{ setting.description or setting.key }}
                         </label>
                         {% if setting.key == 'admin_user_ids' %}
-                            <span class="setting-badge">Система</span>
+                            <span class="setting-badge">{{ _('Система') }}</span>
                         {% elif setting.key in ['default_theme', 'site_icon', 'site_logo', 'site_title', 'site_description', 'logo_text'] %}
-                            <span class="setting-badge">Внешний вид</span>
+                            <span class="setting-badge">{{ _('Внешний вид') }}</span>
                         {% endif %}
                     </div>
                     <div class="setting-card-body">
                         {% if setting.key == 'admin_user_ids' %}
-                            <small class="setting-hint">ID через запятую (например: 283494, 240139)</small>
+                            <small class="setting-hint">{{ _('ID через запятую (например: 283494, 240139)') }}</small>
                         {% elif setting.key == 'default_theme' %}
-                            <small class="setting-hint">Тема по умолчанию для новых пользователей</small>
+                            <small class="setting-hint">{{ _('Тема по умолчанию для новых пользователей') }}</small>
                         {% elif setting.key == 'site_icon' %}
-                            <small class="setting-hint">Иконка сайта (favicon). Форматы: .ico, .png, .jpg, .svg</small>
+                            <small class="setting-hint">{{ _('Иконка сайта (favicon). Форматы: .ico, .png, .jpg, .svg') }}</small>
                         {% elif setting.key == 'site_logo' %}
-                            <small class="setting-hint">Логотип сайта. Форматы: .png, .jpg, .svg, .gif, .webp</small>
+                            <small class="setting-hint">{{ _('Логотип сайта. Форматы: .png, .jpg, .svg, .gif, .webp') }}</small>
                         {% elif setting.key == 'site_title' %}
-                            <small class="setting-hint">Заголовок сайта, отображается во вкладке браузера</small>
+                            <small class="setting-hint">{{ _('Заголовок сайта, отображается во вкладке браузера') }}</small>
                         {% elif setting.key == 'site_description' %}
-                            <small class="setting-hint">Краткое описание сайта для поисковых систем</small>
+                            <small class="setting-hint">{{ _('Краткое описание сайта для поисковых систем') }}</small>
                         {% elif setting.key == 'logo_text' %}
-                            <small class="setting-hint">Текст, отображаемый рядом с логотипом в шапке сайта</small>
+                            <small class="setting-hint">{{ _('Текст, отображаемый рядом с логотипом в шапке сайта') }}</small>
                         {% endif %}
                         {% if setting.key == 'default_theme' %}
                         <select 
@@ -773,8 +773,8 @@
                             name="setting_{{ setting.key }}" 
                             class="setting-input"
                         >
-                            <option value="light" {% if setting.value == 'light' %}selected{% endif %}>Светлая</option>
-                            <option value="dark" {% if setting.value == 'dark' %}selected{% endif %}>Темная</option>
+                            <option value="light" {% if setting.value == 'light' %}selected{% endif %}>{{ _('Светлая') }}</option>
+                            <option value="dark" {% if setting.value == 'dark' %}selected{% endif %}>{{ _('Темная') }}</option>
                         </select>
                         {% elif setting.key == 'site_icon' %}
                         <input 
@@ -783,7 +783,7 @@
                             name="setting_{{ setting.key }}" 
                             value="🎅"
                         >
-                        <p class="text-muted small-note">Используется стандартная эмодзи 🎅. Изменение отключено.</p>
+                        <p class="text-muted small-note">{{ _('Используется стандартная эмодзи 🎅. Изменение отключено.') }}</p>
                         {% elif setting.key == 'site_logo' %}
                         <input 
                             type="hidden" 
@@ -791,14 +791,14 @@
                             name="setting_{{ setting.key }}" 
                             value="🎅"
                         >
-                        <p class="text-muted small-note">Используется стандартная эмодзи 🎅 в качестве логотипа. Изменение отключено.</p>
+                        <p class="text-muted small-note">{{ _('Используется стандартная эмодзи 🎅 в качестве логотипа. Изменение отключено.') }}</p>
                         {% elif setting.key == 'site_description' %}
                         <textarea 
                             id="setting_{{ setting.key }}" 
                             name="setting_{{ setting.key }}" 
                             rows="3"
                             class="setting-input"
-                            placeholder="Введите описание сайта"
+                            placeholder="{{ _('Введите описание сайта') }}"
                         >{{ setting.value or '' }}</textarea>
                         {% else %}
                         <input 
@@ -822,7 +822,7 @@
         <!-- Вкладка дизайна -->
         <div class="settings-tab-content" data-tab="design">
             <div class="settings-section">
-                <h2 class="settings-section-title">🎨 Настройки цветов интерфейса</h2>
+                <h2 class="settings-section-title">{{ _('🎨 Настройки цветов интерфейса') }}</h2>
                 
                 {% set accent_color = settings_dict.get('accent_color', {}) %}
                 {% set accent_color_hover = settings_dict.get('accent_color_hover', {}) %}
@@ -833,12 +833,12 @@
                     <div class="setting-card color-picker-card">
                         <div class="setting-card-header">
                             <label for="setting_accent_color" class="setting-label">
-                                Основной цвет (светлая тема)
+                                {{ _('Основной цвет (светлая тема)') }}
                             </label>
-                            <span class="setting-badge">Цвета</span>
+                            <span class="setting-badge">{{ _('Цвета') }}</span>
                         </div>
                         <div class="setting-card-body">
-                            <small class="setting-hint">Основной цвет интерфейса для светлой темы. Выберите цвет из палитры, используйте color picker или введите hex-код вручную.</small>
+                            <small class="setting-hint">{{ _('Основной цвет интерфейса для светлой темы. Выберите цвет из палитры, используйте color picker или введите hex-код вручную.') }}</small>
                             
                             <!-- Превью цвета -->
                             <div class="color-preview" id="preview_accent_color" style="background-color: {{ accent_color.get('value', '#007bff') if accent_color else '#007bff' }};">
@@ -847,16 +847,16 @@
                             
                             <!-- Палитра предустановленных цветов -->
                             <div class="color-palette">
-                                <div class="color-palette-title">Популярные цвета:</div>
+                                <div class="color-palette-title">{{ _('Популярные цвета:') }}</div>
                                 <div class="color-palette-grid" data-target="setting_accent_color">
-                                    <div class="color-palette-item" data-color="#007bff" style="background-color: #007bff;" title="Синий (Blue)"></div>
-                                    <div class="color-palette-item" data-color="#28a745" style="background-color: #28a745;" title="Зеленый (Green)"></div>
-                                    <div class="color-palette-item" data-color="#dc3545" style="background-color: #dc3545;" title="Красный (Red)"></div>
-                                    <div class="color-palette-item" data-color="#ffc107" style="background-color: #ffc107;" title="Желтый (Yellow)"></div>
-                                    <div class="color-palette-item" data-color="#17a2b8" style="background-color: #17a2b8;" title="Голубой (Cyan)"></div>
-                                    <div class="color-palette-item" data-color="#6f42c1" style="background-color: #6f42c1;" title="Фиолетовый (Purple)"></div>
-                                    <div class="color-palette-item" data-color="#e83e8c" style="background-color: #e83e8c;" title="Розовый (Pink)"></div>
-                                    <div class="color-palette-item" data-color="#fd7e14" style="background-color: #fd7e14;" title="Оранжевый (Orange)"></div>
+                                    <div class="color-palette-item" data-color="#007bff" style="background-color: #007bff;" title="{{ _('Синий (Blue)') }}"></div>
+                                    <div class="color-palette-item" data-color="#28a745" style="background-color: #28a745;" title="{{ _('Зеленый (Green)') }}"></div>
+                                    <div class="color-palette-item" data-color="#dc3545" style="background-color: #dc3545;" title="{{ _('Красный (Red)') }}"></div>
+                                    <div class="color-palette-item" data-color="#ffc107" style="background-color: #ffc107;" title="{{ _('Желтый (Yellow)') }}"></div>
+                                    <div class="color-palette-item" data-color="#17a2b8" style="background-color: #17a2b8;" title="{{ _('Голубой (Cyan)') }}"></div>
+                                    <div class="color-palette-item" data-color="#6f42c1" style="background-color: #6f42c1;" title="{{ _('Фиолетовый (Purple)') }}"></div>
+                                    <div class="color-palette-item" data-color="#e83e8c" style="background-color: #e83e8c;" title="{{ _('Розовый (Pink)') }}"></div>
+                                    <div class="color-palette-item" data-color="#fd7e14" style="background-color: #fd7e14;" title="{{ _('Оранжевый (Orange)') }}"></div>
                                 </div>
                             </div>
                             
@@ -884,12 +884,12 @@
                     <div class="setting-card color-picker-card">
                         <div class="setting-card-header">
                             <label for="setting_accent_color_hover" class="setting-label">
-                                Цвет при наведении (светлая тема)
+                                {{ _('Цвет при наведении (светлая тема)') }}
                             </label>
-                            <span class="setting-badge">Цвета</span>
+                            <span class="setting-badge">{{ _('Цвета') }}</span>
                         </div>
                         <div class="setting-card-body">
-                            <small class="setting-hint">Цвет кнопок и ссылок при наведении (светлая тема)</small>
+                            <small class="setting-hint">{{ _('Цвет кнопок и ссылок при наведении (светлая тема)') }}</small>
                             
                             <!-- Превью цвета -->
                             <div class="color-preview" id="preview_accent_color_hover" style="background-color: {{ accent_color_hover.get('value', '#0056b3') if accent_color_hover else '#0056b3' }};">
@@ -898,16 +898,16 @@
                             
                             <!-- Палитра предустановленных цветов -->
                             <div class="color-palette">
-                                <div class="color-palette-title">Популярные цвета:</div>
+                                <div class="color-palette-title">{{ _('Популярные цвета:') }}</div>
                                 <div class="color-palette-grid" data-target="setting_accent_color_hover">
-                                    <div class="color-palette-item" data-color="#0056b3" style="background-color: #0056b3;" title="Темно-синий"></div>
-                                    <div class="color-palette-item" data-color="#1e7e34" style="background-color: #1e7e34;" title="Темно-зеленый"></div>
-                                    <div class="color-palette-item" data-color="#c82333" style="background-color: #c82333;" title="Темно-красный"></div>
-                                    <div class="color-palette-item" data-color="#e0a800" style="background-color: #e0a800;" title="Темно-желтый"></div>
-                                    <div class="color-palette-item" data-color="#138496" style="background-color: #138496;" title="Темно-голубой"></div>
-                                    <div class="color-palette-item" data-color="#5a32a3" style="background-color: #5a32a3;" title="Темно-фиолетовый"></div>
-                                    <div class="color-palette-item" data-color="#c2185b" style="background-color: #c2185b;" title="Темно-розовый"></div>
-                                    <div class="color-palette-item" data-color="#d68910" style="background-color: #d68910;" title="Темно-оранжевый"></div>
+                                    <div class="color-palette-item" data-color="#0056b3" style="background-color: #0056b3;" title="{{ _('Темно-синий') }}"></div>
+                                    <div class="color-palette-item" data-color="#1e7e34" style="background-color: #1e7e34;" title="{{ _('Темно-зеленый') }}"></div>
+                                    <div class="color-palette-item" data-color="#c82333" style="background-color: #c82333;" title="{{ _('Темно-красный') }}"></div>
+                                    <div class="color-palette-item" data-color="#e0a800" style="background-color: #e0a800;" title="{{ _('Темно-желтый') }}"></div>
+                                    <div class="color-palette-item" data-color="#138496" style="background-color: #138496;" title="{{ _('Темно-голубой') }}"></div>
+                                    <div class="color-palette-item" data-color="#5a32a3" style="background-color: #5a32a3;" title="{{ _('Темно-фиолетовый') }}"></div>
+                                    <div class="color-palette-item" data-color="#c2185b" style="background-color: #c2185b;" title="{{ _('Темно-розовый') }}"></div>
+                                    <div class="color-palette-item" data-color="#d68910" style="background-color: #d68910;" title="{{ _('Темно-оранжевый') }}"></div>
                                 </div>
                             </div>
                             
@@ -935,12 +935,12 @@
                     <div class="setting-card color-picker-card">
                         <div class="setting-card-header">
                             <label for="setting_accent_color_dark" class="setting-label">
-                                Основной цвет (темная тема)
+                                {{ _('Основной цвет (темная тема)') }}
                             </label>
-                            <span class="setting-badge">Цвета</span>
+                            <span class="setting-badge">{{ _('Цвета') }}</span>
                         </div>
                         <div class="setting-card-body">
-                            <small class="setting-hint">Основной цвет интерфейса для темной темы</small>
+                            <small class="setting-hint">{{ _('Основной цвет интерфейса для темной темы') }}</small>
                             
                             <!-- Превью цвета -->
                             <div class="color-preview" id="preview_accent_color_dark" style="background-color: {{ accent_color_dark.get('value', '#4a9eff') if accent_color_dark else '#4a9eff' }};">
@@ -949,16 +949,16 @@
                             
                             <!-- Палитра предустановленных цветов -->
                             <div class="color-palette">
-                                <div class="color-palette-title">Популярные цвета:</div>
+                                <div class="color-palette-title">{{ _('Популярные цвета:') }}</div>
                                 <div class="color-palette-grid" data-target="setting_accent_color_dark">
-                                    <div class="color-palette-item" data-color="#4a9eff" style="background-color: #4a9eff;" title="Светло-синий"></div>
-                                    <div class="color-palette-item" data-color="#66bb6a" style="background-color: #66bb6a;" title="Светло-зеленый"></div>
-                                    <div class="color-palette-item" data-color="#ef5350" style="background-color: #ef5350;" title="Светло-красный"></div>
-                                    <div class="color-palette-item" data-color="#ffca28" style="background-color: #ffca28;" title="Светло-желтый"></div>
-                                    <div class="color-palette-item" data-color="#26c6da" style="background-color: #26c6da;" title="Светло-голубой"></div>
-                                    <div class="color-palette-item" data-color="#ab47bc" style="background-color: #ab47bc;" title="Светло-фиолетовый"></div>
-                                    <div class="color-palette-item" data-color="#ec407a" style="background-color: #ec407a;" title="Светло-розовый"></div>
-                                    <div class="color-palette-item" data-color="#ff9800" style="background-color: #ff9800;" title="Светло-оранжевый"></div>
+                                    <div class="color-palette-item" data-color="#4a9eff" style="background-color: #4a9eff;" title="{{ _('Светло-синий') }}"></div>
+                                    <div class="color-palette-item" data-color="#66bb6a" style="background-color: #66bb6a;" title="{{ _('Светло-зеленый') }}"></div>
+                                    <div class="color-palette-item" data-color="#ef5350" style="background-color: #ef5350;" title="{{ _('Светло-красный') }}"></div>
+                                    <div class="color-palette-item" data-color="#ffca28" style="background-color: #ffca28;" title="{{ _('Светло-желтый') }}"></div>
+                                    <div class="color-palette-item" data-color="#26c6da" style="background-color: #26c6da;" title="{{ _('Светло-голубой') }}"></div>
+                                    <div class="color-palette-item" data-color="#ab47bc" style="background-color: #ab47bc;" title="{{ _('Светло-фиолетовый') }}"></div>
+                                    <div class="color-palette-item" data-color="#ec407a" style="background-color: #ec407a;" title="{{ _('Светло-розовый') }}"></div>
+                                    <div class="color-palette-item" data-color="#ff9800" style="background-color: #ff9800;" title="{{ _('Светло-оранжевый') }}"></div>
                                 </div>
                             </div>
                             
@@ -986,12 +986,12 @@
                     <div class="setting-card color-picker-card">
                         <div class="setting-card-header">
                             <label for="setting_accent_color_hover_dark" class="setting-label">
-                                Цвет при наведении (темная тема)
+                                {{ _('Цвет при наведении (темная тема)') }}
                             </label>
-                            <span class="setting-badge">Цвета</span>
+                            <span class="setting-badge">{{ _('Цвета') }}</span>
                         </div>
                         <div class="setting-card-body">
-                            <small class="setting-hint">Цвет кнопок и ссылок при наведении (темная тема)</small>
+                            <small class="setting-hint">{{ _('Цвет кнопок и ссылок при наведении (темная тема)') }}</small>
                             
                             <!-- Превью цвета -->
                             <div class="color-preview" id="preview_accent_color_hover_dark" style="background-color: {{ accent_color_hover_dark.get('value', '#357abd') if accent_color_hover_dark else '#357abd' }};">
@@ -1000,16 +1000,16 @@
                             
                             <!-- Палитра предустановленных цветов -->
                             <div class="color-palette">
-                                <div class="color-palette-title">Популярные цвета:</div>
+                                <div class="color-palette-title">{{ _('Популярные цвета:') }}</div>
                                 <div class="color-palette-grid" data-target="setting_accent_color_hover_dark">
-                                    <div class="color-palette-item" data-color="#357abd" style="background-color: #357abd;" title="Темно-синий"></div>
-                                    <div class="color-palette-item" data-color="#4caf50" style="background-color: #4caf50;" title="Темно-зеленый"></div>
-                                    <div class="color-palette-item" data-color="#d32f2f" style="background-color: #d32f2f;" title="Темно-красный"></div>
-                                    <div class="color-palette-item" data-color="#f57c00" style="background-color: #f57c00;" title="Темно-желтый"></div>
-                                    <div class="color-palette-item" data-color="#0288d1" style="background-color: #0288d1;" title="Темно-голубой"></div>
-                                    <div class="color-palette-item" data-color="#7b1fa2" style="background-color: #7b1fa2;" title="Темно-фиолетовый"></div>
-                                    <div class="color-palette-item" data-color="#c2185b" style="background-color: #c2185b;" title="Темно-розовый"></div>
-                                    <div class="color-palette-item" data-color="#e65100" style="background-color: #e65100;" title="Темно-оранжевый"></div>
+                                    <div class="color-palette-item" data-color="#357abd" style="background-color: #357abd;" title="{{ _('Темно-синий') }}"></div>
+                                    <div class="color-palette-item" data-color="#4caf50" style="background-color: #4caf50;" title="{{ _('Темно-зеленый') }}"></div>
+                                    <div class="color-palette-item" data-color="#d32f2f" style="background-color: #d32f2f;" title="{{ _('Темно-красный') }}"></div>
+                                    <div class="color-palette-item" data-color="#f57c00" style="background-color: #f57c00;" title="{{ _('Темно-желтый') }}"></div>
+                                    <div class="color-palette-item" data-color="#0288d1" style="background-color: #0288d1;" title="{{ _('Темно-голубой') }}"></div>
+                                    <div class="color-palette-item" data-color="#7b1fa2" style="background-color: #7b1fa2;" title="{{ _('Темно-фиолетовый') }}"></div>
+                                    <div class="color-palette-item" data-color="#c2185b" style="background-color: #c2185b;" title="{{ _('Темно-розовый') }}"></div>
+                                    <div class="color-palette-item" data-color="#e65100" style="background-color: #e65100;" title="{{ _('Темно-оранжевый') }}"></div>
                                 </div>
                             </div>
                             
@@ -1036,13 +1036,13 @@
                 </div>
                 
                 <div class="alert alert-info" style="margin-top: 2rem;">
-                    <strong>💡 Как выбрать цвет:</strong>
+                    <strong>{{ _('💡 Как выбрать цвет:') }}</strong>
                     <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
-                        <li><strong>Клик по цвету в палитре</strong> - быстро выбрать популярный цвет</li>
-                        <li><strong>Color picker</strong> - выбрать любой цвет из полной палитры</li>
-                        <li><strong>Ввод hex-кода</strong> - ввести точный цвет в формате #RRGGBB</li>
+                        <li><strong>{{ _('Клик по цвету в палитре') }}</strong> {{ _('- быстро выбрать популярный цвет') }}</li>
+                        <li><strong>Color picker</strong> {{ _('- выбрать любой цвет из полной палитры') }}</li>
+                        <li><strong>{{ _('Ввод hex-кода') }}</strong> {{ _('- ввести точный цвет в формате #RRGGBB') }}</li>
                     </ul>
-                    <p style="margin: 0.5rem 0 0 0;">Изменения применяются сразу после сохранения формы. Цвета используются для кнопок, ссылок, акцентов и других интерактивных элементов интерфейса.</p>
+                    <p style="margin: 0.5rem 0 0 0;">{{ _('Изменения применяются сразу после сохранения формы. Цвета используются для кнопок, ссылок, акцентов и других интерактивных элементов интерфейса.') }}</p>
                 </div>
             </div>
         </div>
@@ -1050,12 +1050,12 @@
         <!-- Вкладка данных пользователей -->
         <div class="settings-tab-content" data-tab="profile-data">
             <div class="settings-section profile-data-settings">
-                <h2 class="settings-section-title">👤 Данные пользователей</h2>
+                <h2 class="settings-section-title">{{ _('👤 Данные пользователей') }}</h2>
 
                 <div class="alert alert-info profile-data-policy-intro">
-                    <p><strong>Собираем</strong> — поле видно в профиле и в сценарии регистрации на мероприятие.</p>
-                    <p><strong>Обязательно</strong> — без заполнения нельзя завершить регистрацию (только если сбор включён).</p>
-                    <p>Для контактов: среди полей с включённым сбором нужен <strong>хотя бы один</strong> заполненный канал (email, телефон, мессенджеры, Max).</p>
+                    <p><strong>{{ _('Собираем') }}</strong> {{ _('— поле видно в профиле и в сценарии регистрации на мероприятие.') }}</p>
+                    <p><strong>{{ _('Обязательно') }}</strong> {{ _('— без заполнения нельзя завершить регистрацию (только если сбор включён).') }}</p>
+                    <p>{{ _('Для контактов: среди полей с включённым сбором нужен') }} <strong>{{ _('хотя бы один') }}</strong> {{ _('заполненный канал (email, телефон, мессенджеры, Max).') }}</p>
                 </div>
 
                 {% for group_id, fields in profile_fields_by_group.items() %}
@@ -1068,9 +1068,9 @@
                         <table class="admin-table profile-data-policy-table">
                             <thead>
                                 <tr>
-                                    <th>Поле</th>
-                                    <th class="profile-data-policy-col-check">Собираем</th>
-                                    <th class="profile-data-policy-col-check">Обязательно</th>
+                                    <th>{{ _('Поле') }}</th>
+                                    <th class="profile-data-policy-col-check">{{ _('Собираем') }}</th>
+                                    <th class="profile-data-policy-col-check">{{ _('Обязательно') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1098,7 +1098,7 @@
 
                 <div class="profile-data-policy-actions">
                     <button type="submit" class="btn btn-primary" name="profile_policy_submit" value="1">
-                        Сохранить политику полей
+                        {{ _('Сохранить политику полей') }}
                     </button>
                 </div>
             </div>
@@ -1107,27 +1107,31 @@
         <!-- Вкладка локализации -->
         <div class="settings-tab-content" data-tab="localization">
             <div class="settings-section">
-                <h2 class="settings-section-title">🌐 Настройки локализации</h2>
-                
+                <h2 class="settings-section-title">{{ _('🌐 Локализация') }}</h2>
+                <p class="setting-hint">{{ _('Таблица всех строк интерфейса (RU/EN) — отдельная страница. Язык по умолчанию для новых гостей задаётся ниже (сохраняется вместе с остальными настройками).') }}</p>
+                <p>
+                    <a href="{{ url_for('admin.admin_localization') }}" class="btn btn-primary">{{ _('Открыть таблицу строк') }}</a>
+                </p>
                 {% if not BABEL_AVAILABLE %}
-                <div class="alert alert-warning">
-                    <strong>⚠️ Внимание:</strong> Flask-Babel не установлен. Для работы локализации установите зависимости: <code>pip install -r requirements.txt</code>
+                <div class="alert alert-warning" style="margin-top:1rem;">
+                    <strong>{{ _('⚠️ Внимание:') }}</strong> {{ _('Flask-Babel не установлен. Для gettext из .po установите зависимости:') }} <code>pip install -r requirements.txt</code>
                 </div>
                 {% endif %}
-                
+            </div>
+            <div class="settings-section">
                 <div class="settings-grid">
                     <div class="setting-card">
                         <div class="setting-card-header">
                             <label for="default_language" class="setting-label">
-                                Язык по умолчанию
+                                {{ _('Язык по умолчанию') }}
                             </label>
-                            <span class="setting-badge">Основные настройки</span>
+                            <span class="setting-badge">{{ _('Основные настройки') }}</span>
                         </div>
                         <div class="setting-card-body">
-                            <small class="setting-hint">Язык интерфейса по умолчанию для всех пользователей</small>
-                            <select 
-                                id="default_language" 
-                                name="default_language" 
+                            <small class="setting-hint">{{ _('Язык интерфейса по умолчанию для гостей и в профиле до смены пользователем') }}</small>
+                            <select
+                                id="default_language"
+                                name="default_language"
                                 class="setting-input"
                             >
                                 {% for lang_code, lang_name in available_languages.items() %}
@@ -1138,48 +1142,6 @@
                             </select>
                         </div>
                     </div>
-                    
-                    <div class="setting-card">
-                        <div class="setting-card-header">
-                            <label class="setting-label">Текущая локаль</label>
-                            <span class="setting-badge">Информация</span>
-                        </div>
-                        <div class="setting-card-body">
-                            <p><strong>Активный язык:</strong> 
-                                <span class="badge">{{ available_languages.get(current_locale, current_locale) }}</span>
-                                <code>({{ current_locale }})</code>
-                            </p>
-                            <small class="setting-hint">
-                                Текущий язык определяется в следующем порядке:<br>
-                                1. Язык пользователя в профиле (если авторизован)<br>
-                                2. Язык по умолчанию (настройка выше)<br>
-                                3. Русский (системный)
-                            </small>
-                        </div>
-                    </div>
-                    
-                    <div class="setting-card">
-                        <div class="setting-card-header">
-                            <label class="setting-label">Доступные языки</label>
-                            <span class="setting-badge">Информация</span>
-                        </div>
-                        <div class="setting-card-body">
-                            <ul class="language-list">
-                                {% for lang_code, lang_name in available_languages.items() %}
-                                <li>
-                                    <strong>{{ lang_name }}</strong>
-                                    <code>{{ lang_code }}</code>
-                                    {% if lang_code == current_locale %}
-                                    <span class="badge badge-active">Активен</span>
-                                    {% endif %}
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            <small class="setting-hint">
-                                Для добавления новых языков необходимо обновить конфигурацию в <code>app.py</code> и создать файлы переводов.
-                            </small>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1187,8 +1149,8 @@
         <!-- Вкладка Модальные окна -->
         <div class="settings-tab-content" data-tab="modals">
             <div class="settings-section">
-                <h2 class="settings-section-title">💬 Тексты модальных окон регистрации</h2>
-                <p class="setting-hint" style="margin-bottom: 2rem;">Настройте тексты, которые отображаются в модальных окнах при регистрации пользователей на мероприятия.</p>
+                <h2 class="settings-section-title">{{ _('💬 Тексты модальных окон регистрации') }}</h2>
+                <p class="setting-hint" style="margin-bottom: 2rem;">{{ _('Настройте тексты, которые отображаются в модальных окнах при регистрации пользователей на мероприятия.') }}</p>
                 
                 {% set modals_settings = settings_by_category.get('modals', []) %}
                 {% if modals_settings %}
@@ -1206,7 +1168,7 @@
                                 name="setting_{{ setting.key }}"
                                 class="setting-input"
                                 rows="3"
-                                placeholder="Введите текст..."
+                                placeholder="{{ _('Введите текст...') }}"
                             >{{ setting.value or '' }}</textarea>
                         </div>
                     </div>
@@ -1214,15 +1176,15 @@
                 </div>
                 {% else %}
                 <div class="alert alert-info">
-                    <p>Настройки модальных окон будут автоматически созданы при первом сохранении.</p>
+                    <p>{{ _('Настройки модальных окон будут автоматически созданы при первом сохранении.') }}</p>
                 </div>
                 {% endif %}
             </div>
         </div>
         
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Сохранить настройки</button>
-            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">Отмена</a>
+            <button type="submit" class="btn btn-primary">{{ _('Сохранить настройки') }}</button>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">{{ _('Отмена') }}</a>
         </div>
     </form>
 </div>
@@ -1247,7 +1209,7 @@
 <div id="menu-modal" class="menu-modal">
     <div class="menu-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 id="menu-modal-title">Добавить пункт меню</h2>
+            <h2 id="menu-modal-title">{{ _('Добавить пункт меню') }}</h2>
             <button type="button" onclick="closeMenuModal()" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">&times;</button>
         </div>
         
@@ -1257,45 +1219,45 @@
             <input type="hidden" name="menu_id" id="menu-id">
             
             <div class="setting-item" style="margin-bottom: 1rem;">
-                <label for="menu-button-text" class="setting-label">Название кнопки *</label>
-                <input type="text" id="menu-button-text" name="button_text" class="setting-input" required placeholder="Например: Мероприятия">
+                <label for="menu-button-text" class="setting-label">{{ _('Название кнопки *') }}</label>
+                <input type="text" id="menu-button-text" name="button_text" class="setting-input" required placeholder="{{ _('Например: Мероприятия') }}">
             </div>
             
             <div class="setting-item" style="margin-bottom: 1rem;">
-                <label for="menu-button-type" class="setting-label">Тип кнопки *</label>
+                <label for="menu-button-type" class="setting-label">{{ _('Тип кнопки *') }}</label>
                 <select id="menu-button-type" name="button_type" class="setting-input" required onchange="updateMenuActionPlaceholder()">
-                    <option value="command">Команда (command)</option>
-                    <option value="url">Ссылка (url)</option>
+                    <option value="command">{{ _('Команда (command)') }}</option>
+                    <option value="url">{{ _('Ссылка (url)') }}</option>
                     <option value="callback">Callback (callback)</option>
                 </select>
             </div>
             
             <div class="setting-item" style="margin-bottom: 1rem;">
-                <label for="menu-action-value" class="setting-label">Действие *</label>
+                <label for="menu-action-value" class="setting-label">{{ _('Действие *') }}</label>
                 <input type="text" id="menu-action-value" name="action_value" class="setting-input" required placeholder="events">
                 <small class="setting-hint" id="menu-action-hint">
-                    Для команды: название команды (например: events, assignments)<br>
-                    Для ссылки: URL (например: /faq, /rules или полный URL)<br>
-                    Для callback: callback_data
+                    {{ _('Для команды: название команды (например: events, assignments)') }}<br>
+                    {{ _('Для ссылки: URL (например: /faq, /rules или полный URL)') }}<br>
+                    {{ _('Для callback: callback_data') }}
                 </small>
             </div>
             
             <div class="setting-item" style="margin-bottom: 1rem;">
-                <label for="menu-sort-order" class="setting-label">Порядок сортировки</label>
+                <label for="menu-sort-order" class="setting-label">{{ _('Порядок сортировки') }}</label>
                 <input type="number" id="menu-sort-order" name="sort_order" class="setting-input" value="100" min="0">
-                <small class="setting-hint">Меньшее значение = выше в меню</small>
+                <small class="setting-hint">{{ _('Меньшее значение = выше в меню') }}</small>
             </div>
             
             <div class="setting-item" style="margin-bottom: 1.5rem;">
                 <label for="menu-is-active" class="setting-label">
                     <input type="checkbox" id="menu-is-active" name="is_active" value="1" checked class="setting-checkbox">
-                    <span>Активен</span>
+                    <span>{{ _('Активен') }}</span>
                 </label>
             </div>
             
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeMenuModal()">Отмена</button>
-                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button type="button" class="btn btn-secondary" onclick="closeMenuModal()">{{ _('Отмена') }}</button>
+                <button type="submit" class="btn btn-primary">{{ _('Сохранить') }}</button>
             </div>
         </form>
     </div>

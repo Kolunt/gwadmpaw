@@ -2,13 +2,13 @@
 
 {% from 'macros/csrf.html' import csrf_input %}
 {% from 'macros/assignment_recipient_display.html' import recipient_fio_block, recipient_address_block, recipient_contacts_block %}
-{% block title %}Задания - Анонимные Деды Морозы{% endblock %}
+{% block title %}{{ _('Задания - Анонимные Деды Морозы') }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
     <div class="admin-container">
         <div class="admin-header">
-            <h1>📋 Мои задания</h1>
+            <h1>{{ _('📋 Мои задания') }}</h1>
         </div>
         
         {% if assignments_by_event %}
@@ -23,26 +23,26 @@
                 <div class="faq-answer assignment-answer"{% if event_finished %} hidden{% endif %}>
                     {% if event_data.assignments_pending %}
                     <div class="assignment-pending-note">
-                        <p>Задание по этому мероприятию откроется с начала этапа «Обмен подарками». Пока идёт жеребьёвка и подготовка, данные получателя недоступны.</p>
+                        <p>{{ _('Задание по этому мероприятию откроется с начала этапа «Обмен подарками». Пока идёт жеребьёвка и подготовка, данные получателя недоступны.') }}</p>
                         {% if event_data.celebration_start_iso %}
-                        <p class="assignment-pending-countdown-lead">Этап обмена подарками начнётся через</p>
+                        <p class="assignment-pending-countdown-lead">{{ _('Этап обмена подарками начнётся через') }}</p>
                         <div class="countdown-section assignment-pending-countdown" data-start="{{ event_data.celebration_start_iso }}">
                             <div class="countdown-timer" data-stage-type="celebration_date">
                                 <div class="countdown-item">
                                     <span class="countdown-value" data-unit="days">0</span>
-                                    <span class="countdown-label">дней</span>
+                                    <span class="countdown-label">{{ _('дней') }}</span>
                                 </div>
                                 <div class="countdown-item">
                                     <span class="countdown-value" data-unit="hours">00</span>
-                                    <span class="countdown-label">часов</span>
+                                    <span class="countdown-label">{{ _('часов') }}</span>
                                 </div>
                                 <div class="countdown-item">
                                     <span class="countdown-value" data-unit="minutes">00</span>
-                                    <span class="countdown-label">минут</span>
+                                    <span class="countdown-label">{{ _('минут') }}</span>
                                 </div>
                                 <div class="countdown-item">
                                     <span class="countdown-value" data-unit="seconds">00</span>
-                                    <span class="countdown-label">секунд</span>
+                                    <span class="countdown-label">{{ _('секунд') }}</span>
                                 </div>
                             </div>
                         </div>
@@ -51,7 +51,7 @@
                     {% else %}
                     {% if event_finished %}
                     <div class="assignment-finished-note">
-                        <span>Мероприятие завершено. Действия с заданиями недоступны, информация сохранена для истории.</span>
+                        <span>{{ _('Мероприятие завершено. Действия с заданиями недоступны, информация сохранена для истории.') }}</span>
                     </div>
                     {% endif %}
                     <div class="assignments-grid">
@@ -60,22 +60,22 @@
                     <div class="assignment-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px;">
                         <div style="display: flex; align-items: center; margin-bottom: 1rem;">
                             <span style="font-size: 2rem; margin-right: 0.5rem;">🎅</span>
-                            <h3 style="margin: 0; color: white;">Вы - Дед Мороз</h3>
+                            <h3 style="margin: 0; color: white;">{{ _('Вы - Дед Мороз') }}</h3>
                         </div>
                         <div style="margin-bottom: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
                             <form method="GET" action="{{ url_for('assignments.letter') }}">
                                 <input type="hidden" name="assignment_id" value="{{ event_data.as_santa.get('id') }}">
-                                <button type="submit" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">➡️Переписка✉️‼️</button>
+                                <button type="submit" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">{{ _('➡️Переписка✉️‼️') }}</button>
                             </form>
                         </div>
-                        <p style="margin-bottom: 1rem; opacity: 0.9;">Вы должны отправить подарок:</p>
+                        <p style="margin-bottom: 1rem; opacity: 0.9;">{{ _('Вы должны отправить подарок:') }}</p>
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                             {{ recipient_fio_block(event_data.as_santa) }}
                             {{ recipient_address_block(event_data.as_santa) }}
                             {{ recipient_contacts_block(event_data.as_santa) }}
                             {% if event_data.as_santa.get('recipient_bio') %}
                             <p style="margin: 0.5rem 0;">
-                                <strong>О себе:</strong><br>
+                                <strong>{{ _('О себе:') }}</strong><br>
                                 {{ event_data.as_santa.get('recipient_bio') | format_multiline }}
                             </p>
                             {% endif %}
@@ -83,43 +83,43 @@
                         
                         {% if event_data.as_santa.get('santa_sent_at') %}
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px;">
-                            <p style="margin: 0.5rem 0;"><strong>Статус:</strong> Подарок отправлен {{ event_data.as_santa.get('santa_sent_at') }}</p>
+                            <p style="margin: 0.5rem 0;"><strong>{{ _('Статус:') }}</strong> Подарок отправлен {{ event_data.as_santa.get('santa_sent_at') }}</p>
                             {% if event_data.as_santa.get('santa_send_info') %}
-                            <p style="margin: 0.5rem 0;"><strong>Информация об отправке:</strong><br>{{ event_data.as_santa.get('santa_send_info') | format_multiline }}</p>
+                            <p style="margin: 0.5rem 0;"><strong>{{ _('Информация об отправке:') }}</strong><br>{{ event_data.as_santa.get('santa_send_info') | format_multiline }}</p>
                             {% endif %}
                             {% if not event_finished %}
                             <form method="POST" action="{{ url_for('assignments.assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 0.75rem; display: grid; gap: 0.5rem;">
         {{ csrf_input() }}
-                                <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.85); font-weight: 600;">Информация об отправке</label>
+                                <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.85); font-weight: 600;">{{ _('Информация об отправке') }}</label>
                                 <textarea
                                     id="send_info_{{ event_data.as_santa.get('id') }}"
                                     name="send_info"
                                     class="setting-input"
                                     style="width: 100%; border-radius: 8px; border: none; padding: 0.75rem; resize: vertical; min-height: 100px;"
-                                    placeholder="Введите данные отправки (трек-номер, дата, способ доставки и др.)"
+                                    placeholder="{{ _('Введите данные отправки (трек-номер, дата, способ доставки и др.)') }}"
                                     maxlength="500"
                                     required
                                 >{{ event_data.as_santa.get('santa_send_info') }}</textarea>
                                 <button type="submit" class="btn btn-light" style="align-self: flex-start;">
                                     <span aria-hidden="true">🔄</span>
-                                    <span class="sr-only">Обновить информацию</span>
+                                    <span class="sr-only">{{ _('Обновить информацию') }}</span>
                                 </button>
-                                <p style="margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8;">Можно ввести до 500 символов. Текст увидит ваш внучок в переписке.</p>
+                                <p style="margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8;">{{ _('Можно ввести до 500 символов. Текст увидит ваш внучок в переписке.') }}</p>
                             </form>
                             {% else %}
-                            <p style="margin: 0.5rem 0; font-size: 0.9rem; opacity: 0.9;">Информацию об отправке изменить уже нельзя.</p>
+                            <p style="margin: 0.5rem 0; font-size: 0.9rem; opacity: 0.9;">{{ _('Информацию об отправке изменить уже нельзя.') }}</p>
                             {% endif %}
                             {% if event_data.as_santa.get('recipient_received_at') %}
-                            <p style="margin: 0.75rem 0 0;"><strong>Получатель подтвердил получение:</strong> {{ event_data.as_santa.get('recipient_received_at') }}</p>
+                            <p style="margin: 0.75rem 0 0;"><strong>{{ _('Получатель подтвердил получение:') }}</strong> {{ event_data.as_santa.get('recipient_received_at') }}</p>
                             {% else %}
-                            <p style="margin: 0.75rem 0 0; opacity: 0.8;">Ожидание подтверждения получения.</p>
+                            <p style="margin: 0.75rem 0 0; opacity: 0.8;">{{ _('Ожидание подтверждения получения.') }}</p>
                             {% endif %}
                         </div>
                         {% set thanks_message = event_data.as_santa.get('recipient_thanks_message') %}
                         {% set thanks_image = event_data.as_santa.get('recipient_receipt_image') %}
                         {% if thanks_message or thanks_image %}
                         <div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 8px; margin-top: 1rem;">
-                            <p style="margin: 0.5rem 0;"><strong>Ответ от внучка:</strong></p>
+                            <p style="margin: 0.5rem 0;"><strong>{{ _('Ответ от внучка:') }}</strong></p>
                             {% if thanks_message %}
                             <p style="margin: 0.5rem 0;">{{ thanks_message | format_multiline }}</p>
                             {% endif %}
@@ -132,7 +132,7 @@
                                     class="btn btn-light btn-sm"
                                     style="border: 1px solid rgba(0,0,0,0.15);"
                                 >
-                                    Посмотреть фотографию подарка
+                                    {{ _('Посмотреть фотографию подарка') }}
                                 </a>
                             </div>
                             {% endif %}
@@ -142,22 +142,22 @@
                         {% if not event_finished %}
                         <form method="POST" action="{{ url_for('assignments.assignment_mark_sent', assignment_id=event_data.as_santa.get('id')) }}" style="margin-top: 1rem;">
         {{ csrf_input() }}
-                            <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-weight: 600;">Информация об отправке</label>
+                            <label for="send_info_{{ event_data.as_santa.get('id') }}" style="display: block; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); font-weight: 600;">{{ _('Информация об отправке') }}</label>
                             <textarea 
                                 id="send_info_{{ event_data.as_santa.get('id') }}"
                                 name="send_info"
                                 class="setting-input"
                                 style="width: 100%; border-radius: 8px; border: none; padding: 0.75rem; resize: vertical; min-height: 100px;"
-                                placeholder="Введите данные отправки (трек-номер, дата, способ доставки и др.)"
+                                placeholder="{{ _('Введите данные отправки (трек-номер, дата, способ доставки и др.)') }}"
                                 maxlength="500"
                                 required
                             ></textarea>
-                            <button type="submit" class="btn btn-light" style="margin-top: 0.75rem;">Отправил</button>
-                            <p style="margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8;">Можно ввести до 500 символов</p>
+                            <button type="submit" class="btn btn-light" style="margin-top: 0.75rem;">{{ _('Отправил') }}</button>
+                            <p style="margin-top: 0.5rem; font-size: 0.85rem; opacity: 0.8;">{{ _('Можно ввести до 500 символов') }}</p>
                         </form>
                         {% else %}
                         <div style="margin-top: 1rem; background: rgba(255,255,255,0.2); padding: 0.75rem; border-radius: 8px;">
-                            <p style="margin: 0; opacity: 0.9;">Подарок не был отмечен как отправленный до завершения мероприятия.</p>
+                            <p style="margin: 0; opacity: 0.9;">{{ _('Подарок не был отмечен как отправленный до завершения мероприятия.') }}</p>
                         </div>
                         {% endif %}
                         {% endif %}
@@ -165,7 +165,7 @@
                     {% else %}
                     <div class="assignment-card" style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 12px; border: 2px dashed var(--border-color); text-align: center; color: var(--text-secondary);">
                         <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🎅</span>
-                        <p style="margin: 0;">Вы не назначены Дедом Морозом</p>
+                        <p style="margin: 0;">{{ _('Вы не назначены Дедом Морозом') }}</p>
                     </div>
                     {% endif %}
                     
@@ -174,25 +174,25 @@
                     <div class="assignment-card assignment-card--recipient" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 1.5rem; border-radius: 12px;">
                         <div style="display: flex; align-items: center; margin-bottom: 1rem;">
                             <span style="font-size: 2rem; margin-right: 0.5rem;">🎁</span>
-                            <h3 style="margin: 0; color: white;">Вы - Внучок</h3>
+                            <h3 style="margin: 0; color: white;">{{ _('Вы - Внучок') }}</h3>
                         </div>
                         <div style="margin-bottom: 1.25rem;">
                             <form method="GET" action="{{ url_for('assignments.letter') }}">
                                 <input type="hidden" name="assignment_id" value="{{ event_data.as_recipient.get('id') }}">
-                                <button type="submit" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">➡️Переписка✉️‼️</button>
+                                <button type="submit" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">{{ _('➡️Переписка✉️‼️') }}</button>
                             </form>
                         </div>
                         {% if event_data.as_recipient.get('santa_sent_at') %}
                         <div class="assignment-recipient-panel">
-                            <p class="assignment-recipient-panel__text"><strong>Дед Мороз сообщил об отправке:</strong> {{ event_data.as_recipient.get('santa_sent_at') }}</p>
+                            <p class="assignment-recipient-panel__text"><strong>{{ _('Дед Мороз сообщил об отправке:') }}</strong> {{ event_data.as_recipient.get('santa_sent_at') }}</p>
                             {% if event_data.as_recipient.get('santa_send_info') %}
-                            <p class="assignment-recipient-panel__text"><strong>Информация от Деда Мороза:</strong><br>{{ event_data.as_recipient.get('santa_send_info') | format_multiline }}</p>
+                            <p class="assignment-recipient-panel__text"><strong>{{ _('Информация от Деда Мороза:') }}</strong><br>{{ event_data.as_recipient.get('santa_send_info') | format_multiline }}</p>
                             {% endif %}
                             <div>
                                 {% if event_data.as_recipient.get('recipient_received_at') %}
-                                <p class="assignment-recipient-panel__text"><strong>Статус:</strong> Вы подтвердили получение {{ event_data.as_recipient.get('recipient_received_at') }}</p>
+                                <p class="assignment-recipient-panel__text"><strong>{{ _('Статус:') }}</strong> Вы подтвердили получение {{ event_data.as_recipient.get('recipient_received_at') }}</p>
                                 {% if event_data.as_recipient.get('recipient_thanks_message') %}
-                                <p class="assignment-recipient-panel__text"><strong>Ваше сообщение:</strong><br>{{ event_data.as_recipient.get('recipient_thanks_message') | format_multiline }}</p>
+                                <p class="assignment-recipient-panel__text"><strong>{{ _('Ваше сообщение:') }}</strong><br>{{ event_data.as_recipient.get('recipient_thanks_message') | format_multiline }}</p>
                                 {% endif %}
                                 {% if event_data.as_recipient.get('recipient_receipt_image') %}
                             <div style="margin-top: 0.75rem; display: inline-flex;">
@@ -203,7 +203,7 @@
                                     class="btn btn-light btn-sm"
                                     style="border: 1px solid rgba(0,0,0,0.15);"
                                 >
-                                    Посмотреть фотографию подарка
+                                    {{ _('Посмотреть фотографию подарка') }}
                                 </a>
                             </div>
                                 {% endif %}
@@ -212,18 +212,18 @@
                                 <form method="POST" action="{{ url_for('assignments.assignment_mark_received', assignment_id=event_data.as_recipient.get('id')) }}" enctype="multipart/form-data" class="assignment-recipient-form">
         {{ csrf_input() }}
                                     <div>
-                                    <label for="thank_you_{{ event_data.as_recipient.get('id') }}" class="assignment-recipient-form__label">Сообщение благодарности</label>
+                                    <label for="thank_you_{{ event_data.as_recipient.get('id') }}" class="assignment-recipient-form__label">{{ _('Сообщение благодарности') }}</label>
                                         <textarea
                                             id="thank_you_{{ event_data.as_recipient.get('id') }}"
                                             name="thank_you_message"
                                             class="setting-input"
                                             style="min-height: 100px; resize: vertical;"
-                                            placeholder="Напишите несколько тёплых слов своему Деду Морозу"
+                                            placeholder="{{ _('Напишите несколько тёплых слов своему Деду Морозу') }}"
                                             required
                                         ></textarea>
                                     </div>
                                     <div class="file-upload-group">
-                                        <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" class="assignment-recipient-form__label">Фотография подарка</label>
+                                        <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" class="assignment-recipient-form__label">{{ _('Фотография подарка') }}</label>
                                         <input
                                             type="file"
                                             id="receipt_image_{{ event_data.as_recipient.get('id') }}"
@@ -233,29 +233,29 @@
                                             required
                                         >
                                         <label for="receipt_image_{{ event_data.as_recipient.get('id') }}" class="file-upload-label">
-                                            <span class="file-upload-text">Выбрать фотографию</span>
+                                            <span class="file-upload-text">{{ _('Выбрать фотографию') }}</span>
                                             <span class="file-upload-btn" aria-hidden="true">📁</span>
                                         </label>
-                                        <small class="form-hint">Поддерживаются PNG, JPG, JPEG, GIF, WEBP.</small>
+                                        <small class="form-hint">{{ _('Поддерживаются PNG, JPG, JPEG, GIF, WEBP.') }}</small>
                                     </div>
-                                    <button type="submit" class="btn btn-light">Получил</button>
+                                    <button type="submit" class="btn btn-light">{{ _('Получил') }}</button>
                                 </form>
                                 {% else %}
-                                <p class="assignment-recipient-panel__text assignment-recipient-panel__text--muted">Подтвердить получение после завершения мероприятия уже нельзя.</p>
+                                <p class="assignment-recipient-panel__text assignment-recipient-panel__text--muted">{{ _('Подтвердить получение после завершения мероприятия уже нельзя.') }}</p>
                                 {% endif %}
                                 {% endif %}
                             </div>
                         </div>
                         {% else %}
                         <div class="assignment-recipient-panel">
-                            <p class="assignment-recipient-panel__text">Дед Мороз еще не отметил отправку подарка.</p>
+                            <p class="assignment-recipient-panel__text">{{ _('Дед Мороз еще не отметил отправку подарка.') }}</p>
                         </div>
                         {% endif %}
                     </div>
                     {% else %}
                     <div class="assignment-card" style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 12px; border: 2px dashed var(--border-color); text-align: center; color: var(--text-secondary);">
                         <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🎁</span>
-                        <p style="margin: 0;">Вы не назначены получателем подарка</p>
+                        <p style="margin: 0;">{{ _('Вы не назначены получателем подарка') }}</p>
                     </div>
                     {% endif %}
                 </div>
@@ -266,7 +266,7 @@
         {% else %}
         <div class="empty-state">
             <p style="font-size: 1.2rem; color: var(--text-secondary); text-align: center; padding: 3rem;">
-                У вас пока нет заданий. Задания появятся после распределения участников администратором.
+                {{ _('У вас пока нет заданий. Задания появятся после распределения участников администратором.') }}
             </p>
         </div>
         {% endif %}

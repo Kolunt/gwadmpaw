@@ -7,7 +7,7 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if role %}Редактирование роли{% else %}Создание новой роли{% endif %}</h1>
-        <a href="{{ url_for('admin.admin_roles') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_roles') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
     </div>
     
     <div class="form-container">
@@ -15,37 +15,37 @@
         {{ csrf_input() }}
             {% if not role %}
             <div class="form-group">
-                <label for="name">Имя роли (латиница, без пробелов):</label>
+                <label for="name">{{ _('Имя роли (латиница, без пробелов):') }}</label>
                 <input type="text" id="name" name="name" required 
                        pattern="[a-z0-9_]+" 
-                       placeholder="например: editor"
+                       placeholder="{{ _('например: editor') }}"
                        value="{{ role.name if role else '' }}">
-                <small>Только строчные латинские буквы, цифры и подчеркивание</small>
+                <small>{{ _('Только строчные латинские буквы, цифры и подчеркивание') }}</small>
             </div>
             {% else %}
             <div class="form-group">
-                <label>Имя роли:</label>
+                <label>{{ _('Имя роли:') }}</label>
                 <input type="text" value="{{ role.name }}" disabled>
-                <small>Имя системной роли нельзя изменить</small>
+                <small>{{ _('Имя системной роли нельзя изменить') }}</small>
             </div>
             {% endif %}
             
             <div class="form-group">
-                <label for="display_name">Отображаемое имя:</label>
+                <label for="display_name">{{ _('Отображаемое имя:') }}</label>
                 <input type="text" id="display_name" name="display_name" required 
                        value="{{ role.display_name if role else '' }}"
-                       placeholder="например: Редактор">
+                       placeholder="{{ _('например: Редактор') }}">
             </div>
             
             <div class="form-group">
-                <label for="description">Описание:</label>
+                <label for="description">{{ _('Описание:') }}</label>
                 <textarea id="description" name="description" rows="3" 
-                          placeholder="Описание роли и её назначения">{{ role.description if role else '' }}</textarea>
+                          placeholder="{{ _('Описание роли и её назначения') }}">{{ role.description if role else '' }}</textarea>
             </div>
             
             {% if permissions %}
             <div class="form-group">
-                <label>Права доступа:</label>
+                <label>{{ _('Права доступа:') }}</label>
                 <div class="permissions-section">
                     {% set permissions_by_category = {} %}
                     {% for perm in permissions %}
@@ -75,10 +75,10 @@
                                             <input type="checkbox" 
                                                    class="permission-select-all" 
                                                    data-category="{{ category }}"
-                                                   title="Выбрать все">
+                                                   title="{{ _('Выбрать все') }}">
                                         </th>
-                                        <th>Название права</th>
-                                        <th>Описание</th>
+                                        <th>{{ _('Название права') }}</th>
+                                        <th>{{ _('Описание') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -117,7 +117,7 @@
                 <button type="submit" class="btn btn-primary">
                     {% if role %}Сохранить изменения{% else %}Создать роль{% endif %}
                 </button>
-                <a href="{{ url_for('admin.admin_roles') }}" class="btn btn-secondary">Отмена</a>
+                <a href="{{ url_for('admin.admin_roles') }}" class="btn btn-secondary">{{ _('Отмена') }}</a>
             </div>
         </form>
     </div>

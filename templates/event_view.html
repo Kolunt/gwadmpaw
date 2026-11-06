@@ -10,7 +10,7 @@
             <h1>{{ event.name }}</h1>
             <div class="event-header-actions">
                 {% if show_event_assignments_button %}
-                <a href="{{ url_for('assignments.assignments') }}" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">➡️Задание📋‼️</a>
+                <a href="{{ url_for('assignments.assignments') }}" class="btn btn-light btn-sm letter-button-animated" style="color: #333;">{{ _('➡️Задание📋‼️') }}</a>
                 {% endif %}
             </div>
         </div>
@@ -18,30 +18,30 @@
         <div class="event-view-card">
             {% if event.description and event.description|trim %}
             <div class="event-info-section">
-                <h3>Описание</h3>
+                <h3>{{ _('Описание') }}</h3>
                 <p>{{ event.description|format_multiline }}</p>
             </div>
             {% endif %}
 
             {% if next_stage %}
             <div class="event-info-section countdown-section" data-start="{{ next_stage.start_iso }}">
-                <h3>До следующего этапа: <span class="countdown-stage-name">{{ next_stage.name }}</span></h3>
+                <h3>{{ _('До следующего этапа:') }} <span class="countdown-stage-name">{{ next_stage.name }}</span></h3>
                 <div class="countdown-timer" data-stage-type="{{ next_stage.stage_type if next_stage.stage_type else '' }}">
                     <div class="countdown-item">
                         <span class="countdown-value" data-unit="days">0</span>
-                        <span class="countdown-label">дней</span>
+                        <span class="countdown-label">{{ _('дней') }}</span>
                     </div>
                     <div class="countdown-item">
                         <span class="countdown-value" data-unit="hours">00</span>
-                        <span class="countdown-label">часов</span>
+                        <span class="countdown-label">{{ _('часов') }}</span>
                     </div>
                     <div class="countdown-item">
                         <span class="countdown-value" data-unit="minutes">00</span>
-                        <span class="countdown-label">минут</span>
+                        <span class="countdown-label">{{ _('минут') }}</span>
                     </div>
                     <div class="countdown-item">
                         <span class="countdown-value" data-unit="seconds">00</span>
-                        <span class="countdown-label">секунд</span>
+                        <span class="countdown-label">{{ _('секунд') }}</span>
                     </div>
                 </div>
             </div>
@@ -49,27 +49,27 @@
             
             {% if show_gifts_stats and gifts_stats %}
             <div class="event-info-section gifts-statistics-section">
-                <h3>📊 Статистика подарков</h3>
+                <h3>{{ _('📊 Статистика подарков') }}</h3>
                 <div class="gifts-stats-grid">
                     <div class="gifts-stat-card stat-total">
                         <div class="stat-icon">🎁</div>
                         <div class="stat-content">
                             <div class="stat-value">{{ gifts_stats.total }}</div>
-                            <div class="stat-label">Всего должно быть отправлено</div>
+                            <div class="stat-label">{{ _('Всего должно быть отправлено') }}</div>
                         </div>
                     </div>
                     <div class="gifts-stat-card stat-sent">
                         <div class="stat-icon">📦</div>
                         <div class="stat-content">
                             <div class="stat-value">{{ gifts_stats.sent_not_received }}</div>
-                            <div class="stat-label">Отправлено, но не подтверждено получение</div>
+                            <div class="stat-label">{{ _('Отправлено, но не подтверждено получение') }}</div>
                         </div>
                     </div>
                     <div class="gifts-stat-card stat-received">
                         <div class="stat-icon">✅</div>
                         <div class="stat-content">
                             <div class="stat-value">{{ gifts_stats.sent_and_received }}</div>
-                            <div class="stat-label">Отправлено и подтверждено получение</div>
+                            <div class="stat-label">{{ _('Отправлено и подтверждено получение') }}</div>
                         </div>
                     </div>
                 </div>
@@ -80,40 +80,40 @@
                 <div class="collapsible-header" onclick="toggleCollapsibleSection(this)">
                     <h3>
                         <span class="section-toggle-icon">▶</span>
-                        Информация
+                        {{ _('Информация') }}
                     </h3>
                 </div>
                 <div class="collapsible-content" style="margin-top: 1rem; display: none;">
                     <div class="info-row">
-                        <span class="info-label">Организатор:</span>
+                        <span class="info-label">{{ _('Организатор:') }}</span>
                         <span class="info-value">{{ event.creator_name or 'Не указан' }}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Создано:</span>
+                        <span class="info-label">{{ _('Создано:') }}</span>
                         <span class="info-value">{{ event.created_at }}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Зарегистрировано:</span>
+                        <span class="info-label">{{ _('Зарегистрировано:') }}</span>
                         <span class="info-value">{{ registrations_count }} участник(ов)</span>
                     </div>
                 </div>
             </div>
             
             <div class="event-info-section">
-                <h3>Текущий этап</h3>
+                <h3>{{ _('Текущий этап') }}</h3>
                 {% if current_stage %}
                     <div class="info-row">
-                        <span class="info-label">Этап:</span>
+                        <span class="info-label">{{ _('Этап:') }}</span>
                         <span class="event-stage-badge badge-active">{{ current_stage.info.name }}</span>
                     </div>
                     {% if current_stage.data.start_datetime %}
                     <div class="info-row">
-                        <span class="info-label">Начало этапа:</span>
+                        <span class="info-label">{{ _('Начало этапа:') }}</span>
                         <span class="info-value">{{ current_stage.data.start_datetime }}</span>
                     </div>
                     {% endif %}
                 {% else %}
-                    <p class="text-muted">Мероприятие еще не началось</p>
+                    <p class="text-muted">{{ _('Мероприятие еще не началось') }}</p>
                 {% endif %}
             </div>
             
@@ -124,26 +124,26 @@
                         {% if needs_main_confirmation %}
                         <div class="event-info-section">
                             <div class="alert alert-warning">
-                                <strong>Требуется подтверждение участия</strong>
-                                <p>Этап основной регистрации начался. Пожалуйста, подтвердите актуальность своих данных.</p>
+                                <strong>{{ _('Требуется подтверждение участия') }}</strong>
+                                <p>{{ _('Этап основной регистрации начался. Пожалуйста, подтвердите актуальность своих данных.') }}</p>
                             </div>
                             <form method="POST"
                                   action="{{ url_for('events.event_register', event_id=event.id) }}"
                                   class="register-form"
                                   data-event-id="{{ event.id }}">
         {{ csrf_input() }}
-                                <button type="submit" class="btn btn-primary btn-large">Подтвердить участие</button>
+                                <button type="submit" class="btn btn-primary btn-large">{{ _('Подтвердить участие') }}</button>
                             </form>
                         </div>
                         {% else %}
                         <div class="event-info-section">
                             <div class="alert alert-success">
-                                <strong>✓ Вы зарегистрированы на это мероприятие!</strong>
+                                <strong>{{ _('✓ Вы зарегистрированы на это мероприятие!') }}</strong>
                             </div>
                             <form method="POST" action="{{ url_for('events.event_unregister', event_id=event.id) }}" 
                                   onsubmit="return confirm('Вы уверены, что хотите отменить регистрацию?');">
         {{ csrf_input() }}
-                                <button type="submit" class="btn btn-danger">Отменить регистрацию</button>
+                                <button type="submit" class="btn btn-danger">{{ _('Отменить регистрацию') }}</button>
                             </form>
                         </div>
                         {% endif %}
@@ -154,7 +154,7 @@
                                   class="register-form"
                                   data-event-id="{{ event.id }}">
         {{ csrf_input() }}
-                                <button type="submit" class="btn btn-primary btn-large">Зарегистрироваться на мероприятие</button>
+                                <button type="submit" class="btn btn-primary btn-large">{{ _('Зарегистрироваться на мероприятие') }}</button>
                             </form>
                         </div>
                     {% endif %}
@@ -162,31 +162,31 @@
                     {% if needs_main_confirmation %}
                     <div class="event-info-section">
                         <div class="alert alert-warning">
-                            <strong>Требуется подтверждение участия</strong>
-                            <p>Основная регистрация закрыта. Свяжитесь с организатором, чтобы уточнить возможность участия.</p>
+                            <strong>{{ _('Требуется подтверждение участия') }}</strong>
+                            <p>{{ _('Основная регистрация закрыта. Свяжитесь с организатором, чтобы уточнить возможность участия.') }}</p>
                         </div>
                     </div>
                     {% else %}
                     <div class="event-info-section">
                         <div class="alert alert-info">
-                            <strong>✓ Вы зарегистрированы на это мероприятие</strong>
-                            <p>Регистрация закрыта, вы не можете отменить участие.</p>
+                            <strong>{{ _('✓ Вы зарегистрированы на это мероприятие') }}</strong>
+                            <p>{{ _('Регистрация закрыта, вы не можете отменить участие.') }}</p>
                         </div>
                     </div>
                     {% endif %}
                 {% else %}
                     <div class="event-info-section">
                         <div class="alert alert-warning">
-                            <strong>Регистрация закрыта</strong>
-                            <p>Регистрация на это мероприятие в данный момент недоступна.</p>
+                            <strong>{{ _('Регистрация закрыта') }}</strong>
+                            <p>{{ _('Регистрация на это мероприятие в данный момент недоступна.') }}</p>
                         </div>
                     </div>
                 {% endif %}
             {% else %}
                 <div class="event-info-section">
                     <div class="alert alert-warning">
-                        <strong>Для регистрации необходимо авторизоваться</strong>
-                        <p><a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="margin-top: 0.5rem;">Войти через GWars</a></p>
+                        <strong>{{ _('Для регистрации необходимо авторизоваться') }}</strong>
+                        <p><a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="margin-top: 0.5rem;">{{ _('Войти через GWars') }}</a></p>
                     </div>
                 </div>
             {% endif %}
@@ -198,7 +198,7 @@
                 {% if is_admin %}
                 <div style="margin-bottom: 1rem;">
                     <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn btn-secondary">
-                        Просмотреть участников (админ)
+                        {{ _('Просмотреть участников (админ)') }}
                     </a>
                 </div>
                 {% endif %}
@@ -224,18 +224,18 @@
                 <!-- Пагинация участников -->
                 {% if participants_total_pages is defined and participants_total_pages > 1 %}
                 <div class="pagination-container" style="margin-top: 1.5rem;">
-                    <nav class="pagination" aria-label="Навигация по страницам участников">
+                    <nav class="pagination" aria-label="{{ _('Навигация по страницам участников') }}">
                         <ul class="pagination-list">
                             {% if participants_has_prev is defined and participants_has_prev %}
                             <li class="pagination-item">
-                                <a href="{{ url_for('events.event_view', event_id=event.id, participants_page=(participants_page|default(1))-1) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
-                                    ← Предыдущая
+                                <a href="{{ url_for('events.event_view', event_id=event.id, participants_page=(participants_page|default(1))-1) }}" class="pagination-link pagination-link-prev" aria-label="{{ _('Предыдущая страница') }}">
+                                    {{ _('← Предыдущая') }}
                                 </a>
                             </li>
                             {% else %}
                             <li class="pagination-item pagination-item-disabled">
-                                <span class="pagination-link pagination-link-prev pagination-link-disabled" aria-label="Предыдущая страница">
-                                    ← Предыдущая
+                                <span class="pagination-link pagination-link-prev pagination-link-disabled" aria-label="{{ _('Предыдущая страница') }}">
+                                    {{ _('← Предыдущая') }}
                                 </span>
                             </li>
                             {% endif %}
@@ -278,14 +278,14 @@
                             
                             {% if participants_has_next is defined and participants_has_next %}
                             <li class="pagination-item">
-                                <a href="{{ url_for('events.event_view', event_id=event.id, participants_page=current_participants_page+1) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
-                                    Следующая →
+                                <a href="{{ url_for('events.event_view', event_id=event.id, participants_page=current_participants_page+1) }}" class="pagination-link pagination-link-next" aria-label="{{ _('Следующая страница') }}">
+                                    {{ _('Следующая →') }}
                                 </a>
                             </li>
                             {% else %}
                             <li class="pagination-item pagination-item-disabled">
-                                <span class="pagination-link pagination-link-next pagination-link-disabled" aria-label="Следующая страница">
-                                    Следующая →
+                                <span class="pagination-link pagination-link-next pagination-link-disabled" aria-label="{{ _('Следующая страница') }}">
+                                    {{ _('Следующая →') }}
                                 </span>
                             </li>
                             {% endif %}
@@ -298,7 +298,7 @@
             
             <!-- Этапы мероприятия -->
             <div class="event-stages-section">
-                <h3>Этапы мероприятия</h3>
+                <h3>{{ _('Этапы мероприятия') }}</h3>
                 {% for stage_item in stages_with_info %}
                 {% set stage = stage_item.data %}
                 {% set stage_info = stage_item.info %}
@@ -314,12 +314,12 @@
                             {{ stage_info.name }}
                             {% if is_current %}
                             <span style="margin-left: 0.5rem;"
-                                  title="Текущий этап"
-                                  aria-label="Текущий этап">👀</span>
+                                  title="{{ _('Текущий этап') }}"
+                                  aria-label="{{ _('Текущий этап') }}">👀</span>
                             {% elif is_past %}
                             <span style="margin-left: 0.5rem;"
-                                  title="Завершено"
-                                  aria-label="Этап завершен">✅</span>
+                                  title="{{ _('Завершено') }}"
+                                  aria-label="{{ _('Этап завершен') }}">✅</span>
                             {% endif %}
                         </h4>
                     </div>
@@ -328,26 +328,26 @@
                         {% if stage %}
                             {% if stage.start_datetime %}
                             <div class="info-row">
-                                <span class="info-label">Начало:</span>
+                                <span class="info-label">{{ _('Начало:') }}</span>
                                 <span class="info-value">{{ stage.start_datetime }}</span>
                             </div>
                             {% endif %}
                             
                             {% if stage.end_datetime %}
                             <div class="info-row">
-                                <span class="info-label">Окончание:</span>
+                                <span class="info-label">{{ _('Окончание:') }}</span>
                                 <span class="info-value">{{ stage.end_datetime }}</span>
                             </div>
                             {% elif not stage_info.has_end %}
                             <div class="info-row">
-                                <span class="info-label">Окончание:</span>
-                                <span class="info-value">До начала следующего этапа</span>
+                                <span class="info-label">{{ _('Окончание:') }}</span>
+                                <span class="info-value">{{ _('До начала следующего этапа') }}</span>
                             </div>
                             {% endif %}
                         {% else %}
                             <div class="info-row">
-                                <span class="info-label">Статус:</span>
-                                <span class="info-value text-muted">Не настроен</span>
+                                <span class="info-label">{{ _('Статус:') }}</span>
+                                <span class="info-value text-muted">{{ _('Не настроен') }}</span>
                             </div>
                         {% endif %}
                     </div>

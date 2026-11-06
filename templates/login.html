@@ -7,16 +7,16 @@
     <div class="admin-container">
         <div class="layout-inner empty-state">
             <div style="font-size: 4rem; margin-bottom: 1.5rem;">🎅</div>
-            <h1 style="margin-bottom: 1rem; color: var(--text-primary);">Вход через GWars</h1>
+            <h1 style="margin-bottom: 1rem; color: var(--text-primary);">{{ _('Вход через GWars') }}</h1>
             <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.6;">
-                Для участия в мероприятиях необходимо войти через игровой аккаунт GWars.
+                {{ _('Для участия в мероприятиях необходимо войти через игровой аккаунт GWars.') }}
             </p>
             <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                 <a href="{{ url_for('auth.login_go', next=return_url) if return_url else url_for('auth.login_go') }}" class="btn btn-primary btn-large">
-                    Войти через GWars
+                    {{ _('Войти через GWars') }}
                 </a>
                 <a href="{{ url_for('public.index') }}" class="btn btn-secondary btn-large">
-                    На главную
+                    {{ _('На главную') }}
                 </a>
             </div>
         </div>

@@ -7,17 +7,17 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if event %}Редактирование мероприятия{% else %}Создание мероприятия{% endif %}</h1>
-        <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
     </div>
     
     <form method="POST" class="event-form">
         {{ csrf_input() }}
         <div class="form-section">
-            <h3>Основная информация</h3>
+            <h3>{{ _('Основная информация') }}</h3>
             
             <div class="form-group">
                 <label for="name" class="form-label">
-                    Название мероприятия <span class="required">*</span>
+                    {{ _('Название мероприятия') }} <span class="required">*</span>
                 </label>
                 <input 
                     type="text" 
@@ -26,33 +26,33 @@
                     value="{{ event.name if event else '' }}"
                     class="form-input"
                     required
-                    placeholder="Название мероприятия"
+                    placeholder="{{ _('Название мероприятия') }}"
                 >
             </div>
             
             <div class="form-group">
                 <label for="description" class="form-label">
-                    Описание
+                    {{ _('Описание') }}
                 </label>
                 <textarea 
                     id="description" 
                     name="description" 
                     class="form-textarea"
                     rows="4"
-                    placeholder="Описание мероприятия..."
+                    placeholder="{{ _('Описание мероприятия...') }}"
                 >{{ event.description if event else '' }}</textarea>
             </div>
             
             <div class="form-group">
                 <label for="award_id" class="form-label">
-                    Награда для участников <span class="optional">(опционально)</span>
+                    {{ _('Награда для участников') }} <span class="optional">{{ _('(опционально)') }}</span>
                 </label>
                 <select 
                     id="award_id" 
                     name="award_id" 
                     class="form-input"
                 >
-                    <option value="">Не выдавать награду</option>
+                    <option value="">{{ _('Не выдавать награду') }}</option>
                     {% if awards %}
                         {% for award in awards %}
                             <option value="{{ award.id }}" {% if event and event.award_id == award.id %}selected{% endif %}>
@@ -61,18 +61,18 @@
                         {% endfor %}
                     {% endif %}
                 </select>
-                <small class="form-hint">Награда будет автоматически выдана всем участникам мероприятия после его завершения</small>
+                <small class="form-hint">{{ _('Награда будет автоматически выдана всем участникам мероприятия после его завершения') }}</small>
             </div>
         </div>
         
         <div class="form-section">
-            <h3>🔔 Настройки репутации (Бубенчики)</h3>
-            <p class="form-hint">Настройте количество бубенчиков для этого мероприятия. Если не указано, будут использоваться глобальные настройки из раздела «Настройки репутации».</p>
+            <h3>{{ _('🔔 Настройки репутации (Бубенчики)') }}</h3>
+            <p class="form-hint">{{ _('Настройте количество бубенчиков для этого мероприятия. Если не указано, будут использоваться глобальные настройки из раздела «Настройки репутации».') }}</p>
             
             <div class="form-group">
                 <label for="rating_registration" class="form-label">
-                    Бубенчики за регистрацию на мероприятие
-                    <span class="optional">(опционально)</span>
+                    {{ _('Бубенчики за регистрацию на мероприятие') }}
+                    <span class="optional">{{ _('(опционально)') }}</span>
                 </label>
                 <input 
                     type="number" 
@@ -81,15 +81,15 @@
                     value="{{ event.rating_registration if event and event.rating_registration is not none else '' }}"
                     class="form-input"
                     step="1"
-                    placeholder="Использовать глобальную настройку"
+                    placeholder="{{ _('Использовать глобальную настройку') }}"
                 >
-                <small class="form-hint">Очки начисляются автоматически всем зарегистрированным участникам при закрытии регистрации</small>
+                <small class="form-hint">{{ _('Очки начисляются автоматически всем зарегистрированным участникам при закрытии регистрации') }}</small>
             </div>
             
             <div class="form-group">
                 <label for="rating_gift_not_sent" class="form-label">
-                    Бубенчики за неотправленный подарок
-                    <span class="optional">(опционально)</span>
+                    {{ _('Бубенчики за неотправленный подарок') }}
+                    <span class="optional">{{ _('(опционально)') }}</span>
                 </label>
                 <input 
                     type="number" 
@@ -98,15 +98,15 @@
                     value="{{ event.rating_gift_not_sent if event and event.rating_gift_not_sent is not none else '' }}"
                     class="form-input"
                     step="1"
-                    placeholder="Использовать глобальную настройку"
+                    placeholder="{{ _('Использовать глобальную настройку') }}"
                 >
-                <small class="form-hint">Очки начисляются участникам, которые не отправили подарок на момент закрытия регистрации</small>
+                <small class="form-hint">{{ _('Очки начисляются участникам, которые не отправили подарок на момент закрытия регистрации') }}</small>
             </div>
             
             <div class="form-group">
                 <label for="rating_gift_sent" class="form-label">
-                    Бубенчики за отправленный подарок
-                    <span class="optional">(опционально)</span>
+                    {{ _('Бубенчики за отправленный подарок') }}
+                    <span class="optional">{{ _('(опционально)') }}</span>
                 </label>
                 <input 
                     type="number" 
@@ -115,15 +115,15 @@
                     value="{{ event.rating_gift_sent if event and event.rating_gift_sent is not none else '' }}"
                     class="form-input"
                     step="1"
-                    placeholder="Использовать глобальную настройку"
+                    placeholder="{{ _('Использовать глобальную настройку') }}"
                 >
-                <small class="form-hint">Очки начисляются участникам, которые отправили подарок на момент закрытия регистрации</small>
+                <small class="form-hint">{{ _('Очки начисляются участникам, которые отправили подарок на момент закрытия регистрации') }}</small>
             </div>
             
             <div class="form-group">
                 <label for="rating_order_coefficient" class="form-label">
-                    Коэффициент за очередность отправки подарка
-                    <span class="optional">(опционально)</span>
+                    {{ _('Коэффициент за очередность отправки подарка') }}
+                    <span class="optional">{{ _('(опционально)') }}</span>
                 </label>
                 <input 
                     type="number" 
@@ -133,7 +133,7 @@
                     class="form-input"
                     step="0.1"
                     min="0"
-                    placeholder="Например: 1"
+                    placeholder="{{ _('Например: 1') }}"
                 >
                 <small class="form-hint">
                     Бубенчики начисляются по формуле: (количество_участников - порядковый_номер + 1) × коэффициент.
@@ -143,8 +143,8 @@
         </div>
         
         <div class="form-section">
-            <h3>Этапы мероприятия</h3>
-            <p class="form-hint">Настройте даты и время для каждого этапа. Этапы с пометкой <span class="required">*</span> обязательны.</p>
+            <h3>{{ _('Этапы мероприятия') }}</h3>
+            <p class="form-hint">{{ _('Настройте даты и время для каждого этапа. Этапы с пометкой') }} <span class="required">*</span> {{ _('обязательны.') }}</p>
             
             {% for stage in stages %}
             <div class="stage-form-group">
@@ -152,7 +152,7 @@
                     <h4>
                         {{ stage.name }}
                         {% if stage.required %}<span class="required">*</span>{% endif %}
-                        {% if not stage.required %}<span class="optional">(опционально)</span>{% endif %}
+                        {% if not stage.required %}<span class="optional">{{ _('(опционально)') }}</span>{% endif %}
                     </h4>
                 </div>
                 
@@ -174,9 +174,9 @@
                                 class="form-input datetime-local-input"
                                 {% if stage.required %}required{% endif %}
                             >
-                            <button type="button" class="btn btn-secondary btn-sm datetime-picker-btn" aria-label="Выбрать дату и время" title="Календарь">📅</button>
+                            <button type="button" class="btn btn-secondary btn-sm datetime-picker-btn" aria-label="{{ _('Выбрать дату и время') }}" title="{{ _('Календарь') }}">📅</button>
                         </div>
-                        <small class="form-hint">Этап закончится, когда начнется следующий этап</small>
+                        <small class="form-hint">{{ _('Этап закончится, когда начнется следующий этап') }}</small>
                     </div>
                     {% endif %}
                     
@@ -195,14 +195,14 @@
                                 class="form-input datetime-local-input"
                                 {% if stage.required %}required{% endif %}
                             >
-                            <button type="button" class="btn btn-secondary btn-sm datetime-picker-btn" aria-label="Выбрать дату и время" title="Календарь">📅</button>
+                            <button type="button" class="btn btn-secondary btn-sm datetime-picker-btn" aria-label="{{ _('Выбрать дату и время') }}" title="{{ _('Календарь') }}">📅</button>
                         </div>
                     </div>
                     {% endif %}
                     
                     {% if not stage.has_start and not stage.has_end %}
                     <div class="form-group">
-                        <p class="stage-info">Этап будет активен до начала следующего этапа</p>
+                        <p class="stage-info">{{ _('Этап будет активен до начала следующего этапа') }}</p>
                     </div>
                     {% endif %}
                 </div>
@@ -214,7 +214,7 @@
             <button type="submit" class="btn btn-primary">
                 {% if event %}Сохранить изменения{% else %}Создать мероприятие{% endif %}
             </button>
-            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">Отмена</a>
+            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">{{ _('Отмена') }}</a>
         </div>
     </form>
 </div>

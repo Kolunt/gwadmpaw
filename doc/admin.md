@@ -25,7 +25,15 @@
 | Чаты | `/admin/chats` |
 | Правила | `/admin/rules` |
 | Рассылки | `/admin/broadcasts` |
-| Цыфорки | `/admin/stats` |
+| Цыфорки | `/admin/rating` |
+| Локализация (таблица строк RU/EN) | `/admin/localization` |
+
+## Строки интерфейса (локализация)
+
+- В шаблонах используется `{{ _('…') }}`; «ключом» служит та же строка (чаще всего русская фраза или английский msgid из legacy-блока в [`gwadm/ui_string_registry.py`](../gwadm/ui_string_registry.py)).
+- Значения хранятся в SQLite в таблице **`ui_strings`** (см. [database.md](database.md)); кэш в памяти процесса сбрасывается при сохранении в админке.
+- **Язык по умолчанию** для гостей задаётся на `/admin/settings` (вкладка «Локализация»); язык залогиненного — поле **`users.language`** в профиле.
+- Реестр для первичного заполнения и для повторной генерации после правок шаблонов: `python scripts/generate_ui_registry_from_templates.py` (обновляет [`gwadm/_ui_string_registry_generated.py`](../gwadm/_ui_string_registry_generated.py)).
 
 ## Интеграции (настройки)
 

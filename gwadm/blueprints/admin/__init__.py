@@ -12,6 +12,7 @@ from gwadm.blueprints.admin import (  # noqa: E402,F401
     events,
     faq,
     hero_whispers,
+    localization,
     logs,
     rating,
     roles,

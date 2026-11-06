@@ -23,41 +23,41 @@
             <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#main" 
                class="dashboard-tab active" 
                data-tab="main">
-                📋 Основное
+                {{ _('📋 Основное') }}
             </a>
             {% if user_titles %}
             <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#titles" 
                class="dashboard-tab" 
                data-tab="titles">
-                🏆 Звания
+                {{ _('🏆 Звания') }}
             </a>
             {% endif %}
             {% if user_awards %}
             <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#awards" 
                class="dashboard-tab" 
                data-tab="awards">
-                🎖️ Награды
+                {{ _('🎖️ Награды') }}
             </a>
             {% endif %}
             {% if is_admin %}
             <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#contacts" 
                class="dashboard-tab" 
                data-tab="contacts">
-                📞 Контакты
+                {{ _('📞 Контакты') }}
             </a>
             {% endif %}
             {% if is_admin or has_comments %}
             <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#comments" 
                class="dashboard-tab" 
                data-tab="comments">
-                💬 Комментарии
+                {{ _('💬 Комментарии') }}
             </a>
             {% endif %}
             {% if show_about %}
             <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}#about" 
                class="dashboard-tab" 
                data-tab="about">
-                📝 О себе
+                {{ _('📝 О себе') }}
             </a>
             {% endif %}
         </div>
@@ -66,12 +66,12 @@
         <div class="dashboard-tab-content active" data-tab="main">
             {% if user.is_blocked == 1 or user.is_blocked == True %}
             <div class="alert alert-danger" style="margin-bottom: 1.5rem; border-left: 4px solid #dc3545;">
-                <strong>⚠️ Пользователь заблокирован</strong>
+                <strong>{{ _('⚠️ Пользователь заблокирован') }}</strong>
                 {% if user.blocked_reason %}
-                <p style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>Причина блокировки:</strong> {{ user.blocked_reason }}</p>
+                <p style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>{{ _('Причина блокировки:') }}</strong> {{ user.blocked_reason }}</p>
                 {% endif %}
                 {% if user.blocked_at %}
-                <p style="margin-top: 0.5rem; margin-bottom: 0.5rem;"><strong>Дата блокировки:</strong> 
+                <p style="margin-top: 0.5rem; margin-bottom: 0.5rem;"><strong>{{ _('Дата блокировки:') }}</strong> 
                     {% set blocked_at_str = user.blocked_at|string %}
                     {% if ' ' in blocked_at_str %}
                         {% set date_time_parts = blocked_at_str.split(' ') %}
@@ -93,44 +93,44 @@
                 </p>
                 {% endif %}
                 {% if blocker_info %}
-                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>Заблокировал:</strong> {{ blocker_info.username }} (ID: {{ user.blocked_by }})</p>
+                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>{{ _('Заблокировал:') }}</strong> {{ blocker_info.username }} (ID: {{ user.blocked_by }})</p>
                 {% elif user.blocked_by %}
-                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>Заблокировал:</strong> ID: {{ user.blocked_by }}</p>
+                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>{{ _('Заблокировал:') }}</strong> ID: {{ user.blocked_by }}</p>
                 {% endif %}
             </div>
             {% endif %}
             <div class="profile-info">
                 <div class="info-row">
-                    <span class="info-label">ID пользователя:</span>
+                    <span class="info-label">{{ _('ID пользователя:') }}</span>
                     <span class="info-value">{{ user.user_id }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Имя:</span>
+                    <span class="info-label">{{ _('Имя:') }}</span>
                     <span class="info-value">{{ user.username }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Уровень:</span>
+                    <span class="info-label">{{ _('Уровень:') }}</span>
                     <span class="info-value">{{ user.level }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Синдикат:</span>
+                    <span class="info-label">{{ _('Синдикат:') }}</span>
                     <span class="info-value">{{ user.synd }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Пол:</span>
+                    <span class="info-label">{{ _('Пол:') }}</span>
                     <span class="info-value">{{ user.usersex|format_gender }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Паспорт:</span>
+                    <span class="info-label">{{ _('Паспорт:') }}</span>
                     <span class="info-value">{{ 'Есть' if user.has_passport else 'Нет' }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Мобильный:</span>
+                    <span class="info-label">{{ _('Мобильный:') }}</span>
                     <span class="info-value">{{ 'Есть' if user.has_mobile else 'Нет' }}</span>
                 </div>
                 {% if user.created_at %}
                 <div class="info-row">
-                    <span class="info-label">Дата регистрации:</span>
+                    <span class="info-label">{{ _('Дата регистрации:') }}</span>
                     <span class="info-value">
                         {% set created_at_str = user.created_at|string %}
                         {% if ' ' in created_at_str %}
@@ -160,7 +160,7 @@
                 {% endif %}
                 {% if user.last_login %}
                 <div class="info-row">
-                    <span class="info-label">Последний вход:</span>
+                    <span class="info-label">{{ _('Последний вход:') }}</span>
                     <span class="info-value">
                         {% set last_login_str = user.last_login|string %}
                         {% if ' ' in last_login_str %}
@@ -198,9 +198,9 @@
                 <table class="titles-table">
                     <thead>
                         <tr>
-                            <th>Иконка</th>
-                            <th>Название</th>
-                            <th>Описание</th>
+                            <th>{{ _('Иконка') }}</th>
+                            <th>{{ _('Название') }}</th>
+                            <th>{{ _('Описание') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -262,51 +262,51 @@
         {% if is_admin %}
         <div class="dashboard-tab-content" data-tab="contacts">
             <div class="profile-info">
-                <h3 class="section-subtitle">Личные данные</h3>
+                <h3 class="section-subtitle">{{ _('Личные данные') }}</h3>
                 <div class="info-row">
-                    <span class="info-label">Фамилия:</span>
+                    <span class="info-label">{{ _('Фамилия:') }}</span>
                     <span class="info-value">{{ user.last_name or '—' }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Имя:</span>
+                    <span class="info-label">{{ _('Имя:') }}</span>
                     <span class="info-value">{{ user.first_name or '—' }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Отчество:</span>
+                    <span class="info-label">{{ _('Отчество:') }}</span>
                     <span class="info-value">{{ user.middle_name or '—' }}</span>
                 </div>
 
-                <h3 class="section-subtitle">Почтовый адрес</h3>
+                <h3 class="section-subtitle">{{ _('Почтовый адрес') }}</h3>
                 <div class="info-row">
-                    <span class="info-label">Индекс:</span>
+                    <span class="info-label">{{ _('Индекс:') }}</span>
                     <span class="info-value">{{ user.postal_code or '—' }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Страна:</span>
+                    <span class="info-label">{{ _('Страна:') }}</span>
                     <span class="info-value">{{ user.country or '—' }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Город:</span>
+                    <span class="info-label">{{ _('Город:') }}</span>
                     <span class="info-value">{{ user.city or '—' }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Улица:</span>
+                    <span class="info-label">{{ _('Улица:') }}</span>
                     <span class="info-value">{{ user.street or '—' }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Дом:</span>
+                    <span class="info-label">{{ _('Дом:') }}</span>
                     <span class="info-value">{{ user.house or '—' }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Корпус / строение:</span>
+                    <span class="info-label">{{ _('Корпус / строение:') }}</span>
                     <span class="info-value">{{ user.building or '—' }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Квартира:</span>
+                    <span class="info-label">{{ _('Квартира:') }}</span>
                     <span class="info-value">{{ user.apartment or '—' }}</span>
                 </div>
 
-                <h3 class="section-subtitle">Контакты</h3>
+                <h3 class="section-subtitle">{{ _('Контакты') }}</h3>
                 <div class="info-row">
                     <span class="info-label">Email:</span>
                     <span class="info-value">
@@ -318,7 +318,7 @@
                     </span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Телефон:</span>
+                    <span class="info-label">{{ _('Телефон:') }}</span>
                     <span class="info-value">
                         {% if user.phone %}
                             <a href="tel:{{ user.phone|replace(' ', '') }}" class="contact-link">{{ user.phone }}</a>
@@ -379,27 +379,27 @@
         {% if is_admin or has_comments %}
         <div class="dashboard-tab-content" data-tab="comments">
             <div class="profile-info">
-                <h3 class="section-subtitle">Комментарии</h3>
+                <h3 class="section-subtitle">{{ _('Комментарии') }}</h3>
                 {% if is_admin %}
                 <p class="comment-intro">
-                    Комментарии администраторов видны только администраторам (если отмечено "Только для администраторов"). Комментарии "спасибо от внучка" видны всем.
+                    {{ _('Комментарии администраторов видны только администраторам (если отмечено "Только для администраторов"). Комментарии "спасибо от внучка" видны всем.') }}
                 </p>
                 
                 <div class="comment-form-section">
-                    <h4 class="comment-form-title">Добавить комментарий</h4>
+                    <h4 class="comment-form-title">{{ _('Добавить комментарий') }}</h4>
                     <form method="POST" action="{{ url_for('profile.add_admin_comment', user_id=user.user_id) }}">
         {{ csrf_input() }}
-                        <textarea name="comment" rows="4" required placeholder="Введите комментарий..." class="comment-textarea"></textarea>
+                        <textarea name="comment" rows="4" required placeholder="{{ _('Введите комментарий...') }}" class="comment-textarea"></textarea>
                         <div class="comment-checkbox-row">
                             <input type="checkbox" id="is_admin_only" name="is_admin_only">
-                            <label for="is_admin_only">Только для администраторов</label>
+                            <label for="is_admin_only">{{ _('Только для администраторов') }}</label>
                         </div>
-                        <button type="submit" class="btn btn-primary comment-submit-btn">Добавить комментарий</button>
+                        <button type="submit" class="btn btn-primary comment-submit-btn">{{ _('Добавить комментарий') }}</button>
                     </form>
                 </div>
                 {% else %}
                 <p class="comment-intro">
-                    Здесь отображаются комментарии "спасибо от внучка" при подтверждении получения подарка.
+                    {{ _('Здесь отображаются комментарии "спасибо от внучка" при подтверждении получения подарка.') }}
                 </p>
                 {% endif %}
                 
@@ -411,11 +411,11 @@
                         <div class="comment-header">
                             <div>
                                 {% if comment.is_thanks_from_recipient %}
-                                <strong class="comment-author">🎁 Спасибо от внучка</strong>
+                                <strong class="comment-author">{{ _('🎁 Спасибо от внучка') }}</strong>
                                 {% else %}
                                 <strong class="comment-author">{{ comment.admin_username or 'Администратор' }}</strong>
                                 {% if comment.is_admin_only %}
-                                <span class="comment-admin-only-label">🔒 Только для администраторов</span>
+                                <span class="comment-admin-only-label">{{ _('🔒 Только для администраторов') }}</span>
                                 {% endif %}
                                 {% endif %}
                                 <span class="comment-date">
@@ -438,18 +438,18 @@
                                         {{ comment.created_at }}
                                     {% endif %}
                                     {% if comment.updated_at and comment.updated_at != comment.created_at %}
-                                        <span class="comment-edited">(изменен)</span>
+                                        <span class="comment-edited">{{ _('(изменен)') }}</span>
                                     {% endif %}
                                 </span>
                             </div>
                             {% if is_admin and comment.admin_user_id == session.get('user_id') and not comment.is_thanks_from_recipient %}
                             <div class="comment-actions">
                                 <button type="button" class="btn btn-sm btn-secondary comment-action-btn" onclick="editComment({{ comment.id }}, {{ comment.user_id }})">
-                                    ✏️ Редактировать
+                                    {{ _('✏️ Редактировать') }}
                                 </button>
                                 <form method="POST" action="{{ url_for('profile.delete_admin_comment', user_id=comment.user_id, comment_id=comment.id) }}" class="inline-form" onsubmit="return confirm('Вы уверены, что хотите удалить этот комментарий?');">
         {{ csrf_input() }}
-                                    <button type="submit" class="btn btn-sm btn-danger comment-action-btn">🗑️ Удалить</button>
+                                    <button type="submit" class="btn btn-sm btn-danger comment-action-btn">{{ _('🗑️ Удалить') }}</button>
                                 </form>
                             </div>
                             {% endif %}
@@ -463,10 +463,10 @@
                                 <textarea name="comment" rows="4" required class="comment-textarea">{{ comment.comment }}</textarea>
                                 <div class="comment-edit-actions">
                                     <button type="submit" class="btn btn-primary btn-sm">
-                                        Сохранить
+                                        {{ _('Сохранить') }}
                                     </button>
                                     <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEdit({{ comment.id }})">
-                                        Отмена
+                                        {{ _('Отмена') }}
                                     </button>
                                 </div>
                             </form>
@@ -476,7 +476,7 @@
                 </div>
                 {% else %}
                 <div class="empty-state comments-empty">
-                    <p>Комментариев пока нет</p>
+                    <p>{{ _('Комментариев пока нет') }}</p>
                 </div>
                 {% endif %}
             </div>
@@ -489,13 +489,13 @@
             <div class="profile-user-info">
                 {% if bio_to_display %}
                 <div class="info-row">
-                    <span class="info-label">О себе:</span>
+                    <span class="info-label">{{ _('О себе:') }}</span>
                     <span class="info-value multiline-text">{{ bio_to_display | format_multiline }}</span>
                 </div>
                 {% endif %}
                 {% if contact_info_to_display %}
                 <div class="info-row">
-                    <span class="info-label">Контакты:</span>
+                    <span class="info-label">{{ _('Контакты:') }}</span>
                     <span class="info-value">{{ contact_info_to_display }}</span>
                 </div>
                 {% endif %}
@@ -505,9 +505,9 @@
 
         <div class="profile-actions">
             {% if is_own_profile %}
-            <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-primary">Редактировать профиль</a>
+            <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-primary">{{ _('Редактировать профиль') }}</a>
             {% if session.get('user_id') and 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">Админ-панель</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">{{ _('Админ-панель') }}</a>
             {% endif %}
             {% else %}
             {% if can_impersonate %}
@@ -516,12 +516,12 @@
                 <input type="hidden" name="next" value="{{ request.full_path or request.path }}">
                 <input type="hidden" name="return_url" value="{{ request.full_path or request.path }}">
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите управлять этим пользователем?');">
-                    Управлять им
+                    {{ _('Управлять им') }}
                 </button>
             </form>
             {% elif impersonation_active %}
             <div class="alert alert-warning" style="display: inline-block; margin-right: 0.75rem;">
-                Вы уже управляете другим пользователем
+                {{ _('Вы уже управляете другим пользователем') }}
             </div>
             {% endif %}
             {% endif %}

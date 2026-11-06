@@ -5,20 +5,20 @@
 {% block admin_content %}
 <div class="admin-container admin-event-progress-page" data-event-id="{{ event.id }}">
     <div class="admin-header">
-        <h1>Прогресс обмена</h1>
+        <h1>{{ _('Прогресс обмена') }}</h1>
         <div class="action-buttons">
-            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">← К списку</a>
-            <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn btn-secondary">Мероприятие</a>
+            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">{{ _('← К списку') }}</a>
+            <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn btn-secondary">{{ _('Мероприятие') }}</a>
         </div>
     </div>
 
     <p class="progress-event-title">{{ event.name }}</p>
 
-    <nav class="progress-role-tabs" aria-label="Роль на доске">
+    <nav class="progress-role-tabs" aria-label="{{ _('Роль на доске') }}">
         <a href="{{ url_for('admin.admin_event_progress', event_id=event.id, role='santa') }}"
-           class="progress-role-tab{% if role == 'santa' %} active{% endif %}">Дед Мороз</a>
+           class="progress-role-tab{% if role == 'santa' %} active{% endif %}">{{ _('Дед Мороз') }}</a>
         <a href="{{ url_for('admin.admin_event_progress', event_id=event.id, role='recipient') }}"
-           class="progress-role-tab{% if role == 'recipient' %} active{% endif %}">Внучок</a>
+           class="progress-role-tab{% if role == 'recipient' %} active{% endif %}">{{ _('Внучок') }}</a>
     </nav>
 
     <div class="progress-kanban" role="region" aria-label="Канбан: {{ role_label }}">
@@ -37,11 +37,11 @@
                         <button type="button"
                                 class="progress-kanban-card-name js-progress-contact"
                                 data-contact='{{ card.contacts|tojson }}'
-                                title="Контакты участника">{{ card.username }}</button>
+                                title="{{ _('Контакты участника') }}">{{ card.username }}</button>
                         <button type="button"
                                 class="progress-kanban-card-pair-inline js-progress-contact"
                                 data-contact='{{ card.pair_contacts|tojson }}'
-                                title="Контакты пары">→ {{ card.pair_username }}</button>
+                                title="{{ _('Контакты пары') }}">→ {{ card.pair_username }}</button>
                     </div>
                     <div class="progress-kanban-card-actions">
                         <button type="button"
@@ -57,14 +57,14 @@
                         </button>
                         <a href="{{ url_for('assignments.letter', assignment_id=card.assignment_id, admin=1) }}"
                            class="btn-icon progress-kanban-icon-btn progress-kanban-card-link"
-                           title="Переписка"
-                           aria-label="Переписка">
+                           title="{{ _('Переписка') }}"
+                           aria-label="{{ _('Переписка') }}">
                             <span class="progress-kanban-icon" aria-hidden="true">✉️</span>
                         </a>
                     </div>
                 </article>
                 {% else %}
-                <p class="progress-kanban-empty">Нет участников</p>
+                <p class="progress-kanban-empty">{{ _('Нет участников') }}</p>
                 {% endfor %}
             </div>
         </section>
@@ -75,13 +75,13 @@
 <div id="progress-contact-modal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="progress-contact-modal-title">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 id="progress-contact-modal-title">Контакты</h2>
-            <button type="button" class="modal-close" id="progress-contact-modal-close" aria-label="Закрыть">&times;</button>
+            <h2 id="progress-contact-modal-title">{{ _('Контакты') }}</h2>
+            <button type="button" class="modal-close" id="progress-contact-modal-close" aria-label="{{ _('Закрыть') }}">&times;</button>
         </div>
         <div class="modal-body">
             <div id="progress-contact-modal-body" class="contacts-list progress-contact-modal-list"></div>
             <p class="progress-contact-profile-wrap">
-                <a href="#" id="progress-contact-profile-link" class="btn btn-secondary">Профиль</a>
+                <a href="#" id="progress-contact-profile-link" class="btn btn-secondary">{{ _('Профиль') }}</a>
             </p>
         </div>
     </div>
@@ -90,26 +90,26 @@
 <div id="progress-workspace-modal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="progress-workspace-modal-title">
     <div class="modal-content progress-workspace-modal-content">
         <div class="modal-header">
-            <h2 id="progress-workspace-modal-title">Работа с парой</h2>
-            <button type="button" class="modal-close" id="progress-workspace-modal-close" aria-label="Закрыть">&times;</button>
+            <h2 id="progress-workspace-modal-title">{{ _('Работа с парой') }}</h2>
+            <button type="button" class="modal-close" id="progress-workspace-modal-close" aria-label="{{ _('Закрыть') }}">&times;</button>
         </div>
         <div class="modal-body progress-workspace-modal-body">
             <p id="progress-workspace-pair-label" class="progress-workspace-pair-label text-muted"></p>
             <div id="progress-workspace-error" class="alert alert-danger" style="display: none;" role="alert"></div>
 
             <section class="progress-workspace-section" aria-labelledby="progress-workspace-entries-heading">
-                <h3 id="progress-workspace-entries-heading">Записи</h3>
+                <h3 id="progress-workspace-entries-heading">{{ _('Записи') }}</h3>
                 <div id="progress-workspace-entries-list" class="progress-workspace-list"></div>
                 <form id="progress-workspace-entry-form" class="progress-workspace-form">
-                    <textarea id="progress-workspace-entry-input" class="setting-input" rows="2" placeholder="Текст заметки или задачи" maxlength="5000" required></textarea>
+                    <textarea id="progress-workspace-entry-input" class="setting-input" rows="2" placeholder="{{ _('Текст заметки или задачи') }}" maxlength="5000" required></textarea>
                     <label class="progress-workspace-due-label">
-                        <span>Срок (необязательно; если указан — это задача с отметкой «выполнено»)</span>
+                        <span>{{ _('Срок (необязательно; если указан — это задача с отметкой «выполнено»)') }}</span>
                         <div class="datetime-field-wrap">
                             <input type="datetime-local" id="progress-workspace-entry-due" class="setting-input datetime-local-input">
-                            <button type="button" class="btn btn-secondary btn-sm datetime-picker-btn" aria-label="Выбрать дату и время" title="Календарь">📅</button>
+                            <button type="button" class="btn btn-secondary btn-sm datetime-picker-btn" aria-label="{{ _('Выбрать дату и время') }}" title="{{ _('Календарь') }}">📅</button>
                         </div>
                     </label>
-                    <button type="submit" class="btn btn-primary btn-sm">Добавить</button>
+                    <button type="submit" class="btn btn-primary btn-sm">{{ _('Добавить') }}</button>
                 </form>
             </section>
         </div>

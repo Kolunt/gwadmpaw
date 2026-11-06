@@ -3,8 +3,8 @@
     {% if fio_line %}
     <div class="assignment-info-block">
         <div class="assignment-info-label-row">
-            <strong>ФИО:</strong>
-            <button type="button" class="assignment-copy-btn" data-copy-text="{{ fio_line|e }}" title="Скопировать ФИО" aria-label="Скопировать ФИО">📋</button>
+            <strong>{{ _('ФИО:') }}</strong>
+            <button type="button" class="assignment-copy-btn" data-copy-text="{{ fio_line|e }}" title="{{ _('Скопировать ФИО') }}" aria-label="{{ _('Скопировать ФИО') }}">📋</button>
         </div>
         <div class="assignment-info-value">{{ fio_line }}</div>
     </div>
@@ -16,8 +16,8 @@
     {% if address_line %}
     <div class="assignment-info-block">
         <div class="assignment-info-label-row">
-            <strong>Адрес для отправки:</strong>
-            <button type="button" class="assignment-copy-btn" data-copy-text="{{ address_line|e }}" title="Скопировать адрес" aria-label="Скопировать адрес">📋</button>
+            <strong>{{ _('Адрес для отправки:') }}</strong>
+            <button type="button" class="assignment-copy-btn" data-copy-text="{{ address_line|e }}" title="{{ _('Скопировать адрес') }}" aria-label="{{ _('Скопировать адрес') }}">📋</button>
         </div>
         <div class="assignment-info-value">{{ address_line }}</div>
     </div>
@@ -37,12 +37,12 @@
     {% set has_mx = mx | contact_usable %}
     {% if has_phone or has_tg or has_wa or has_vb or has_mx %}
     <div class="assignment-info-block">
-        <strong>Контакты</strong>
+        <strong>{{ _('Контакты') }}</strong>
         <div class="assignment-contacts-row">
             {% if has_phone %}
             <div class="assignment-phone-row">
                 <a href="tel:{{ phone|replace(' ', '') }}" class="assignment-contact-link">{{ phone }}</a>
-                <button type="button" class="assignment-copy-btn" data-copy-text="{{ phone|e }}" title="Скопировать телефон" aria-label="Скопировать телефон">📋</button>
+                <button type="button" class="assignment-copy-btn" data-copy-text="{{ phone|e }}" title="{{ _('Скопировать телефон') }}" aria-label="{{ _('Скопировать телефон') }}">📋</button>
             </div>
             {% endif %}
             <div class="assignment-messenger-links">

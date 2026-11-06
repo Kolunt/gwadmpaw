@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Правила - Анонимные Деды Морозы{% endblock %}
+{% block title %}{{ _('Правила - Анонимные Деды Морозы') }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
     <div class="faq-container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h1>Правила</h1>
+            <h1>{{ _('Правила') }}</h1>
             {% if session.user_id and 'admin' in session.get('roles', []) %}
-            <a href="{{ url_for('admin.admin_rules') }}" class="btn btn-primary">Управление правилами</a>
+            <a href="{{ url_for('admin.admin_rules') }}" class="btn btn-primary">{{ _('Управление правилами') }}</a>
             {% endif %}
         </div>
         
@@ -30,7 +30,7 @@
         {% else %}
         <div class="rules-content">
             <div class="alert alert-info">
-                <p>Правила пока не установлены. Администратор может добавить их в разделе управления.</p>
+                <p>{{ _('Правила пока не установлены. Администратор может добавить их в разделе управления.') }}</p>
             </div>
         </div>
         {% endif %}

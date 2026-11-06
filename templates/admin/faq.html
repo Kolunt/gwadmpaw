@@ -1,13 +1,13 @@
 {% extends "admin/base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
-{% block title %}FAQ - Админ-панель{% endblock %}
+{% block title %}{{ _('FAQ - Админ-панель') }}{% endblock %}
 
 {% block admin_content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>Управление FAQ</h1>
-        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">← Назад</a>
+        <h1>{{ _('Управление FAQ') }}</h1>
+        <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
     </div>
     
     <!-- Табы -->
@@ -15,12 +15,12 @@
         <a href="{{ url_for('admin.admin_faq') }}#items" 
            class="faq-admin-tab {% if not request.args.get('tab') or request.args.get('tab') == 'items' %}active{% endif %}" 
            data-tab="items">
-            📋 Вопросы
+            {{ _('📋 Вопросы') }}
         </a>
         <a href="{{ url_for('admin.admin_faq') }}#categories" 
            class="faq-admin-tab {% if request.args.get('tab') == 'categories' %}active{% endif %}" 
            data-tab="categories">
-            🏷️ Категории
+            {{ _('🏷️ Категории') }}
         </a>
     </div>
     
@@ -28,7 +28,7 @@
     <div class="faq-admin-tab-content {% if not request.args.get('tab') or request.args.get('tab') == 'items' %}active{% endif %}" data-tab="items">
         <div class="admin-header">
             <div></div>
-            <a href="{{ url_for('admin.admin_faq_create') }}" class="btn btn-primary">Создать вопрос</a>
+            <a href="{{ url_for('admin.admin_faq_create') }}" class="btn btn-primary">{{ _('Создать вопрос') }}</a>
         </div>
         
         <div class="table-container">
@@ -36,13 +36,13 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Вопрос</th>
-                        <th>Категория</th>
-                        <th>Порядок</th>
-                        <th>Статус</th>
-                        <th>Создан</th>
-                        <th>Обновлен</th>
-                        <th>Действия</th>
+                        <th>{{ _('Вопрос') }}</th>
+                        <th>{{ _('Категория') }}</th>
+                        <th>{{ _('Порядок') }}</th>
+                        <th>{{ _('Статус') }}</th>
+                        <th>{{ _('Создан') }}</th>
+                        <th>{{ _('Обновлен') }}</th>
+                        <th>{{ _('Действия') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -58,9 +58,9 @@
                         <td data-label="Порядок">{{ item.sort_order }}</td>
                         <td data-label="Статус">
                             {% if item.is_active %}
-                                <span class="badge badge-success">Активен</span>
+                                <span class="badge badge-success">{{ _('Активен') }}</span>
                             {% else %}
-                                <span class="badge badge-danger">Неактивен</span>
+                                <span class="badge badge-danger">{{ _('Неактивен') }}</span>
                             {% endif %}
                         </td>
                         <td data-label="Создан">
@@ -73,10 +73,10 @@
                         </td>
                         <td data-label="Действия">
                             <div class="table-action-group">
-                                <a href="{{ url_for('admin.admin_faq_edit', faq_id=item.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                <a href="{{ url_for('admin.admin_faq_edit', faq_id=item.id) }}" class="btn-icon" title="{{ _('Редактировать') }}">✏️</a>
                                 <form method="POST" action="{{ url_for('admin.admin_faq_delete', faq_id=item.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить этот вопрос?');">
         {{ csrf_input() }}
-                                    <button type="submit" class="btn-icon btn-icon-danger" title="Удалить">🗑️</button>
+                                    <button type="submit" class="btn-icon btn-icon-danger" title="{{ _('Удалить') }}">🗑️</button>
                                 </form>
                             </div>
                         </td>
@@ -85,7 +85,7 @@
                     {% if not faq_items %}
                     <tr>
                         <td colspan="8" class="text-center text-muted">
-                            Нет вопросов. <a href="{{ url_for('admin.admin_faq_create') }}">Создать первый вопрос</a>
+                            {{ _('Нет вопросов.') }} <a href="{{ url_for('admin.admin_faq_create') }}">{{ _('Создать первый вопрос') }}</a>
                         </td>
                     </tr>
                     {% endif %}
@@ -98,7 +98,7 @@
     <div class="faq-admin-tab-content {% if request.args.get('tab') == 'categories' %}active{% endif %}" data-tab="categories">
         <div class="admin-header">
             <div></div>
-            <a href="{{ url_for('admin.admin_faq_category_create') }}" class="btn btn-primary">Создать категорию</a>
+            <a href="{{ url_for('admin.admin_faq_category_create') }}" class="btn btn-primary">{{ _('Создать категорию') }}</a>
         </div>
         
         <div class="table-container">
@@ -106,15 +106,15 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Имя</th>
-                        <th>Отображаемое имя</th>
-                        <th>Описание</th>
-                        <th>Порядок</th>
-                        <th>Статус</th>
-                        <th>Вопросов</th>
-                        <th>Создана</th>
-                        <th>Обновлена</th>
-                        <th>Действия</th>
+                        <th>{{ _('Имя') }}</th>
+                        <th>{{ _('Отображаемое имя') }}</th>
+                        <th>{{ _('Описание') }}</th>
+                        <th>{{ _('Порядок') }}</th>
+                        <th>{{ _('Статус') }}</th>
+                        <th>{{ _('Вопросов') }}</th>
+                        <th>{{ _('Создана') }}</th>
+                        <th>{{ _('Обновлена') }}</th>
+                        <th>{{ _('Действия') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -133,9 +133,9 @@
                         <td data-label="Порядок">{{ category.sort_order }}</td>
                         <td data-label="Статус">
                             {% if category.is_active %}
-                                <span class="badge badge-success">Активна</span>
+                                <span class="badge badge-success">{{ _('Активна') }}</span>
                             {% else %}
-                                <span class="badge badge-danger">Неактивна</span>
+                                <span class="badge badge-danger">{{ _('Неактивна') }}</span>
                             {% endif %}
                         </td>
                         <td data-label="Вопросов">
@@ -151,10 +151,10 @@
                         </td>
                         <td data-label="Действия">
                             <div class="table-action-group">
-                                <a href="{{ url_for('admin.admin_faq_category_edit', category_id=category.id) }}" class="btn-icon" title="Редактировать">✏️</a>
+                                <a href="{{ url_for('admin.admin_faq_category_edit', category_id=category.id) }}" class="btn-icon" title="{{ _('Редактировать') }}">✏️</a>
                                 <form method="POST" action="{{ url_for('admin.admin_faq_category_delete', category_id=category.id) }}" onsubmit="return confirm('Вы уверены, что хотите удалить эту категорию?');">
         {{ csrf_input() }}
-                                    <button type="submit" class="btn-icon btn-icon-danger" title="Удалить">🗑️</button>
+                                    <button type="submit" class="btn-icon btn-icon-danger" title="{{ _('Удалить') }}">🗑️</button>
                                 </form>
                             </div>
                         </td>
@@ -163,7 +163,7 @@
                     {% if not faq_categories %}
                     <tr>
                         <td colspan="10" class="text-center text-muted">
-                            Нет категорий. <a href="{{ url_for('admin.admin_faq_category_create') }}">Создать первую категорию</a>
+                            {{ _('Нет категорий.') }} <a href="{{ url_for('admin.admin_faq_category_create') }}">{{ _('Создать первую категорию') }}</a>
                         </td>
                     </tr>
                     {% endif %}

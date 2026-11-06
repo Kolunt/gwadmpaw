@@ -7,30 +7,30 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if faq_item %}Редактирование FAQ{% else %}Создание нового FAQ вопроса{% endif %}</h1>
-        <a href="{{ url_for('admin.admin_faq') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_faq') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
     </div>
     
     <div class="form-container">
         <form method="POST">
         {{ csrf_input() }}
             <div class="form-group">
-                <label for="question">Вопрос:</label>
+                <label for="question">{{ _('Вопрос:') }}</label>
                 <input type="text" id="question" name="question" required 
                        value="{{ faq_item.question if faq_item else '' }}"
-                       placeholder="Введите вопрос"
+                       placeholder="{{ _('Введите вопрос') }}"
                        class="form-input">
             </div>
             
             <div class="form-group">
-                <label for="answer">Ответ:</label>
+                <label for="answer">{{ _('Ответ:') }}</label>
                 <textarea id="answer" name="answer" rows="6" required 
-                          placeholder="Введите ответ на вопрос"
+                          placeholder="{{ _('Введите ответ на вопрос') }}"
                           class="form-textarea">{{ faq_item.answer if faq_item else '' }}</textarea>
-                <small>Поддерживается HTML разметка</small>
+                <small>{{ _('Поддерживается HTML разметка') }}</small>
             </div>
             
             <div class="form-group">
-                <label for="category">Категория:</label>
+                <label for="category">{{ _('Категория:') }}</label>
                 <select id="category" name="category" class="form-input" required>
                     {% if categories and categories|length %}
                         {% for cat in categories %}
@@ -39,26 +39,26 @@
                         </option>
                         {% endfor %}
                     {% else %}
-                        <option value="general" {% if faq_item and faq_item.category == 'general' %}selected{% endif %}>Общие вопросы</option>
+                        <option value="general" {% if faq_item and faq_item.category == 'general' %}selected{% endif %}>{{ _('Общие вопросы') }}</option>
                     {% endif %}
                 </select>
-                <small>Если нужной категории нет, <a href="{{ url_for('admin.admin_faq') }}#categories">создайте её</a></small>
+                <small>{{ _('Если нужной категории нет,') }} <a href="{{ url_for('admin.admin_faq') }}#categories">{{ _('создайте её') }}</a></small>
             </div>
             
             <div class="form-group">
-                <label for="sort_order">Порядок сортировки:</label>
+                <label for="sort_order">{{ _('Порядок сортировки:') }}</label>
                 <input type="number" id="sort_order" name="sort_order" 
                        value="{{ faq_item.sort_order if faq_item else '100' }}"
                        min="0" step="1"
                        class="form-input">
-                <small>Чем меньше число, тем выше вопрос в списке</small>
+                <small>{{ _('Чем меньше число, тем выше вопрос в списке') }}</small>
             </div>
             
             <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                     <input type="checkbox" name="is_active" value="1" 
                            {% if not faq_item or faq_item.is_active %}checked{% endif %}>
-                    <span>Активен (виден на сайте)</span>
+                    <span>{{ _('Активен (виден на сайте)') }}</span>
                 </label>
             </div>
             
@@ -66,7 +66,7 @@
                 <button type="submit" class="btn btn-primary">
                     {% if faq_item %}Сохранить изменения{% else %}Создать вопрос{% endif %}
                 </button>
-                <a href="{{ url_for('admin.admin_faq') }}" class="btn btn-secondary">Отмена</a>
+                <a href="{{ url_for('admin.admin_faq') }}" class="btn btn-secondary">{{ _('Отмена') }}</a>
             </div>
         </form>
     </div>

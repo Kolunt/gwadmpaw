@@ -53,7 +53,7 @@
         {% endif %}
     {% endfor %}
 {% elif show_default_role %}
-<span class="role-badge">Пользователь</span>
+<span class="role-badge">{{ _('Пользователь') }}</span>
 {% endif %}
 {% if user_titles %}
     {% for title in user_titles %}

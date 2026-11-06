@@ -1,57 +1,31 @@
-"""Internationalization helpers and Russian fallback translations."""
+"""Internationalization: DB-backed UI strings with static fallback."""
 
-from flask import current_app, session
+from flask import session
 
-from gwadm.db import get_db_connection
 from gwadm.logging_config import log_error
+from gwadm.ui_string_registry import UI_STRING_SEEDS
 
-_RUSSIAN_TRANSLATIONS = {
-    'Home': 'Главная',
-    'Events': 'Мероприятия',
-    'Participants': 'Участники',
-    'FAQ': 'FAQ',
-    'Admin Panel': 'Админ-панель',
-    'Users': 'Пользователи',
-    'Roles': 'Роли',
-    'Titles': 'Звания',
-    'Settings': 'Настройки',
-    'Localization': 'Локализация',
-    'Profile': 'Профиль',
-    'Logout': 'Выйти',
-    'Login via GWars': 'Войти через GWars',
-    'Edit Profile': 'Редактировать профиль',
-    'Main': 'Основное',
-    'Contacts': 'Контакты',
-    'About': 'О себе',
-    'User Profile': 'Профиль пользователя',
-    'User ID:': 'ID пользователя:',
-    'Name:': 'Имя:',
-    'Level:': 'Уровень:',
-    'Syndicate:': 'Синдикат:',
-    'Gender:': 'Пол:',
-    'Passport:': 'Паспорт:',
-    'Mobile:': 'Мобильный:',
-    'Last login:': 'Последний вход:',
-    'Yes': 'Есть',
-    'No': 'Нет',
-    'Not specified': 'Не указан',
-    'Contact information not specified': 'Контактная информация не указана',
-    'Additional information not specified': 'Дополнительная информация не указана',
-    'Toggle theme': 'Переключить тему',
-}
+STATIC_FALLBACK_RU: dict[str, str] = {row[0]: row[2] for row in UI_STRING_SEEDS}
+STATIC_FALLBACK_EN: dict[str, str] = {row[0]: row[3] for row in UI_STRING_SEEDS}
 
 
 def get_locale():
     """Определяет текущую локаль. Для неавторизованных — русский."""
     try:
+        from flask import current_app
+
         if 'user_id' in session:
             try:
+                from gwadm.db import get_db_connection
+
                 conn = get_db_connection()
-                user = conn.execute(
-                    'SELECT language FROM users WHERE user_id = ?',
-                    (session['user_id'],),
-                ).fetchone()
-                conn.close()
+                try:
+                    user = conn.execute(
+                        'SELECT language FROM users WHERE user_id = ?',
+                        (session['user_id'],),
+                    ).fetchone()
+                finally:
+                    conn.close()
                 languages = current_app.config.get('LANGUAGES', {})
                 if user and dict(user).get('language') and user['language'] in languages:
                     return user['language']
@@ -62,9 +36,24 @@ def get_locale():
     return 'ru'
 
 
-def _(text):
-    """Функция перевода — fallback на русский словарь."""
-    return _RUSSIAN_TRANSLATIONS.get(text, text)
+def _(text: str) -> str:
+    """Return translated string for msg_key."""
+    try:
+        loc = get_locale()
+    except Exception:
+        loc = 'ru'
+    try:
+        from gwadm.db import get_db_connection
+        from gwadm.services.ui_strings import get_string
+
+        return get_string(text, loc, get_db_connection, STATIC_FALLBACK_RU, STATIC_FALLBACK_EN)
+    except RuntimeError:
+        pass
+    except Exception as e:
+        log_error(f"ui translate error for {text!r}: {e}")
+    if loc == 'en':
+        return STATIC_FALLBACK_EN.get(text, text)
+    return STATIC_FALLBACK_RU.get(text, text)
 
 
 def format_date(date, format=None):

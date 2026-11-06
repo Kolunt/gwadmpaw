@@ -1,153 +1,91 @@
 {% extends "admin/base.html" %}
 
 {% from 'macros/csrf.html' import csrf_input %}
-{% block title %}Локализация - Анонимные Деды Морозы{% endblock %}
+{% block title %}{{ _('Локализация - Анонимные Деды Морозы') }}{% endblock %}
 
 {% block admin_content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>🌐 Локализация</h1>
-        <p class="admin-subtitle">Управление языковыми настройками сайта</p>
+        <h1>{{ _('Строки интерфейса') }}</h1>
+        <div class="admin-header-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <a href="{{ url_for('admin.admin_settings') }}#localization" class="btn btn-secondary">{{ _('Язык по умолчанию — в настройках') }}</a>
+            <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
+        </div>
     </div>
 
-    {% if not BABEL_AVAILABLE %}
-    <div class="alert alert-warning">
-        <strong>⚠️ Внимание:</strong> Flask-Babel не установлен. Для работы локализации установите зависимости: <code>pip install -r requirements.txt</code>
-    </div>
-    {% endif %}
+    <p class="admin-subtitle">{{ _('Редактируйте русский и английский текст. Ключ совпадает с исходной фразой в шаблонах; «Оригинал (RU)» — эталон на момент установки.') }}</p>
 
-    <div class="settings-form">
-        <form method="POST" action="{{ url_for('admin_localization') }}">
+    <form method="get" class="settings-form" style="margin-bottom:1.5rem;" action="{{ url_for('admin.admin_localization') }}">
+        <div class="settings-grid" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
+            <div class="setting-item">
+                <label for="loc_category" class="setting-label">{{ _('Категория') }}</label>
+                <select id="loc_category" name="category" class="setting-input">
+                    <option value="">{{ _('Все') }}</option>
+                    {% for c in categories %}
+                    <option value="{{ c }}" {% if current_category == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="setting-item" style="flex:1; min-width:200px;">
+                <label for="loc_q" class="setting-label">{{ _('Поиск') }}</label>
+                 <input type="search" id="loc_q" name="q" value="{{ search_query }}" class="setting-input" placeholder="{{ _('Ключ или текст…') }}">
+            </div>
+            <input type="hidden" name="page" value="1">
+            <button type="submit" class="btn btn-secondary">{{ _('Фильтр') }}</button>
+        </div>
+    </form>
+
+    <form method="post" action="{{ url_for('admin.admin_localization') }}">
         {{ csrf_input() }}
-            <div class="setting-card">
-                <div class="setting-card-header">
-                    <label for="default_language" class="setting-label">
-                        Язык по умолчанию
-                    </label>
-                    <span class="setting-badge">Основные настройки</span>
-                </div>
-                <div class="setting-card-body">
-                    <small class="setting-hint">Язык интерфейса по умолчанию для всех пользователей</small>
-                    <select 
-                        id="default_language" 
-                        name="default_language" 
-                        class="setting-input"
-                    >
-                        {% for lang_code, lang_name in available_languages.items() %}
-                        <option value="{{ lang_code }}" {% if default_language == lang_code %}selected{% endif %}>
-                            {{ lang_name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
+        <input type="hidden" name="filter_category" value="{{ current_category }}">
+        <input type="hidden" name="filter_q" value="{{ search_query }}">
+        <input type="hidden" name="filter_page" value="{{ page }}">
+        <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding:0.5rem;">{{ _('Категория') }}</th>
+                        <th style="text-align:left; padding:0.5rem;">{{ _('Ключ') }}</th>
+                        <th style="text-align:left; padding:0.5rem;">{{ _('Оригинал (RU)') }}</th>
+                        <th style="text-align:left; padding:0.5rem;">ru</th>
+                        <th style="text-align:left; padding:0.5rem;">en</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    {% set i = loop.index0 %}
+                    <tr>
+                        <td style="padding:0.5rem; vertical-align:top;"><code>{{ row.category }}</code></td>
+                        <td style="padding:0.5rem; vertical-align:top; max-width:220px; word-break:break-word;"><small>{{ row.msg_key }}</small></td>
+                        <td style="padding:0.5rem; vertical-align:top; max-width:200px; word-break:break-word;"><small class="text-muted">{{ row.default_ru }}</small></td>
+                        <td style="padding:0.5rem;">
+                            <input type="hidden" name="key_{{ i }}" value="{{ row.msg_key|e }}">
+                            <textarea name="ru_{{ i }}" class="setting-input" rows="2" style="width:100%; min-width:160px;">{{ row.ru_value }}</textarea>
+                        </td>
+                        <td style="padding:0.5rem;">
+                            <textarea name="en_{{ i }}" class="setting-input" rows="2" style="width:100%; min-width:160px;">{{ row.en_value }}</textarea>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" style="padding:1rem;">{{ _('Нет строк по фильтру') }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-            <div class="setting-card">
-                <div class="setting-card-header">
-                    <label class="setting-label">Текущая локаль</label>
-                    <span class="setting-badge">Информация</span>
-                </div>
-                <div class="setting-card-body">
-                    <p><strong>Активный язык:</strong> 
-                        <span class="badge">{{ available_languages.get(current_locale, current_locale) }}</span>
-                        <code>({{ current_locale }})</code>
-                    </p>
-                    <small class="setting-hint">
-                        Текущий язык определяется в следующем порядке:<br>
-                        1. Язык пользователя в профиле (если авторизован)<br>
-                        2. Язык по умолчанию (настройка выше)<br>
-                        3. Русский (системный)
-                    </small>
-                </div>
-            </div>
+        <div class="form-actions" style="margin-top:1rem; display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+            <button type="submit" class="btn btn-primary">{{ _('Сохранить страницу') }}</button>
+            <span class="text-muted" style="font-size:0.9rem;">{{ _('Страница') }} {{ page }} / {{ pages }} · {{ _('всего') }} {{ total }}</span>
+        </div>
+    </form>
 
-            <div class="setting-card">
-                <div class="setting-card-header">
-                    <label class="setting-label">Доступные языки</label>
-                    <span class="setting-badge">Информация</span>
-                </div>
-                <div class="setting-card-body">
-                    <ul class="language-list">
-                        {% for lang_code, lang_name in available_languages.items() %}
-                        <li>
-                            <strong>{{ lang_name }}</strong>
-                            <code>{{ lang_code }}</code>
-                            {% if lang_code == current_locale %}
-                            <span class="badge badge-active">Активен</span>
-                            {% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    <small class="setting-hint">
-                        Для добавления новых языков необходимо обновить конфигурацию в <code>app.py</code> и создать файлы переводов.
-                    </small>
-                </div>
-            </div>
-
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Сохранить настройки</button>
-                <a href="{{ url_for('admin.admin_panel') }}" class="btn btn-secondary">Отмена</a>
-            </div>
-        </form>
-    </div>
+    {% if pages > 1 %}
+    <nav class="pagination" style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+        {% for p in range(1, pages + 1) %}
+        <a href="{{ url_for('admin.admin_localization') }}?page={{ p }}{% if current_category %}&amp;category={{ current_category|urlencode }}{% endif %}{% if search_query %}&amp;q={{ search_query|urlencode }}{% endif %}"
+           class="btn btn-secondary{% if p == page %} active{% endif %}"{% if p == page %} style="font-weight:bold;"{% endif %}>{{ p }}</a>
+        {% endfor %}
+    </nav>
+    {% endif %}
 </div>
-
-<style>
-.language-list {
-    list-style: none;
-    padding: 0;
-    margin: 1rem 0;
-}
-
-.language-list li {
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.language-list li strong {
-    min-width: 120px;
-}
-
-.language-list li code {
-    background: var(--bg-primary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.875rem;
-}
-
-.badge-active {
-    background-color: #28a745;
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.875rem;
-    margin-left: auto;
-}
-
-.alert {
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    border-radius: 8px;
-    border-left: 4px solid;
-}
-
-.alert-warning {
-    background-color: #fff3cd;
-    border-color: #ffc107;
-    color: #856404;
-}
-
-.alert code {
-    background-color: rgba(0, 0, 0, 0.1);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    font-family: 'Courier New', monospace;
-}
-</style>
 {% endblock %}
-

@@ -7,7 +7,7 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if title %}Редактирование звания{% else %}Создание нового звания{% endif %}</h1>
-        <a href="{{ url_for('admin.admin_titles') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_titles') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
     </div>
     
     <div class="form-container">
@@ -15,45 +15,45 @@
         {{ csrf_input() }}
             {% if not title %}
             <div class="form-group">
-                <label for="name">Имя звания (латиница, без пробелов):</label>
+                <label for="name">{{ _('Имя звания (латиница, без пробелов):') }}</label>
                 <input type="text" id="name" name="name" required 
                        pattern="[a-z0-9_]+" 
-                       placeholder="например: contributor"
+                       placeholder="{{ _('например: contributor') }}"
                        value="{{ title.name if title else '' }}">
-                <small>Только строчные латинские буквы, цифры и подчеркивание</small>
+                <small>{{ _('Только строчные латинские буквы, цифры и подчеркивание') }}</small>
             </div>
             {% else %}
             <div class="form-group">
-                <label>Имя звания:</label>
+                <label>{{ _('Имя звания:') }}</label>
                 <input type="text" value="{{ title.name }}" disabled>
-                <small>Имя системного звания нельзя изменить</small>
+                <small>{{ _('Имя системного звания нельзя изменить') }}</small>
             </div>
             {% endif %}
             
             <div class="form-group">
-                <label for="display_name">Отображаемое имя:</label>
+                <label for="display_name">{{ _('Отображаемое имя:') }}</label>
                 <input type="text" id="display_name" name="display_name" required 
                        value="{{ title.display_name if title else '' }}"
-                       placeholder="например: Автор идеи">
+                       placeholder="{{ _('например: Автор идеи') }}">
             </div>
             
             <div class="form-group">
-                <label for="description">Описание:</label>
+                <label for="description">{{ _('Описание:') }}</label>
                 <textarea id="description" name="description" rows="3" 
-                          placeholder="Описание звания и его назначения">{{ title.description if title else '' }}</textarea>
+                          placeholder="{{ _('Описание звания и его назначения') }}">{{ title.description if title else '' }}</textarea>
             </div>
             
             <div class="form-group">
-                <label for="icon">Иконка (эмодзи или символ):</label>
+                <label for="icon">{{ _('Иконка (эмодзи или символ):') }}</label>
                 <input type="text" id="icon" name="icon" 
                        value="{{ title.icon if title else '' }}"
-                       placeholder="например: 💡"
+                       placeholder="{{ _('например: 💡') }}"
                        maxlength="2">
-                <small>Можно использовать эмодзи или символы (максимум 2 символа)</small>
+                <small>{{ _('Можно использовать эмодзи или символы (максимум 2 символа)') }}</small>
             </div>
             
             <div class="form-group">
-                <label for="color">Цвет:</label>
+                <label for="color">{{ _('Цвет:') }}</label>
                 <div style="display: flex; gap: 1rem; align-items: center;">
                     <input type="color" id="color" name="color" 
                            value="{{ title.color if title else '#007bff' }}"
@@ -65,14 +65,14 @@
                            onchange="document.getElementById('color').value = this.value"
                            style="flex: 1;">
                 </div>
-                <small>Выберите цвет для отображения звания</small>
+                <small>{{ _('Выберите цвет для отображения звания') }}</small>
             </div>
             
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     {% if title %}Сохранить изменения{% else %}Создать звание{% endif %}
                 </button>
-                <a href="{{ url_for('admin.admin_titles') }}" class="btn btn-secondary">Отмена</a>
+                <a href="{{ url_for('admin.admin_titles') }}" class="btn btn-secondary">{{ _('Отмена') }}</a>
             </div>
         </form>
     </div>

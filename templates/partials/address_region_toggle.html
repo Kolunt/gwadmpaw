@@ -1,4 +1,4 @@
-<div class="address-region-toggle" role="radiogroup" aria-label="Страна проживания для подсказки адреса">
+<div class="address-region-toggle" role="radiogroup" aria-label="{{ _('Страна проживания для подсказки адреса') }}">
     <label class="address-region-toggle__option">
         <input
             type="radio"
@@ -6,7 +6,7 @@
             value="ru"
             {% if initial_ru %}checked{% endif %}
         >
-        <span class="address-region-toggle__text">Я из России</span>
+        <span class="address-region-toggle__text">{{ _('Я из России') }}</span>
     </label>
     <label class="address-region-toggle__option">
         <input
@@ -15,6 +15,6 @@
             value="other"
             {% if not initial_ru %}checked{% endif %}
         >
-        <span class="address-region-toggle__text">Я не из России</span>
+        <span class="address-region-toggle__text">{{ _('Я не из России') }}</span>
     </label>
 </div>

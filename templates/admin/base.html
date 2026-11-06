@@ -48,29 +48,29 @@
     <nav class="navbar navbar-admin">
         <div class="navbar-content">
             <div class="navbar-left">
-                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Открыть меню">
+                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="{{ _('Открыть меню') }}">
                     <span></span>
                     <span></span>
                     <span></span>
                 </button>
                 <a href="{{ url_for('admin.admin_panel') }}" class="navbar-brand-link">
                     <span class="navbar-logo-emoji">{{ site_logo }}</span>
-                    <span class="logo logo-desktop">АДМ · Админ</span>
+                    <span class="logo logo-desktop">{{ _('АДМ · Админ') }}</span>
                     <span class="logo logo-mobile">ADM</span>
                 </a>
             </div>
             <div class="navbar-actions">
-                <a href="https://max.ru/channel_GWADM" class="navbar-icon-btn" title="Наш канал в MAX!" aria-label="MAX" target="_blank" rel="noopener noreferrer">
+                <a href="https://max.ru/channel_GWADM" class="navbar-icon-btn" title="{{ _('Наш канал в MAX!') }}" aria-label="MAX" target="_blank" rel="noopener noreferrer">
                     <img src="{{ url_for('static', filename='images/max-logo.png') }}" alt="MAX" class="navbar-icon-image">
                 </a>
-                <a href="https://t.me/GWADMv2" class="navbar-icon-btn" title="Наш Telegram-канал" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
+                <a href="https://t.me/GWADMv2" class="navbar-icon-btn" title="{{ _('Наш Telegram-канал') }}" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
                     <img src="{{ url_for('static', filename='images/telegram-logo.svg') }}" alt="Telegram" class="navbar-icon-image">
                 </a>
                 {% if session.get('impersonation_original') %}
                 {% from 'macros/csrf.html' import csrf_input %}
                 <form method="POST" action="{{ url_for('impersonation.stop_impersonation') }}" class="impersonation-navbar-form">
                     {{ csrf_input() }}
-                    <button type="submit" class="navbar-icon-btn" title="Вернуться к своей учетной записи" aria-label="Вернуться к своей учетной записи">
+                    <button type="submit" class="navbar-icon-btn" title="{{ _('Вернуться к своей учетной записи') }}" aria-label="{{ _('Вернуться к своей учетной записи') }}">
                         🔙
                     </button>
                 </form>
@@ -78,7 +78,7 @@
                 {% if session.user_id %}
                 <a href="{{ url_for('profile.dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="{{ _('Profile') }}">
                     {% if current_user_avatar_seed %}
-                        <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="Аватар" class="navbar-avatar">
+                        <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="{{ _('Аватар') }}" class="navbar-avatar">
                     {% else %}
                         <span class="navbar-icon">👤</span>
                     {% endif %}
@@ -96,7 +96,7 @@
     <aside id="sidebar" class="sidebar sidebar-admin">
         {% include 'admin/_sidebar.html' %}
         <div class="sidebar-footer">
-            <button type="button" id="sidebar-collapse" class="sidebar-collapse-btn" aria-label="Свернуть меню" aria-expanded="true">
+            <button type="button" id="sidebar-collapse" class="sidebar-collapse-btn" aria-label="{{ _('Свернуть меню') }}" aria-expanded="true">
                 <span class="sidebar-collapse-icon" aria-hidden="true">‹</span>
             </button>
         </div>

@@ -7,88 +7,88 @@
     <div class="admin-header">
         <h1>{{ event.name }}</h1>
         <div class="action-buttons event-header-actions">
-            <a href="{{ url_for('admin.admin_event_edit', event_id=event.id) }}" class="btn btn-primary">Редактировать</a>
+            <a href="{{ url_for('admin.admin_event_edit', event_id=event.id) }}" class="btn btn-primary">{{ _('Редактировать') }}</a>
             {% if current_stage and current_stage.info.type == 'lottery' %}
             <a href="{{ url_for('admin.admin_event_participants', event_id=event.id) }}" class="btn btn-success btn-admin-review">
                 <span class="btn-admin-review__icon" aria-hidden="true">📋</span>
-                <span>Ревью участников</span>
+                <span>{{ _('Ревью участников') }}</span>
             </a>
             {% endif %}
-            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">← Назад</a>
+            <a href="{{ url_for('admin.admin_events') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
         </div>
     </div>
     
     <div class="event-view-card">
         {% if event.description and event.description|trim %}
         <div class="event-info-section">
-            <h3>Описание</h3>
+            <h3>{{ _('Описание') }}</h3>
             <p>{{ event.description|format_multiline }}</p>
         </div>
         {% endif %}
         
         <div class="event-info-section">
-            <h3>Информация</h3>
+            <h3>{{ _('Информация') }}</h3>
             <div class="info-row">
-                <span class="info-label">Создано:</span>
+                <span class="info-label">{{ _('Создано:') }}</span>
                 <span class="info-value">{{ event.created_at }}</span>
             </div>
             {% if event.updated_at and event.updated_at != event.created_at %}
             <div class="info-row">
-                <span class="info-label">Обновлено:</span>
+                <span class="info-label">{{ _('Обновлено:') }}</span>
                 <span class="info-value">{{ event.updated_at }}</span>
             </div>
             {% endif %}
         </div>
         
         <div class="event-info-section">
-            <h3>🔔 Настройки репутации (Бубенчики)</h3>
+            <h3>{{ _('🔔 Настройки репутации (Бубенчики)') }}</h3>
             <div class="info-row">
-                <span class="info-label">За регистрацию:</span>
+                <span class="info-label">{{ _('За регистрацию:') }}</span>
                 <span class="info-value">
                     {% if event.rating_registration is not none %}
-                        <strong>{{ event.rating_registration }}</strong> <span class="text-muted">(индивидуальная настройка)</span>
+                        <strong>{{ event.rating_registration }}</strong> <span class="text-muted">{{ _('(индивидуальная настройка)') }}</span>
                     {% else %}
-                        {{ global_rating_registration }} <span class="text-muted">(глобальная настройка)</span>
+                        {{ global_rating_registration }} <span class="text-muted">{{ _('(глобальная настройка)') }}</span>
                     {% endif %}
                 </span>
             </div>
             <div class="info-row">
-                <span class="info-label">За неотправленный подарок:</span>
+                <span class="info-label">{{ _('За неотправленный подарок:') }}</span>
                 <span class="info-value">
                     {% if event.rating_gift_not_sent is not none %}
-                        <strong>{{ event.rating_gift_not_sent }}</strong> <span class="text-muted">(индивидуальная настройка)</span>
+                        <strong>{{ event.rating_gift_not_sent }}</strong> <span class="text-muted">{{ _('(индивидуальная настройка)') }}</span>
                     {% else %}
-                        {{ global_rating_gift_not_sent }} <span class="text-muted">(глобальная настройка)</span>
+                        {{ global_rating_gift_not_sent }} <span class="text-muted">{{ _('(глобальная настройка)') }}</span>
                     {% endif %}
                 </span>
             </div>
             <div class="info-row">
-                <span class="info-label">За отправленный подарок:</span>
+                <span class="info-label">{{ _('За отправленный подарок:') }}</span>
                 <span class="info-value">
                     {% if event.rating_gift_sent is not none %}
-                        <strong>{{ event.rating_gift_sent }}</strong> <span class="text-muted">(индивидуальная настройка)</span>
+                        <strong>{{ event.rating_gift_sent }}</strong> <span class="text-muted">{{ _('(индивидуальная настройка)') }}</span>
                     {% else %}
-                        {{ global_rating_gift_sent }} <span class="text-muted">(глобальная настройка)</span>
+                        {{ global_rating_gift_sent }} <span class="text-muted">{{ _('(глобальная настройка)') }}</span>
                     {% endif %}
                 </span>
             </div>
             <div class="info-row">
-                <span class="info-label">Коэффициент за очередность:</span>
+                <span class="info-label">{{ _('Коэффициент за очередность:') }}</span>
                 <span class="info-value">
                     {% if event.rating_order_coefficient is not none %}
-                        <strong>{{ event.rating_order_coefficient }}</strong> <span class="text-muted">(индивидуальная настройка)</span>
+                        <strong>{{ event.rating_order_coefficient }}</strong> <span class="text-muted">{{ _('(индивидуальная настройка)') }}</span>
                     {% else %}
-                        <span class="text-muted">Не задан</span>
+                        <span class="text-muted">{{ _('Не задан') }}</span>
                     {% endif %}
                 </span>
             </div>
             <p class="form-hint" style="margin-top: 0.5rem; font-size: 0.875rem;">
-                Чтобы изменить настройки, нажмите "Редактировать"
+                {{ _('Чтобы изменить настройки, нажмите "Редактировать"') }}
             </p>
         </div>
         
         <div class="event-stages-section">
-            <h3>Этапы мероприятия</h3>
+            <h3>{{ _('Этапы мероприятия') }}</h3>
             
             {% for stage_item in stages_with_info %}
             {% set stage = stage_item.data %}
@@ -98,7 +98,7 @@
                     <h4>
                         {{ stage_info.name }}
                         {% if stage_info.required %}<span class="required">*</span>{% endif %}
-                        {% if not stage_info.required %}<span class="optional">(опционально)</span>{% endif %}
+                        {% if not stage_info.required %}<span class="optional">{{ _('(опционально)') }}</span>{% endif %}
                     </h4>
                 </div>
                 
@@ -106,25 +106,25 @@
                     {% if stage %}
                         {% if stage.start_datetime %}
                         <div class="info-row">
-                            <span class="info-label">Начало:</span>
+                            <span class="info-label">{{ _('Начало:') }}</span>
                             <span class="info-value">{{ stage.start_datetime }}</span>
                         </div>
                         {% endif %}
                         
                         {% if stage.end_datetime %}
                         <div class="info-row">
-                            <span class="info-label">Окончание:</span>
+                            <span class="info-label">{{ _('Окончание:') }}</span>
                             <span class="info-value">{{ stage.end_datetime }}</span>
                         </div>
                         {% elif not stage_info.has_end %}
                         <div class="info-row">
-                            <span class="info-label">Окончание:</span>
-                            <span class="info-value">До начала следующего этапа</span>
+                            <span class="info-label">{{ _('Окончание:') }}</span>
+                            <span class="info-value">{{ _('До начала следующего этапа') }}</span>
                         </div>
                         {% endif %}
                     {% else %}
                         <div class="info-row">
-                            <span class="info-value text-muted">Этап не настроен</span>
+                            <span class="info-value text-muted">{{ _('Этап не настроен') }}</span>
                         </div>
                     {% endif %}
                 </div>

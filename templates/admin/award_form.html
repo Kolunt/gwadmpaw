@@ -7,14 +7,14 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if award %}Редактирование награды{% else %}Создание награды{% endif %}</h1>
-        <a href="{{ url_for('admin.admin_awards') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_awards') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
     </div>
     
     <div class="form-container">
         <form method="POST" enctype="multipart/form-data" class="form">
         {{ csrf_input() }}
             <div class="form-group">
-                <label for="title" class="form-label">Заголовок награды *</label>
+                <label for="title" class="form-label">{{ _('Заголовок награды *') }}</label>
                 <input 
                     type="text" 
                     id="title" 
@@ -22,12 +22,12 @@
                     class="form-input" 
                     value="{{ award.title if award else '' }}" 
                     required
-                    placeholder="Введите заголовок награды"
+                    placeholder="{{ _('Введите заголовок награды') }}"
                 >
             </div>
             
             <div class="form-group">
-                <label for="icon" class="form-label">Иконка награды</label>
+                <label for="icon" class="form-label">{{ _('Иконка награды') }}</label>
                 <input 
                     type="text" 
                     id="icon" 
@@ -37,11 +37,11 @@
                     placeholder="🎖️"
                     maxlength="2"
                 >
-                <small class="form-hint">Эмодзи-иконка для отображения в профиле (например: 🎖️, 🏅, ⭐, 🥇)</small>
+                <small class="form-hint">{{ _('Эмодзи-иконка для отображения в профиле (например: 🎖️, 🏅, ⭐, 🥇)') }}</small>
             </div>
             
             <div class="form-group">
-                <label for="sort_order" class="form-label">Порядок сортировки</label>
+                <label for="sort_order" class="form-label">{{ _('Порядок сортировки') }}</label>
                 <input 
                     type="number" 
                     id="sort_order" 
@@ -50,22 +50,22 @@
                     value="{{ award.sort_order if award else 100 }}"
                     placeholder="100"
                 >
-                <small class="form-hint">Чем меньше число, тем выше награда в списке. По умолчанию: 100</small>
+                <small class="form-hint">{{ _('Чем меньше число, тем выше награда в списке. По умолчанию: 100') }}</small>
             </div>
             
             <div class="form-group">
-                <label for="image" class="form-label">Изображение награды</label>
+                <label for="image" class="form-label">{{ _('Изображение награды') }}</label>
                 {% if award and award.image %}
                 <div class="file-upload-group" style="margin-bottom: 1rem;">
                     <div class="current-file-preview">
-                        <img src="{{ award.image }}" alt="Текущее изображение" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
-                        <span class="current-file-label">Текущее изображение</span>
+                        <img src="{{ award.image }}" alt="{{ _('Текущее изображение') }}" style="max-width: 200px; max-height: 200px; border-radius: 8px;">
+                        <span class="current-file-label">{{ _('Текущее изображение') }}</span>
                     </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label>
                         <input type="checkbox" name="delete_image" value="1">
-                        Удалить текущее изображение
+                        {{ _('Удалить текущее изображение') }}
                     </label>
                 </div>
                 {% endif %}
@@ -80,11 +80,11 @@
                     <span class="file-upload-text">{% if award and award.image %}Заменить изображение{% else %}Выбрать файл{% endif %}</span>
                     <span class="file-upload-btn">📁</span>
                 </label>
-                <small class="form-hint">Форматы: .png, .jpg, .jpeg, .svg, .gif, .webp</small>
+                <small class="form-hint">{{ _('Форматы: .png, .jpg, .jpeg, .svg, .gif, .webp') }}</small>
             </div>
             
             <div class="form-group">
-                <label for="users" class="form-label">Пользователи</label>
+                <label for="users" class="form-label">{{ _('Пользователи') }}</label>
                 <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; background-color: var(--bg-secondary);">
                     {% if users %}
                         {% for user in users %}
@@ -102,17 +102,17 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <p class="text-muted">Пользователи не найдены</p>
+                        <p class="text-muted">{{ _('Пользователи не найдены') }}</p>
                     {% endif %}
                 </div>
-                <small class="form-hint">Выберите пользователей, которым будет присвоена эта награда</small>
+                <small class="form-hint">{{ _('Выберите пользователей, которым будет присвоена эта награда') }}</small>
             </div>
             
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     {% if award %}Сохранить изменения{% else %}Создать награду{% endif %}
                 </button>
-                <a href="{{ url_for('admin.admin_awards') }}" class="btn btn-secondary">Отмена</a>
+                <a href="{{ url_for('admin.admin_awards') }}" class="btn btn-secondary">{{ _('Отмена') }}</a>
             </div>
         </form>
     </div>

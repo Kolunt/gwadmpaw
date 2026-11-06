@@ -8,16 +8,16 @@
     <div class="admin-header">
         <h1>Ревью участников: {{ event.name }}</h1>
         <div class="action-buttons">
-            <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn btn-secondary">← Назад к мероприятию</a>
+            <a href="{{ url_for('admin.admin_event_view', event_id=event.id) }}" class="btn btn-secondary">{{ _('← Назад к мероприятию') }}</a>
             {% if approved_count >= 2 %}
-            <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}" class="btn btn-primary">Перейти к жеребьёвке</a>
+            <a href="{{ url_for('admin.admin_event_distribution_positive_view', event_id=event.id) }}" class="btn btn-primary">{{ _('Перейти к жеребьёвке') }}</a>
             {% endif %}
         </div>
     </div>
     
     <div class="event-view-card">
         <div class="settings-section">
-            <h2 class="settings-section-title">Участники на утверждение</h2>
+            <h2 class="settings-section-title">{{ _('Участники на утверждение') }}</h2>
             <p class="setting-hint" style="margin-bottom: 1.5rem;">
                 Проверьте данные участников и утвердите их для участия в мероприятии. 
                 После утверждения минимум 2 участников вы сможете перейти к распределению.
@@ -29,12 +29,12 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Имя</th>
-                            <th>ФИО</th>
-                            <th>Адрес</th>
-                            <th>Контакты</th>
-                            <th>Статус</th>
-                            <th>Действия</th>
+                            <th>{{ _('Имя') }}</th>
+                            <th>{{ _('ФИО') }}</th>
+                            <th>{{ _('Адрес') }}</th>
+                            <th>{{ _('Контакты') }}</th>
+                            <th>{{ _('Статус') }}</th>
+                            <th>{{ _('Действия') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -49,7 +49,7 @@
                                 {% if participant.last_name or participant.first_name or participant.middle_name %}
                                     {{ participant.last_name or '' }} {{ participant.first_name or '' }} {{ participant.middle_name or '' }}
                                 {% else %}
-                                    <span style="color: var(--text-secondary);">Не указано</span>
+                                    <span style="color: var(--text-secondary);">{{ _('Не указано') }}</span>
                                 {% endif %}
                             </td>
                             <td data-label="Адрес">
@@ -62,7 +62,7 @@
                                     {% if participant.building %}, корп. {{ participant.building }}{% endif %}
                                     {% if participant.apartment %}, кв. {{ participant.apartment }}{% endif %}
                                 {% else %}
-                                    <span style="color: var(--text-secondary);">Не указано</span>
+                                    <span style="color: var(--text-secondary);">{{ _('Не указано') }}</span>
                                 {% endif %}
                             </td>
                             <td data-label="Контакты">
@@ -72,17 +72,17 @@
                                 {% if participant.whatsapp %}<div>📲 WhatsApp: {{ participant.whatsapp }}</div>{% endif %}
                                 {% if participant.viber %}<div>📱 Viber: {{ participant.viber }}</div>{% endif %}
                                 {% if not participant.email and not participant.phone and not participant.telegram and not participant.whatsapp and not participant.viber %}
-                                    <span style="color: var(--text-secondary);">Нет контактов</span>
+                                    <span style="color: var(--text-secondary);">{{ _('Нет контактов') }}</span>
                                 {% endif %}
                             </td>
                             <td data-label="Статус">
                                 {% if participant.approved %}
-                                    <span class="badge badge-success">✓ Утвержден</span>
+                                    <span class="badge badge-success">{{ _('✓ Утвержден') }}</span>
                                     {% if participant.approved_at %}
                                     <br><small style="color: var(--text-secondary);">{{ participant.approved_at[:16] }}</small>
                                     {% endif %}
                                 {% else %}
-                                    <span class="badge badge-warning">⏳ На проверке</span>
+                                    <span class="badge badge-warning">{{ _('⏳ На проверке') }}</span>
                                 {% endif %}
                             </td>
                             <td data-label="Действия">
@@ -93,7 +93,7 @@
                                     <input type="hidden" name="reason" value="">
                                     <button type="submit" class="btn btn-sm btn-warning"
                                             onclick="return confirm('Отменить утверждение участника?');">
-                                        Отменить
+                                        {{ _('Отменить') }}
                                     </button>
                                 </form>
                                 {% else %}
@@ -101,7 +101,7 @@
         {{ csrf_input() }}
                                     <input type="hidden" name="user_id" value="{{ participant.user_id }}">
                                     <button type="submit" class="btn btn-sm btn-success">
-                                        Утвердить
+                                        {{ _('Утвердить') }}
                                     </button>
                                 </form>
                                 {% endif %}
@@ -114,15 +114,15 @@
             
             <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
                 <p style="margin: 0;">
-                    <strong>Утверждено:</strong> {{ approved_count }} из {{ participants|length }} участников
+                    <strong>{{ _('Утверждено:') }}</strong> {{ approved_count }} из {{ participants|length }} участников
                     {% if approved_count < 2 %}
-                    <br><small style="color: var(--text-secondary);">Для распределения необходимо утвердить минимум 2 участника</small>
+                    <br><small style="color: var(--text-secondary);">{{ _('Для распределения необходимо утвердить минимум 2 участника') }}</small>
                     {% endif %}
                 </p>
             </div>
             {% else %}
             <div class="empty-state">
-                <p>Нет зарегистрированных участников</p>
+                <p>{{ _('Нет зарегистрированных участников') }}</p>
             </div>
             {% endif %}
         </div>

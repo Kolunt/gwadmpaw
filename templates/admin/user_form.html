@@ -7,7 +7,7 @@
 <div class="admin-container">
     <div class="admin-header">
         <h1>{% if user %}Редактирование пользователя{% else %}Создание нового пользователя{% endif %}</h1>
-        <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary">← Назад</a>
+        <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary">{{ _('← Назад') }}</a>
     </div>
     
     <div class="form-container">
@@ -15,10 +15,10 @@
         {{ csrf_input() }}
             <!-- Основная информация -->
             <div class="form-section-compact">
-                <h3 class="form-section-title">📋 Основная информация</h3>
+                <h3 class="form-section-title">{{ _('📋 Основная информация') }}</h3>
                 <div class="form-grid-compact">
                     <div class="form-group-compact">
-                        <label for="user_id">ID пользователя:</label>
+                        <label for="user_id">{{ _('ID пользователя:') }}</label>
                         {% if user %}
                             <input type="text" id="user_id" name="user_id" value="{{ user.user_id }}" disabled>
                         {% else %}
@@ -28,14 +28,14 @@
                     </div>
                     
                     <div class="form-group-compact">
-                        <label for="username">Имя пользователя:</label>
+                        <label for="username">{{ _('Имя пользователя:') }}</label>
                         <input type="text" id="username" name="username" required 
                                value="{{ user.username if user else request.form.get('username', '') }}"
-                               placeholder="_Колунт_">
+                               placeholder="{{ _('_Колунт_') }}">
                     </div>
                 
                 <div class="form-group-compact">
-                    <label for="language">Язык интерфейса:</label>
+                    <label for="language">{{ _('Язык интерфейса:') }}</label>
                     {% set current_language = (user.language if user else request.form.get('language', 'ru')) or 'ru' %}
                     <select id="language" name="language">
                         {% for code, name in available_languages.items() %}
@@ -45,14 +45,14 @@
                 </div>
                     
                     <div class="form-group-compact">
-                        <label for="level">Уровень:</label>
+                        <label for="level">{{ _('Уровень:') }}</label>
                         <input type="number" id="level" name="level" min="0" 
                                value="{{ user.level if user else request.form.get('level', '') }}"
                                placeholder="50">
                     </div>
                     
                     <div class="form-group-compact">
-                        <label for="synd">Синдикат:</label>
+                        <label for="synd">{{ _('Синдикат:') }}</label>
                         <input type="number" id="synd" name="synd" min="0" 
                                value="{{ user.synd if user else request.form.get('synd', '') }}"
                                placeholder="5594">
@@ -62,38 +62,38 @@
             
             <!-- Данные GWars -->
             <div class="form-section-compact">
-                <h3 class="form-section-title">⚔️ Данные GWars</h3>
+                <h3 class="form-section-title">{{ _('⚔️ Данные GWars') }}</h3>
                 <div class="form-grid-compact">
                     <div class="form-group-compact">
-                        <label for="has_passport">Есть паспорт:</label>
+                        <label for="has_passport">{{ _('Есть паспорт:') }}</label>
                         <select id="has_passport" name="has_passport">
-                            <option value="0" {% if not user or user.has_passport == 0 %}selected{% endif %}>Нет</option>
-                            <option value="1" {% if user and user.has_passport == 1 %}selected{% endif %}>Да</option>
+                            <option value="0" {% if not user or user.has_passport == 0 %}selected{% endif %}>{{ _('Нет') }}</option>
+                            <option value="1" {% if user and user.has_passport == 1 %}selected{% endif %}>{{ _('Да') }}</option>
                         </select>
                     </div>
                     
                     <div class="form-group-compact">
-                        <label for="has_mobile">Есть мобильный:</label>
+                        <label for="has_mobile">{{ _('Есть мобильный:') }}</label>
                         <select id="has_mobile" name="has_mobile">
-                            <option value="0" {% if not user or user.has_mobile == 0 %}selected{% endif %}>Нет</option>
-                            <option value="1" {% if user and user.has_mobile == 1 %}selected{% endif %}>Да</option>
+                            <option value="0" {% if not user or user.has_mobile == 0 %}selected{% endif %}>{{ _('Нет') }}</option>
+                            <option value="1" {% if user and user.has_mobile == 1 %}selected{% endif %}>{{ _('Да') }}</option>
                         </select>
                     </div>
                     
                     <div class="form-group-compact">
-                        <label for="usersex">Пол:</label>
+                        <label for="usersex">{{ _('Пол:') }}</label>
                         <select id="usersex" name="usersex">
-                            <option value="0" {% if not user or user.usersex == '0' %}selected{% endif %}>Мужской</option>
-                            <option value="1" {% if user and user.usersex == '1' %}selected{% endif %}>Женский</option>
+                            <option value="0" {% if not user or user.usersex == '0' %}selected{% endif %}>{{ _('Мужской') }}</option>
+                            <option value="1" {% if user and user.usersex == '1' %}selected{% endif %}>{{ _('Женский') }}</option>
                         </select>
                     </div>
                 
                 <div class="form-group-compact">
-                    <label for="old_passport">Старый паспорт:</label>
+                    <label for="old_passport">{{ _('Старый паспорт:') }}</label>
                     <select id="old_passport" name="old_passport">
                         {% set current_old_passport = (user.old_passport if user is not none else request.form.get('old_passport', '0')) or 0 %}
-                        <option value="0" {% if current_old_passport|int == 0 %}selected{% endif %}>Нет</option>
-                        <option value="1" {% if current_old_passport|int == 1 %}selected{% endif %}>Да</option>
+                        <option value="0" {% if current_old_passport|int == 0 %}selected{% endif %}>{{ _('Нет') }}</option>
+                        <option value="1" {% if current_old_passport|int == 1 %}selected{% endif %}>{{ _('Да') }}</option>
                     </select>
                 </div>
                 </div>
@@ -101,71 +101,71 @@
             
         <!-- Персональные данные -->
         <div class="form-section-compact">
-            <h3 class="form-section-title">👤 Персональные данные</h3>
+            <h3 class="form-section-title">{{ _('👤 Персональные данные') }}</h3>
             <div class="form-grid-compact">
                 <div class="form-group-compact">
-                    <label for="last_name">Фамилия:</label>
+                    <label for="last_name">{{ _('Фамилия:') }}</label>
                     <input type="text" id="last_name" name="last_name"
                            value="{{ user.last_name if user else request.form.get('last_name', '') }}"
-                           placeholder="Иванов">
+                           placeholder="{{ _('Иванов') }}">
                 </div>
                 <div class="form-group-compact">
-                    <label for="first_name">Имя:</label>
+                    <label for="first_name">{{ _('Имя:') }}</label>
                     <input type="text" id="first_name" name="first_name"
                            value="{{ user.first_name if user else request.form.get('first_name', '') }}"
-                           placeholder="Иван">
+                           placeholder="{{ _('Иван') }}">
                 </div>
                 <div class="form-group-compact">
-                    <label for="middle_name">Отчество:</label>
+                    <label for="middle_name">{{ _('Отчество:') }}</label>
                     <input type="text" id="middle_name" name="middle_name"
                            value="{{ user.middle_name if user else request.form.get('middle_name', '') }}"
-                           placeholder="Иванович">
+                           placeholder="{{ _('Иванович') }}">
                 </div>
             </div>
         </div>
         
         <!-- Адрес -->
         <div class="form-section-compact">
-            <h3 class="form-section-title">🏠 Адрес</h3>
+            <h3 class="form-section-title">{{ _('🏠 Адрес') }}</h3>
             <div class="form-grid-compact">
                 <div class="form-group-compact">
-                    <label for="postal_code">Индекс:</label>
+                    <label for="postal_code">{{ _('Индекс:') }}</label>
                     <input type="text" id="postal_code" name="postal_code"
                            value="{{ user.postal_code if user else request.form.get('postal_code', '') }}"
                            placeholder="123456">
                 </div>
                 <div class="form-group-compact">
-                    <label for="country">Страна:</label>
+                    <label for="country">{{ _('Страна:') }}</label>
                     <input type="text" id="country" name="country"
                            value="{{ user.country if user else request.form.get('country', '') }}"
-                           placeholder="Россия">
+                           placeholder="{{ _('Россия') }}">
                 </div>
                 <div class="form-group-compact">
-                    <label for="city">Город:</label>
+                    <label for="city">{{ _('Город:') }}</label>
                     <input type="text" id="city" name="city"
                            value="{{ user.city if user else request.form.get('city', '') }}"
-                           placeholder="Москва">
+                           placeholder="{{ _('Москва') }}">
                 </div>
                 <div class="form-group-compact">
-                    <label for="street">Улица / Переулок / Проспект / Проезд / …:</label>
+                    <label for="street">{{ _('Улица / Переулок / Проспект / Проезд / …:') }}</label>
                     <input type="text" id="street" name="street"
                            value="{{ user.street if user else request.form.get('street', '') }}"
-                           placeholder="Ленина">
+                           placeholder="{{ _('Ленина') }}">
                 </div>
                 <div class="form-group-compact">
-                    <label for="house">Дом:</label>
+                    <label for="house">{{ _('Дом:') }}</label>
                     <input type="text" id="house" name="house"
                            value="{{ user.house if user else request.form.get('house', '') }}"
                            placeholder="10">
                 </div>
                 <div class="form-group-compact">
-                    <label for="building">Корпус:</label>
+                    <label for="building">{{ _('Корпус:') }}</label>
                     <input type="text" id="building" name="building"
                            value="{{ user.building if user else request.form.get('building', '') }}"
                            placeholder="1">
                 </div>
                 <div class="form-group-compact">
-                    <label for="apartment">Квартира:</label>
+                    <label for="apartment">{{ _('Квартира:') }}</label>
                     <input type="text" id="apartment" name="apartment"
                            value="{{ user.apartment if user else request.form.get('apartment', '') }}"
                            placeholder="25">
@@ -175,23 +175,23 @@
         
             <!-- Дополнительная информация -->
             <div class="form-section-compact">
-                <h3 class="form-section-title">ℹ️ Дополнительная информация</h3>
+                <h3 class="form-section-title">{{ _('ℹ️ Дополнительная информация') }}</h3>
                 <div class="form-group-compact">
-                    <label for="bio">О себе:</label>
+                    <label for="bio">{{ _('О себе:') }}</label>
                     <textarea id="bio" name="bio" rows="3" 
-                              placeholder="Краткая информация о пользователе">{{ user.bio if user else request.form.get('bio', '') }}</textarea>
+                              placeholder="{{ _('Краткая информация о пользователе') }}">{{ user.bio if user else request.form.get('bio', '') }}</textarea>
                 </div>
                 
                 <div class="form-group-compact">
-                    <label for="contact_info">Контактная информация:</label>
+                    <label for="contact_info">{{ _('Контактная информация:') }}</label>
                     <textarea id="contact_info" name="contact_info" rows="2" 
-                              placeholder="Дополнительная контактная информация">{{ user.contact_info if user else request.form.get('contact_info', '') }}</textarea>
+                              placeholder="{{ _('Дополнительная контактная информация') }}">{{ user.contact_info if user else request.form.get('contact_info', '') }}</textarea>
                 </div>
             </div>
             
             <!-- Контакты -->
             <div class="form-section-compact">
-                <h3 class="form-section-title">📞 Контакты</h3>
+                <h3 class="form-section-title">{{ _('📞 Контакты') }}</h3>
                 <div class="form-grid-compact">
                     <div class="form-group-compact">
                         <label for="email">Email:</label>
@@ -201,7 +201,7 @@
                     </div>
                     
                     <div class="form-group-compact">
-                        <label for="phone">Телефон:</label>
+                        <label for="phone">{{ _('Телефон:') }}</label>
                         <input type="text" id="phone" name="phone" 
                                value="{{ user.phone if user else request.form.get('phone', '') }}"
                                placeholder="+7 (999) 123-45-67">
@@ -239,16 +239,16 @@
         
         <!-- Аватар -->
         <div class="form-section-compact">
-            <h3 class="form-section-title">🎨 Аватар</h3>
+            <h3 class="form-section-title">{{ _('🎨 Аватар') }}</h3>
             <div class="form-grid-compact">
                 <div class="form-group-compact">
                     <label for="avatar_seed">Avatar seed:</label>
                     <input type="text" id="avatar_seed" name="avatar_seed"
                            value="{{ user.avatar_seed if user else request.form.get('avatar_seed', '') }}"
-                           placeholder="Оставьте пустым для автоматической генерации">
+                           placeholder="{{ _('Оставьте пустым для автоматической генерации') }}">
                 </div>
                 <div class="form-group-compact">
-                    <label for="avatar_style">Стиль аватара:</label>
+                    <label for="avatar_style">{{ _('Стиль аватара:') }}</label>
                     {% set current_avatar_style = (user.avatar_style if user else request.form.get('avatar_style', 'avataaars')) or 'avataaars' %}
                     <select id="avatar_style" name="avatar_style">
                         {% for style in avatar_styles %}
@@ -263,22 +263,22 @@
                 <button type="submit" class="btn btn-primary">
                     {% if user %}Сохранить изменения{% else %}Создать пользователя{% endif %}
                 </button>
-                <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary">Отмена</a>
+                <a href="{{ url_for('admin.admin_users') }}" class="btn btn-secondary">{{ _('Отмена') }}</a>
             </div>
         </form>
         
         {% if user %}
         <!-- Блокировка пользователя -->
         <div class="form-section-compact">
-            <h3 class="form-section-title">🔒 Блокировка пользователя</h3>
+            <h3 class="form-section-title">{{ _('🔒 Блокировка пользователя') }}</h3>
             {% if user.is_blocked == 1 or user.is_blocked == True %}
             <div class="alert alert-warning" style="margin-bottom: 1rem;">
-                <strong>⚠️ Пользователь заблокирован</strong>
+                <strong>{{ _('⚠️ Пользователь заблокирован') }}</strong>
                 {% if user.blocked_reason %}
-                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>Причина:</strong> {{ user.blocked_reason }}</p>
+                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>{{ _('Причина:') }}</strong> {{ user.blocked_reason }}</p>
                 {% endif %}
                 {% if user.blocked_at %}
-                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>Дата блокировки:</strong> 
+                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>{{ _('Дата блокировки:') }}</strong> 
                     {% set blocked_at_str = user.blocked_at|string %}
                     {% if ' ' in blocked_at_str %}
                         {% set date_time_parts = blocked_at_str.split(' ') %}
@@ -300,7 +300,7 @@
                 </p>
                 {% endif %}
                 {% if user.blocked_by %}
-                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>Заблокировал:</strong> 
+                <p style="margin-top: 0.5rem; margin-bottom: 0;"><strong>{{ _('Заблокировал:') }}</strong> 
                     {% if blocker_info %}
                         {{ blocker_info.username }} (ID: {{ user.blocked_by }})
                     {% else %}
@@ -313,7 +313,7 @@
         {{ csrf_input() }}
                 <input type="hidden" name="block_action" value="unblock">
                 <button type="submit" class="btn btn-success" onclick="return confirm('Вы уверены, что хотите разблокировать этого пользователя?');">
-                    🔓 Разблокировать пользователя
+                    {{ _('🔓 Разблокировать пользователя') }}
                 </button>
             </form>
             {% else %}
@@ -321,12 +321,12 @@
         {{ csrf_input() }}
                 <input type="hidden" name="block_action" value="block">
                 <div class="form-group-compact">
-                    <label for="blocked_reason">Причина блокировки <span style="color: red;">*</span>:</label>
+                    <label for="blocked_reason">{{ _('Причина блокировки') }} <span style="color: red;">*</span>:</label>
                     <textarea id="blocked_reason" name="blocked_reason" rows="3" required 
-                              placeholder="Укажите причину блокировки пользователя"></textarea>
+                              placeholder="{{ _('Укажите причину блокировки пользователя') }}"></textarea>
                 </div>
                 <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите заблокировать этого пользователя?');">
-                    🔒 Заблокировать пользователя
+                    {{ _('🔒 Заблокировать пользователя') }}
                 </button>
             </form>
             {% endif %}
@@ -334,18 +334,18 @@
         
         <!-- Управление ролями и званиями -->
         <div class="form-section-compact">
-            <h3 class="form-section-title">👤 Роли и звания</h3>
+            <h3 class="form-section-title">{{ _('👤 Роли и звания') }}</h3>
             
             <div class="roles-titles-grid">
                 <div class="roles-titles-column">
-                    <h4>Роли</h4>
+                    <h4>{{ _('Роли') }}</h4>
                     <div class="current-badges">
                         {% if user_roles %}
                             {% for role in user_roles %}
                                 <span class="role-badge">{{ role.display_name }}</span>
                             {% endfor %}
                         {% else %}
-                            <span class="text-muted">Нет ролей</span>
+                            <span class="text-muted">{{ _('Нет ролей') }}</span>
                         {% endif %}
                     </div>
                     
@@ -354,14 +354,14 @@
         {{ csrf_input() }}
                             <input type="hidden" name="role_action" value="assign">
                             <select name="role_name" required>
-                                <option value="">Выберите роль</option>
+                                <option value="">{{ _('Выберите роль') }}</option>
                                 {% for role in all_roles %}
                                     {% if role.name not in user_role_names %}
                                     <option value="{{ role.name }}">{{ role.display_name }}</option>
                                     {% endif %}
                                 {% endfor %}
                             </select>
-                            <button type="submit" class="btn btn-primary btn-sm">Назначить</button>
+                            <button type="submit" class="btn btn-primary btn-sm">{{ _('Назначить') }}</button>
                         </form>
                         
                         {% if user_roles %}
@@ -369,19 +369,19 @@
         {{ csrf_input() }}
                             <input type="hidden" name="role_action" value="remove">
                             <select name="role_name" required>
-                                <option value="">Выберите роль</option>
+                                <option value="">{{ _('Выберите роль') }}</option>
                                 {% for role in user_roles %}
                                 <option value="{{ role.name }}">{{ role.display_name }}</option>
                                 {% endfor %}
                             </select>
-                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                            <button type="submit" class="btn btn-danger btn-sm">{{ _('Удалить') }}</button>
                         </form>
                         {% endif %}
                     </div>
                 </div>
                 
                 <div class="roles-titles-column">
-                    <h4>Звания</h4>
+                    <h4>{{ _('Звания') }}</h4>
                     <div class="current-badges">
                         {% if user_titles %}
                             {% for title in user_titles %}
@@ -390,7 +390,7 @@
                                 </span>
                             {% endfor %}
                         {% else %}
-                            <span class="text-muted">Нет званий</span>
+                            <span class="text-muted">{{ _('Нет званий') }}</span>
                         {% endif %}
                     </div>
                     
@@ -399,7 +399,7 @@
         {{ csrf_input() }}
                             <input type="hidden" name="title_action" value="assign">
                             <select name="title_id" required>
-                                <option value="">Выберите звание</option>
+                                <option value="">{{ _('Выберите звание') }}</option>
                                 {% for title in all_titles %}
                                     {% if title.id not in user_title_ids %}
                                     <option value="{{ title.id }}">
@@ -408,7 +408,7 @@
                                     {% endif %}
                                 {% endfor %}
                             </select>
-                            <button type="submit" class="btn btn-primary btn-sm">Назначить</button>
+                            <button type="submit" class="btn btn-primary btn-sm">{{ _('Назначить') }}</button>
                         </form>
                         
                         {% if user_titles %}
@@ -416,14 +416,14 @@
         {{ csrf_input() }}
                             <input type="hidden" name="title_action" value="remove">
                             <select name="title_id" required>
-                                <option value="">Выберите звание</option>
+                                <option value="">{{ _('Выберите звание') }}</option>
                                 {% for title in user_titles %}
                                 <option value="{{ title.id }}">
                                     {% if title.icon %}{{ title.icon }} {% endif %}{{ title.display_name }}
                                 </option>
                                 {% endfor %}
                             </select>
-                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                            <button type="submit" class="btn btn-danger btn-sm">{{ _('Удалить') }}</button>
                         </form>
                         {% endif %}
                     </div>

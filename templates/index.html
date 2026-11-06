@@ -9,9 +9,9 @@
     <div class="hero-content">
         <h1 class="hero-title">{{ project_name }}</h1>
         {% if session.user_id and assignments_sidebar_pulse %}
-        <p class="hero-description">У вас есть задание!</p>
+        <p class="hero-description">{{ _('У вас есть задание!') }}</p>
         <div class="hero-actions">
-            <a href="{{ url_for('assignments.assignments') }}" class="btn btn-light btn-hero-assignment letter-button-animated" style="color: #333;">➡️Задание📋‼️</a>
+            <a href="{{ url_for('assignments.assignments') }}" class="btn btn-light btn-hero-assignment letter-button-animated" style="color: #333;">{{ _('➡️Задание📋‼️') }}</a>
         </div>
         {% else %}
         <p class="hero-description">
@@ -21,43 +21,43 @@
         {% if not session.user_id %}
         <div class="hero-actions">
             <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-large">
-                Войти через GWars
+                {{ _('Войти через GWars') }}
             </a>
             {% if is_dev_login_enabled and request.host in ['127.0.0.1:5000', 'localhost:5000', '127.0.0.1', 'localhost'] %}
             <a href="{{ url_for('auth.login_dev') }}" class="btn btn-secondary btn-large">
-                Тестовая авторизация
+                {{ _('Тестовая авторизация') }}
             </a>
             {% endif %}
         </div>
         {% else %}
         <div class="hero-actions">
             <a href="{{ url_for('profile.dashboard') }}" class="btn btn-primary btn-large">
-                Перейти в профиль
+                {{ _('Перейти в профиль') }}
             </a>
         </div>
         {% endif %}
         {% endif %}
     </div>
-    <div class="stats-bar stats-bar-hero" aria-label="Статистика сообщества">
+    <div class="stats-bar stats-bar-hero" aria-label="{{ _('Статистика сообщества') }}">
         <div class="stats-bar-item">
             <div class="stat-icon">👥</div>
             <div class="stat-content">
                 <div class="stat-number">{{ total_users }}</div>
-                <div class="stat-label">Участников</div>
+                <div class="stat-label">{{ _('Участников') }}</div>
             </div>
         </div>
         <div class="stats-bar-item">
             <div class="stat-icon">🟢</div>
             <div class="stat-content">
                 <div class="stat-number">{{ online_users }}</div>
-                <div class="stat-label">Онлайн</div>
+                <div class="stat-label">{{ _('Онлайн') }}</div>
             </div>
         </div>
         <div class="stats-bar-item">
             <div class="stat-icon">🎉</div>
             <div class="stat-content">
                 <div class="stat-number">{{ events_with_stages|length }}</div>
-                <div class="stat-label">Мероприятий</div>
+                <div class="stat-label">{{ _('Мероприятий') }}</div>
             </div>
         </div>
     </div>
@@ -66,37 +66,37 @@
 <!-- Events Section -->
 {% if events_with_stages %}
 <section class="events-section layout-section">
-        <h2 class="section-title">Мероприятия</h2>
+        <h2 class="section-title">{{ _('Мероприятия') }}</h2>
         <div class="events-grid">
             {% for item in events_with_stages[:3] %}
             <a href="{{ url_for('events.event_view', event_id=item.event.id) }}" class="event-card-home event-card-home-link" aria-label="Открыть мероприятие {{ item.event.name }}">
                 <div class="event-card-header-home">
                     <h3 class="event-card-title">{{ item.event.name }}</h3>
                     {% if item.event_finished %}
-                    <span class="event-status-indicator event-status-finished" title="Завершено" aria-label="Мероприятие завершено">🏁</span>
+                    <span class="event-status-indicator event-status-finished" title="{{ _('Завершено') }}" aria-label="{{ _('Мероприятие завершено') }}">🏁</span>
                     {% elif item.current_stage %}
-                    <span class="event-status-indicator event-status-active" title="{{ item.display_stage_name or item.current_stage.info.name }}" aria-label="Мероприятие идёт">●</span>
+                    <span class="event-status-indicator event-status-active" title="{{ item.display_stage_name or item.current_stage.info.name }}" aria-label="{{ _('Мероприятие идёт') }}">●</span>
                     {% endif %}
                 </div>
                 {% if item.next_stage %}
                 <div class="event-countdown-home" data-start="{{ item.next_stage.start_iso }}">
-                    <div class="countdown-label">До следующего этапа</div>
+                    <div class="countdown-label">{{ _('До следующего этапа') }}</div>
                     <div class="countdown-timer">
                         <div class="countdown-item">
                             <span class="countdown-value" data-unit="days">0</span>
-                            <span class="countdown-unit">дней</span>
+                            <span class="countdown-unit">{{ _('дней') }}</span>
                         </div>
                         <div class="countdown-item">
                             <span class="countdown-value" data-unit="hours">00</span>
-                            <span class="countdown-unit">часов</span>
+                            <span class="countdown-unit">{{ _('часов') }}</span>
                         </div>
                         <div class="countdown-item">
                             <span class="countdown-value" data-unit="minutes">00</span>
-                            <span class="countdown-unit">минут</span>
+                            <span class="countdown-unit">{{ _('минут') }}</span>
                         </div>
                         <div class="countdown-item">
                             <span class="countdown-value" data-unit="seconds">00</span>
-                            <span class="countdown-unit">секунд</span>
+                            <span class="countdown-unit">{{ _('секунд') }}</span>
                         </div>
                     </div>
                 </div>
@@ -104,7 +104,7 @@
                 <div class="event-card-footer-home simplified-footer">
                     <div class="participant-count-icon">
                         <span class="participant-count">{{ item.registrations_count }}</span>
-                        <span class="participant-label">участников</span>
+                        <span class="participant-label">{{ _('участников') }}</span>
                     </div>
                 </div>
             </a>
@@ -112,11 +112,11 @@
         </div>
         {% if events_with_stages|length > 3 %}
         <div class="section-footer">
-            <a href="{{ url_for('events.events') }}" class="btn btn-primary">Все мероприятия</a>
+            <a href="{{ url_for('events.events') }}" class="btn btn-primary">{{ _('Все мероприятия') }}</a>
         </div>
         {% else %}
         <div class="section-footer">
-            <a href="{{ url_for('events.events') }}" class="btn btn-primary">Перейти к мероприятиям</a>
+            <a href="{{ url_for('events.events') }}" class="btn btn-primary">{{ _('Перейти к мероприятиям') }}</a>
         </div>
         {% endif %}
 </section>
@@ -124,34 +124,34 @@
 
 <!-- Features Section -->
 <section class="features-section layout-section">
-        <h2 class="section-title">Как это работает?</h2>
+        <h2 class="section-title">{{ _('Как это работает?') }}</h2>
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon">🔐</div>
-                <h3 class="feature-title">Безопасная авторизация</h3>
+                <h3 class="feature-title">{{ _('Безопасная авторизация') }}</h3>
                 <p class="feature-description">
-                    Вход через GWars гарантирует безопасность и надежность вашего аккаунта
+                    {{ _('Вход через GWars гарантирует безопасность и надежность вашего аккаунта') }}
                 </p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🎁</div>
-                <h3 class="feature-title">Анонимный обмен</h3>
+                <h3 class="feature-title">{{ _('Анонимный обмен') }}</h3>
                 <p class="feature-description">
-                    Участвуйте в обмене подарками, сохраняя полную анонимность
+                    {{ _('Участвуйте в обмене подарками, сохраняя полную анонимность') }}
                 </p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🎉</div>
-                <h3 class="feature-title">Мероприятия</h3>
+                <h3 class="feature-title">{{ _('Мероприятия') }}</h3>
                 <p class="feature-description">
-                    Принимайте участие в различных мероприятиях и праздниках
+                    {{ _('Принимайте участие в различных мероприятиях и праздниках') }}
                 </p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">👥</div>
-                <h3 class="feature-title">Сообщество</h3>
+                <h3 class="feature-title">{{ _('Сообщество') }}</h3>
                 <p class="feature-description">
-                    Общайтесь с другими участниками и делитесь праздничным настроением
+                    {{ _('Общайтесь с другими участниками и делитесь праздничным настроением') }}
                 </p>
             </div>
         </div>
@@ -161,12 +161,12 @@
 {% if not session.user_id %}
 <section class="cta-section layout-section">
         <div class="cta-content">
-            <h2 class="cta-title">Готовы начать?</h2>
+            <h2 class="cta-title">{{ _('Готовы начать?') }}</h2>
             <p class="cta-description">
-                Присоединяйтесь к нашему сообществу и станьте частью волшебства праздников!
+                {{ _('Присоединяйтесь к нашему сообществу и станьте частью волшебства праздников!') }}
             </p>
             <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-large">
-                Войти через GWars
+                {{ _('Войти через GWars') }}
             </a>
         </div>
 </section>

@@ -1,33 +1,33 @@
 {% extends "admin/base.html" %}
 
-{% block title %}Логи действий - Админ-панель{% endblock %}
+{% block title %}{{ _('Логи действий - Админ-панель') }}{% endblock %}
 
 {% block admin_content %}
 <div class="admin-container admin-logs-page">
     <div class="admin-header">
-        <h1>Логи действий</h1>
+        <h1>{{ _('Логи действий') }}</h1>
     </div>
 
-    <form class="logs-filter" method="get" aria-label="Фильтр логов">
+    <form class="logs-filter" method="get" aria-label="{{ _('Фильтр логов') }}">
         <div class="form-group">
-            <label for="user_id">ID пользователя</label>
-            <input type="number" id="user_id" name="user_id" class="form-input" value="{{ user_filter or '' }}" placeholder="Например, 283494" inputmode="numeric">
+            <label for="user_id">{{ _('ID пользователя') }}</label>
+            <input type="number" id="user_id" name="user_id" class="form-input" value="{{ user_filter or '' }}" placeholder="{{ _('Например, 283494') }}" inputmode="numeric">
         </div>
         <div class="form-group">
-            <label for="action">Действие</label>
-            <input type="text" id="action" name="action" class="form-input" value="{{ action_filter or '' }}" placeholder="Часть названия действия" autocomplete="off">
+            <label for="action">{{ _('Действие') }}</label>
+            <input type="text" id="action" name="action" class="form-input" value="{{ action_filter or '' }}" placeholder="{{ _('Часть названия действия') }}" autocomplete="off">
         </div>
         <div class="form-group">
-            <label for="limit">Лимит</label>
+            <label for="limit">{{ _('Лимит') }}</label>
             <input type="number" id="limit" name="limit" class="form-input" value="{{ limit }}" min="50" max="1000" inputmode="numeric">
         </div>
         <div class="form-group logs-filter-submit">
-            <button type="submit" class="btn btn-primary">Применить</button>
+            <button type="submit" class="btn btn-primary">{{ _('Применить') }}</button>
         </div>
     </form>
 
     {% if logs %}
-    <p class="logs-results-meta">Показано <strong>{{ logs|length }}</strong> записей (лимит {{ limit }})</p>
+    <p class="logs-results-meta">{{ _('Показано') }} <strong>{{ logs|length }}</strong> записей (лимит {{ limit }})</p>
     <div class="table-container table-scroll-desktop logs-table-container">
         <table class="admin-table logs-table">
             <colgroup>
@@ -40,12 +40,12 @@
             </colgroup>
             <thead>
                 <tr>
-                    <th scope="col">Время</th>
-                    <th scope="col">Пользователь</th>
-                    <th scope="col">Действие</th>
-                    <th scope="col">Описание</th>
+                    <th scope="col">{{ _('Время') }}</th>
+                    <th scope="col">{{ _('Пользователь') }}</th>
+                    <th scope="col">{{ _('Действие') }}</th>
+                    <th scope="col">{{ _('Описание') }}</th>
                     <th scope="col">IP</th>
-                    <th scope="col">Дополнительно</th>
+                    <th scope="col">{{ _('Дополнительно') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -61,7 +61,7 @@
                             <span class="log-user-id">ID: {{ log.user_id }}</span>
                         </div>
                         {% else %}
-                        <span class="text-muted">Система</span>
+                        <span class="text-muted">{{ _('Система') }}</span>
                         {% endif %}
                     </td>
                     <td data-label="Действие">
@@ -93,7 +93,7 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <p>Логи пока отсутствуют.</p>
+        <p>{{ _('Логи пока отсутствуют.') }}</p>
     </div>
     {% endif %}
 </div>

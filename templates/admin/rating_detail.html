@@ -8,14 +8,14 @@
     <div class="admin-container">
         <div class="admin-header">
             <div>
-                <h1>🔔 Бубенчики участника</h1>
+                <h1>{{ _('🔔 Бубенчики участника') }}</h1>
                 <p class="text-muted" style="margin: 0;">
                     {{ user.username or ('ID ' ~ user.user_id) }} · ID {{ user.user_id }}
                 </p>
             </div>
             <div style="display: flex; gap: 0.75rem;">
-                <a href="{{ url_for('public.user_reputation') }}" class="btn btn-secondary">← К репутации</a>
-                <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}" class="btn btn-outline-secondary">Профиль</a>
+                <a href="{{ url_for('public.user_reputation') }}" class="btn btn-secondary">{{ _('← К репутации') }}</a>
+                <a href="{{ url_for('profile.view_profile', user_id=user.user_id) }}" class="btn btn-outline-secondary">{{ _('Профиль') }}</a>
             </div>
         </div>
 
@@ -27,14 +27,14 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th>Источник</th>
-                            <th>Причина</th>
-                            <th style="width: 7rem;">Бубенчиков</th>
-                            <th style="width: 8rem;">Статус</th>
-                            <th style="width: 11rem;">Выдано</th>
-                            <th style="width: 11rem;">Обновлено</th>
-                            <th style="width: 11rem;">Аннулировано</th>
-                            <th style="width: 10rem;">Действия</th>
+                            <th>{{ _('Источник') }}</th>
+                            <th>{{ _('Причина') }}</th>
+                            <th style="width: 7rem;">{{ _('Бубенчиков') }}</th>
+                            <th style="width: 8rem;">{{ _('Статус') }}</th>
+                            <th style="width: 11rem;">{{ _('Выдано') }}</th>
+                            <th style="width: 11rem;">{{ _('Обновлено') }}</th>
+                            <th style="width: 11rem;">{{ _('Аннулировано') }}</th>
+                            <th style="width: 10rem;">{{ _('Действия') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -53,11 +53,11 @@
                             </td>
                             <td data-label="Статус">
                                 {% if event.active %}
-                                <span class="badge badge-success">Активна</span>
+                                <span class="badge badge-success">{{ _('Активна') }}</span>
                                 {% elif event.manual_revoked %}
-                                <span class="badge badge-danger">Аннулирована</span>
+                                <span class="badge badge-danger">{{ _('Аннулирована') }}</span>
                                 {% else %}
-                                <span class="badge badge-secondary">Отключена</span>
+                                <span class="badge badge-secondary">{{ _('Отключена') }}</span>
                                 {% endif %}
                             </td>
                             <td data-label="Выдано">
@@ -73,16 +73,16 @@
                                 {% if event.active %}
                                 <form method="post" action="{{ url_for('admin.admin_reputation_event_annul', event_id=event.id) }}" onsubmit="return confirm('Аннулировать бубенчик?');">
         {{ csrf_input() }}
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">Аннулировать</button>
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">{{ _('Аннулировать') }}</button>
                                 </form>
                                 {% else %}
                                     {% if event.manual_revoked %}
                                     <form method="post" action="{{ url_for('admin.admin_reputation_event_restore', event_id=event.id) }}" onsubmit="return confirm('Восстановить бубенчик?');">
         {{ csrf_input() }}
-                                        <button type="submit" class="btn btn-outline-success btn-sm">Восстановить</button>
+                                        <button type="submit" class="btn btn-outline-success btn-sm">{{ _('Восстановить') }}</button>
                                     </form>
                                     {% else %}
-                                    <span class="text-muted">Авто-отключена</span>
+                                    <span class="text-muted">{{ _('Авто-отключена') }}</span>
                                     {% endif %}
                                 {% endif %}
                             </td>
@@ -93,7 +93,7 @@
             </div>
             {% else %}
             <div class="empty-state">
-                <p>Для этого участника пока нет записей о бубенчиках.</p>
+                <p>{{ _('Для этого участника пока нет записей о бубенчиках.') }}</p>
             </div>
             {% endif %}
         </div>

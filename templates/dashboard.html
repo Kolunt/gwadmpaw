@@ -2,7 +2,7 @@
 {% from 'macros/avatar.html' import profile_avatar %}
 {% from 'macros/badge.html' import profile_badges %}
 
-{% block title %}Профиль - Анонимные Деды Морозы{% endblock %}
+{% block title %}{{ _('Профиль - Анонимные Деды Морозы') }}{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
@@ -32,14 +32,14 @@
             <a href="{{ url_for('profile.dashboard') }}#titles" 
                class="dashboard-tab" 
                data-tab="titles">
-                🏆 Звания
+                {{ _('🏆 Звания') }}
             </a>
             {% endif %}
             {% if user_awards %}
             <a href="{{ url_for('profile.dashboard') }}#awards" 
                class="dashboard-tab" 
                data-tab="awards">
-                🎖️ Награды
+                {{ _('🎖️ Награды') }}
             </a>
             {% endif %}
             <a href="{{ url_for('profile.dashboard') }}#contacts" 
@@ -87,7 +87,7 @@
                 </div>
                 {% if user.created_at %}
                 <div class="info-row">
-                    <span class="info-label">Дата регистрации:</span>
+                    <span class="info-label">{{ _('Дата регистрации:') }}</span>
                     <span class="info-value">
                         {% set created_at_str = user.created_at|string %}
                         {% if ' ' in created_at_str %}
@@ -132,9 +132,9 @@
                 <table class="titles-table">
                     <thead>
                         <tr>
-                            <th>Иконка</th>
-                            <th>Название</th>
-                            <th>Описание</th>
+                            <th>{{ _('Иконка') }}</th>
+                            <th>{{ _('Название') }}</th>
+                            <th>{{ _('Описание') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -208,22 +208,22 @@
                 <!-- Личные данные -->
                 {% if user.last_name or user.first_name or user.middle_name %}
                 <div class="info-section">
-                    <h4 class="info-section-title">Личные данные</h4>
+                    <h4 class="info-section-title">{{ _('Личные данные') }}</h4>
                     {% if user.last_name %}
                     <div class="info-row">
-                        <span class="info-label">Фамилия:</span>
+                        <span class="info-label">{{ _('Фамилия:') }}</span>
                         <span class="info-value">{{ user.last_name }}</span>
                     </div>
                     {% endif %}
                     {% if user.first_name %}
                     <div class="info-row">
-                        <span class="info-label">Имя:</span>
+                        <span class="info-label">{{ _('Имя:') }}</span>
                         <span class="info-value">{{ user.first_name }}</span>
                     </div>
                     {% endif %}
                     {% if user.middle_name %}
                     <div class="info-row">
-                        <span class="info-label">Отчество:</span>
+                        <span class="info-label">{{ _('Отчество:') }}</span>
                         <span class="info-value">{{ user.middle_name }}</span>
                     </div>
                     {% endif %}
@@ -233,46 +233,46 @@
                 <!-- Адрес -->
                 {% if user.postal_code or user.country or user.city or user.street or user.house or user.building or user.apartment %}
                 <div class="info-section info-section-spaced">
-                    <h4 class="info-section-title">Адрес</h4>
+                    <h4 class="info-section-title">{{ _('Адрес') }}</h4>
                     {% if user.postal_code %}
                     <div class="info-row">
-                        <span class="info-label">Индекс:</span>
+                        <span class="info-label">{{ _('Индекс:') }}</span>
                         <span class="info-value">{{ user.postal_code }}</span>
                     </div>
                     {% endif %}
                     {% if user.country %}
                     <div class="info-row">
-                        <span class="info-label">Страна:</span>
+                        <span class="info-label">{{ _('Страна:') }}</span>
                         <span class="info-value">{{ user.country }}</span>
                     </div>
                     {% endif %}
                     {% if user.city %}
                     <div class="info-row">
-                        <span class="info-label">Город:</span>
+                        <span class="info-label">{{ _('Город:') }}</span>
                         <span class="info-value">{{ user.city }}</span>
                     </div>
                     {% endif %}
                     {% if user.street %}
                     <div class="info-row">
-                        <span class="info-label">Улица:</span>
+                        <span class="info-label">{{ _('Улица:') }}</span>
                         <span class="info-value">{{ user.street }}</span>
                     </div>
                     {% endif %}
                     {% if user.house %}
                     <div class="info-row">
-                        <span class="info-label">Дом:</span>
+                        <span class="info-label">{{ _('Дом:') }}</span>
                         <span class="info-value">{{ user.house }}</span>
                     </div>
                     {% endif %}
                     {% if user.building %}
                     <div class="info-row">
-                        <span class="info-label">Корпус/Строение:</span>
+                        <span class="info-label">{{ _('Корпус/Строение:') }}</span>
                         <span class="info-value">{{ user.building }}</span>
                     </div>
                     {% endif %}
                     {% if user.apartment %}
                     <div class="info-row">
-                        <span class="info-label">Квартира:</span>
+                        <span class="info-label">{{ _('Квартира:') }}</span>
                         <span class="info-value">{{ user.apartment }}</span>
                     </div>
                     {% endif %}
@@ -282,7 +282,7 @@
                 <!-- Контактные данные -->
                 {% if user.email or user.phone or user.telegram or user.whatsapp or user.viber or user.max %}
                 <div class="info-section info-section-spaced">
-                    <h4 class="info-section-title">Контактные данные</h4>
+                    <h4 class="info-section-title">{{ _('Контактные данные') }}</h4>
                     {% if user.email %}
                     <div class="info-row">
                         <span class="info-label">📧 Email:</span>
@@ -291,7 +291,7 @@
                     {% endif %}
                     {% if user.phone %}
                     <div class="info-row">
-                        <span class="info-label">📱 Телефон:</span>
+                        <span class="info-label">{{ _('📱 Телефон:') }}</span>
                         <span class="info-value"><a href="tel:{{ user.phone }}" class="contact-link">{{ user.phone }}</a></span>
                     </div>
                     {% endif %}
@@ -326,7 +326,7 @@
                 <div class="info-section telegram-section">
                     <h4 class="telegram-section-title">
                         <span>🤖</span>
-                        <span>Telegram бот</span>
+                        <span>{{ _('Telegram бот') }}</span>
                     </h4>
                     
                     <div id="telegram-verification-status">
@@ -334,7 +334,7 @@
                         <div class="telegram-verified telegram-verified-box">
                             <div class="telegram-verified-header">
                                 <span class="telegram-verified-icon">✅</span>
-                                <strong class="comment-author">Аккаунт привязан</strong>
+                                <strong class="comment-author">{{ _('Аккаунт привязан') }}</strong>
                             </div>
                             {% if telegram_info and telegram_info.telegram_username %}
                             <div class="telegram-verified-meta">
@@ -348,12 +348,12 @@
                             {% endif %}
                         </div>
                         <button type="button" class="btn btn-secondary telegram-btn-full" onclick="unlinkTelegram()">
-                            Отвязать аккаунт
+                            {{ _('Отвязать аккаунт') }}
                         </button>
                         {% else %}
                         <div class="telegram-not-verified">
                             <p class="telegram-hint">
-                                Привяжите свой Telegram аккаунт для использования бота и получения уведомлений.
+                                {{ _('Привяжите свой Telegram аккаунт для использования бота и получения уведомлений.') }}
                             </p>
                             <div id="verification-code-section" class="hidden-section">
                                 <div class="verification-code-box">
@@ -361,19 +361,19 @@
                                         <strong class="verification-code-display" id="verification-code-display"></strong>
                                     </div>
                                     <p class="verification-code-hint">
-                                        1. Откройте бота в Telegram<br>
-                                        2. Отправьте ему этот код<br>
-                                        3. Или используйте команду: <code>/verify <span id="code-for-command"></span></code>
+                                        {{ _('1. Откройте бота в Telegram') }}<br>
+                                        {{ _('2. Отправьте ему этот код') }}<br>
+                                        {{ _('3. Или используйте команду:') }} <code>/verify <span id="code-for-command"></span></code>
                                     </p>
                                 </div>
                                 <div id="bot-link-section" class="bot-link-section">
                                     <a id="bot-link" href="#" target="_blank" class="btn btn-primary bot-link-inline">
-                                        Открыть бота в Telegram
+                                        {{ _('Открыть бота в Telegram') }}
                                     </a>
                                 </div>
                             </div>
                             <button type="button" class="btn btn-primary telegram-btn-full" onclick="generateVerificationCode()" id="generate-code-btn">
-                                Получить код верификации
+                                {{ _('Получить код верификации') }}
                             </button>
                         </div>
                         {% endif %}
@@ -394,14 +394,14 @@
             <div class="profile-user-info">
                 {% if user.bio %}
                 <div class="info-row">
-                    <span class="info-label">О себе:</span>
+                    <span class="info-label">{{ _('О себе:') }}</span>
                     <span class="info-value multiline-text">{{ user.bio | format_multiline }}</span>
                 </div>
                 {% endif %}
                 
                 {% if user.contact_info %}
                 <div class="info-row">
-                    <span class="info-label">Дополнительная информация:</span>
+                    <span class="info-label">{{ _('Дополнительная информация:') }}</span>
                     <span class="info-value">{{ user.contact_info }}</span>
                 </div>
                 {% endif %}

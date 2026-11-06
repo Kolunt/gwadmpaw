@@ -2,11 +2,11 @@
 {% from 'macros/avatar.html' import avatar %}
 {% from 'macros/badge.html' import status_badge %}
 
-{% block title %}Участники - Анонимные Деды Морозы{% endblock %}
+{% block title %}{{ _('Участники - Анонимные Деды Морозы') }}{% endblock %}
 
 {% block content %}
 <div class="participants-container">
-    <h1>Участники</h1>
+    <h1>{{ _('Участники') }}</h1>
     
     <!-- Панель поиска и фильтров -->
     <div class="table-controls">
@@ -15,7 +15,7 @@
                 type="text" 
                 id="search-input" 
                 class="search-input" 
-                placeholder="Поиск по всем полям..."
+                placeholder="{{ _('Поиск по всем полям...') }}"
                 autocomplete="off"
                 value="{{ search_query|default('') }}"
             >
@@ -24,7 +24,7 @@
         
         <div class="table-info">
             <span id="rows-count">
-                Показано: <strong id="visible-count">{{ participants|length }}</strong> из <strong id="total-count">{{ total_count|default(participants|length) }}</strong>
+                {{ _('Показано:') }} <strong id="visible-count">{{ participants|length }}</strong> {{ _('из') }} <strong id="total-count">{{ total_count|default(participants|length) }}</strong>
                 {% if total_pages is defined and total_pages > 1 %}
                     (Страница {{ page|default(1) }} из {{ total_pages }})
                 {% endif %}
@@ -37,19 +37,19 @@
             <thead>
                 <tr>
                     <th class="sortable" data-column="0" data-sort="none">
-                        Никнейм в GWars
+                        {{ _('Никнейм в GWars') }}
                         <span class="sort-indicator">⇅</span>
                     </th>
                     <th class="sortable" data-column="1" data-sort="none">
-                        Статус
+                        {{ _('Статус') }}
                         <span class="sort-indicator">⇅</span>
                     </th>
                     <th class="sortable" data-column="2" data-sort="none">
-                        Роль
+                        {{ _('Роль') }}
                         <span class="sort-indicator">⇅</span>
                     </th>
                     <th class="sortable" data-column="3" data-sort="asc">
-                        Дата регистрации
+                        {{ _('Дата регистрации') }}
                         <span class="sort-indicator">↑</span>
                     </th>
                 </tr>
@@ -76,7 +76,7 @@
                                 <span class="role-badge">{{ role.strip() }}</span>
                             {% endfor %}
                         {% else %}
-                            <span class="role-badge">Пользователь</span>
+                            <span class="role-badge">{{ _('Пользователь') }}</span>
                         {% endif %}
                     </td>
                     <td data-label="Дата регистрации">
@@ -99,18 +99,18 @@
     <!-- Пагинация -->
     {% if total_pages is defined and total_pages > 1 %}
     <div class="pagination-container">
-        <nav class="pagination" aria-label="Навигация по страницам">
+        <nav class="pagination" aria-label="{{ _('Навигация по страницам') }}">
             <ul class="pagination-list">
                 {% if has_prev is defined and has_prev %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('public.participants', page=(page|default(1))-1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-prev" aria-label="Предыдущая страница">
-                        ← Предыдущая
+                    <a href="{{ url_for('public.participants', page=(page|default(1))-1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-prev" aria-label="{{ _('Предыдущая страница') }}">
+                        {{ _('← Предыдущая') }}
                     </a>
                 </li>
                 {% else %}
                 <li class="pagination-item pagination-item-disabled">
-                    <span class="pagination-link pagination-link-prev pagination-link-disabled" aria-label="Предыдущая страница">
-                        ← Предыдущая
+                    <span class="pagination-link pagination-link-prev pagination-link-disabled" aria-label="{{ _('Предыдущая страница') }}">
+                        {{ _('← Предыдущая') }}
                     </span>
                 </li>
                 {% endif %}
@@ -153,14 +153,14 @@
                 
                 {% if has_next is defined and has_next %}
                 <li class="pagination-item">
-                    <a href="{{ url_for('public.participants', page=current_page+1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-next" aria-label="Следующая страница">
-                        Следующая →
+                    <a href="{{ url_for('public.participants', page=current_page+1, per_page=per_page|default(50), search=search_query|default('')) }}" class="pagination-link pagination-link-next" aria-label="{{ _('Следующая страница') }}">
+                        {{ _('Следующая →') }}
                     </a>
                 </li>
                 {% else %}
                 <li class="pagination-item pagination-item-disabled">
-                    <span class="pagination-link pagination-link-next pagination-link-disabled" aria-label="Следующая страница">
-                        Следующая →
+                    <span class="pagination-link pagination-link-next pagination-link-disabled" aria-label="{{ _('Следующая страница') }}">
+                        {{ _('Следующая →') }}
                     </span>
                 </li>
                 {% endif %}
