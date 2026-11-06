@@ -11,18 +11,24 @@ from gwadm.logging_config import log_debug, log_error
 from gwadm.ui_string_registry import UI_STRING_SEEDS
 
 _CACHE_LOCK = threading.Lock()
+_SEED_LOCK = threading.Lock()
 _MSG_CACHE: dict[tuple[str, str], str] | None = None
 _CACHE_BUILT_AT: float | None = None
+# True when we know ui_strings has at least UI_STRING_SEEDS RU rows (see ensure_ui_strings_seeded).
+_SEED_SATISFIED_FOR_EXPECTED: bool = False
+_SEED_EXPECTED_N: int = -1
 
 _LOCALE_FALLBACK = 'ru'
 _EXPECTED_RU_ROWS = len(UI_STRING_SEEDS)
 
 
 def invalidate_ui_strings_cache() -> None:
-    global _MSG_CACHE, _CACHE_BUILT_AT
+    global _MSG_CACHE, _CACHE_BUILT_AT, _SEED_SATISFIED_FOR_EXPECTED, _SEED_EXPECTED_N
     with _CACHE_LOCK:
         _MSG_CACHE = None
         _CACHE_BUILT_AT = None
+        _SEED_SATISFIED_FOR_EXPECTED = False
+        _SEED_EXPECTED_N = -1
 
 
 def _load_cache_from_db(conn: sqlite3.Connection) -> dict[tuple[str, str], str]:
@@ -37,31 +43,44 @@ def _load_cache_from_db(conn: sqlite3.Connection) -> dict[tuple[str, str], str]:
 
 def ensure_ui_strings_seeded(conn: sqlite3.Connection) -> None:
     """Insert missing rows from UI_STRING_SEEDS."""
-    row = conn.execute(
-        "SELECT COUNT(*) FROM ui_strings WHERE locale = 'ru'"
-    ).fetchone()
-    ru_count = int(row[0]) if row else 0
-    if ru_count >= _EXPECTED_RU_ROWS:
+    global _SEED_SATISFIED_FOR_EXPECTED, _SEED_EXPECTED_N
+    if _SEED_SATISFIED_FOR_EXPECTED and _SEED_EXPECTED_N == _EXPECTED_RU_ROWS:
         return
 
-    now = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-    for msg_key, category, ru_val, en_val in UI_STRING_SEEDS:
-        conn.execute(
-            '''
-            INSERT OR IGNORE INTO ui_strings
-            (msg_key, category, locale, default_text, value, updated_at, updated_by)
-            VALUES (?, ?, ?, ?, ?, ?, NULL)
-            ''',
-            (msg_key, category, 'ru', ru_val, ru_val, now),
-        )
-        conn.execute(
-            '''
-            INSERT OR IGNORE INTO ui_strings
-            (msg_key, category, locale, default_text, value, updated_at, updated_by)
-            VALUES (?, ?, ?, ?, ?, ?, NULL)
-            ''',
-            (msg_key, category, 'en', ru_val, en_val, now),
-        )
+    with _SEED_LOCK:
+        if _SEED_SATISFIED_FOR_EXPECTED and _SEED_EXPECTED_N == _EXPECTED_RU_ROWS:
+            return
+
+        row = conn.execute(
+            "SELECT COUNT(*) FROM ui_strings WHERE locale = 'ru'"
+        ).fetchone()
+        ru_count = int(row[0]) if row else 0
+        if ru_count >= _EXPECTED_RU_ROWS:
+            _SEED_SATISFIED_FOR_EXPECTED = True
+            _SEED_EXPECTED_N = _EXPECTED_RU_ROWS
+            return
+
+        now = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        for msg_key, category, ru_val, en_val in UI_STRING_SEEDS:
+            conn.execute(
+                '''
+                INSERT OR IGNORE INTO ui_strings
+                (msg_key, category, locale, default_text, value, updated_at, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, NULL)
+                ''',
+                (msg_key, category, 'ru', ru_val, ru_val, now),
+            )
+            conn.execute(
+                '''
+                INSERT OR IGNORE INTO ui_strings
+                (msg_key, category, locale, default_text, value, updated_at, updated_by)
+                VALUES (?, ?, ?, ?, ?, ?, NULL)
+                ''',
+                (msg_key, category, 'en', ru_val, en_val, now),
+            )
+
+        _SEED_SATISFIED_FOR_EXPECTED = True
+        _SEED_EXPECTED_N = _EXPECTED_RU_ROWS
 
 
 def _get_cache(conn: sqlite3.Connection) -> dict[tuple[str, str], str]:
@@ -85,16 +104,20 @@ def get_string(
     """Resolve msg_key for locale using DB cache; fallback to static dicts then key."""
     loc = locale if locale in ('ru', 'en') else _LOCALE_FALLBACK
 
-    # Hot path: in-memory cache — no DB connection per _() call
-    with _CACHE_LOCK:
-        if _MSG_CACHE is not None:
-            hit = _MSG_CACHE.get((msg_key, loc))
-            if hit is not None:
-                return hit
-            if loc != _LOCALE_FALLBACK:
-                hit_fb = _MSG_CACHE.get((msg_key, _LOCALE_FALLBACK))
-                if hit_fb is not None:
-                    return hit_fb
+    # Hot path: read-filled dict without taking the global lock (GIL + assignment atomicity).
+    cache_snapshot = _MSG_CACHE
+    if cache_snapshot is not None:
+        hit = cache_snapshot.get((msg_key, loc))
+        if hit is not None:
+            return hit
+        if loc != _LOCALE_FALLBACK:
+            hit_fb = cache_snapshot.get((msg_key, _LOCALE_FALLBACK))
+            if hit_fb is not None:
+                return hit_fb
+        # Full cache already loaded but key missing — do not open SQLite again.
+        if loc == 'ru':
+            return static_fallback_ru.get(msg_key, msg_key)
+        return static_fallback_en.get(msg_key, msg_key)
 
     try:
         conn = conn_factory()
@@ -125,7 +148,6 @@ def list_strings_for_admin(
     offset: int = 0,
 ) -> list[sqlite3.Row]:
     """Rows: msg_key, category, default_ru, ru_value, en_value."""
-    ensure_ui_strings_seeded(conn)
     sql = '''
         SELECT
             r.msg_key AS msg_key,
@@ -154,7 +176,6 @@ def list_strings_for_admin(
 
 
 def list_categories(conn: sqlite3.Connection) -> list[str]:
-    ensure_ui_strings_seeded(conn)
     rows = conn.execute(
         'SELECT DISTINCT category FROM ui_strings ORDER BY category'
     ).fetchall()
@@ -189,7 +210,6 @@ def apply_bulk_updates(
 
 
 def count_strings(conn: sqlite3.Connection, category: str | None, q: str | None) -> int:
-    ensure_ui_strings_seeded(conn)
     sql = '''
         SELECT COUNT(*) FROM ui_strings r
         WHERE r.locale = 'ru'
@@ -201,11 +221,11 @@ def count_strings(conn: sqlite3.Connection, category: str | None, q: str | None)
     if q:
         term = f'%{q.strip()}%'
         sql += ''' AND (
-            r.msg_key LIKE ? OR r.value LIKE ? OR EXISTS (
+            r.msg_key LIKE ? OR r.value LIKE ? OR r.default_text LIKE ? OR EXISTS (
                 SELECT 1 FROM ui_strings e
                 WHERE e.msg_key = r.msg_key AND e.locale = 'en'
                 AND e.value LIKE ?
-            ) OR r.default_text LIKE ?
+            )
         )'''
         args.extend([term, term, term, term])
     row = conn.execute(sql, args).fetchone()

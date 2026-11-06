@@ -10,6 +10,7 @@ from gwadm.logging_config import log_error
 from gwadm.services.ui_strings import (
     apply_bulk_updates,
     count_strings,
+    ensure_ui_strings_seeded,
     invalidate_ui_strings_cache,
     list_categories,
     list_strings_for_admin,
@@ -45,6 +46,8 @@ def admin_localization():
     """Table of UI strings (RU/EN) with filters."""
     conn = get_db_connection()
     try:
+        ensure_ui_strings_seeded(conn)
+
         if request.method == 'POST':
             token = request.form.get('_csrf_token')
             if not validate_csrf_token(token):
