@@ -67,7 +67,14 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" style="padding:1rem;">{{ _('Нет строк по фильтру') }}</td></tr>
+                    <tr><td colspan="5" style="padding:1rem;">
+                        <p style="margin:0 0 0.5rem;">{{ _('Нет строк по фильтру') }}</p>
+                        {% if current_category or search_query %}
+                        <p class="text-muted" style="margin:0; font-size:0.9rem;">
+                            {{ _('Сбросьте категорию или поиск выше — возможно, совпадений нет.') }}
+                        </p>
+                        {% endif %}
+                    </td></tr>
                     {% endfor %}
                 </tbody>
             </table>

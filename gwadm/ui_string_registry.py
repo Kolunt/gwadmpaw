@@ -81,6 +81,12 @@ _MANUAL_SEEDS: list[tuple[str, str, str, str]] = [
     ('Цыфорки', 'nav_admin', 'Цыфорки', 'Reputation bells'),
     ('Шёпоты главной', 'nav_admin', 'Шёпоты главной', 'Hero whispers'),
     ('Локализация', 'nav_admin', 'Локализация', 'Localization'),
+    (
+        'Сбросьте категорию или поиск выше — возможно, совпадений нет.',
+        'admin_localization',
+        'Сбросьте категорию или поиск выше — возможно, совпадений нет.',
+        'Clear the category or search above — there may be no matches.',
+    ),
 ]
 
 

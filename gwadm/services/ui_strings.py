@@ -139,22 +139,9 @@ def get_string(
     return static_fallback_en.get(msg_key, msg_key)
 
 
-def list_strings_for_admin(
-    conn: sqlite3.Connection,
-    *,
-    category: str | None = None,
-    q: str | None = None,
-    limit: int = 500,
-    offset: int = 0,
-) -> list[sqlite3.Row]:
-    """Rows: msg_key, category, default_ru, ru_value, en_value."""
+def _admin_strings_from_where(category: str | None, q: str | None) -> tuple[str, list[Any]]:
+    """Shared FROM/JOIN/WHERE for admin list and count (must stay in sync)."""
     sql = '''
-        SELECT
-            r.msg_key AS msg_key,
-            r.category AS category,
-            r.default_text AS default_ru,
-            r.value AS ru_value,
-            COALESCE(e.value, '') AS en_value
         FROM ui_strings r
         LEFT JOIN ui_strings e ON e.msg_key = r.msg_key AND e.locale = 'en'
         WHERE r.locale = 'ru'
@@ -166,11 +153,34 @@ def list_strings_for_admin(
     if q:
         term = f'%{q.strip()}%'
         sql += ''' AND (
-            r.msg_key LIKE ? OR r.value LIKE ? OR e.value LIKE ?
+            r.msg_key LIKE ? OR r.value LIKE ? OR COALESCE(e.value, '') LIKE ?
             OR r.default_text LIKE ?
         )'''
         args.extend([term, term, term, term])
-    sql += ' ORDER BY r.category, r.msg_key LIMIT ? OFFSET ?'
+    return sql, args
+
+
+def list_strings_for_admin(
+    conn: sqlite3.Connection,
+    *,
+    category: str | None = None,
+    q: str | None = None,
+    limit: int = 500,
+    offset: int = 0,
+) -> list[sqlite3.Row]:
+    """Rows: msg_key, category, default_ru, ru_value, en_value."""
+    from_where, args = _admin_strings_from_where(category, q)
+    sql = f'''
+        SELECT
+            r.msg_key AS msg_key,
+            r.category AS category,
+            r.default_text AS default_ru,
+            r.value AS ru_value,
+            COALESCE(e.value, '') AS en_value
+        {from_where}
+        ORDER BY r.category, r.msg_key LIMIT ? OFFSET ?
+    '''
+    args = list(args)
     args.extend([limit, offset])
     return conn.execute(sql, args).fetchall()
 
@@ -210,23 +220,7 @@ def apply_bulk_updates(
 
 
 def count_strings(conn: sqlite3.Connection, category: str | None, q: str | None) -> int:
-    sql = '''
-        SELECT COUNT(*) FROM ui_strings r
-        WHERE r.locale = 'ru'
-    '''
-    args: list[Any] = []
-    if category:
-        sql += ' AND r.category = ?'
-        args.append(category)
-    if q:
-        term = f'%{q.strip()}%'
-        sql += ''' AND (
-            r.msg_key LIKE ? OR r.value LIKE ? OR r.default_text LIKE ? OR EXISTS (
-                SELECT 1 FROM ui_strings e
-                WHERE e.msg_key = r.msg_key AND e.locale = 'en'
-                AND e.value LIKE ?
-            )
-        )'''
-        args.extend([term, term, term, term])
+    from_where, args = _admin_strings_from_where(category, q)
+    sql = f'SELECT COUNT(*) {from_where}'
     row = conn.execute(sql, args).fetchone()
     return int(row[0]) if row else 0
