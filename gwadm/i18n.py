@@ -8,12 +8,18 @@ from gwadm.ui_string_registry import UI_STRING_SEEDS
 STATIC_FALLBACK_RU: dict[str, str] = {row[0]: row[2] for row in UI_STRING_SEEDS}
 STATIC_FALLBACK_EN: dict[str, str] = {row[0]: row[3] for row in UI_STRING_SEEDS}
 
+_LOCALE_CACHE_ATTR = '_gwadm_request_locale'
+
 
 def get_locale():
     """Определяет текущую локаль. Для неавторизованных — русский."""
     try:
-        from flask import current_app
+        from flask import current_app, g, has_request_context
 
+        if has_request_context() and hasattr(g, _LOCALE_CACHE_ATTR):
+            return getattr(g, _LOCALE_CACHE_ATTR)
+
+        result = 'ru'
         if 'user_id' in session:
             try:
                 from gwadm.db import get_db_connection
@@ -28,9 +34,13 @@ def get_locale():
                     conn.close()
                 languages = current_app.config.get('LANGUAGES', {})
                 if user and dict(user).get('language') and user['language'] in languages:
-                    return user['language']
+                    result = user['language']
             except Exception as e:
                 log_error(f"Error getting user language: {e}")
+
+        if has_request_context():
+            setattr(g, _LOCALE_CACHE_ATTR, result)
+        return result
     except Exception:
         pass
     return 'ru'

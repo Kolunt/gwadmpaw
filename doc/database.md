@@ -233,6 +233,7 @@ Copy-Item database.db "database_$(Get-Date -Format 'yyyyMMdd').db"
 | `010_rating_contact_max.py` | Настройка `rating_contact_max` (очки за заполненный Max в репутации) |
 | `012_assignment_admin_workspace.py` | `assignment_admin_notes`, `assignment_admin_tasks` — заметки и задачи админа на канбане прогресса |
 | `013_ui_strings.py` | Таблица `ui_strings` — переводимые строки UI |
+| `014_ui_strings_locale_indexes.py` | Индекс `(locale, category, msg_key)` на `ui_strings` — ускорение списка в админке локализации |
 
 Колонка **`users.max`** / **`event_registration_details.max`** — номер телефона в мессенджере Max.
 
