@@ -154,9 +154,9 @@ def list_strings_for_admin(
             r.category AS category,
             r.default_text AS default_ru,
             r.value AS ru_value,
-            e.value AS en_value
+            COALESCE(e.value, '') AS en_value
         FROM ui_strings r
-        JOIN ui_strings e ON e.msg_key = r.msg_key AND e.locale = 'en'
+        LEFT JOIN ui_strings e ON e.msg_key = r.msg_key AND e.locale = 'en'
         WHERE r.locale = 'ru'
     '''
     args: list[Any] = []

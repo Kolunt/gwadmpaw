@@ -41,3 +41,33 @@ def test_list_and_count_do_not_call_ensure_each(tmp_path, monkeypatch):
     assert calls == [], 'count/list should not re-invoke seed check'
 
     conn.close()
+
+
+def test_list_strings_shows_ru_without_en_pair(tmp_path):
+    """INNER JOIN hid orphan ru rows — total > 0 but table empty."""
+    db_path = str(tmp_path / 'ui_strings_orphan.db')
+    _reset_db(db_path)
+
+    conn = get_db_connection()
+    conn.execute(
+        '''
+        INSERT INTO ui_strings
+        (msg_key, category, locale, default_text, value, updated_at, updated_by)
+        VALUES ('ORPHAN_RU_ONLY_UNIQUE', 'test', 'ru', 'x', 'ru-val', datetime('now'), NULL)
+        '''
+    )
+    conn.commit()
+    conn.close()
+
+    conn = get_db_connection()
+    q = 'ORPHAN_RU_ONLY_UNIQUE'
+    total = ui_strings.count_strings(conn, None, q)
+    rows = ui_strings.list_strings_for_admin(
+        conn, category=None, q=q, limit=50, offset=0
+    )
+    conn.close()
+
+    assert total == 1
+    orphan = [r for r in rows if r['msg_key'] == 'ORPHAN_RU_ONLY_UNIQUE']
+    assert len(orphan) == 1
+    assert orphan[0]['en_value'] == ''
