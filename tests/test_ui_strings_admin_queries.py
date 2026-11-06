@@ -15,6 +15,7 @@ def _reset_db(db_path: str) -> None:
     gwadm_db._db_initialized = False
     gwadm_db._db_path = None
     gwadm_db.ensure_db()
+    ui_strings.invalidate_ui_strings_cache()
 
 
 def test_list_and_count_do_not_call_ensure_each(tmp_path, monkeypatch):
@@ -71,3 +72,38 @@ def test_list_strings_shows_ru_without_en_pair(tmp_path):
     orphan = [r for r in rows if r['msg_key'] == 'ORPHAN_RU_ONLY_UNIQUE']
     assert len(orphan) == 1
     assert orphan[0]['en_value'] == ''
+
+
+def test_seed_survives_connection_close(tmp_path):
+    """Seed must COMMIT; otherwise close() rolls back and the admin table is empty."""
+    db_path = str(tmp_path / 'ui_strings_seed_commit.db')
+    _reset_db(db_path)
+    ui_strings.invalidate_ui_strings_cache()
+
+    conn = get_db_connection()
+    ui_strings.ensure_ui_strings_seeded(conn)
+    conn.close()
+
+    conn = get_db_connection()
+    ru_n = conn.execute(
+        "SELECT COUNT(*) AS c FROM ui_strings WHERE locale = 'ru'"
+    ).fetchone()['c']
+    conn.close()
+    assert ru_n >= ui_strings._EXPECTED_RU_ROWS
+
+
+def test_apply_bulk_updates_upserts_missing_row(tmp_path):
+    db_path = str(tmp_path / 'ui_strings_upsert.db')
+    _reset_db(db_path)
+    conn = get_db_connection()
+    n = ui_strings.apply_bulk_updates(
+        conn, [('BrandNewKeyForUpsert', 'ru', 'новое')], editor_id=None
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT value FROM ui_strings WHERE msg_key = ? AND locale = 'ru'",
+        ('BrandNewKeyForUpsert',),
+    ).fetchone()
+    conn.close()
+    assert n >= 1
+    assert row and row['value'] == 'новое'

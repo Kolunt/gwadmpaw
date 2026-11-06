@@ -79,6 +79,8 @@ def ensure_ui_strings_seeded(conn: sqlite3.Connection) -> None:
                 (msg_key, category, 'en', ru_val, en_val, now),
             )
 
+        # Must persist before closing the request connection (SQLite rolls back otherwise).
+        conn.commit()
         _SEED_SATISFIED_FOR_EXPECTED = True
         _SEED_EXPECTED_N = _EXPECTED_RU_ROWS
 
@@ -209,11 +211,25 @@ def apply_bulk_updates(
             continue
         cur = conn.execute(
             '''
-            UPDATE ui_strings
-            SET value = ?, updated_at = ?, updated_by = ?
-            WHERE msg_key = ? AND locale = ?
+            INSERT INTO ui_strings
+            (msg_key, category, locale, default_text, value, updated_at, updated_by)
+            VALUES (
+                ?,
+                COALESCE((SELECT category FROM ui_strings WHERE msg_key = ? LIMIT 1), 'misc'),
+                ?,
+                COALESCE(
+                    (SELECT default_text FROM ui_strings WHERE msg_key = ? AND locale = ?),
+                    ?
+                ),
+                ?, ?, ?
+            )
+            ON CONFLICT(msg_key, locale) DO UPDATE SET
+                value = excluded.value,
+                updated_at = excluded.updated_at,
+                updated_by = excluded.updated_by
+            WHERE ui_strings.value IS NOT excluded.value
             ''',
-            (value, now, editor_id, msg_key, locale),
+            (msg_key, msg_key, locale, msg_key, locale, value, value, now, editor_id),
         )
         count += cur.rowcount
     return count
