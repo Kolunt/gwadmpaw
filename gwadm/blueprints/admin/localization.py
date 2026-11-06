@@ -17,14 +17,23 @@ from gwadm.services.ui_strings import (
 
 
 def _parse_updates_from_form() -> list[tuple[str, str, str]]:
-    """Collect (msg_key, locale, value) from indexed form fields."""
+    """Collect (msg_key, locale, value) from repeated form fields (stable order)."""
+    keys = request.form.getlist('msg_key')
+    ru_vals = request.form.getlist('ru')
+    en_vals = request.form.getlist('en')
+    n = min(len(keys), len(ru_vals), len(en_vals))
+    if n < len(keys) or n < len(ru_vals) or n < len(en_vals):
+        log_error(
+            'admin_localization: form field count mismatch '
+            f'(msg_key={len(keys)}, ru={len(ru_vals)}, en={len(en_vals)})'
+        )
     out: list[tuple[str, str, str]] = []
-    for i in range(100):
-        mk = request.form.get(f'key_{i}')
+    for i in range(n):
+        mk = (keys[i] or '').strip()
         if not mk:
-            break
-        ru = request.form.get(f'ru_{i}', '')
-        en = request.form.get(f'en_{i}', '')
+            continue
+        ru = ru_vals[i] if i < len(ru_vals) else ''
+        en = en_vals[i] if i < len(en_vals) else ''
         out.append((mk, 'ru', ru or ''))
         out.append((mk, 'en', en or ''))
     return out
@@ -48,10 +57,22 @@ def admin_localization():
             except (TypeError, ValueError):
                 editor_id = None
             try:
-                n = apply_bulk_updates(conn, updates, editor_id=editor_id)
-                conn.commit()
-                invalidate_ui_strings_cache()
-                flash(f'Сохранено строк: {n}', 'success')
+                if not updates:
+                    flash(
+                        'Не получены строки для сохранения — обновите страницу и попробуйте снова.',
+                        'error',
+                    )
+                else:
+                    n = apply_bulk_updates(conn, updates, editor_id=editor_id)
+                    conn.commit()
+                    invalidate_ui_strings_cache()
+                    if n == 0:
+                        flash(
+                            'Изменений в базе нет (текст совпадает с уже сохранённым).',
+                            'success',
+                        )
+                    else:
+                        flash(f'Обновлено полей в базе: {n}.', 'success')
             except Exception as e:
                 log_error(f'admin_localization save: {e}')
                 flash('Не удалось сохранить', 'error')

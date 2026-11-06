@@ -59,11 +59,11 @@
                         <td style="padding:0.5rem; vertical-align:top; max-width:220px; word-break:break-word;"><small>{{ row.msg_key }}</small></td>
                         <td style="padding:0.5rem; vertical-align:top; max-width:200px; word-break:break-word;"><small class="text-muted">{{ row.default_ru }}</small></td>
                         <td style="padding:0.5rem;">
-                            <input type="hidden" name="key_{{ i }}" value="{{ row.msg_key|e }}">
-                            <textarea name="ru_{{ i }}" class="setting-input" rows="2" style="width:100%; min-width:160px;">{{ row.ru_value }}</textarea>
+                            <input type="hidden" name="msg_key" value="{{ row.msg_key|e }}">
+                            <textarea name="ru" class="setting-input" rows="2" style="width:100%; min-width:160px;">{{ row.ru_value }}</textarea>
                         </td>
                         <td style="padding:0.5rem;">
-                            <textarea name="en_{{ i }}" class="setting-input" rows="2" style="width:100%; min-width:160px;">{{ row.en_value }}</textarea>
+                            <textarea name="en" class="setting-input" rows="2" style="width:100%; min-width:160px;">{{ row.en_value }}</textarea>
                         </td>
                     </tr>
                     {% else %}
