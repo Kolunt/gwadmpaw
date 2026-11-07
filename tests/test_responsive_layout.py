@@ -91,9 +91,10 @@ def test_layout_main_on_admin(client):
 
 
 def test_home_event_countdown_fits_narrow_card():
-    """Home countdown must shrink inside ~300px grid cards, not overflow into the next card."""
+    """Home countdown stays readable in a ~300px card and does not use 0-track grid."""
     css = Path('static/css/style.css').read_text(encoding='utf-8')
-    assert 'grid-template-columns: repeat(4, minmax(0, 1fr))' in css
+    assert 'grid-template-columns: repeat(4, minmax(2.75rem, 1fr))' in css
+    assert 'minmax(0, 1fr)' not in css.split('.event-countdown-home .countdown-timer')[1].split('.event-countdown-home .countdown-item')[0]
     assert '.event-countdown-home .countdown-item:not(:last-child)::after' in css
     after_idx = css.index('.event-countdown-home .countdown-item:not(:last-child)::after')
     after_block = css[after_idx:after_idx + 120]

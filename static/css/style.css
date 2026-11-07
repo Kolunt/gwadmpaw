@@ -6782,36 +6782,36 @@ html.dark .avatar-candidate-img {
     background: linear-gradient(135deg, rgba(26, 115, 232, 0.12) 0%, rgba(26, 115, 232, 0.05) 100%);
     border: 1px solid rgba(26, 115, 232, 0.15);
     border-radius: 14px;
-    padding: 1.25rem 1.5rem;
-    margin: 1rem 0;
+    padding: 0.85rem 0.75rem;
+    margin: 0.75rem var(--layout-inner);
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.65rem;
     align-items: center;
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
-    overflow: hidden;
+    flex: 0 0 auto;
 }
 
 .event-countdown-home .countdown-label {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     color: var(--text-secondary);
     text-align: center;
     max-width: 100%;
+    line-height: 1.3;
 }
 
 .event-countdown-home .countdown-timer {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(2.75rem, 1fr));
     align-items: end;
     justify-content: stretch;
-    gap: 0.4rem;
+    gap: 0.35rem 0.4rem;
     width: 100%;
     min-width: 0;
-    overflow: hidden;
     padding-bottom: 0;
 }
 
@@ -6821,8 +6821,7 @@ html.dark .avatar-candidate-img {
     align-items: center;
     min-width: 0;
     width: 100%;
-    max-width: 100%;
-    padding: 0 0.15rem;
+    padding: 0;
 }
 
 .event-countdown-home .countdown-item:not(:last-child)::after {
@@ -6830,50 +6829,38 @@ html.dark .avatar-candidate-img {
 }
 
 .event-countdown-home .countdown-value {
-    font-size: clamp(1.15rem, 12cqi, 2.4rem);
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--accent-color);
-    line-height: 1.05;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: clip;
+    line-height: 1.1;
 }
 
 .event-countdown-home .countdown-unit {
-    font-size: clamp(0.55rem, 3.2cqi, 0.7rem);
+    font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     color: var(--text-secondary);
-    margin-top: 0.3rem;
+    margin-top: 0.2rem;
     text-align: center;
-    max-width: 100%;
-    overflow: hidden;
+    line-height: 1.2;
 }
 
 @media (max-width: 768px) {
     .event-countdown-home {
-        padding: 1.1rem 1.2rem;
+        padding: 0.85rem 0.7rem;
     }
 }
 
 @media (max-width: 480px) {
     .event-countdown-home {
-        padding: 1rem;
+        padding: 0.75rem 0.6rem;
     }
 }
 
-@container event-card (max-width: 420px) {
-    .event-countdown-home {
-        padding: 0.85rem 0.65rem;
-        gap: 0.55rem;
-    }
-
+@container event-card (max-width: 340px) {
     .event-countdown-home .countdown-timer {
-        gap: 0.2rem;
-    }
-
-    .event-countdown-home .countdown-value {
-        font-size: clamp(1.05rem, 11cqi, 1.7rem);
+        grid-template-columns: repeat(2, minmax(4rem, 1fr));
+        gap: 0.5rem 0.75rem;
     }
 }
 
