@@ -33,7 +33,9 @@
 
 ## Сетки
 
-На tablet (768–1023) основные сетки (`stats-grid`, `events-grid`, `admin-grid`, `contacts-grid`, `assignments-grid`) — **2 колонки**.
+На tablet (768–1023) основные сетки (`stats-grid`, `events-grid`, `admin-grid`, `contacts-grid`, `assignments-grid`) — **2 колонки** (`minmax(0, 1fr)`, чтобы колонка могла сжаться).
+
+Таймер «до следующего этапа» на карточках главной (`.event-countdown-home`): четыре ячейки в `repeat(4, minmax(0, 1fr))`, без абсолютных двоеточий и без `min-width: 70px` — иначе на узкой карточке (~300–400px, маленькая диагональ / 2 колонки) секунды уезжают под соседнюю карточку. Размер цифр — `clamp` + container query `event-card`.
 
 На mobile (≤767) — **1 колонка** (кроме `features-grid` на главной — всегда **2×2**, на desktop **4 в ряд**).
 

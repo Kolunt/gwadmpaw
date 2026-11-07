@@ -79,6 +79,18 @@ def test_layout_main_on_admin(client):
     assert 'layout-main' in body
 
 
+def test_home_event_countdown_fits_narrow_card():
+    """Home countdown must shrink inside ~300px grid cards, not overflow into the next card."""
+    css = Path('static/css/style.css').read_text(encoding='utf-8')
+    assert 'grid-template-columns: repeat(4, minmax(0, 1fr))' in css
+    assert '.event-countdown-home .countdown-item:not(:last-child)::after' in css
+    after_idx = css.index('.event-countdown-home .countdown-item:not(:last-child)::after')
+    after_block = css[after_idx:after_idx + 120]
+    assert 'display: none' in after_block
+    assert 'container-name: event-card' in css
+    assert 'minmax(min(100%, 280px), 1fr)' in css
+
+
 def test_sidebar_toggle_desktop_rule_follows_base_rule():
     css = Path('static/css/style.css').read_text(encoding='utf-8')
     base_rule = '.sidebar-toggle {\n    display: none;'
