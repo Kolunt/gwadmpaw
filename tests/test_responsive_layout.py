@@ -13,6 +13,17 @@ def _assert_responsive_shell(body):
     assert 'css/style.css' in body
 
 
+def test_navbar_account_menu_replaces_logout_icon(client):
+    client.get('/login/dev')
+    for path in ('/', '/admin/'):
+        body = client.get(path).get_data(as_text=True)
+        assert 'navbar-account' in body
+        assert 'navbar-account-menu' in body
+        assert '/logout' in body
+        assert '🚪' not in body
+        assert 'js/navbar-account.js' in body
+
+
 def test_home_responsive_shell(client):
     response = client.get('/')
     assert response.status_code == 200

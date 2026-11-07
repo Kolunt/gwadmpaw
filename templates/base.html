@@ -125,18 +125,8 @@
                 </form>
                 {% endif %}
                 {% if session.user_id %}
-                {% if not is_account_blocked %}
-                <a href="{{ url_for('profile.dashboard') }}" class="navbar-icon-btn navbar-avatar-btn" title="{{ _('Profile') }}">
-                    {% if current_user_avatar_seed %}
-                        <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="{{ _('Аватар') }}" class="navbar-avatar">
-                    {% else %}
-                        <span class="navbar-icon">👤</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-                <a href="{{ url_for('auth.logout') }}" class="navbar-icon-btn" title="{{ _('Logout') }}">
-                    <span class="navbar-icon">🚪</span>
-                </a>
+                {% from 'macros/navbar_account.html' import navbar_account_menu %}
+                {{ navbar_account_menu(show_profile=not is_account_blocked) }}
                 {% endif %}
             </div>
         </div>
@@ -230,6 +220,7 @@
     </script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sidebar.js') }}?v={{ app_config.VERSION }}"></script>
+    <script src="{{ url_for('static', filename='js/navbar-account.js') }}?v={{ app_config.VERSION }}"></script>
     {% if dadata_address_enabled %}
     <script src="{{ url_for('static', filename='js/dadata-address.js') }}?v={{ app_config.VERSION }}"></script>
     {% endif %}

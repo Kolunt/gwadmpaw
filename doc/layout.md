@@ -31,6 +31,7 @@
 - Между соседними `<section>` в `.layout-main` — `margin-top: var(--layout-section-gap)` (главная: hero → events → features → CTA).
 - `.main-content`, `.layout-main`, page shells — `padding-block: 0` (включая mobile breakpoints).
 - Navbar (60px) и sidebar (250px на desktop) не меняются; отступ под navbar задаёт `.content-wrapper { margin-top: 60px }`.
+- У залогиненного аватара в шапке — выпадающее меню (`.navbar-account`): **Профиль** и **Выход**. Отдельной кнопки «дверь» нет. Скрипт [`static/js/navbar-account.js`](../static/js/navbar-account.js) закрывает меню по клику снаружи и Escape.
 - Карточки-оболочки страниц: см. **Card shell** ниже; не дублировать `padding` на shell и на каждой внутренней секции.
 - Узкий контент только точечно: `.form-container`, `.layout-inner`, `.profile-card`, `.letter-page-card`.
 - Hero на главной (`.hero-section`) — на всю высоту области контента: `min-height: calc(100dvh - 60px)`.

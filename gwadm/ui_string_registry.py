@@ -67,6 +67,9 @@ _MANUAL_SEEDS: list[tuple[str, str, str, str]] = [
     ('navbar.max_channel', 'nav_public', 'Наш канал в MAX!', 'Our MAX channel'),
     ('navbar.telegram_channel', 'nav_public', 'Наш Telegram-канал', 'Our Telegram channel'),
     ('navbar.stop_impersonation', 'nav_public', 'Вернуться к своей учетной записи', 'Return to your account'),
+    ('Меню аккаунта', 'nav_public', 'Меню аккаунта', 'Account menu'),
+    ('Профиль', 'nav_public', 'Профиль', 'Profile'),
+    ('Выход', 'nav_public', 'Выход', 'Log out'),
     ('admin.brand.desktop', 'nav_admin', 'АДМ · Админ', 'ADM · Admin'),
     ('admin.brand.mobile', 'nav_admin', 'ADM', 'ADM'),
     # Admin sidebar (RU keys — same string in templates)

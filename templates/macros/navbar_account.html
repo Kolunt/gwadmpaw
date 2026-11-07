@@ -1,0 +1,17 @@
+{% macro navbar_account_menu(show_profile=true) -%}
+<details class="navbar-account">
+    <summary class="navbar-icon-btn navbar-avatar-btn" aria-label="{{ _('Меню аккаунта') }}" title="{{ _('Меню аккаунта') }}">
+        {% if current_user_avatar_seed %}
+            <img src="{{ get_avatar_url(current_user_avatar_seed, current_user_avatar_style or 'avataaars', 32) }}" alt="{{ _('Аватар') }}" class="navbar-avatar">
+        {% else %}
+            <span class="navbar-icon">👤</span>
+        {% endif %}
+    </summary>
+    <div class="navbar-account-menu" role="menu">
+        {% if show_profile %}
+        <a href="{{ url_for('profile.dashboard') }}" class="navbar-account-menu-item" role="menuitem">{{ _('Профиль') }}</a>
+        {% endif %}
+        <a href="{{ url_for('auth.logout') }}" class="navbar-account-menu-item" role="menuitem">{{ _('Выход') }}</a>
+    </div>
+</details>
+{%- endmacro %}
